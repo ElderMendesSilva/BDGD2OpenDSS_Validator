@@ -1,0 +1,17 @@
+# Sem conversão automática de fim de linha. O Git para Windows vem com
+# core.autocrlf=true, e ele chegou a marcar os PDFs de relatorios/ como texto —
+# o que os corromperia na próxima extração. Aqui o tratamento é explícito.
+* -text
+
+# Binários, sem margem para heurística
+*.pdf binary
+*.png binary
+*.jpg binary
+*.xlsx binary
+*.pkl binary
+*.rar binary
+*.zip binary
+
+# Arquivos gerados do OpenDSS: texto, mas nunca editados à mão
+*.dss text eol=crlf
+*.dat text eol=crlf

@@ -1,0 +1,46 @@
+# Modelos gerados — vários GB, e reproduzíveis pelo comando registrado em
+# MODELOS_V9/LINHA_DE_BASE.md. O manifesto da linha de base, esse sim, entra.
+MODELOS/
+MODELOS_V*/
+!MODELOS_V9/
+MODELOS_V9/*
+!MODELOS_V9/LINHA_DE_BASE.md
+!MODELOS_V9/linha_de_base.json
+
+# Saídas de testes de conversão antigos
+TF8/
+TF10/
+TFCLIMA/
+TFCUR/
+TFDIA/
+TFGD/
+TFNORM/
+TFOPT/
+
+# Cache da agregação da UCBT (17 MB, refeito em ~1,5 min)
+*.pkl
+*.pkl.*
+
+# Backups compactados do próprio projeto — o repositório passa a ser o backup
+*.rar
+*.zip
+*.7z
+*.gdz
+
+# Relatórios e dados extraídos ficam fora do repositório público por decisão
+# de 10/08/2026: são documentos produzidos no âmbito institucional do trabalho
+# e a publicação deles é decisão separada, que se pode tomar depois.
+# `dados/de_para_mnemonicos.csv` NÃO entra aqui — é insumo do conversor
+# (converter.py o lê para fechar a malha de AT), não resultado.
+relatorios/
+dados/extraido_bdgd/
+dados/resultados/
+
+# Última escolha nos painéis — preferência local, não do projeto
+.ultimos_valores.json
+
+# Log da última conversão
+conversao.log
+
+__pycache__/
+*.py[cod]

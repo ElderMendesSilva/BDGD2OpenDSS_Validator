@@ -1,0 +1,40 @@
+{
+ "data": "2026-08-10",
+ "gdb": "Enel_SP_390_2024-12-31_V11_20250702-2009.gdb",
+ "saida": "MODELOS_V9",
+ "codigo": {
+  "analise_com.py": "5fc57eaee7fa3dfa9e371a32e3fa5930bcac96f4cf7f8ef33bc79e815cdc5528",
+  "app.py": "2842ca1e301811948e5bf38bcc3f1763f5bafd95801b436ff37bdf51706c1a98",
+  "converter.py": "d186a97d4329405ba644eca8cc0224fccf35581c0ae180289016ea8663443a4c",
+  "energia.py": "07b55bf546211e289b8e9cee92a5290c62c54a92bbf98ca8e742a78ab616a86a",
+  "interativo.py": "c1df8d9d5d56bb42dff66c1a64f32ff1f89c782535dac8f06f7cc867637d0e9e",
+  "menu.py": "333b9dd6de7ee8343d6f9b578ea95b4063490cd88f285b4094b158bbfa38d09c",
+  "painel.py": "085493846773c13217343e317f35c17ece0a68e5696f5f81e8e6af3bd24501d0",
+  "valida_perdas.py": "41c0f07e51ff41f91e1b9e334db00084774df45606d231f05191ffd185db0778",
+  "validador.py": "508e8b6774d9c3ea3a82d581dfde944bf1016d8cf3d096aa3c29bc2dab26431b",
+  "verifica.py": "60de789aa7197e4d52f0c193953272b23fa8c9cfbadcdf81b66eedb8b4346181",
+  "bdgd2dss/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "bdgd2dss/cargas.py": "1d15737291557686236aec3111063cd871a31bfe529171d9719453155cedaf9a",
+  "bdgd2dss/chaves.py": "ef979d92e780da21cf0590b171c979b093bf0404606adb2c8aeb4fa31eecdefc",
+  "bdgd2dss/complementos.py": "994de95b29b13068b3d6e70080d29d0a286de96e22c4297b77a86b2741ed073b",
+  "bdgd2dss/coordenadas.py": "dd8c50fc4e22392c79d4bcaf36fd791330cd3018a63457b7f798a5ba8d634d87",
+  "bdgd2dss/diagnostico.py": "52764fb36b1339cb75d527a0c84d21b6aa019a5c813d396fc3f74abf08d9f18e",
+  "bdgd2dss/leitor.py": "ba25e52428a0264239bb482ac7fef8c7e1612252b5b6631f2d335f06fdce4547",
+  "bdgd2dss/linecodes.py": "7dc21ccb153ba6dace5670c21c158ccbfb075aaa4f9cd0d20375b599f5ba44ae",
+  "bdgd2dss/linhas.py": "dba19b37649b50e17eb9ab2e5eba8522a26dc214912f078a378877afb1b6e0e7",
+  "bdgd2dss/malha_at.py": "9eded9482a41d504547b79e55347cd9a3343aef3bba92231f4d99d9cae6f33ed",
+  "bdgd2dss/master.py": "ca318dcce3f3754bb1cd04ca3fc9a5a2116fe52dcb6a1504f13d9cabe18052cd",
+  "bdgd2dss/subtransmissao.py": "b901ea2a415d66d4bbf87837f7c9ea36e7111164065c919923efc64506acb091",
+  "bdgd2dss/tensoes.py": "98571d77ef41b9bc01389afb530e59bd07c8533b3a6c4701e250602c7727ba04",
+  "bdgd2dss/transformadores.py": "7fa39d0176f4e98f941840119cb422925dbe806972d7c5b2940a5d5406fa8df1",
+  "bdgd2dss/transmissao.py": "c58c2c5d535ac7195896d313a4c64c0cfeb46f9dd3703c184a27b0606eb32693"
+ },
+ "resultado": {
+  "sadias": 155,
+  "dia_ok": 155,
+  "GWh_injetado": 101.226,
+  "GWh_perdas": 11.007,
+  "GWh_gd": 0.537,
+  "razao_mediana": 1.882
+ }
+}
