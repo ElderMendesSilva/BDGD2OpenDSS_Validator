@@ -1,7 +1,7 @@
 # Modelos gerados — vários GB, e reproduzíveis pelo comando registrado em
 # MODELOS_V9/LINHA_DE_BASE.md. O manifesto da linha de base, esse sim, entra.
 MODELOS/
-MODELOS_V*/
+MODELOS_*/
 !MODELOS_V9/
 MODELOS_V9/*
 !MODELOS_V9/LINHA_DE_BASE.md
