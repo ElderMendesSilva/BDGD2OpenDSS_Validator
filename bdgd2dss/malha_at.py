@@ -199,6 +199,17 @@ def gerar(comps, anc, caminho):
     grupos = collections.defaultdict(set)
     for k in range(len(comps)):
         grupos[find(k)] |= comps[k]
+    # A BARRA DA SUBESTACAO PERTENCE AO GRUPO QUE ELA LIGA.
+    #
+    # Sem isto, o `transmissao.fontes` — que procura os transformadores cujo
+    # primario esta em cada grupo — nao encontra nenhum trafo ancorado pela
+    # barra da subestacao (achado 7), e o patio inteiro fica sem fonte.
+    # Medido em Roraima ao ligar a ancora nova: 1 fonte para 12 patios, e
+    # 88,8% das cargas do MASTER-GERAL sem tensao. Defeito introduzido pela
+    # propria correcao, e so visivel no modelo da concessao inteira — os
+    # modelos por subestacao tem fonte propria e passavam 20/20.
+    for s, lst in por_sub.items():
+        grupos[find(lst[0][0])].add(barra_de(s))
     return {'barras': len(por_sub), 'ligacoes': nlig,
             'componentes_antes': len(comps),
             'componentes_depois': len(grupos),

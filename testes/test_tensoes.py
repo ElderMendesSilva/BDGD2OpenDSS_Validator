@@ -11,8 +11,19 @@ import os
 import sys
 import unittest
 
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from bdgd2dss import tensoes                      # noqa: E402
+AQUI = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, os.path.dirname(AQUI))
+sys.path.insert(0, AQUI)
+import fixture                                    # noqa: E402
+from bdgd2dss import diagnostico, tensoes         # noqa: E402
+from bdgd2dss.leitor import BDGD                  # noqa: E402
+
+GDB = None
+
+
+def setUpModule():
+    global GDB
+    GDB = fixture.garantir()
 
 
 class CodigoParaKv(unittest.TestCase):
@@ -62,20 +73,94 @@ class ListaDeBases(unittest.TestCase):
         b = tensoes.bases(13.8, 13.8, 0.22)
         self.assertEqual(b, sorted(set(b), reverse=True))
 
-    @unittest.expectedFailure
-    def test_DEFEITO_CONHECIDO_bases_da_enel_sp(self):
-        """A lista de BT sai do censo dos 159.061 transformadores da Enel SP.
+    def test_bases_da_propria_base_entram(self):
+        """Achado 5, corrigido no passo 5: 0,216 e 0,4 sao tensoes reais da
+        Light. Vindas do censo dela, entram no Voltagebases."""
+        b = tensoes.bases(13.8, bt=[0.216, 0.4, 0.22])
+        self.assertIn(0.216, b)
+        self.assertIn(0.4, b)
 
-        A Light declara 216 V em 1.659 transformadores e 400 V em 172 — os
-        dois legitimos, os dois ausentes da lista. 1.831 transformadores
-        recebem base de tensao errada.
+    def test_o_piso_da_enel_sp_nao_some(self):
+        """A base nova nao pode ELIMINAR tensoes: uma subestacao pode nao
+        declarar 0,44 e ainda assim ter uma barra nela."""
+        b = tensoes.bases(13.8, bt=[0.216])
+        for x in (0.44, 0.38, 0.24, 0.23, 0.22, 0.208):
+            self.assertIn(x, b)
 
-        Passo 5 do PLANO.md: a lista tem de sair do censo da base sendo
-        convertida, como o `linecodes._ajuste` ja faz para R1.
-        """
-        b = tensoes.bases(13.8)
-        self.assertIn(0.216, b, '216 V — tensao de BT real da Light')
-        self.assertIn(0.4, b, '400 V — tensao de BT real da Light')
+    def test_bases_sem_censo_mantem_o_comportamento_antigo(self):
+        self.assertEqual(tensoes.bases(13.8), tensoes.bases(13.8, bt=None))
+
+    def test_o_censo_le_a_base_e_normaliza(self):
+        """`censo_bt` le TEN_LIN_SE do fixture, passa pela regra de
+        fase-neutro e devolve tensoes de LINHA. O fixture traz 0,22 normal,
+        7,96 (que e MT, nao BT), 0,216 (real e ausente da lista antiga) e
+        0,127 (fase-neutro de 220/127)."""
+        from bdgd2dss import transformadores as tr
+        tr._niveis_extra.clear()
+        b = BDGD(GDB, verbose=False)
+        v = tensoes.censo_bt(b, log=lambda *a: None)
+        self.assertIn(0.216, v, '216 V e tensao de atendimento real')
+        self.assertIn(0.22, v, '0,127 tem de ter virado 0,22')
+        self.assertNotIn(0.127, v, 'fase-neutro nao entra no Voltagebases')
+        self.assertTrue(all(x <= 1.0 for x in v),
+                        'o censo de BT nao pode trazer tensao de MT')
+        tr._niveis_extra.clear()
+
+
+class ReferenciaDaPropriaBase(unittest.TestCase):
+    """Achado 3: o limiar de REDE_EXTENSA saia do censo da Enel SP e a
+    mensagem citava a mediana dela. Em Roraima, com alimentadores de 288 a
+    424 km, isso classificava 4 de 20 subestacoes contra um numero que nao
+    era daquela concessao."""
+
+    def _resumos(self, km_por_alim, n=10):
+        return [{'alimentadores': 2, 'km_MT': 2 * k}
+                for k in ([km_por_alim] * n)]
+
+    def test_mediana_sai_da_base(self):
+        r = diagnostico.referencia_de(self._resumos(300.0))
+        self.assertAlmostEqual(r['km_alim_mediana'], 300.0, places=3)
+
+    def test_limiar_acompanha_a_mediana(self):
+        """Roraima nao pode ser medida com o limiar da Enel SP: 300 km ali e
+        o normal, nao a excecao."""
+        rr = diagnostico.referencia_de(self._resumos(300.0))
+        sp = diagnostico.referencia_de(self._resumos(8.9))
+        self.assertGreater(rr['km_alim_alto'], 300.0)
+        self.assertLess(sp['km_alim_alto'], 100.0)
+
+    def test_amostra_pequena_cai_no_piso_declarado(self):
+        r = diagnostico.referencia_de(self._resumos(300.0, n=3))
+        self.assertIsNone(r['km_alim_mediana'])
+        self.assertEqual(r['km_alim_alto'], diagnostico.KM_ALIM_ALTO)
+
+    def test_rede_extensa_cita_a_mediana_certa(self):
+        v = {'compila': True, 'converge': True, 'V_MT_mediana': 0.85,
+             'perdas_pct': 5.0}
+        resumo = {'alimentadores': 1, 'km_MT': 400.0, 'kW_BT': 0, 'kW_MT': 0}
+        ref = diagnostico.referencia_de(self._resumos(8.9))
+        causa, detalhe, _ = diagnostico.classificar(v, resumo, {}, ref)
+        self.assertEqual(causa, 'REDE_EXTENSA')
+        self.assertIn('8.9', detalhe.replace(',', '.'))
+        self.assertNotIn('concessao: 8,9', detalhe)
+
+    def test_normal_para_a_base_nao_vira_rede_extensa(self):
+        """O caso de Roraima: 300 km por alimentador, com a mediana da
+        propria base em 300 km, nao e anomalia nenhuma."""
+        v = {'compila': True, 'converge': True, 'V_MT_mediana': 0.85,
+             'perdas_pct': 5.0}
+        resumo = {'alimentadores': 1, 'km_MT': 300.0, 'kW_BT': 0, 'kW_MT': 0}
+        ref = diagnostico.referencia_de(self._resumos(300.0))
+        causa, _, _ = diagnostico.classificar(v, resumo, {}, ref)
+        self.assertNotEqual(causa, 'REDE_EXTENSA')
+
+    def test_sem_referencia_mantem_o_comportamento_antigo(self):
+        v = {'compila': True, 'converge': True, 'V_MT_mediana': 0.85,
+             'perdas_pct': 5.0}
+        resumo = {'alimentadores': 1, 'km_MT': 400.0, 'kW_BT': 0, 'kW_MT': 0}
+        causa, detalhe, _ = diagnostico.classificar(v, resumo, {})
+        self.assertEqual(causa, 'REDE_EXTENSA')
+        self.assertIn('Enel SP', detalhe)
 
 
 if __name__ == '__main__':

@@ -120,11 +120,14 @@ def gerar_at(bdgd, a, ctmt_info, mapa_cnd, log, subs_alvo=None):
         if _c['sub']:
             _por_sub[_c['sub']].append(_c['ten_ope'])
     tap_por_sub = {k: round(_st.median(v), 4) for k, v in _por_sub.items()}
-    info_tr = subtransmissao.trafos(dados, os.path.join(d, 'Trafos_AT.dss'),
-                                    a.kv_at, a.kv_mt, log, subs_alvo, tap_por_sub)
-    log(f'  {info_tr["n"]} transformadores de potencia')
-
+    # Os nos da malha precisam existir ANTES dos trafos: e contra eles que o
+    # `trafos` decide se o PAC_1 serve de ancora ou se cai na barra de AT da
+    # subestacao (achado 7). `componentes` ja rodou acima.
     # --- fechamento da malha: cada subestacao ganha a sua barra de AT
+    # Precisa vir ANTES dos trafos. A ancora de reserva do achado 7 usa a
+    # barra de AT da subestacao, e so vale usa-la para as subestacoes que o
+    # `malha_at` de fato vai ligar a rede: apontar o primario para uma barra
+    # que ninguem cria deixa o trafo ilhado, que e o defeito de partida.
     depara = malha_at.carregar_depara(
         os.path.join(os.path.dirname(os.path.abspath(__file__)),
                      'dados', 'de_para_mnemonicos.csv'))
@@ -133,6 +136,18 @@ def gerar_at(bdgd, a, ctmt_info, mapa_cnd, log, subs_alvo=None):
         anc = {n: (s & subs_alvo) for n, s in anc.items()}
         anc = {n: s for n, s in anc.items() if s}
     log(f'  de-para: {len(depara)} mnemonicos | ancoras: {len(anc):,} nos')
+
+    nos_malha = set().union(*comps) if comps else set()
+    com_barra = {s for n, ss in anc.items() if n in nos_malha for s in ss}
+
+    def _barra_se_ligada(sub):
+        """So devolve a barra de AT se ela vai existir e estar conectada."""
+        return malha_at.barra_de(sub) if sub in com_barra else ''
+
+    info_tr = subtransmissao.trafos(dados, os.path.join(d, 'Trafos_AT.dss'),
+                                    a.kv_at, a.kv_mt, log, subs_alvo,
+                                    tap_por_sub, nos_malha, _barra_se_ligada)
+    log(f'  {info_tr["n"]} transformadores de potencia')
 
     # patios de interesse: os que tem trafo alvo ou equipamento de SE alvo
     alvo_pac = set(info_tr['pac_at'].values())
@@ -318,6 +333,17 @@ def main():
                     help='pasta com Irradiancia_Interpolada/ e Temperatura_Interpolado/ '
                          '(96 pontos por mes, dado medido de Sao Paulo). Sem ela, '
                          'usa um perfil solar sintetico, 23%% otimista e simetrico.')
+    ap.add_argument('--clima-dist', default='390',
+                    help='codigo ANEEL da distribuidora a que o dado de '
+                         '--clima pertence. Padrao 390 (Enel SP), que e a '
+                         'origem da pasta 04_DADOS_AUXILIARES. Se nao bater '
+                         'com o BASE.DIST da base, o conversor RECUSA o dado '
+                         'medido e cai no perfil sintetico.')
+    ap.add_argument('--clima-forcar', action='store_true',
+                    help='usa o clima medido mesmo sendo de outra '
+                         'distribuidora. Legitimo quando a regiao e a mesma '
+                         '(CPFL Paulista tambem opera em Sao Paulo). Fica '
+                         'registrado no relatorio_rede.json.')
     ap.add_argument('--gd-fp', type=float, default=1.0,
                     help='fator de potencia dos inversores da GD. Padrao 1,0, '
                          'que e como operam em campo. 0,92 e a capacidade '
@@ -375,7 +401,25 @@ def main():
         km_c = sum(1 for _ in corr_cnd)
         print(f'  {km_c} com R1 incoerente com a ampacidade — resistencia '
               f'substituida pelo ajuste da propria base (ver LineCodes.dss)', flush=True)
-    clima = complementos.carregar_clima(a.clima, a.mes, log)
+    # --- quem e esta base, segundo ela propria
+    # `BASE.DIST` e o codigo ANEEL da distribuidora, e esta em todas as sete
+    # bases conferidas. E dado, nao inferencia pelo nome do arquivo.
+    dist_base = ''
+    try:
+        _bs = b.ler('BASE', ['DIST'])
+        dist_base = txt(_bs['DIST'][0]).strip()
+    except Exception:
+        pass
+    log(f'  distribuidora declarada na BASE: {dist_base or "(ausente)"}')
+
+    # --- tensoes de BT vindas do censo DESTA base (achado 5)
+    bt_da_base = tensoes.censo_bt(b, log)
+
+    clima = complementos.carregar_clima(a.clima, a.mes, log, dist_base,
+                                        a.clima_dist, a.clima_forcar)
+    clima_fonte = ('medido_forcado' if (clima and a.clima_forcar
+                                        and dist_base != str(a.clima_dist))
+                   else 'medido' if clima else 'sintetico')
     nomes_curva, _irr, _cel = complementos.curvas(
         b, os.path.join(tmp, 'Curvas.dss'), a.dia, clima)
     fc_gd = complementos.fc_efetivo(_irr, _cel)
@@ -555,7 +599,7 @@ def main():
                         len(ctmts), len(barras), mvasc,
                         ['LineCodes.dss', 'Curvas.dss', '_XYCURVES.dss'],
                         list(kvs) + [a.kv_at],
-                        pu=pu_se, barras_extra=extras,
+                        pu=pu_se, barras_extra=extras, bt=bt_da_base,
                         buscoords='Buscoords BusCoords.dat',
                         bloco_medicao=master.medicao(
                             [c for c in ctmts if c in vaos_lig], [], []))
@@ -622,10 +666,15 @@ def main():
                if os.path.exists(os.path.join(a.saida, s_, 'BusCoords.dat'))]
         master.gerar_geral(os.path.join(a.saida, 'MASTER-GERAL.dss'), a.gdb,
                            todas, arq_at, globais, est_at, niveis, aberturas,
-                           bloco_medicao=bloco, buscoords=os.linesep.join(bc))
+                           bloco_medicao=bloco, buscoords=os.linesep.join(bc),
+                           bt=bt_da_base)
         print(f'\nMASTER-GERAL.dss escrito com {len(todas)} subestacoes.', flush=True)
 
     rel = {'gdb': os.path.basename(a.gdb),
+           'dist': dist_base,
+           'clima_fonte': clima_fonte,
+           'clima_dist': str(a.clima_dist),
+           'tensoes_bt_da_base': bt_da_base,
            'subestacoes_na_bdgd': len(ses),
            'subestacoes_geradas': len(resumo) + len(prontas),
            'alimentadores': len(ctmt_info),

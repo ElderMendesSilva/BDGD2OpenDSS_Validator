@@ -111,9 +111,32 @@ def _achar_mes(pasta, mes):
     return _os.path.join(pasta, achados[0])
 
 
-def carregar_clima(pasta, mes=1, log=None):
+def carregar_clima(pasta, mes=1, log=None, dist_base=None, dist_clima=None,
+                   forcar=False):
     """Irradiancia e temperatura MEDIDAS, se disponiveis.
 
+    ---------------------------------------------------------------------
+    O CLIMA TEM DE SER DA REGIAO — achado 4
+    ---------------------------------------------------------------------
+    Este era o defeito mais silencioso do conversor. O `--clima` aponta para
+    a pasta de dados MEDIDOS de Sao Paulo, e ela era aplicada a qualquer
+    base sem uma palavra. Roraima, que fica perto do equador, foi convertida
+    com `irradiancia media 0.2590 kW/m2, ambiente 19.3 a 26.1 C` — numeros
+    identicos aos de Sao Paulo, impressos como se fossem dela.
+
+    Pior que quebrar, porque passa. Um erro que quebra e corrigido; um que
+    imprime numero plausivel entra no artigo.
+
+    Agora a pasta declara a que distribuidora pertence (`dist_clima`, o
+    codigo ANEEL) e a base declara a sua (`BASE.DIST`). Se nao baterem, o
+    conversor RECUSA o dado medido e cai no perfil sintetico, avisando. O
+    sintetico e pior — 23% otimista e simetrico — mas ele SE DECLARA
+    sintetico, e essa e a diferenca que importa.
+
+    `forcar=True` usa mesmo assim. Existe porque ha casos legitimos (CPFL
+    Paulista tambem opera em Sao Paulo), e fica registrado no relatorio.
+
+    ---------------------------------------------------------------------
     Espera a arvore de 04_DADOS_AUXILIARES:
 
         Irradiancia_Interpolada/<Mes>_Irrad.csv   irradiancia em W/m2
@@ -142,6 +165,15 @@ def carregar_clima(pasta, mes=1, log=None):
     if not pasta:
         return None
     nome = MESES[max(1, min(12, mes)) - 1]
+    d_base = str(dist_base or '').strip()
+    d_clima = str(dist_clima or '').strip()
+    if d_base and d_clima and d_base != d_clima and not forcar:
+        if log:
+            log(f'  clima: o dado medido e da distribuidora {d_clima} e esta '
+                f'base e a {d_base}. RECUSADO — usando o perfil sintetico, '
+                f'que ao menos se declara sintetico. Use --clima-forcar se a '
+                f'regiao for a mesma.')
+        return None
     fi = _achar_mes(_os.path.join(pasta, 'Irradiancia_Interpolada'), mes)
     ft = _achar_mes(_os.path.join(pasta, 'Temperatura_Interpolado'), mes)
     if not (fi and ft):

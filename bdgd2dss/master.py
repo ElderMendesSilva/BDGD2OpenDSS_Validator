@@ -198,7 +198,7 @@ def rede_se(se, arquivos, caminho):
 
 def gerar_se(se, caminho, barra_mt, kv_mt, n_alim, n_barras, mvasc,
              arquivos_comuns, niveis, buscoords='', bloco_medicao='', pu=1.0,
-             barras_extra=()):
+             barras_extra=(), bt=None):
     """MASTER de uma subestacao, com uma fonte por BARRA de MT.
 
     `pu` vem de CTMT.TEN_OPE: a barra de MT nao opera no nominal. Com pu=1,0
@@ -220,7 +220,7 @@ def gerar_se(se, caminho, barra_mt, kv_mt, n_alim, n_barras, mvasc,
     for a in arquivos_comuns:
         out.append(f'redirect {a}')
     out.append(f'redirect REDE-{se}.dss')
-    bases = ' '.join(f'{x:g}' for x in tensoes.bases(*niveis))
+    bases = ' '.join(f'{x:g}' for x in tensoes.bases(*niveis, bt=bt))
     out.append(RODAPE_SE.format(bases=bases, buscoords=buscoords,
                                medicao=bloco_medicao))
     open(caminho, 'w', encoding='utf-8').write('\n'.join(out))
@@ -248,7 +248,8 @@ def medicao(vaos, trafos_at, linhas_at, max_linhas=200):
 
 
 def gerar_geral(caminho, gdb, ses, arquivos_at, arquivos_globais,
-                estat, niveis, aberturas, bloco_medicao='', buscoords=''):
+                estat, niveis, aberturas, bloco_medicao='', buscoords='',
+                bt=None):
     """MASTER-GERAL.dss — a concessao inteira num modelo so."""
     out = [CAB_GERAL.format(
         gdb=os.path.basename(gdb), n_se=len(ses), n_ctmt=estat.get('n_ctmt', 0),
@@ -284,7 +285,7 @@ def gerar_geral(caminho, gdb, ses, arquivos_at, arquivos_globais,
 
     out.append('\n! ---------------------------------------- 7. chaves abertas')
     ab = '\n'.join(f'redirect {a}' for a in aberturas)
-    bases = ' '.join(f'{x:g}' for x in tensoes.bases(*niveis))
+    bases = ' '.join(f'{x:g}' for x in tensoes.bases(*niveis, bt=bt))
     out.append(RODAPE_GERAL.format(bases=bases, aberturas=ab + '\n',
                                    buscoords=buscoords))
     open(caminho, 'w', encoding='utf-8').write('\n'.join(out))

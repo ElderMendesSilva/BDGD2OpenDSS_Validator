@@ -30,7 +30,7 @@ def _fases(s, padrao='A'):
 
 
 # TEN_LIN_SE preenchido com o FASE-NEUTRO em campo de FASE-FASE. Censo dos
-# 159.061 transformadores de distribuicao da concessao:
+# 159.061 transformadores de distribuicao da Enel SP:
 #
 #     0,2400  113.811   71,6%      0,1270    492    0,3%   <- fase-neutro
 #     0,2200   38.243   24,0%      0,3800    385    0,2%
@@ -45,12 +45,123 @@ def _fases(s, padrao='A'):
 # Normalizar aqui, na origem, e melhor do que remendar a lista de bases: o
 # enrolamento passa a ter a tensao certa e o Voltagebases fica puramente
 # fase-fase, como o OpenDSS espera.
-_FN_PARA_FF = {0.127: 0.22, 0.12: 0.208, 0.11: 0.19, 0.0733: 0.127}
+#
+# ---------------------------------------------------------------------------
+# DE TABELA PARA REGRA — passo 5, achado 5
+# ---------------------------------------------------------------------------
+# A tabela acima cobria so o que a Enel SP mostrou. As bases seguintes
+# trouxeram o mesmo erro em valores que ela nao tinha:
+#
+#     Roraima   7,96 = 13,8/raiz(3)     6 transformadores
+#     Light     7,62 = 13,2/raiz(3)   613 transformadores
+#
+# Duas bases, dois valores, uma regra: se o valor bate com um nivel conhecido
+# dividido por raiz(3), o campo esta com o fase-neutro. Uma tabela que cresce
+# a cada distribuidora nunca fica pronta; a regra ja cobre os niveis que
+# nenhuma base mostrou ainda.
+#
+# DUAS SALVAGUARDAS, e as duas sao necessarias:
+#
+#   1. valor que JA E um nivel de linha conhecido passa intacto, sem sequer
+#      testar a regra. Sem isso, 0,22 x raiz(3) = 0,38105 cai a 0,28% de
+#      0,38 e viraria 380 V; e 0,23 x raiz(3) = 0,39837 cai a 0,4% de 0,40 e
+#      viraria 400 V. Os dois sao tensoes de atendimento legitimas.
+#
+#   2. a regra e aplicada no maximo DUAS vezes, e o segundo passo so serve
+#      para confirmar que o alvo e mesmo um nivel de linha.
+#
+# DUAS TOLERANCIAS, e elas PRECISAM ser diferentes. Medindo os casos reais:
+#
+#     0,21939 = 380/raiz(3)   fica a 0,27% de 0,22
+#     0,11    = 190/raiz(3)   fica a 0,28% de 0,19 (a BDGD arredonda 0,1097)
+#
+# Sao a mesma distancia relativa, e exigem decisoes opostas: o primeiro NAO
+# pode ser reconhecido como 220 V (senao nunca vira 380), e o segundo TEM de
+# ser reconhecido como 190 V. Uma tolerancia so nao resolve as duas.
+#
+# A saida e separar as perguntas. "Ja e um nivel?" e uma pergunta de
+# identidade e usa tolerancia apertada (0,15%). "Vezes raiz(3) da um nivel?"
+# e uma pergunta de reconstrucao, sobre valor que a BDGD ja arredondou, e
+# usa tolerancia folgada (0,5%).
+_R3 = 3 ** 0.5
+
+# Niveis de LINHA padrao. A lista pode crescer com o censo da propria base
+# (ver `niveis_da_base`), e e isso que traz o 0,216 e o 0,4 da Light.
+NIVEIS_LINHA = [0.19, 0.208, 0.22, 0.23, 0.24, 0.254, 0.38, 0.40, 0.44,
+                2.3, 3.8, 6.6, 11.4, 13.2, 13.8, 15.0, 20.0, 23.0, 34.5]
+
+TOL_IDENTIDADE = 0.0015
+TOL_REGRA = 0.005
+
+# A regra do "um terco" so vale em baixa tensao. Sem esse limite ela pega
+# 5,0 kV — valor real, visto em 8 transformadores de Roraima — e o promove a
+# 15,0 kV, que esta no catalogo. Erro de fator tres inventado do nada.
+LIMITE_TERCO = 0.15
+
+_niveis_extra = set()
+
+
+def niveis_da_base(valores):
+    """Acrescenta ao catalogo os niveis de LINHA que esta base declara.
+
+    O 0,216 e o 0,4 da Light sao tensoes de atendimento reais que a lista
+    montada com o censo da Enel SP nao tinha — e sem elas 1.831
+    transformadores recebiam base de tensao errada. Em vez de crescer a
+    lista a cada distribuidora, a base informa a sua.
+
+    So entra o que aparece com frequencia: valor isolado tem chance de ser
+    o proprio erro que estamos tentando corrigir.
+    """
+    import collections
+    c = collections.Counter(round(float(v), 4) for v in valores
+                            if v and 0.05 <= float(v) <= 1.0)
+    if not c:
+        return sorted(_niveis_extra)
+    total = sum(c.values())
+    for v, n in c.items():
+        if n / total < 0.005 or _perto(v, NIVEIS_LINHA, TOL_IDENTIDADE):
+            continue
+        # so entra se NAO for explicavel como fase-neutro nem como um terco
+        # de um nivel conhecido: senao o proprio erro que a regra corrige
+        # viraria nivel legitimo, e a correcao se desligaria justamente onde
+        # ela e mais necessaria (o 7,62 aparece 613 vezes na Light)
+        if _perto(v * _R3, NIVEIS_LINHA):
+            continue
+        if v < LIMITE_TERCO and _perto(v * 3.0, NIVEIS_LINHA):
+            continue
+        _niveis_extra.add(v)
+    return sorted(_niveis_extra)
+
+
+def _perto(v, niveis, tol=TOL_REGRA):
+    """O nivel conhecido mais proximo de `v`, dentro da tolerancia."""
+    melhor, dist = None, None
+    for x in niveis:
+        d = abs(v - x)
+        if d <= tol * x and (dist is None or d < dist):
+            melhor, dist = x, d
+    return melhor
 
 
 def _linha(tl):
     """Devolve a tensao de LINHA do secundario, corrigindo o campo trocado."""
-    return _FN_PARA_FF.get(round(tl, 4), tl)
+    v = round(float(tl), 6)
+    niveis = list(NIVEIS_LINHA) + sorted(_niveis_extra)
+    for _ in range(2):
+        if _perto(v, niveis, TOL_IDENTIDADE):
+            return v                       # ja e tensao de linha: nao mexer
+        alvo = _perto(v * _R3, niveis)
+        if alvo is None and v < LIMITE_TERCO:
+            # 0,0733 e 127/raiz(3): o fase-neutro de um sistema cuja tensao
+            # de LINHA (0,127) ja e ela propria fase-neutro de 220/127. Dois
+            # raiz(3) seguidos dao 3, e e por isso que este caso precisa de
+            # um teste proprio — a tabela antiga o levava a 0,127 e parava,
+            # corrigindo pela metade.
+            alvo = _perto(v * 3.0, niveis)
+        if alvo is None:
+            return v                       # nao explicavel pela regra
+        v = alvo
+    return v
 
 
 def gerar(bdgd, ctmts, caminho_trafos, caminho_aterramento, kv_mt=13.8,

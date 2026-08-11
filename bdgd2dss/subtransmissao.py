@@ -120,9 +120,38 @@ def barras_mt(dados):
 
 # ================================================================== trafos AT
 def trafos(dados, caminho, kv_at_padrao=88.0, kv_mt_padrao=13.8, log=None,
-           subs_alvo=None, tap_por_sub=None):
+           subs_alvo=None, tap_por_sub=None, nos_malha=None,
+           barra_de_sub=None):
     """UNTRAT + EQTRAT -> Transformer. O secundario vai para a BARRA de MT,
     nao para o PAC_2 solto — e a barra que os alimentadores enxergam.
+
+    ONDE O PRIMARIO SE LIGA — achado 7, corrigido no passo 5
+    -------------------------------------------------------
+    O primario saia de `UNTRAT.PAC_1`, decifrado por engenharia reversa na
+    Enel SP. Medido nas sete bases, a cobertura dessa chave e:
+
+        Enel SP  99,5%   |   Roraima, Light, Equatorial PA, CPFL,
+                             Enel CE e Cemig-D:  0,0% em TODAS
+
+    Nao e "funciona menos bem nas outras": nao funciona em nenhuma. E a
+    camada de AT saia com 0 trechos, 0 fontes e 0 km, com SSDAT impecavel do
+    lado.
+
+    A candidata que o achado 7 registrava — `BARR_1` -> `BAR.COD_ID` — casa
+    de 86% a 100% em todas, mas nao resolve: o `BAR.PAC` correspondente
+    tambem nao esta na SSDAT fora da Enel SP (0,0%). Ela identifica a barra
+    e nao chega a rede. **A medicao refutou a correcao proposta**, e por isso
+    o teste de aceitacao foi escrito pelo RESULTADO e nao pelo mecanismo.
+
+    O que generaliza e a ancora por SUBESTACAO: `UNTRAT.SUB` aparece em
+    `UNSEAT.SUB` de 75,9% (Roraima) a 100%, mediana 98,2%. E o `malha_at` ja
+    cria uma barra de AT por subestacao e a liga aos trechos que a
+    reivindicam. Entao: PAC_1 quando ele existe na malha, a barra da
+    subestacao quando nao.
+
+    `nos_malha` sao os nos da rede de AT (SSDAT + UNSEAT fechadas) e
+    `barra_de_sub` e a funcao que nomeia a barra de AT de cada subestacao.
+    Sem os dois, o comportamento e o antigo.
 
     `subs_alvo` restringe aos trafos das subestacoes que estao sendo geradas.
     Sem esse filtro, gerar duas subestacoes traria os 437 trafos da concessao
@@ -153,6 +182,7 @@ def trafos(dados, caminho, kv_at_padrao=88.0, kv_mt_padrao=13.8, log=None,
     por_sub = collections.defaultdict(list)
     mva_por_sub = collections.Counter()
     ativos = 0
+    por_barra_sub = 0
     for i in range(n):
         cod = txt(u['COD_ID'][i])
         if txt(u['SIT_ATIV'][i]) not in ('AT', ''):
@@ -161,6 +191,19 @@ def trafos(dados, caminho, kv_at_padrao=88.0, kv_mt_padrao=13.8, log=None,
         if subs_alvo is not None and sub not in subs_alvo:
             continue
         no_at = _no(u['PAC_1'][i])
+        # Ancora de reserva: a barra de AT da subestacao. Ver o cabecalho —
+        # o PAC_1 casa com a SSDAT so na Enel SP.
+        #
+        # A reserva so entra se `barra_de_sub` devolver algo: o chamador
+        # recusa a barra das subestacoes que a malha nao vai ligar a rede.
+        # Nesses casos vale o PAC_1 original, que fica ilhado — mas ilhado
+        # tambem era o comportamento antigo, e trocar por uma barra que
+        # ninguem cria seria pior, nao melhor.
+        if nos_malha is not None and barra_de_sub and sub and no_at not in nos_malha:
+            alt = barra_de_sub(sub)
+            if alt:
+                no_at = alt
+                por_barra_sub += 1
         if not no_at:
             continue
         # o no do secundario e a barra declarada; se faltar, cai no PAC_2
@@ -192,9 +235,13 @@ def trafos(dados, caminho, kv_at_padrao=88.0, kv_mt_padrao=13.8, log=None,
         mva_por_sub[sub] += mva
         ativos += 1
     open(caminho, 'w', encoding='utf-8').write('\n'.join(out) + '\n')
+    if log and por_barra_sub:
+        log(f'  {por_barra_sub} de {ativos} trafos ancorados pela barra de AT '
+            f'da subestacao (PAC_1 fora da malha) — achado 7')
     return {'n': ativos, 'barra_do_trafo': barra_do_trafo,
             'kv_da_barra': kv_da_barra, 'pac_at': pac_at,
-            'por_sub': dict(por_sub), 'mva_por_sub': dict(mva_por_sub)}
+            'por_sub': dict(por_sub), 'mva_por_sub': dict(mva_por_sub),
+            'ancorados_por_barra_sub': por_barra_sub}
 
 
 # =================================================================== linhas AT

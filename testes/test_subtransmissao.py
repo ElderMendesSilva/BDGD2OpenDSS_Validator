@@ -13,6 +13,7 @@ import tempfile
 import unittest
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from bdgd2dss import malha_at                     # noqa: E402
 from bdgd2dss import subtransmissao as st         # noqa: E402
 
 
@@ -126,8 +127,12 @@ def _base_at(pac_1_do_trafo):
         'ssdat': {'COD_ID': ['A1'], 'PAC_1': ['PAT1'], 'PAC_2': ['PAT2'],
                   'CTAT': ['CT1'], 'FAS_CON': ['ABC'], 'TIP_CND': ['C1'],
                   'COMP': [1000.0]},
-        'unseat': {k: [] for k in ('COD_ID', 'PAC_1', 'PAC_2', 'FAS_CON',
-                                   'P_N_OPE', 'SUB', 'SIT_ATIV')},
+        # A chave de AT declara a subestacao a que pertence, e os PACs dela
+        # estao na malha. E o que a medicao encontrou em todas as sete bases:
+        # `UNTRAT.SUB` aparece em `UNSEAT.SUB` de 75,9% a 100%.
+        'unseat': {'COD_ID': ['SW1'], 'PAC_1': ['PAT1'], 'PAC_2': ['PAT2'],
+                   'FAS_CON': ['ABC'], 'P_N_OPE': ['F'], 'SUB': ['SE1'],
+                   'SIT_ATIV': ['AT']},
         'ctat': {'COD_ID': ['CT1'], 'NOME': ['LTA XXX-YYY 1'],
                  'TEN_NOM': ['84'], 'PAC_INI': ['PAT1']},
         # BAT1 existe e e o que BARR_1 aponta — nos DOIS cenarios.
@@ -155,13 +160,35 @@ class AncoragemDaAltaTensao(unittest.TestCase):
     def setUp(self):
         self.tmp = tempfile.mkdtemp()
 
-    def _monta(self, pac):
+    def _monta(self, pac, com_reserva=False):
+        """Monta a camada de AT na MESMA ordem do converter.
+
+        `com_reserva=False` reproduz o comportamento antigo — ancora so por
+        PAC_1 — para que o contraste entre as duas convencoes continue
+        medivel depois da correcao.
+        """
         dados = _base_at(pac)
-        info = st.trafos(dados, os.path.join(self.tmp, 'Trafos_AT.dss'),
-                         subs_alvo={'SE1'})
         comps, _ = st.componentes(dados)
         malha = set().union(*comps) if comps else set()
+        extra = {}
+        if com_reserva:
+            anc = malha_at.ancoras(dados)
+            com_barra = {s for n, ss in anc.items() if n in malha for s in ss}
+            extra = {'nos_malha': malha,
+                     'barra_de_sub': lambda s: (malha_at.barra_de(s)
+                                                if s in com_barra else '')}
+        info = st.trafos(dados, os.path.join(self.tmp, 'Trafos_AT.dss'),
+                         subs_alvo={'SE1'}, **extra)
         return dados, info, malha
+
+    def _ligado(self, dados, info, malha):
+        """O primario chega na rede de AT? Direto, ou pela barra da SE que o
+        `malha_at` liga aos trechos que a reivindicam."""
+        anc = malha_at.ancoras(dados)
+        comps, _ = st.componentes(dados)
+        m = malha_at.gerar(comps, anc, os.path.join(self.tmp, 'Barras_AT.dss'))
+        alcancaveis = set(malha) | set(m['barra_por_sub'].values())
+        return set(info['pac_at'].values()) & alcancaveis
 
     def test_a_malha_existe_e_e_a_mesma_nos_dois_cenarios(self):
         """Controle. Se a malha diferisse, o teste seguinte nao provaria
@@ -176,43 +203,138 @@ class AncoragemDaAltaTensao(unittest.TestCase):
         self.assertEqual(info['n'], 1)
         self.assertIn(info['pac_at']['T1'], malha)
 
-    def test_convencao_da_light_o_trafo_cai_numa_ilha(self):
-        """O defeito, medido. O transformador continua sendo emitido — nada
-        avisa —, so que o primario dele fica num no que nao existe na rede de
-        AT. E o `converter` seleciona os patios pela intersecao entre esses
-        nos e as componentes: intersecao vazia, nenhum trecho emitido."""
-        _, info, malha = self._monta('SE1_TRAFO_01')
+    def test_sem_a_reserva_a_convencao_da_light_ilha_o_trafo(self):
+        """O defeito de partida, preservado como medida. Ancorando so por
+        PAC_1, o transformador continua sendo emitido — nada avisa —, mas o
+        primario fica num no que nao existe na rede de AT. E o `converter`
+        seleciona os patios pela intersecao entre esses nos e as componentes:
+        intersecao vazia, nenhum trecho emitido."""
+        _, info, malha = self._monta('SE1_TRAFO_01', com_reserva=False)
         self.assertEqual(info['n'], 1, 'o trafo sai mesmo assim')
         self.assertNotIn(info['pac_at']['T1'], malha)
         self.assertFalse(set(info['pac_at'].values()) & malha,
                          'e essa intersecao vazia que zera a camada de AT')
+
+    def test_a_reserva_traz_o_trafo_para_a_barra_da_subestacao(self):
+        _, info, malha = self._monta('SE1_TRAFO_01', com_reserva=True)
+        self.assertEqual(info['ancorados_por_barra_sub'], 1)
+        self.assertEqual(info['pac_at']['T1'], malha_at.barra_de('SE1'))
+
+    def test_a_reserva_nao_mexe_em_quem_ja_esta_na_malha(self):
+        """A convencao da Enel SP nao pode regredir: 99,5% dos trafos dela
+        casam por PAC_1, e trocar isso por uma barra sintetica perderia a
+        topologia real do patio."""
+        _, info, malha = self._monta('PAT1', com_reserva=True)
+        self.assertEqual(info['ancorados_por_barra_sub'], 0)
+        self.assertEqual(info['pac_at']['T1'], 'pat1')
+
+    def test_barra_recusada_mantem_o_pac_original(self):
+        """Subestacao que a malha nao vai ligar nao ganha barra. Apontar o
+        primario para uma barra que ninguem cria seria trocar um trafo
+        ilhado por outro, so que mais dificil de rastrear."""
+        dados = _base_at('SE1_TRAFO_01')
+        comps, _ = st.componentes(dados)
+        malha = set().union(*comps) if comps else set()
+        info = st.trafos(dados, os.path.join(self.tmp, 'Trafos_AT.dss'),
+                         subs_alvo={'SE1'}, nos_malha=malha,
+                         barra_de_sub=lambda s: '')
+        self.assertEqual(info['ancorados_por_barra_sub'], 0)
+        self.assertEqual(info['pac_at']['T1'], 'se1_trafo_01')
 
     def test_barr_1_e_lido_da_base_e_nunca_consultado(self):
         """`carregar` traz BARR_1 de UNTRAT e nenhum modulo o usa — so
         BARR_2, para o secundario. O campo que casa nas duas bases esta na
         memoria do processo o tempo todo, sem ser olhado."""
         fonte = inspect.getsource(st)
-        self.assertEqual(fonte.count('BARR_1'), 1,
-                         'unica ocorrencia: a lista de colunas de carregar()')
-        self.assertIn("'BARR_1'", inspect.getsource(st.carregar))
-        self.assertGreater(fonte.count('BARR_2'), 1,
-                           'BARR_2 e lido E usado — a diferenca e o achado 7')
+        self.assertIn("'BARR_1'", inspect.getsource(st.carregar),
+                      'a coluna e lida da base')
+        self.assertNotIn("u['BARR_1']", fonte,
+                         'lida e nunca indexada: nenhum modulo a consulta')
+        self.assertIn("u['BARR_2']", fonte,
+                      'BARR_2 e lido E usado — a diferenca e o achado 7')
 
-    @unittest.expectedFailure
-    def test_DEFEITO_CONHECIDO_o_primario_tem_de_cair_na_malha(self):
-        """O criterio de aceitacao do passo 5, enunciado pelo RESULTADO e nao
-        pelo mecanismo: o primario do transformador de potencia tem de chegar
-        na rede de AT, seja qual for a ancora que se adote.
+    def test_e_usar_barr_1_nao_teria_resolvido(self):
+        """O desfecho do achado 7, e a licao dele.
 
-        Duas candidatas estao registradas no achado 7 e nenhuma foi decidida:
-        BARR_1 -> BAR.COD_ID -> BAR.PAC (que resolve a Enel SP, onde BAR.PAC
-        cai na SSDAT em 45,0%, mas nao a Light, onde cai em 0,0%), ou ancorar
-        na barra de AT da subestacao que o `malha_at` ja cria a partir de
-        UNSEAT.SUB e UNTRAT.SUB. O teste aceita as duas.
+        Parecia obvio que bastava trocar a ancora para `BARR_1`, que casa
+        com `BAR.COD_ID` de 86% a 100% em todas as bases. A medicao mostrou
+        que nao: o `BAR.PAC` daquela barra nao esta na SSDAT em nenhuma base
+        alem da Enel SP. `BARR_1` identifica a barra e nao chega a rede.
+
+        Este teste tranca o caso: mesmo com BARR_1 apontando para uma barra
+        que existe em BAR, se o PAC dela nao estiver na malha, a ancora por
+        barra nao liga nada.
         """
-        _, info, malha = self._monta('SE1_TRAFO_01')
-        self.assertTrue(set(info['pac_at'].values()) & malha,
-                        'trafo de potencia ilhado: a camada de AT sai vazia')
+        dados = _base_at('SE1_TRAFO_01')
+        bar = dados['bar']
+        bar['PAC'] = ['FORA_DA_MALHA']            # o caso das seis bases
+        comps, _ = st.componentes(dados)
+        malha = set().union(*comps) if comps else set()
+        pac_da_barra = {bar['COD_ID'][0]: malha_at._no(bar['PAC'][0])}
+        self.assertIn('BAT1', pac_da_barra, 'BARR_1 casa com BAR.COD_ID')
+        self.assertNotIn(pac_da_barra['BAT1'], malha,
+                         'e mesmo assim nao chega na rede de AT')
+
+    def test_o_primario_chega_na_rede_nas_duas_convencoes(self):
+        """O criterio de aceitacao do passo 5, enunciado pelo RESULTADO e nao
+        pelo mecanismo — e foi bom que tenha sido.
+
+        As duas candidatas registradas no achado 7 eram BARR_1 -> BAR.COD_ID
+        -> BAR.PAC, e a barra de AT da subestacao. A medicao nas SETE bases
+        (`diagnosticos/at_cobertura.py`) refutou a primeira: BARR_1 casa com
+        BAR.COD_ID de 86% a 100%, mas o BAR.PAC correspondente nao esta na
+        SSDAT em nenhuma base alem da Enel SP (0,0%). Ela identifica a barra
+        e nao chega a rede.
+
+        A que sobrou — UNTRAT.SUB em UNSEAT.SUB — cobre de 75,9% (Roraima) a
+        100%, mediana 98,2%. Um teste escrito pelo mecanismo teria travado a
+        correcao errada.
+        """
+        for pac in ('PAT1', 'SE1_TRAFO_01'):
+            dados, info, malha = self._monta(pac, com_reserva=True)
+            self.assertTrue(self._ligado(dados, info, malha),
+                            f'com PAC_1={pac} o trafo ficou ilhado')
+
+
+class BarraDaSubestacaoNoGrupo(unittest.TestCase):
+    """A barra de AT de uma subestacao pertence ao grupo que ela liga.
+
+    Parece detalhe de contabilidade e nao e. O `transmissao.fontes` procura,
+    em cada grupo, os transformadores cujo primario esta ali; se a barra
+    ficar de fora, todo trafo ancorado por ela (achado 7) fica sem fonte.
+
+    Medido em Roraima no dia em que a ancora nova entrou: **1 fonte para 12
+    patios** e 88,8% das cargas do MASTER-GERAL sem tensao. Depois da
+    correcao, 12 fontes e 13,2%. Defeito introduzido pela propria correcao,
+    invisivel nos modelos por subestacao — que tem fonte propria e passavam
+    20 de 20.
+    """
+
+    def setUp(self):
+        self.tmp = tempfile.mkdtemp()
+
+    def test_a_barra_entra_no_grupo(self):
+        dados = _base_at('SE1_TRAFO_01')
+        comps, _ = st.componentes(dados)
+        anc = malha_at.ancoras(dados)
+        m = malha_at.gerar(comps, anc,
+                           os.path.join(self.tmp, 'Barras_AT.dss'))
+        barra = malha_at.barra_de('SE1')
+        self.assertIn(barra, m['barra_por_sub'].values())
+        self.assertTrue(any(barra in g for g in m['grupos']),
+                        'sem isso o patio inteiro fica sem fonte')
+
+    def test_a_barra_fica_no_grupo_dos_trechos_dela(self):
+        """Nao basta estar em ALGUM grupo: tem de estar no mesmo dos trechos
+        que ela liga, senao a fonte nasce noutro patio."""
+        dados = _base_at('SE1_TRAFO_01')
+        comps, _ = st.componentes(dados)
+        anc = malha_at.ancoras(dados)
+        m = malha_at.gerar(comps, anc,
+                           os.path.join(self.tmp, 'Barras_AT.dss'))
+        barra = malha_at.barra_de('SE1')
+        g = [x for x in m['grupos'] if barra in x][0]
+        self.assertIn('pat1', g, 'a barra e os trechos no mesmo grupo')
 
 
 if __name__ == '__main__':

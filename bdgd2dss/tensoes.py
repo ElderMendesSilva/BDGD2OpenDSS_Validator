@@ -66,7 +66,7 @@ def desconhecidos():
     return sorted(_avisados)
 
 
-def bases(*niveis):
+def bases(*niveis, bt=None):
     """Monta o Voltagebases do MASTER: os niveis usados + as tensoes de BT.
 
     SO VALORES FASE-FASE. O `Voltagebases` do OpenDSS e uma lista de tensoes
@@ -81,13 +81,64 @@ def bases(*niveis):
     antes, 21 depois. Isso inflava a tensao de BT da concessao inteira, e o
     validador nao via porque so media as barras de MT (kVBase > 1).
 
-    A lista sai do CENSO de TEN_LIN_SE dos 159.061 transformadores de
+    A lista saiu do CENSO de TEN_LIN_SE dos 159.061 transformadores de
     distribuicao, nao de suposicao — 0,24 (71,6%), 0,22 (24,0%), 0,23 (2,3%),
     0,208 (1,4%), 0,38 (0,2%) e 0,44 (0,1%). Os valores fase-neutro que
     apareciam no cadastro (0,127, 0,12, 0,11) sao normalizados na origem, em
-    `transformadores._linha`, e por isso nao entram aqui. `0,215` e `0,19`
-    saem: nenhum transformador da concessao os declara.
+    `transformadores._linha`, e por isso nao entram aqui.
+
+    ...MAS O CENSO ERA DE UMA BASE SO, e isso quebrou na segunda
+    -----------------------------------------------------------
+    Achado 5: a Light declara 1.659 transformadores em 0,216 (216 V) e 172 em
+    0,4 (400 V). Sao tensoes de atendimento legitimas dela, e nenhuma existe
+    na Enel SP. Sem elas na lista, **1.831 transformadores recebiam base de
+    tensao errada** — o mesmo mecanismo que ja tinha posto 2.805 barras acima
+    de 1,10 pu.
+
+    Uma lista que cresce a cada distribuidora nunca fica pronta. Agora o
+    censo e da BASE SENDO CONVERTIDA (`bt`), com a lista da Enel SP apenas
+    como piso — nenhuma tensao some, e as da base entram. E a mesma disciplina
+    do `linecodes._ajuste`, que calibra R1 na propria SEGCON a cada execucao.
     """
-    bt = [0.44, 0.38, 0.24, 0.23, 0.22, 0.208]
-    v = sorted({round(float(x), 4) for x in niveis if x} | set(bt), reverse=True)
+    piso = [0.44, 0.38, 0.24, 0.23, 0.22, 0.208]
+    medidas = [round(float(x), 4) for x in (bt or []) if x]
+    v = sorted({round(float(x), 4) for x in niveis if x}
+               | set(piso) | set(medidas), reverse=True)
     return v
+
+
+def censo_bt(bdgd, log=None):
+    """As tensoes de BT que ESTA base declara, ja normalizadas.
+
+    Le TEN_LIN_SE de UNTRMT, passa pela regra de fase-neutro do
+    `transformadores._linha` e devolve os niveis que aparecem com frequencia.
+    Alimenta tanto o catalogo da regra quanto o `Voltagebases`.
+
+    Frequencia minima de propostio: um valor isolado tem chance de ser o
+    proprio erro de cadastro que se esta tentando corrigir, e promove-lo a
+    base de tensao desligaria a correcao.
+    """
+    from . import transformadores
+    from .leitor import num
+    try:
+        col = bdgd.ler('UNTRMT', ['TEN_LIN_SE'])
+    except Exception as e:
+        if log:
+            log(f'  censo de BT indisponivel ({str(e)[:60]}) — usando o piso')
+        return []
+    brutos = [num(x) for x in col['TEN_LIN_SE']]
+    # 1. o que a base declara e a regra NAO explica vira nivel legitimo
+    transformadores.niveis_da_base(brutos)
+    # 2. e o censo do que sai da normalizacao vira Voltagebases
+    import collections
+    c = collections.Counter(round(transformadores._linha(v), 4)
+                            for v in brutos if 0.05 <= v <= 1.0)
+    if not c:
+        return []
+    total = sum(c.values())
+    fora = sorted(v for v, n in c.items() if n / total >= 0.001)
+    if log and fora:
+        det = ', '.join(f'{v:g} ({100*c[v]/total:.1f}%)' for v in
+                        sorted(c, key=c.get, reverse=True)[:6])
+        log(f'  tensoes de BT desta base: {det}')
+    return fora

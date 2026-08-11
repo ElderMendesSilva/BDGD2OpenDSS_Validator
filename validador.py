@@ -28,7 +28,7 @@ ADEQ = (0.95, 1.05)
 PREC = (0.93, 1.07)
 
 
-def valida(pasta):
+def valida(pasta, referencia=None):
     # O Compile do OpenDSS TROCA o diretorio de trabalho do processo. Sem
     # guardar e restaurar, a partir da segunda subestacao todo caminho
     # relativo aponta para o lugar errado — na pratica so a primeira era
@@ -186,7 +186,8 @@ def valida(pasta):
             res = {}
     causa, detalhe, acionavel = diagnostico.classificar(
         r, res, {'reg_total': nreg, 'reguladores_saturados': sat,
-                 'reg_saturados': sat, 'mva_instalado': res.get('mva_at')})
+                 'reg_saturados': sat, 'mva_instalado': res.get('mva_at')},
+        referencia)
     r['causa'] = causa
     r['causa_detalhe'] = detalhe
     r['acionavel'] = acionavel
@@ -279,9 +280,30 @@ def main():
         pastas = subs
     else:
         pastas = ([alvo] if raiz else []) + subs
+    # O limiar de REDE_EXTENSA sai da PROPRIA base (achado 3): 60 km e a
+    # mediana de 8,9 km vieram do censo da Enel SP, e em Roraima — onde os
+    # alimentadores tem 288 a 424 km — classificavam 4 de 20 subestacoes
+    # citando uma mediana que nao era daquela concessao. Os resumo.json ja
+    # estao no disco, entao o censo custa uma varredura de arquivos pequenos.
+    resumos = []
+    for p in pastas:
+        fr = os.path.join(p, 'resumo.json')
+        if os.path.exists(fr):
+            try:
+                with open(fr, encoding='utf-8') as fh:
+                    resumos.append(json.load(fh))
+            except Exception:
+                pass
+    ref = diagnostico.referencia_de(resumos)
+    if ref.get('km_alim_mediana'):
+        print(f'referencia desta base: mediana de '
+              f'{ref["km_alim_mediana"]:.1f} km por alimentador em '
+              f'{ref["n"]} subestacoes; REDE_EXTENSA acima de '
+              f'{ref["km_alim_alto"]:.0f} km\n')
+
     out = []
     for p in pastas:
-        r = valida(p)
+        r = valida(p, ref)
         if not r:
             continue
         out.append(r)

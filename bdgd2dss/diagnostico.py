@@ -45,18 +45,63 @@ REDE_EXTENSA e REGULADOR_SATURADO dependem de dado que a BDGD nao tem e
 viram item de solicitacao a distribuidora.
 """
 
-# a concessao tem mediana de 8,9 km por alimentador e p99 de 68 km
+# ---------------------------------------------------------------------------
+# REDE_EXTENSA: o limiar tem de sair da BASE, nao da Enel SP — achado 3
+# ---------------------------------------------------------------------------
+# Estes numeros vieram do censo da Enel SP: mediana de 8,9 km por alimentador,
+# p99 de 68 km. Aplicados a Roraima, onde os alimentadores tem 288 a 424 km,
+# 4 das 20 subestacoes cairam em REDE_EXTENSA — e a mensagem informava
+# "mediana da concessao: 8,9 km", que e falso para aquela base.
+#
+# A classificacao em si continua defensavel (queda de tensao em alimentador
+# de 400 km e fisicamente real e nao e acionavel aqui). O que estava errado
+# era comparar uma concessao com a mediana de OUTRA.
+#
+# Agora `referencia` traz a mediana e o limiar da propria base, calculados em
+# `referencia_de`. Os valores abaixo ficam so como piso para quem chamar sem
+# referencia — e a mensagem passa a dizer de qual mediana esta falando.
 KM_ALIM_ALTO = 60.0
 V_BAIXA = 0.90
 PERDAS_ALTA = 15.0
 USO_ALTO = 90.0
 
+# Quantas vezes a mediana da propria base um alimentador precisa ter para ser
+# considerado extenso. 60/8,9 = 6,7 na Enel SP, que e de onde sai o fator.
+FATOR_EXTENSA = 6.7
 
-def classificar(v, resumo, extra=None):
+
+def referencia_de(resumos):
+    """Mediana e limiar de km por alimentador, medidos NESTA base.
+
+    `resumos` sao os resumo.json das subestacoes. Devolve o dicionario que
+    `classificar` espera em `referencia`.
+    """
+    import statistics
+    km = []
+    for r in resumos or []:
+        alim = max((r or {}).get('alimentadores', 0), 0)
+        if alim and (r or {}).get('km_MT'):
+            km.append(r['km_MT'] / alim)
+    if len(km) < 5:
+        return {'km_alim_mediana': None, 'km_alim_alto': KM_ALIM_ALTO,
+                'n': len(km)}
+    med = statistics.median(km)
+    return {'km_alim_mediana': med,
+            'km_alim_alto': max(med * FATOR_EXTENSA, 20.0),
+            'n': len(km)}
+
+
+def classificar(v, resumo, extra=None, referencia=None):
     """`v` = registro do validador; `resumo` = resumo.json da subestacao.
+
+    `referencia` vem de `referencia_de` e carrega a estatistica da base em
+    conversao. Sem ela, valem os numeros da Enel SP — e a mensagem diz isso.
 
     Devolve (causa, detalhe, acionavel)."""
     extra = extra or {}
+    ref = referencia or {}
+    km_alto = ref.get('km_alim_alto') or KM_ALIM_ALTO
+    med_base = ref.get('km_alim_mediana')
     alim = max(resumo.get('alimentadores', 1), 1)
     km_alim = resumo.get('km_MT', 0) / alim
     kw = resumo.get('kW_BT', 0) + resumo.get('kW_MT', 0)
@@ -86,9 +131,11 @@ def classificar(v, resumo, extra=None):
         return ('CARGA_ALTA',
                 f'{kw/1000:.1f} MW sobre {mva:.0f} MVA instalados ({uso:.0f}%)', True)
 
-    if km_alim > KM_ALIM_ALTO:
+    if km_alim > km_alto:
+        origem = (f'mediana desta base: {med_base:.1f} km' if med_base
+                  else 'sem censo desta base; limiar da Enel SP, 60 km')
         return ('REDE_EXTENSA',
-                f'{km_alim:.0f} km por alimentador (mediana da concessao: 8,9 km)', False)
+                f'{km_alim:.0f} km por alimentador ({origem})', False)
 
     if extra.get('reg_total') and extra.get('reg_saturados') == extra.get('reg_total'):
         return ('REGULADOR_SATURADO',
