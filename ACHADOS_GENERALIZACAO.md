@@ -826,3 +826,75 @@ Consequência para o auditor: **fração de alimentadores que chegam à mediçã
 vira indicador de primeira linha, ao lado de faturado ≥ injetado. Sem ele, a
 Cemig-D teria entrado na tabela do achado 10 com um 1,1% de aparência
 excelente.
+
+---
+
+## Achado 13 — o modelo único da concessão tem teto de memória
+
+**11/08/2026.** Encontrado ao checar se o bloco B do passo 5 tinha causado
+regressão. Não tinha — mas revelou outra coisa.
+
+### O que aconteceu
+
+O `MASTER-GERAL` da Enel SP não compila:
+
+```
+(#303) ... New Load.BT_14256255_2 Bus1=30646325737313880l.2.4 ...
+Error Description: Out of memory
+```
+
+Primeira leitura, e errada: *"o bloco B quebrou o modelo da concessão
+inteira"*. O controle desmentiu.
+
+### O controle
+
+Compilei o `MASTER-GERAL` da **V9** — gerado pelo código antigo — na mesma
+máquina, no mesmo estado. **Falha também**, na mesma etapa, criando uma carga
+em `DJKU/Cargas.dss`. E esse arquivo é **byte a byte idêntico** ao do bloco B
+(SHA-256 `2A14D66B…`).
+
+Contando os elementos dos dois modelos, sem compilar:
+
+| | V9 | bloco B |
+|---|---:|---:|
+| **elementos totais** | **2.391.177** | **2.391.177** |
+| Line | 1.527.968 | 1.527.968 |
+| Load | 351.144 | 351.144 |
+| Transformer | 159.679 | 159.679 |
+| Reactor | 158.998 | 158.998 |
+| SwtControl | 85.284 | 85.284 |
+| PVSystem | 63.781 | 63.781 |
+
+**Nem um elemento difere.** O bloco B é estruturalmente inerte na Enel SP.
+
+### O achado de verdade, e ele é sobre o objetivo do projeto
+
+O modelo único da concessão inteira — 2,39 milhões de elementos — **não cabe
+em 15,8 GB de RAM**. Isso não é defeito do conversor nem da BDGD: é limite de
+porte, e vale para qualquer versão do código.
+
+Importa porque *"entregar um MASTER geral da rede toda"* é objetivo declarado
+do trabalho. Ele funciona nas bases menores — o `MASTER-GERAL` de Roraima
+compila, converge em 10 iterações e resolve. Na maior distribuidora do país,
+com esta máquina, não.
+
+Três saídas, nenhuma testada ainda:
+
+1. **mais memória** — medir o pico real e dizer quanto pede. O cluster do
+   laboratório resolveria, e é o primeiro uso concreto que ele ganha;
+2. **`--bt nenhum` no modelo geral** — as 351.144 cargas e boa parte dos
+   158.998 reatores de aterramento são de BT. Um MASTER-GERAL só de MT
+   caberia, e para estudo de subtransmissão é o recorte certo;
+3. **aceitar o recorte por subestação** como o produto principal, com o
+   MASTER-GERAL restrito às bases que couberem.
+
+### E a lição, que é a mesma de sempre
+
+O número **1.669.937 barras, 4 iterações, sem NaN** estava no `PLANO.md` como
+estado corrente. **Eu o tratei como linha de base durante toda a validação de
+hoje sem nunca ter reproduzido.** Ele é da era V8, e não há `validacao.json`
+da V9 no disco que o confirme.
+
+Se o controle não tivesse sido rodado, o desfecho seria desfazer a âncora de
+AT — a correção que resolve seis bases — para consertar um defeito que não
+existia.

@@ -14,7 +14,13 @@ Medido, não estimado:
 |---|---|
 | Subestações que compilam, convergem e não têm NaN nos dois motores | **155 de 155** |
 | Subestações que resolvem o dia inteiro de 96 passos | **155 de 155** |
-| `MASTER-GERAL` (concessão inteira) | **1.669.937 barras, 4 iterações, sem NaN** |
+| `MASTER-GERAL` (concessão inteira) | **1.669.937 barras, 4 iterações, sem NaN** ⚠️ |
+
+⚠️ **Este número não é reproduzível nesta máquina, e eu o tratei como linha de
+base sem conferir.** Medido em 11/08/2026: o `MASTER-GERAL` da Enel SP
+(2.391.177 elementos) **estoura a memória do OpenDSS** — com o código novo *e*
+com o da V9, que falha na mesma carga, num arquivo byte a byte idêntico. Ver
+achado 13.
 | Validação das perdas contra o `PERD_*` declarado | **reprova** — razão mediana 1,88×, 18% dos alimentadores dentro de ±30% |
 | Subestações com causa raiz acionável (`TENSAO_BAIXA`) | **19** — perdas de 17,4% contra 4,8% declarado, razão 4,08× |
 | Testes automatizados | **0** |
