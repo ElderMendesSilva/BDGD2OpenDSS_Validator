@@ -346,8 +346,25 @@ def main():
     saida = []
     plt = None
     n_curvas = 0
+    falharam = []
     for se, m in itens:
-        ent, perd, ok, falhos, n_comp, por_alim, serie = dia(dss, m, a.passos)
+        # Uma subestacao que nao compila nao pode levar as outras junto. O
+        # `verifica.py` ja tratava; aqui a excecao subia e matava a varredura
+        # inteira — medido na Equatorial PA, onde um erro de CalcYPrim na 36a
+        # descartou o trabalho das 118 restantes.
+        try:
+            ent, perd, ok, falhos, n_comp, por_alim, serie = dia(dss, m, a.passos)
+        except Exception as e:
+            os.chdir(CWD)
+            falharam.append({'se': se, 'erro': str(e)[:300]})
+            print(f'{se:14s} {"":>8} {"":>14} {"":>12} {"—":>9} {"—":>9} '
+                  f'ERRO: {str(e)[:90]}', flush=True)
+            saida.append({'se': se, 'passos_ok': 0, 'passos': a.passos,
+                          'erro': str(e)[:300], 'kWh_injetado': 0.0,
+                          'kWh_perdas': 0.0, 'perdas_pct': None,
+                          'passos_falhos': [], 'compilacoes': 0,
+                          'alimentadores': {}})
+            continue
         pct = 100 * perd / ent if ent > 1 else None
         gd = [x for x in serie['gd_kw'] if x]
         # o valor tem de virar texto ANTES do :>9 — aplicar formato a None
@@ -381,6 +398,10 @@ def main():
                           encoding='utf-8'), indent=1, ensure_ascii=False)
     bons = [x for x in saida if x['passos_ok'] == a.passos]
     print(f'\n{len(bons)} de {len(saida)} com o dia inteiro resolvido')
+    if falharam:
+        print(f'{len(falharam)} nao rodaram:')
+        for f in falharam:
+            print(f'   {f["se"]:14s} {f["erro"][:100]}')
     if n_curvas:
         print(f'{n_curvas} curvas de geração em <SE>/curva_gd.png')
     print(f'detalhe em {os.path.join(raiz, "energia_dia.json")}')

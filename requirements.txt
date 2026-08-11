@@ -1,0 +1,21 @@
+# Conversor BDGD -> OpenDSS
+#
+# Versoes sao as usadas na linha de base de 10/08/2026 (MODELOS_V9).
+# O `>=` e proposital: nada aqui depende de versao exata, e travar versao
+# num projeto que vai ser lido por terceiros cria atrito sem ganho.
+
+pyogrio>=0.13          # leitura da .gdb; traz o GDAL junto
+numpy>=1.26
+opendssdirect.py>=0.9  # motor DSS C-API
+
+# --- opcionais, por funcionalidade -----------------------------------------
+matplotlib>=3.8        # graficos do analise_com, verifica, energia, valida_perdas
+pywin32>=306           # motor COM da EPRI (so Windows) — usado por
+                       # analise_com.py, painel.py e pelo verifica --motor com
+openpyxl>=3.1          # planilhas da transmissora (--excel)
+
+# --- desenvolvimento --------------------------------------------------------
+# Os testes rodam com o `unittest` da biblioteca padrao, de proposito:
+#     python -m unittest discover -s testes -t testes -v
+# Nao ha dependencia de teste a instalar. O fixture e gerado com pyogrio,
+# que ja e exigido acima.
