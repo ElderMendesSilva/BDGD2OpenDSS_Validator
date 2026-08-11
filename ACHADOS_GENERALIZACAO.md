@@ -982,11 +982,74 @@ Por mim:
 |---|---|
 | tensão de cabeceira baixa (achado 14) | **refutada** — 73/96 e ~35/96 nos dois pu |
 | impedância do aterramento de neutro | **refutada** — 0,5 Ω a 0,001 Ω, fator 500, não muda um passo |
+| faixa `Vminpu`/`Vmaxpu` do PVSystem | **refutada como causa** — ver abaixo |
 
 A hipótese do neutro era a da própria equipe externa, e era boa: com
 `--bt agregado` não há rede de baixa tensão, então toda a carga e toda a
 geração de um transformador ficam na mesma barra e voltam por um único reator.
 Mas o número não sustenta.
+
+### A terceira hipótese, e por que ela quase convenceu
+
+O `_pv` não declara `Vminpu` nem `Vmaxpu`, então valem os padrões do OpenDSS:
+**0,85 e 1,10**. Fora dessa faixa o PVSystem deixa de ser injeção de potência
+constante e vira impedância constante — que é **exatamente** o mecanismo do
+cutoff do ZIPV já documentado em `cargas.py`: *"a carga desliga, a tensão sobe,
+a carga religa, a tensão cai, e o fluxo nunca converge"*. E o próprio `_pv`
+registra um segundo caso da família, em `MODELOS_V6`, com Vmax de 1e+69.
+
+Três precedentes internos apontando para o mesmo lugar. Medindo:
+
+| faixa | irrad 75% | irrad 100% | Vmax |
+|---|---:|---:|---:|
+| padrão (0,85–1,10) | **73/96** | 35/96 | 1,229 |
+| 0,10–2,00 (nunca troca) | 60/96 | 57/96 | 1,229 |
+| 0,80–1,20 | 70/96 | 63/96 | 1,229 |
+| 0,85–1,50 | 72/96 | **66/96** | 1,229 |
+
+Alargar recupera muito em 100% e **piora em 75%**, e não restaura 96/96 em
+nenhuma configuração. É mitigação, não correção: trocaria um regime por outro.
+**Não foi adotada.**
+
+### O que o experimento encontrou sem estar procurando
+
+**`Vmax = 1,229` nos quatro cenários, e idêntico em 75% e 100%.**
+
+Se fosse sobretensão causada pela injeção fotovoltaica, 100% teria de dar mais
+que 75%. Não dá — nem na terceira casa. **A tensão de 1,229 pu não vem da
+geração.** No histórico deste projeto, barra acima de 1,10 quase sempre
+significou base de tensão errada (foram 2.805 barras na DALP, pelo `0,127` no
+`Voltagebases`).
+
+Puxando a pista, **com a geração desabilitada**, na DALP:
+
+```
+22 barras acima de 1,10 pu (de 17.220)
+   as 22 com base 0,1201 kV — e so existem 36 barras nessa base
+
+bases em uso:  50,8068 (63) | 19,9186 (967) | 7,9674 (14.699)
+               0,2540 (24)  | 0,1386 (903)  | 0,1328 (511)
+               0,1270 (17)  | 0,1201 (36)   <- 22 das 36 acima de 1,10
+```
+
+**61% das barras de uma base específica estão acima de 1,10 pu, e as outras
+sete bases não têm nenhuma.** Anomalia concentrada num único nível é assinatura
+de base mal atribuída, não de física de rede.
+
+E `0,1201 = 208/√3`. O suspeito é a colisão entre a meia-bobina do
+transformador de derivação central — que sai em `TEN_LIN_SE / 2`, tipicamente
+0,12 kV — e a entrada de 208 V do `Voltagebases`, cujo fase-neutro é 0,1201.
+Um número praticamente idêntico ao outro.
+
+É a **mesma classe** do defeito do `0,127` já corrigido: tensão de meia-bobina
+casando com entrada de tensão de linha. Aquele afetou 2.805 barras; este
+afeta 22. Fica registrado com o mecanismo suspeito e **sem correção**, porque
+confirmar exige rastrear os transformadores dessas 22 barras, e é trabalho
+próprio.
+
+Consequência imediata: a linha `0,1201 (208 V) | 1.060 nós | mediana 0,8318 |
+80,2% abaixo de 0,93` da tabela da equipe externa **é, em parte, artefato de
+base** — não retrato da rede.
 
 ### E a lição, que é a mesma de sempre
 
