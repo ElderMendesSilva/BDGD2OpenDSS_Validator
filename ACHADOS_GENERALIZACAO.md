@@ -99,6 +99,68 @@ Pior que quebrar, porque passa silencioso. O conversor precisa exigir clima da
 região ou recusar-se a usar o de outra, e o auditor precisa reportar qual clima
 entrou.
 
+### RESOLVIDO em 11/08/2026 — e o erro não estava onde eu procurava
+
+Primeiro a recusa: `BASE.DIST` (o código ANEEL, presente nas sete bases) é
+confrontado com `--clima-dist`, e o dado medido de outra distribuidora é
+**recusado** em favor do perfil sintético — que é pior, mas *se declara*
+sintético. Um erro que quebra é corrigido; um que imprime número plausível
+entra no artigo.
+
+Depois a medição, e ela reposiciona o achado. A BDGD é SIRGAS 2000
+(EPSG:4674), que é **geográfico**: a geometria já dá lon/lat, sem
+reprojeção. O centroide da rede sai da própria base:
+
+| base | lon | lat | kWh/m²/dia | temperatura |
+|---|---:|---:|---:|---|
+| Enel SP | −46,65 | −23,57 | 5,36 | 15,5 a 35,7 °C |
+| **Roraima** | −60,70 | **+2,77** | 5,62 | **26,8 a 39,1 °C** |
+| Equatorial PA | −49,35 | −2,77 | 5,12 | 22,9 a 33,8 °C |
+| CPFL (interior SP) | −48,11 | −21,60 | **6,28** | 16,0 a 37,2 °C |
+| Light | −43,36 | −22,88 | — | — |
+| Enel CE | −39,33 | −4,60 | — | — |
+| Cemig-D | −44,78 | −19,19 | — | — |
+
+**O erro grosseiro era de TEMPERATURA, não de irradiância.** A irradiância de
+Roraima é apenas 5% maior que a de São Paulo — janeiro é estação chuvosa
+perto do equador, e a intuição de "equador logo mais sol" não se confirma.
+
+Mas o conversor aplicava **19,3 a 26,1 °C** numa região que opera de **26,8 a
+39,1 °C**. A mínima de Roraima é maior que a máxima que estava sendo
+fornecida: **as duas faixas não têm um grau em comum.** Temperatura de célula
+comanda o *derating* do painel, então a geração de Roraima saía fria demais,
+logo eficiente demais.
+
+### Dois subprodutos, e os dois mudaram decisão
+
+**A CPFL não é caso de "mesma região, tanto faz".** O interior paulista tem
+**6,28 kWh/m²/dia** contra 5,36 da capital — 17% mais sol. Foi esse número
+que decidiu *não* usar `--clima-forcar` nela na regeração.
+
+**E o arquivo medido de São Paulo é suspeito, confirmando dúvida já
+registrada.** Ele declara 6,22 kWh/m²/dia, e o comentário no
+`complementos.carregar_clima` já anotava que isso parecia ~10% acima da faixa
+típica de janeiro (5,0 a 5,8). A NASA POWER dá **5,36 — dentro da faixa**.
+Duas fontes independentes apontando para o mesmo lado, uma delas escrita
+meses antes da outra.
+
+### O que ficou pronto, e o que falta
+
+`bdgd2dss/clima.py`: centroide pela geometria da própria base, consulta à
+NASA POWER (grátis, sem cadastro, `urllib` da biblioteca padrão — nenhuma
+dependência nova), e cache em disco com **procedência gravada** (fonte, URL,
+coordenada, período, data do download). 22 testes, **nenhum tocando a rede**.
+
+Falta **ligar no conversor**, e isso é de propósito: mudar o caminho do clima
+antes da regeração agendada desperdiçaria o ciclo. Entra depois.
+
+**Ressalva que precisa constar do artigo:** NASA POWER é satélite e
+reanálise, **não medição de solo**. É incomparavelmente melhor que aplicar
+São Paulo em Roraima e ainda assim não é estação meteorológica. As
+referências para validar são o **Atlas Brasileiro de Energia Solar
+(INPE/LABREN)**, que é a referência nacional mas não tem API, e as estações
+do **INMET**, que medem radiação global no solo.
+
 ### Achado 5 — `TEN_LIN_SE` com tensões de MT e com fase-neutro
 
 32 dos 27.700 transformadores (0,12%) declaram no campo de tensão de linha do

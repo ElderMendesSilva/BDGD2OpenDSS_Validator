@@ -260,6 +260,36 @@ O que foi feito no lugar: o conversor avisa uma vez por código e **grava a
 lista no `relatorio_rede.json`**, para o auditor reportar quantos
 alimentadores usaram o padrão em vez do valor real.
 
+### 5b. Ligar o clima por coordenada — PRONTO, esperando a regeração
+
+`bdgd2dss/clima.py` está escrito e testado (22 testes, nenhum tocando a rede),
+e **não está ligado no conversor de propósito**: trocar o caminho do clima
+antes do ciclo agendado desperdiçaria a noite.
+
+O que ele faz: tira o centroide da rede da **própria geometria da BDGD** (que
+é SIRGAS 2000, geográfico — lon/lat sem reprojeção), consulta a NASA POWER e
+grava um cache com procedência. A conversão lê o cache e **nunca toca a
+rede** — sem isso o modelo deixaria de ser reproduzível offline e passaria a
+depender de um serviço externo continuar no ar.
+
+Por que importa, medido (achado 4):
+
+> O conversor aplicava **19,3 a 26,1 °C** em Roraima, que opera de **26,8 a
+> 39,1 °C**. As duas faixas não têm um grau em comum. E o erro era de
+> temperatura, não de irradiância — a de Roraima é só 5% maior que a de São
+> Paulo, porque janeiro é estação chuvosa perto do equador.
+
+Para ligar, depois da regeração:
+
+1. `carregar_clima` ganha a cadeia **medido local → cache baixado → sintético**;
+2. um passo explícito baixa o cache das sete bases (`python -m bdgd2dss.clima <gdb>`);
+3. os caches vão para o repositório — são pequenos e carregam a procedência;
+4. **nova regeração**, porque mudar o clima muda `Curvas.dss` e o `Pmpp` da GD.
+
+O impacto nos números de perda e tensão é pequeno (GD é 0,53% da energia
+injetada). O ganho é de **honestidade metodológica** e de destravar estudo
+focado em GD, que hoje não dá para fazer com o clima errado.
+
 ### 6. As outras cinco, depois oficializar
 
 Tag, repositório público, modelos gerados pelo código publicado.
