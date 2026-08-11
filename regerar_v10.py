@@ -222,6 +222,13 @@ def main():
         ok, reg['min_energia'] = passo('energia', [PY, '-u', 'energia.py',
                                                    saida], log, 8 * 3600)
         reg['energia_ok'] = ok
+        # O validador entra na fila porque e ele que exercita a mudanca do
+        # achado 3 — o limiar de REDE_EXTENSA vindo da propria base. Sem ele
+        # a correcao seria regerada sem nunca ser executada.
+        ok, reg['min_validador'] = passo('validador', [PY, '-u',
+                                                       'validador.py', saida,
+                                                       '--ses'], log, 4 * 3600)
+        reg['validador_ok'] = ok
         ok, _ = passo('valida_perdas', [PY, '-u', 'valida_perdas.py', saida,
                                         gdb], log, 2 * 3600)
         reg['perdas_ok'] = ok
