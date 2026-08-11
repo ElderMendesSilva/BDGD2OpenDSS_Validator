@@ -328,3 +328,95 @@ Não é prova, é a leitura mais econômica. Falta:
   metodologia do Módulo 7 — a norma define o resultado, não o procedimento;
 - checar se há parcela de perda que o modelo não representa e que pese
   diferente nas duas (BT agregada é a suspeita natural).
+
+---
+
+## Achado 10 — a validação por MEDIÇÃO reprova a Enel SP e aprova as outras
+
+**11/08/2026.** Primeira aplicação do `valida_balanco.py` em cinco bases. É o
+único teste do projeto capaz de reprovar sozinho: a perda técnica do modelo tem
+de caber dentro da perda total medida (`ENE_XX` injetada menos energia faturada
+nas UCs). Passar dela é fisicamente impossível.
+
+Violar o limite, porém, pode ser duas coisas muito diferentes: **modelo alto
+demais** ou **medição degenerada** naquele alimentador — faturado maior que
+injetado, o que é erro de cadastro, não de física. Separando os dois:
+
+| base | alimentadores | violam | medida degenerada | **violação real** |
+|---|---:|---:|---:|---:|
+| **Enel SP** | 1.573 | 482 (30,6%) | 29 | **458 (29,1%)** |
+| Equatorial PA | 619 | 124 (20,0%) | 121 | **5 (0,8%)** |
+| CPFL Paulista | 1.537 | 43 (2,8%) | 67 | **14 (0,9%)** |
+| Light | 1.546 | 165 (10,7%) | 196 | **4 (0,3%)** |
+| Enel CE | 686 | 4 (0,6%) | 0 | **4 (0,6%)** |
+
+**A Enel SP é discrepante por um fator de ~40.** As outras quatro ficam entre
+0,3% e 0,9%, compatível com ruído residual de cadastro. A Enel SP tem 29,1%.
+
+E os casos dela não são sutis:
+
+| SE | alimentador | modelo | total medida | porte |
+|---|---|---:|---:|---|
+| DDIA | DIA0105 | **83,57%** | 19,91% | 66,3 GWh, 8.023 UCs |
+| DSAU | SAU0104 | 73,61% | 11,13% | 47,5 GWh, 16.609 UCs |
+| DEMB | EMB0106 | 71,85% | 18,59% | 60,4 GWh, 16.145 UCs |
+| DREG | REG0302 | 66,47% | 18,58% | 41,1 GWh, 9.027 UCs |
+| DJAN | JAN0106 | 49,90% | 8,47% | 34,3 GWh, 14.270 UCs |
+
+Perda técnica de 83% num alimentador de 66 GWh não é ajuste fino: é defeito.
+E DDIA, DEMB e DREG estão entre as 19 subestações que o validador já
+classificava como `TENSAO_BAIXA` — **os dois sintomas são o mesmo defeito**,
+agora com um teste objetivo que o localiza alimentador a alimentador, sem
+depender do `PERD_*`.
+
+### Isto reescreve os achados 9 e o diagnóstico anterior
+
+O que parecia "viés que troca de sinal entre distribuidoras" era confusão
+entre dois fenômenos:
+
+1. **A Enel SP tem defeito localizado e severo** — 29,1% dos alimentadores com
+   perda técnica impossível. É o que empurra a razão contra o `PERD_*` para
+   1,88× e o que gera a subtensão das 19.
+2. **Nas outras bases o modelo passa no teste físico.** O fato de a razão
+   contra o `PERD_*` ficar em 0,15× a 0,60× nelas é outra questão — e a
+   suspeita mais forte agora é de **erro de método nosso na comparação**: o
+   modelo roda com `--bt agregado`, sem rede de BT, e portanto não produz
+   `PERD_B`; mas comparamos contra `PERD_A4 + PERD_B + PERD_A4_B`. Estamos
+   cobrando uma parcela que o modelo estruturalmente não gera. Verificar
+   comparando só contra `PERD_A4`.
+
+### A perda não técnica implícita reproduz o que se sabe do país
+
+Subproduto do nível 2, e a evidência externa mais forte que o projeto produziu
+até aqui. Nada foi ajustado para dar isto:
+
+| base | não técnica implícita (mediana) |
+|---|---:|
+| Light (RJ) | **35,23%** |
+| Equatorial PA | **22,17%** |
+| CPFL Paulista (interior SP) | 13,62% |
+| Enel CE | 11,46% |
+| Enel SP (metropolitana) | 5,07%¹ |
+
+A ordenação é a conhecida publicamente para perda comercial no Brasil: Light e
+Equatorial no topo, distribuidoras paulistas na base. O modelo reproduz o
+ranking **sem ter sido calibrado para isso** — ele só calcula a parcela técnica
+e o resto sai por subtração contra medição.
+
+¹ subestimada, porque a técnica da Enel SP está inflada pelo defeito acima.
+
+### Qualidade de cadastro: alimentadores com faturado ≥ injetado
+
+Impossível de medir e portanto erro de cadastro. Vira indicador do auditor:
+
+| base | alimentadores | % |
+|---|---:|---:|
+| Equatorial PA | 116 | **18,7%** |
+| Light | 113 | 7,3% |
+| Enel SP | 19 | 1,2% |
+| CPFL | 14 | 0,9% |
+| **Enel CE** | **0** | **0,0%** |
+
+A Enel CE é a única base sem um único alimentador nessa condição — e também a
+de menor violação real. Pelo critério de coerência interna medida, **é a melhor
+das cinco**.
