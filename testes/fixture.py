@@ -110,6 +110,24 @@ def tabelas():
             'PAC': s('PA1', 'PA2'),
             'TIP_INST': s('1', '1'),
         },
+        # Energia faturada, para a validacao por balanco. Os numeros sao
+        # escolhidos para dar perda total conhecida:
+        #   F1: injetada 12.000, faturada 9.600  -> 20,0% de perda total
+        #   F2: injetada  6.000, faturada 5.400  -> 10,0% de perda total
+        'UCBT_tab': {
+            'COD_ID': s('U1', 'U2', 'U3'),
+            'CTMT': s('F1', 'F1', 'F2'),
+            'UNI_TR_MT': s('TR1', 'TR2', 'TR3'),
+            'TIP_CC': s('BT', 'BT', 'BT'),
+            **_mes([600.0, 100.0, 400.0]),      # 7.200 + 1.200 | 4.800
+        },
+        'UCMT_tab': {
+            'COD_ID': s('M1', 'M2'),
+            'CTMT': s('F1', 'F2'),
+            'PAC': s('B3', 'B11'),
+            'TIP_CC': s('MT', 'MT'),
+            **_mes([100.0, 50.0]),              # 1.200 | 600
+        },
         'UNTRAT': {
             'COD_ID': s('T1', 'T2'),
             'SUB': s('SE1', 'SE1'),

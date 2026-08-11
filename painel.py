@@ -132,6 +132,20 @@ class Painel(tk.Tk):
         ttk.Button(lote, text='Exportar diagnostico (CSV)',
                    command=self.exportar).pack(fill='x', padx=6, pady=3)
 
+        val = ttk.LabelFrame(dir_, text='Validacao contra a BDGD')
+        val.pack(fill='x', pady=(0, 6))
+        ttk.Label(val, text='Energia MEDIDA (injetada − faturada) é o que '
+                            'valida. A perda declarada é saída de modelo da '
+                            'distribuidora — cruza, não valida.',
+                  foreground='#666', wraplength=300, justify='left',
+                  font=('Segoe UI', 8)).pack(anchor='w', padx=6, pady=(2, 4))
+        ttk.Button(val, text='Balanço de energia  (medição)',
+                   command=lambda: self.validar_bdgd('valida_balanco.py')
+                   ).pack(fill='x', padx=6, pady=3)
+        ttk.Button(val, text='Perda declarada PERD_*  (cruzamento)',
+                   command=lambda: self.validar_bdgd('valida_perdas.py')
+                   ).pack(fill='x', padx=6, pady=3)
+
         self.abas = ttk.Notebook(dir_)
         self.abas.pack(fill='both', expand=True)
 
@@ -376,6 +390,44 @@ class Painel(tk.Tk):
             acion = [r for r in out if r.get('acionavel')]
             self._diz(f'\n{len(out)} validadas | {len(acion)} precisam de acao nossa')
             self._sumario()
+            self.fila.put(('status', 'pronto'))
+        self._fundo(tarefa)
+
+    def validar_bdgd(self, script):
+        """Cruza os resultados da pasta com a BDGD de origem.
+
+        Precisa do `energia_dia.json` (vem do energia.py) e do caminho da
+        .gdb. O .gdb e pedido uma vez e lembrado pelo `interativo`, para nao
+        perguntar a cada clique.
+        """
+        import interativo
+        p = self.pasta.get()
+        if not os.path.exists(os.path.join(p, 'energia_dia.json')):
+            messagebox.showwarning(
+                'Falta o energia_dia.json',
+                'Este cruzamento compara a energia do dia simulado com a da '
+                'BDGD.\n\nRode antes:\n    python energia.py '
+                f'"{os.path.basename(p)}"')
+            return
+        v = interativo.formulario('painel_bdgd', 'BDGD de origem', [
+            {'chave': 'gdb', 'tipo': 'pasta', 'rotulo': 'BDGD (.gdb)',
+             'padrao': interativo.bdgd_recente(),
+             'dica': 'a mesma base que gerou estes modelos'}],
+            ajuda='De onde saem a energia injetada e a faturada.')
+        if not v or not v.get('gdb'):
+            return
+
+        def tarefa():
+            self.fila.put(('status', f'{script} — lendo a BDGD...'))
+            r = subprocess.run(
+                [sys.executable, '-u', os.path.join(RAIZ, script), p, v['gdb']],
+                capture_output=True, text=True, encoding='utf-8',
+                errors='replace', cwd=RAIZ)
+            saida = (r.stdout or '') + (r.stderr or '')
+            for l in saida.splitlines():
+                self._diz('  ' + l)
+            self.fila.put(('resumo', saida[-4000:]))
+            self.abas.select(0)
             self.fila.put(('status', 'pronto'))
         self._fundo(tarefa)
 
