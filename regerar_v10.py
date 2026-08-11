@@ -80,6 +80,31 @@ class _Tee:
         self.arq.flush()
 
 
+def procedencia():
+    """De qual codigo estes modelos sairam.
+
+    A V9 resolveu isso com o SHA-256 de 25 arquivos, porque o projeto ainda
+    nao era repositorio. Agora e: o commit identifica o codigo inteiro de uma
+    vez. O que o commit NAO cobre e alteracao nao commitada — dai o `sujo`,
+    que e o campo mais importante deste bloco. Modelo gerado com a arvore
+    suja nao e reproduzivel, e isso tem de estar escrito, nao suposto.
+    """
+    import subprocess as sp
+
+    def git(*a):
+        try:
+            return sp.run(['git'] + list(a), cwd=AQUI, capture_output=True,
+                          text=True, timeout=30).stdout.strip()
+        except Exception:
+            return ''
+
+    return {'commit': git('rev-parse', 'HEAD'),
+            'descricao': git('log', '-1', '--pretty=%s'),
+            'sujo': bool(git('status', '--porcelain')),
+            'python': sys.version.split()[0],
+            'gerado_em': time.strftime('%Y-%m-%d %H:%M:%S')}
+
+
 def saida_de(tag):
     return f'MODELOS_{tag}_V10'
 
@@ -175,6 +200,11 @@ def main():
     print(f'conversao prevista: {prev:.0f} min; ciclo completo, ~2,7x isso\n',
           flush=True)
 
+    proc = procedencia()
+    print(f'codigo: {proc["commit"][:10] or "(sem git)"} '
+          f'{"ARVORE SUJA — modelo nao reproduzivel" if proc["sujo"] else "limpo"}'
+          f'  | {proc["descricao"][:60]}\n', flush=True)
+
     resumo = []
     dest_resumo = os.path.join(LOGS, 'resumo_v10.json')
     for k, (tag, gdb, _) in enumerate(bases):
@@ -242,11 +272,18 @@ def main():
               f'cobertura {r.get("cobertura_pct","?")}% | '
               f'razao {r.get("razao_mediana","?")}x | '
               f'viola real {r.get("pct_viola_real","?")}%\n', flush=True)
+        # a procedencia vai TAMBEM para dentro do modelo: o resumo geral pode
+        # se separar dele, o arquivo ao lado do MASTER nao
+        with open(os.path.join(AQUI, saida, '_procedencia.json'), 'w',
+                  encoding='utf-8') as fh:
+            json.dump(dict(proc, base=tag), fh, indent=1, ensure_ascii=False)
         with open(dest_resumo, 'w', encoding='utf-8') as fh:
-            json.dump(resumo, fh, indent=1, ensure_ascii=False)
+            json.dump({'procedencia': proc, 'bases': resumo}, fh, indent=1,
+                      ensure_ascii=False)
 
     with open(dest_resumo, 'w', encoding='utf-8') as fh:
-        json.dump(resumo, fh, indent=1, ensure_ascii=False)
+        json.dump({'procedencia': proc, 'bases': resumo}, fh, indent=1,
+                  ensure_ascii=False)
 
     print(f'\n{"="*72}\nRESUMO — {(time.time()-t0)/60:.0f} min no total')
     print(f'{"base":6s} {"sadias":>12s} {"cobertura":>10s} {"razao":>8s} '
