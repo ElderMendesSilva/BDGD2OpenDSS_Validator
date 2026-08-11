@@ -506,6 +506,66 @@ agradar destrói a credibilidade de tudo o mais.
 O tratamento honesto: declarar e quantificar. *A Enel SP declara 13,5% da rede
 de MT num condutor de 31 A; tomando o dado ao pé da letra, 29,1% dos
 alimentadores produzem perda técnica maior que a perda total medida, o que é
-fisicamente impossível.* Opcionalmente, oferecer a análise de sensibilidade —
-substituir o 593 pelo condutor mediano da própria rede e reportar quanto muda —
-com os dois números lado a lado.
+fisicamente impossível.*
+
+### Análise de sensibilidade
+
+**Método.** Uma variável, e só ela. Os modelos já gerados foram copiados
+inteiros — topologia, cargas, transformadores, curvas e clima idênticos, byte a
+byte — e apenas as 35 definições `New LineCode.CND_593_*` foram reescritas com
+os parâmetros do **CND_1664**, condutor de 254 A e 0,678 Ω/km que cobre
+2.230 km da mesma concessão. Depois, `energia` e `valida_balanco` nas mesmas 30
+subestações.
+
+O 1664 **não é uma afirmação sobre qual cabo está em campo**. É um condutor
+plausível da própria base, escolhido para responder "quanto do fracasso vem
+daqui".
+
+**Resultado**, em 382 alimentadores comparáveis:
+
+| | técnica mediana | violam | não técnica implícita |
+|---|---:|---:|---:|
+| antes (593 original) | 14,27% | 237 (62,0%) | **−2,99%** |
+| depois (593 = 1664) | **4,08%** | **29 (7,6%)** | **+6,91%** |
+
+Restrito aos 237 que violavam:
+
+| | técnica mediana | violam | não técnica implícita |
+|---|---:|---:|---:|
+| antes | 22,35% | 237 (100%) | **−8,86%** |
+| depois | **4,95%** | **29 (12,2%)** | **+5,27%** |
+
+**208 dos 237 — 87,8% — deixam de violar.**
+
+O detalhe mais eloquente é a perda não técnica implícita passando de
+**negativa** para positiva. Negativa é o enunciado matemático de "impossível":
+a perda técnica do modelo excedia a perda total medida. Depois da troca, o
+resíduo vira +5,27%, plausível.
+
+Casos individuais:
+
+| SE | alimentador | antes | depois | medida | |
+|---|---|---:|---:|---:|---|
+| DDIA | DIA0105 | 83,57% | **10,95%** | 19,91% | resolvido |
+| DEMB | EMB0106 | 71,85% | **10,95%** | 18,59% | resolvido |
+| DVFO | VFO0107 | 59,42% | **6,17%** | 31,00% | resolvido |
+| DLUB | LUB0109 | 61,13% | **19,48%** | 20,02% | resolvido |
+| DJAN | JAN0106 | 49,90% | 8,76% | 8,47% | ainda viola |
+
+E a técnica mediana de 4,08% depois da troca fica ao lado dos **4,39%
+declarados** na CTMT — contra 14,27% antes. A razão de 1,88× que reprovava a
+Enel SP era, em boa parte, este registro.
+
+**Os 29 que resistem** são o trabalho que sobra: neles a perda impossível tem
+outra causa, ainda não investigada.
+
+### O que isto autoriza a afirmar
+
+Que **um único registro da SEGCON de uma distribuidora responde por 87,8% dos
+alimentadores fisicamente impossíveis do modelo dela** — e que o conversor,
+cruzado com a energia medida da própria base, é capaz de localizar isso sem
+nenhuma informação externa.
+
+O que **não** autoriza: dizer qual é o valor correto do 593, nem publicar os
+números "corrigidos" como se fossem os da Enel SP. A sensibilidade é uma
+medida da influência do dado, não uma correção dele.
