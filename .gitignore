@@ -42,5 +42,9 @@ dados/resultados/
 # Log da última conversão
 conversao.log
 
+# Logs da regeração noturna (regerar_v10.py). O script entra no repositório,
+# a saída dele não — são centenas de MB de log por rodada.
+logs_v10/
+
 __pycache__/
 *.py[cod]
