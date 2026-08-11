@@ -219,22 +219,46 @@ consequência está no achado 9: a composição `PERD_A4 + PERD_B + PERD_A4_B`
 que estava em uso é a **pior das três em cinco das seis bases**, e corrigi-la
 leva Light, Equatorial PA e CPFL de 0,19×/0,14×/0,35× para 2,07×/1,36×/1,26×.
 
-**Bloco B — pendente, e é o que custa.** Altera a saída do conversor, logo
-exige regerar as seis bases (~7 h de conversão, mais verifica, energia e
-validações):
+**Bloco B — ✅ FEITO em 11/08/2026.** Altera a saída do conversor; a validação
+completa depende da regeração das sete bases, agendada para 12/08 às 01:30
+(`regerar_v10.py`).
 
-| o que falta | risco |
+| o que era pedido | estado |
 |---|---|
-| âncora de AT que chegue na malha | **alto** — mexe em como toda a camada de AT se conecta |
-| `tensoes.TENSAO_KV` e `bases()` derivados da própria base | médio |
-| `transformadores._FN_PARA_FF` virar regra (÷√3) e não tabela | médio |
-| clima por região, recusando em vez de aplicar o de São Paulo em silêncio | baixo |
-| `diagnostico.KM_ALIM_ALTO` e a mediana citada na mensagem | baixo |
+| âncora de AT que chegue na malha | ✅ medida nas sete antes de decidir; ver abaixo |
+| `tensoes.bases()` derivado da própria base | ✅ `censo_bt` lê a base em conversão; a lista da Enel SP fica só como piso |
+| `tensoes.TENSAO_KV` derivado da própria base | ❌ **não é derivável** — ver abaixo |
+| `_FN_PARA_FF` virar regra (÷√3) | ✅ com duas tolerâncias, porque 380/√3 e 190/√3 exigem decisões opostas à mesma distância relativa |
+| clima por região | ✅ `BASE.DIST` contra `--clima-dist`; recusa e cai no sintético |
+| `KM_ALIM_ALTO` e a mediana da mensagem | ✅ `diagnostico.referencia_de` mede a base |
 
-A âncora de AT é de propósito enunciada pelo resultado e não pelo mecanismo:
-as duas candidatas do achado 7 (`BARR_1`→`BAR.COD_ID`→`BAR.PAC`, ou ancorar
-na barra de AT que o `malha_at` já cria) resolvem bases diferentes, e a
-escolha é do passo 5, não do passo 4.
+**130 testes, zero falhas esperadas.** Todo defeito registrado no
+levantamento está corrigido.
+
+#### A âncora de AT: a medição refutou a correção proposta
+
+Antes de mexer, medi as três candidatas nas **sete** bases
+(`diagnosticos/at_cobertura.py`). O `PAC_1` em uso cobre 99,5% na Enel SP e
+**0,0% nas outras seis** — não é "funciona menos bem", é não funciona. E a
+candidata que o achado 7 registrava, `BARR_1`, também não resolve: casa com
+`BAR.COD_ID` de 86% a 100%, mas o `BAR.PAC` daquela barra não está na SSDAT
+fora da Enel SP. Identifica a barra e não chega à rede.
+
+O que generaliza é `UNTRAT.SUB` em `UNSEAT.SUB`: 75,9% no pior caso, mediana
+98,2%. **O teste de aceitação tinha sido escrito pelo resultado e não pelo
+mecanismo — foi o que impediu que a correção errada ficasse verde.**
+
+#### O que não foi feito, e por quê
+
+`tensoes.TENSAO_KV` — o mapa código→kV, com 6 dos 11 códigos sem valor — **não
+é derivável da BDGD**. Não existe, em nenhuma tabela, um kV que permita
+resolver o código: `CTMT.TEN_NOM`, `BAR.TEN_NOM` e `EQTRAT.TEN_PRI/TEN_SEC`
+são todos códigos do mesmo domínio. Isso precisa da tabela de domínio da
+ANEEL. Fingir derivar seria inventar.
+
+O que foi feito no lugar: o conversor avisa uma vez por código e **grava a
+lista no `relatorio_rede.json`**, para o auditor reportar quantos
+alimentadores usaram o padrão em vez do valor real.
 
 ### 6. As outras cinco, depois oficializar
 

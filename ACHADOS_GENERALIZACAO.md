@@ -195,6 +195,54 @@ segunda base de porte comparável poderia mostrar isso.
 *Correção candidata:* migrar a ancoragem da AT de `PAC` para `BARR`→`BAR.COD_ID`,
 mantendo `PAC` como reserva.
 
+### RESOLVIDO em 11/08/2026 — e a correção candidata acima estava ERRADA
+
+Medido nas **sete** bases com `diagnosticos/at_cobertura.py`, antes de mexer
+em qualquer linha:
+
+| âncora | Enel SP | Roraima | Light | Eq. PA | CPFL | Enel CE | Cemig-D |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| `PAC_1` na SSDAT *(em uso)* | 99,5% | **0,0%** | **0,0%** | **0,0%** | **0,0%** | **0,0%** | **0,0%** |
+| `BARR_1` em `BAR.COD_ID` | 100% | 93,1% | 100% | 100% | 86,2% | 100% | 100% |
+| `BARR_1`→`BAR.PAC`→SSDAT | 100% | **0,0%** | **0,0%** | **0,0%** | **0,0%** | **0,0%** | **0,0%** |
+| **`UNTRAT.SUB` em `UNSEAT.SUB`** | 100% | **75,9%** | 100% | 98,2% | 97,9% | 99,1% | 95,4% |
+
+Dois fatos, e o segundo é o que importa:
+
+1. **A âncora em uso não funciona em nenhuma base além da Enel SP.** Não é
+   "funciona menos bem": é 0,0% nas seis. Eu só tinha medido a Light.
+2. **A correção que este achado propunha não resolveria.** `BARR_1` casa com
+   `BAR.COD_ID` de 86% a 100% em todas — mas o `BAR.PAC` daquela barra não
+   está na SSDAT fora da Enel SP. Ela **identifica a barra e não chega à
+   rede.**
+
+O que generaliza é a terceira: a âncora por **subestação**, que o `malha_at`
+já usava para fechar a malha. Adotado `PAC_1` quando ele existe na malha, e a
+barra de AT da subestação quando não — e só para as subestações que a malha
+vai de fato ligar, senão troca-se um transformador ilhado por outro.
+
+Resultado: Roraima sai de **0 trechos de AT** para **169 trechos (13,2 km)**,
+com 20 de 29 transformadores pela reserva. Enel SP usa a reserva em **2 de
+437**: a convenção dela fica preservada.
+
+### A lição de método, que vale mais que a correção
+
+O teste de aceitação deste achado foi escrito **pelo resultado** — *"o
+primário do transformador tem de chegar à rede de AT, seja qual for a
+âncora"* — e não pelo mecanismo. Foi o que salvou: um teste escrito contra a
+correção proposta (`BARR_1`) teria ficado verde com a correção **errada**, e
+o defeito continuaria em cinco bases.
+
+### E um defeito que a própria correção introduziu
+
+A barra da subestação não entrava no grupo que ela liga, e o
+`transmissao.fontes` procura nos grupos os transformadores de cada pátio.
+Roraima ficou com **1 fonte para 12 pátios** e 88,8% das cargas do
+MASTER-GERAL sem tensão. Invisível nos modelos por subestação — que têm fonte
+própria e passavam 20 de 20; só o modelo da concessão inteira mostrava.
+Corrigido: 12 fontes, 13,2% de cargas mortas, tensão mediana de 0,737 para
+0,936. Tem teste próprio.
+
 ### Achado 8 — `TypeError` em subestação sem energia
 
 `energia.py` derrubava a rodada inteira na primeira subestação com energia
