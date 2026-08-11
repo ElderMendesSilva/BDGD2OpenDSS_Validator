@@ -488,6 +488,15 @@ de 8 Ω/km, e o ajuste calibrado da própria base prevê ~19 A para essa
 resistência. Por isso o auto-ajuste do `linecodes` não o toca — ele corrige
 incoerência entre R1 e CNOM, e aqui não há.
 
+**Medido em 11/08, em `testes/test_linecodes.py`:** o 593 fica a **1,6× do R1
+previsto**, contra o limiar de **7,4×** que aciona a correção. Mexer no
+`FATOR_CORRIGE` não é saída — para alcançá-lo seria preciso descer abaixo de
+1,6×, que é dispersão normal de catálogo, e a correção varreria junto os
+condutores legítimos. E, mais decisivo: o ajuste recebe pares `(R1, CNOM)` e
+nada mais. **O mesmo condutor cobrindo 1 km ou 3.000 km produz exatamente o
+mesmo veredito** — a informação que denuncia o 593 não chega até essa função.
+A verificação que falta é de outra natureza, e só existe depois do fluxo.
+
 O que é implausível é o **uso**: 2.993 km de rede metropolitana de MT num cabo
 de 31 A. Duas leituras possíveis, nenhuma testada ainda:
 

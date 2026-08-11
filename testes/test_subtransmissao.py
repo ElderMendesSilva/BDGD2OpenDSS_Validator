@@ -5,9 +5,11 @@ Achado 1 de ACHADOS_GENERALIZACAO.md: `Transformer.TRB_5003585_34p5` definido
 duas vezes em Roraima, impedindo a compilacao da subestacao inteira. Nunca
 disparou na Enel SP.
 """
+import inspect
 import os
 import re
 import sys
+import tempfile
 import unittest
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -98,24 +100,110 @@ class BarraDerivada(unittest.TestCase):
                          f'nomes repetidos: {nomes}')
 
 
+def _base_at(pac_1_do_trafo):
+    """Base minima de alta tensao: uma malha de SSDAT e um trafo de potencia.
+
+    O unico parametro e o que o achado 7 mede — por onde o UNTRAT diz que se
+    liga. O resto e identico nos dois cenarios, para que a diferenca
+    observada nao possa vir de outra coisa.
+    """
+    return {
+        'untrat': {'COD_ID': ['T1'], 'SUB': ['SE1'],
+                   'BARR_1': ['BAT1'], 'BARR_2': ['BMT1'],
+                   'PAC_1': [pac_1_do_trafo], 'PAC_2': ['B1'],
+                   'POT_NOM': [25.0], 'FAS_CON_P': ['ABC'],
+                   'FAS_CON_S': ['ABC'], 'SIT_ATIV': ['AT']},
+        'eqtrat': {},
+        'ssdat': {'COD_ID': ['A1'], 'PAC_1': ['PAT1'], 'PAC_2': ['PAT2'],
+                  'CTAT': ['CT1'], 'FAS_CON': ['ABC'], 'TIP_CND': ['C1'],
+                  'COMP': [1000.0]},
+        'unseat': {k: [] for k in ('COD_ID', 'PAC_1', 'PAC_2', 'FAS_CON',
+                                   'P_N_OPE', 'SUB', 'SIT_ATIV')},
+        'ctat': {'COD_ID': ['CT1'], 'NOME': ['LTA XXX-YYY 1'],
+                 'TEN_NOM': ['84'], 'PAC_INI': ['PAT1']},
+        # BAT1 existe e e o que BARR_1 aponta — nos DOIS cenarios.
+        'bar': {'COD_ID': ['BAT1'], 'SUB': ['SE1'], 'TEN_NOM': ['84'],
+                'PAC': ['PAT1'], 'TIP_INST': ['SE_AT']},
+    }
+
+
 class AncoragemDaAltaTensao(unittest.TestCase):
     """Achado 7: a chave que liga UNTRAT a rede de AT muda entre bases.
 
-    Medido: `UNTRAT.PAC_1` casa com a SSDAT em 94,2% na Enel SP e 0,0% na
-    Light; `BARR_1` casa com `BAR.COD_ID` em 94,8% e 94,6%. O conversor usa
-    PAC, e por isso a camada de AT da Light saiu com 0 trechos e 0 fontes.
+    Medido nas duas bases de porte comparavel:
 
-    Este teste enuncia o requisito. Vai ficar como falha esperada ate o passo
-    5 migrar a ancoragem — e ai vira o teste de nao-regressao da mudanca mais
-    arriscada do plano.
+        UNTRAT.PAC_1 presente na SSDAT     Enel SP 94,2%    Light  0,0%
+        UNTRAT.BARR_1 em BAR.COD_ID        Enel SP 94,8%    Light 94,6%
+
+    O conversor amarra por PAC porque foi assim que a convencao da Enel SP
+    foi decifrada por engenharia reversa. Resultado na Light: 0 trechos de
+    AT, 0 fontes, 0 km — a camada inteira saiu vazia, com uma SSDAT
+    impecavel de 7.909 trechos e 2.380,8 km do lado.
+
+    A SSDAT dos dois cenarios abaixo e a MESMA. So muda o campo de ligacao.
     """
 
+    def setUp(self):
+        self.tmp = tempfile.mkdtemp()
+
+    def _monta(self, pac):
+        dados = _base_at(pac)
+        info = st.trafos(dados, os.path.join(self.tmp, 'Trafos_AT.dss'),
+                         subs_alvo={'SE1'})
+        comps, _ = st.componentes(dados)
+        malha = set().union(*comps) if comps else set()
+        return dados, info, malha
+
+    def test_a_malha_existe_e_e_a_mesma_nos_dois_cenarios(self):
+        """Controle. Se a malha diferisse, o teste seguinte nao provaria
+        nada sobre a ancoragem."""
+        _, _, m1 = self._monta('PAT1')
+        _, _, m2 = self._monta('SE1_TRAFO_01')
+        self.assertEqual(m1, m2)
+        self.assertEqual(m1, {'pat1', 'pat2'})
+
+    def test_convencao_da_enel_sp_o_trafo_cai_dentro_da_malha(self):
+        _, info, malha = self._monta('PAT1')
+        self.assertEqual(info['n'], 1)
+        self.assertIn(info['pac_at']['T1'], malha)
+
+    def test_convencao_da_light_o_trafo_cai_numa_ilha(self):
+        """O defeito, medido. O transformador continua sendo emitido — nada
+        avisa —, so que o primario dele fica num no que nao existe na rede de
+        AT. E o `converter` seleciona os patios pela intersecao entre esses
+        nos e as componentes: intersecao vazia, nenhum trecho emitido."""
+        _, info, malha = self._monta('SE1_TRAFO_01')
+        self.assertEqual(info['n'], 1, 'o trafo sai mesmo assim')
+        self.assertNotIn(info['pac_at']['T1'], malha)
+        self.assertFalse(set(info['pac_at'].values()) & malha,
+                         'e essa intersecao vazia que zera a camada de AT')
+
+    def test_barr_1_e_lido_da_base_e_nunca_consultado(self):
+        """`carregar` traz BARR_1 de UNTRAT e nenhum modulo o usa — so
+        BARR_2, para o secundario. O campo que casa nas duas bases esta na
+        memoria do processo o tempo todo, sem ser olhado."""
+        fonte = inspect.getsource(st)
+        self.assertEqual(fonte.count('BARR_1'), 1,
+                         'unica ocorrencia: a lista de colunas de carregar()')
+        self.assertIn("'BARR_1'", inspect.getsource(st.carregar))
+        self.assertGreater(fonte.count('BARR_2'), 1,
+                           'BARR_2 e lido E usado — a diferenca e o achado 7')
+
     @unittest.expectedFailure
-    def test_DEFEITO_CONHECIDO_ancora_deveria_aceitar_barr(self):
-        self.assertTrue(
-            hasattr(st, 'ancorar_por_barr'),
-            'a ancoragem por BARR->BAR.COD_ID ainda nao existe; hoje so ha '
-            'a ancoragem por PAC, que falha em 100% dos trafos da Light')
+    def test_DEFEITO_CONHECIDO_o_primario_tem_de_cair_na_malha(self):
+        """O criterio de aceitacao do passo 5, enunciado pelo RESULTADO e nao
+        pelo mecanismo: o primario do transformador de potencia tem de chegar
+        na rede de AT, seja qual for a ancora que se adote.
+
+        Duas candidatas estao registradas no achado 7 e nenhuma foi decidida:
+        BARR_1 -> BAR.COD_ID -> BAR.PAC (que resolve a Enel SP, onde BAR.PAC
+        cai na SSDAT em 45,0%, mas nao a Light, onde cai em 0,0%), ou ancorar
+        na barra de AT da subestacao que o `malha_at` ja cria a partir de
+        UNSEAT.SUB e UNTRAT.SUB. O teste aceita as duas.
+        """
+        _, info, malha = self._monta('SE1_TRAFO_01')
+        self.assertTrue(set(info['pac_at'].values()) & malha,
+                        'trafo de potencia ilhado: a camada de AT sai vazia')
 
 
 if __name__ == '__main__':

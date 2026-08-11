@@ -26,6 +26,12 @@ levantamento de generalizacao (ver ACHADOS_GENERALIZACAO.md):
                         montada com o censo da Enel SP
     R1=8.43 / CNOM=1500 condutor com resistencia incoerente com a ampacidade,
                         o caso que o auto-ajuste do linecodes.py corrige
+    R1=8.232 / CNOM=31  o condutor 593 da Enel SP: internamente COERENTE (31 A
+                        pede mesmo ~8 ohm/km), e por isso o auto-ajuste nao o
+                        toca — e mesmo assim carrega a maior fatia de km da
+                        rede. Achado 11: o defeito esta no uso, nao no par
+    faturado > injetado alimentador com medicao degenerada, que reprova o
+                        limite fisico sem que o modelo tenha culpa. Achado 10
     SUB com duas barras de origem no mesmo nivel derivado — o caso que gera
                         transformador de barra duplicado
 """
@@ -51,14 +57,17 @@ def tabelas():
 
     return {
         'SEGCON': {
-            'COD_ID': s('C1', 'C2', 'C3'),
+            'COD_ID': s('C1', 'C2', 'C3', 'C4'),
             # C3: 8,43 ohm/km com 1500 A e incoerente — o auto-ajuste corrige
-            'R1': f(0.5, 1.2, 8.43),
-            'X1': f(0.35, 0.40, 0.38),
-            'CNOM': f(250.0, 100.0, 1500.0),
-            'CMAX': f(300.0, 120.0, 1800.0),
-            'BIT_FAS_1': s('4/0', '2', '336'),
-            'MAT_FAS_1': s('CA', 'CA', 'CA'),
+            # C4: o caso do condutor 593 da Enel SP. 8,232 ohm/km com 31 A e
+            #     um par COERENTE, entao o auto-ajuste passa por ele sem tocar.
+            #     O que esta errado e a quilometragem que ele cobre.
+            'R1': f(0.5, 1.2, 8.43, 8.232),
+            'X1': f(0.35, 0.40, 0.38, 0.42),
+            'CNOM': f(250.0, 100.0, 1500.0, 31.0),
+            'CMAX': f(300.0, 120.0, 1800.0, 37.0),
+            'BIT_FAS_1': s('4/0', '2', '336', '2'),
+            'MAT_FAS_1': s('CA', 'CA', 'CA', 'CA'),
         },
         'CTMT': {
             'COD_ID': s('F1', 'F2', 'F3'),
@@ -73,14 +82,18 @@ def tabelas():
             'PERD_A4_B': f(20.0, 10.0, 8.0),
             **_mes([1000.0, 500.0, 400.0]),
         },
+        # S4 poe METADE da quilometragem no condutor C4, o de 31 A: e a
+        # assinatura do 593 — a rede se concentra no cabo mais fino, e nenhum
+        # teste feito SO na SEGCON pode perceber isso, porque o par (R1, CNOM)
+        # do C4 e coerente. So a corrente calculada denuncia.
         'SSDMT': {
-            'COD_ID': s('S1', 'S2', 'S3'),
-            'PAC_1': s('B1', 'B2', 'B10'),
-            'PAC_2': s('B2', 'B3', 'B11'),
-            'CTMT': s('F1', 'F1', 'F2'),
-            'TIP_CND': s('C1', 'C3', 'C2'),
-            'COMP': f(120.0, 80.0, 300.0),
-            'FAS_CON': s('ABC', 'ABC', 'ABC'),
+            'COD_ID': s('S1', 'S2', 'S3', 'S4'),
+            'PAC_1': s('B1', 'B2', 'B10', 'B20'),
+            'PAC_2': s('B2', 'B3', 'B11', 'B21'),
+            'CTMT': s('F1', 'F1', 'F2', 'F3'),
+            'TIP_CND': s('C1', 'C3', 'C2', 'C4'),
+            'COMP': f(120.0, 80.0, 300.0, 500.0),
+            'FAS_CON': s('ABC', 'ABC', 'ABC', 'ABC'),
         },
         'UNTRMT': {
             'COD_ID': s('TR1', 'TR2', 'TR3', 'TR4'),
@@ -114,12 +127,18 @@ def tabelas():
         # escolhidos para dar perda total conhecida:
         #   F1: injetada 12.000, faturada 9.600  -> 20,0% de perda total
         #   F2: injetada  6.000, faturada 5.400  -> 10,0% de perda total
+        #   F3: injetada  4.800, faturada 6.000  -> -25,0%, IMPOSSIVEL
+        #
+        # O F3 e a MEDICAO DEGENERADA do achado 10: mais energia faturada do
+        # que injetada na cabeceira. Nenhum modelo pode caber ai dentro, e a
+        # culpa nao e dele — e cadastro. Separar isto da violacao real foi o
+        # corte que revelou a Enel SP como discrepante por fator 40.
         'UCBT_tab': {
-            'COD_ID': s('U1', 'U2', 'U3'),
-            'CTMT': s('F1', 'F1', 'F2'),
-            'UNI_TR_MT': s('TR1', 'TR2', 'TR3'),
-            'TIP_CC': s('BT', 'BT', 'BT'),
-            **_mes([600.0, 100.0, 400.0]),      # 7.200 + 1.200 | 4.800
+            'COD_ID': s('U1', 'U2', 'U3', 'U4'),
+            'CTMT': s('F1', 'F1', 'F2', 'F3'),
+            'UNI_TR_MT': s('TR1', 'TR2', 'TR3', 'TR4'),
+            'TIP_CC': s('BT', 'BT', 'BT', 'BT'),
+            **_mes([600.0, 100.0, 400.0, 500.0]),   # 7.200+1.200 | 4.800 | 6.000
         },
         'UCMT_tab': {
             'COD_ID': s('M1', 'M2'),
@@ -158,9 +177,18 @@ def gerar(destino=PADRAO, driver='OpenFileGDB'):
 
 
 def garantir(destino=PADRAO):
-    """Gera so se ainda nao existir — usado pelo setUpModule dos testes."""
+    """Gera se nao existir OU se este arquivo mudou depois dele.
+
+    A comparacao de data nao e zelo: sem ela, mexer numa tabela aqui deixava
+    a `.gdb` antiga no disco e a suite continuava verde testando o dado
+    anterior — o modo mais silencioso de um teste mentir.
+    """
     if not os.path.isdir(destino):
-        gerar(destino)
+        return gerar(destino)
+    nascido = max((os.path.getmtime(os.path.join(d, f))
+                   for d, _, fs in os.walk(destino) for f in fs), default=0.0)
+    if os.path.getmtime(os.path.abspath(__file__)) > nascido:
+        return gerar(destino)
     return destino
 
 

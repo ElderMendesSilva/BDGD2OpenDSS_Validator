@@ -131,23 +131,46 @@ quebrar:
 
 *Timebox: um dia.* Anotando, não consertando.
 
-### 4. Transformar as quebras em testes — EM ANDAMENTO desde 11/08/2026
+### 4. Transformar as quebras em testes — ✅ FEITO em 11/08/2026
 
 As falhas do passo 3 **são** os casos de teste, com dados reais de entrada.
 Escrever a suíte antes de ver uma segunda base é testar o que se imagina que
 varia, não o que varia.
 
-Feito: `requirements.txt`; **54 testes** rodando em 1 s com o `unittest` da
-biblioteca padrão, sem dependência de teste a instalar; e uma **BDGD mínima de
-103 KB** — FileGeodatabase de verdade, gerada por `pyogrio.raw.write`, lida
-pelo caminho de produção inclusive no `ler_filtrado`. Defeito conhecido entra
-como `@unittest.expectedFailure`, não como teste vermelho.
+**90 testes** rodando em 1,1 s com o `unittest` da biblioteca padrão, sem
+dependência de teste a instalar, e uma **BDGD mínima de 127 KB** —
+FileGeodatabase de verdade, gerada por `pyogrio.raw.write`, lida pelo caminho
+de produção inclusive no `ler_filtrado`.
 
 ```bash
 python -m unittest discover -s testes -t testes -v
 ```
 
-*Falta:* cobrir os achados 7, 9, 10 e 11, e o caminho do OpenDSS.
+Cada achado do passo 3 tem teste, e a tabela é o mapa entre um e outro:
+
+| achado | arquivo | o que ficou fixado |
+|---|---|---|
+| 1 — trafo de barra duplicado | `test_subtransmissao.py` | nome vindo de `TRB_{sub}_{kv}` colide com duas barras de origem |
+| 2, 5 — código de tensão e `TEN_LIN_SE` | `test_tensoes.py`, `test_transformadores.py` | `7,96` e `7,62` são fase-neutro; a correção tem de virar regra, não tabela |
+| 7 — ancoragem da AT | `test_subtransmissao.py` | mesma SSDAT, só muda o campo de ligação: por `PAC` o trafo cai fora da malha; `BARR_1` é lido e **nunca consultado** |
+| 8b — `pertence` e dtype | `test_pertence.py` | promoção de largura sem truncar |
+| 9 — cruzamento com o `PERD_*` | `test_valida_perdas.py` | a parcela de BT **dobra** o que se cobra de um modelo `--bt agregado`, e o fator varia por alimentador |
+| 10 — validação por medição | `test_valida_balanco.py` | limite físico, resíduo, cobertura, e a **medição degenerada** que hoje se confunde com defeito de modelo |
+| 11 — condutor 593 | `test_linecodes.py` | o par (R1, CNOM) é coerente, fica a 1,6× do previsto contra limiar de 7,4×, e o ajuste **não enxerga quilometragem** |
+| — caminho do OpenDSS | `test_opendss.py` | os LineCodes gerados compilam; perda medida = 3·R·I² com R = r1 × km; `Lines.Length()` devolve **metros** |
+
+Defeito conhecido entra como `@unittest.expectedFailure`, não como teste
+vermelho. São **9**, e cada um chama a API que o passo 5 precisa criar, com o
+número que ela precisa devolver — quando a correção chegar, o teste só fica
+verde se estiver certa. Conferido um a um que falham pelo motivo declarado
+(`AssertionError` de intersecção vazia, `TypeError` de argumento inexistente,
+`KeyError` de campo ausente, `AttributeError` de função ausente) e não por
+acidente de montagem — erro que já aconteceu uma vez nesta suíte.
+
+O `test_opendss.py` fixa a armadilha que me enganou **duas vezes**: ler
+`Lines.Length()` e supor quilômetros. A perda medida bate com a analítica na
+terceira casa (315,260 W), e a leitura errada daria 315.260 W — fator mil, com
+resultado ainda plausível à primeira vista.
 
 ### 5. Tirar da Enel SP o que hoje é tabela fixa
 
@@ -174,6 +197,24 @@ Vira rotina, no conversor e no auditor:
 Referência de calibração medida: **Enel CE tem 0,0%** de quilometragem em
 sobrecarga; Enel SP tem 8,5% a 12,8%. O limiar não precisa ser arbitrado — sai
 da comparação entre bases.
+
+#### Os critérios de aceitação já estão escritos
+
+O passo 4 deixou quatro `expectedFailure` que são a especificação executável
+deste passo. Implementar é fazer cada um ficar verde — e nenhum passa só por
+existir, todos conferem número:
+
+| o que criar | onde o teste espera | critério |
+|---|---|---|
+| `linecodes.coerencia_de_uso(trechos)` | `test_linecodes.py` | por condutor: `pct_da_sobrecarga` e `enriquecimento` (fatia da sobrecarga ÷ fatia da rede) |
+| `valida_perdas.declarado(gdb, parcelas=[...])` | `test_valida_perdas.py` | com `['PERD_A4']`, F1 dá 0,8333% e não 1,6667% |
+| campos `medida_degenerada` e `viola_de_verdade` em `valida_balanco.cruzar` | `test_valida_balanco.py` | faturado ≥ injetado não conta como violação real |
+| âncora de AT que chegue na malha | `test_subtransmissao.py` | o teste aceita **qualquer** mecanismo — só exige que o primário do trafo não fique ilhado |
+
+O último é de propósito enunciado pelo resultado e não pelo mecanismo: as duas
+candidatas do achado 7 (`BARR_1`→`BAR.COD_ID`→`BAR.PAC`, ou ancorar na barra de
+AT que o `malha_at` já cria) resolvem bases diferentes, e a escolha é do passo 5,
+não do passo 4.
 
 ### 6. As outras cinco, depois oficializar
 

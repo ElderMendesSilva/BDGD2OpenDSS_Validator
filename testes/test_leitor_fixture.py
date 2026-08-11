@@ -34,7 +34,8 @@ class LeFixture(unittest.TestCase):
 
     def test_leitura_simples(self):
         c = self.b.ler('SEGCON', ['COD_ID', 'R1', 'CNOM'])
-        self.assertEqual([txt(x) for x in c['COD_ID']], ['C1', 'C2', 'C3'])
+        self.assertEqual([txt(x) for x in c['COD_ID']],
+                         ['C1', 'C2', 'C3', 'C4'])
         self.assertAlmostEqual(num(c['R1'][2]), 8.43)
         self.assertAlmostEqual(num(c['CNOM'][2]), 1500.0)
 
@@ -72,6 +73,36 @@ class LeFixture(unittest.TestCase):
         self.assertTrue(any(num(s['R1'][i]) > 5 and num(s['CNOM'][i]) > 1000
                             for i in range(len(s['R1']))),
                         'condutor com R1 incoerente com a ampacidade')
+
+    def test_o_fixture_carrega_o_caso_do_593(self):
+        """Achado 11. Duas condicoes, e ambas precisam valer ao mesmo tempo:
+        o condutor tem de ser COERENTE (para o auto-ajuste nao o corrigir) e
+        tem de cobrir a maior fatia da quilometragem (que e o defeito real).
+        Se alguem tirar uma das duas, os testes do linecodes viram tautologia.
+        """
+        s = self.b.ler('SEGCON', ['COD_ID', 'R1', 'CNOM'])
+        i = [txt(x) for x in s['COD_ID']].index('C4')
+        self.assertAlmostEqual(num(s['R1'][i]), 8.232, places=3)
+        self.assertAlmostEqual(num(s['CNOM'][i]), 31.0, places=1)
+
+        m = self.b.ler('SSDMT', ['TIP_CND', 'COMP'])
+        km = {}
+        for j in range(len(m['COMP'])):
+            km[txt(m['TIP_CND'][j])] = km.get(txt(m['TIP_CND'][j]), 0.0) \
+                + num(m['COMP'][j])
+        self.assertEqual(max(km, key=km.get), 'C4',
+                         'o condutor de 31 A tem de ser o de maior extensao')
+
+    def test_o_fixture_carrega_a_medicao_degenerada(self):
+        """Achado 10: F3 fatura 6.000 kWh com 4.800 injetados. Perda total
+        medida de -25%, que nenhum modelo pode respeitar."""
+        c = self.b.ler('CTMT', ['COD_ID'] + [f'ENE_{i:02d}' for i in range(1, 13)])
+        i = [txt(x) for x in c['COD_ID']].index('F3')
+        inj = sum(num(c[f'ENE_{k:02d}'][i]) for k in range(1, 13))
+        u = self.b.ler('UCBT_tab', ['CTMT'] + [f'ENE_{i:02d}' for i in range(1, 13)])
+        fat = sum(num(u[f'ENE_{k:02d}'][j]) for k in range(1, 13)
+                  for j in range(len(u['CTMT'])) if txt(u['CTMT'][j]) == 'F3')
+        self.assertGreater(fat, inj, 'F3 tem de faturar mais do que recebe')
 
 
 class Normalizacao(unittest.TestCase):
