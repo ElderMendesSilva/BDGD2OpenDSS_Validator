@@ -247,3 +247,84 @@ regra calculada.
 
 As 24 tabelas que o conversor procura estão presentes nas três bases. Nenhuma
 ausência em Enel SP, Roraima ou Light.
+
+---
+
+## Achado 9 — o viés das perdas TROCA DE SINAL entre distribuidoras
+
+O resultado mais importante do levantamento, e o que responde à pergunta que
+estava aberta desde o começo.
+
+| | Enel SP (390) | Light (382) |
+|---|---:|---:|
+| alimentadores comparados | 1.492 | 1.451 |
+| perdas do modelo (mediana) | **7,73%** | **1,01%** |
+| perdas declaradas (mediana) | 4,39% | 5,17% |
+| **razão modelo/declarado** | **1,88×** | **0,19×** |
+| acima de 2× | 47,7% | 0,7% |
+| abaixo de 0,67× | 18,6% | **92,4%** |
+
+O modelo **superestima em 1,88× numa base e subestima em 0,19× na outra** — um
+fator de dez entre elas. Isso descarta de imediato a hipótese de viés sistemático
+da conversão: uma premissa de modelagem errada empurraria as duas para o mesmo
+lado.
+
+### Por que a diferença, e não é rede faltando
+
+Primeira hipótese, refutada por medição: rede de MT incompleta na Light,
+deixando as cargas eletricamente perto da fonte.
+
+| | Enel SP | Light |
+|---|---:|---:|
+| SSDMT declara | 1.424.443 trechos / 22.243,9 km | 996.561 trechos / 25.611,0 km |
+| o modelo tem | 1.421.983 linhas / 22.218,5 km (**99,9%**) | 996.561 linhas / 25.611,0 km (**100,0%**) |
+| km por alimentador | 12,30 | **14,95** |
+
+A rede da Light está inteira no modelo, e é **mais longa** por alimentador. Não
+é rede faltando.
+
+A explicação está na impedância declarada:
+
+| | Enel SP | Light |
+|---|---:|---:|
+| R1 mediano na SEGCON | 0,519 Ω/km | 0,389 Ω/km |
+| **R1 médio ponderado por km de rede** | **1,642 Ω/km** | **0,652 Ω/km** |
+| carga total | 4.289 MW | 2.241 MW |
+
+**2,5× mais resistência por quilômetro de rede na Enel SP, com o dobro da
+carga.** Perda percentual escala aproximadamente com corrente × resistência;
+0,52 × (1/2,5) ≈ 0,21, contra a razão observada de 1,01/7,73 = 0,13. A ordem de
+grandeza fecha.
+
+Repare que as *medianas* de R1 são parecidas (0,519 e 0,389) e a média ponderada
+por extensão difere em 2,5×: na Enel SP são os condutores de alta resistência
+que carregam a maior parte da quilometragem.
+
+### O que isso significa
+
+**O modelo reproduz o que os parâmetros declarados de rede implicam.** E aí está
+a contradição, dentro da mesma base regulatória:
+
+- os parâmetros de rede (SEGCON `R1`, SSDMT `COMP`, energia das UCs) dizem que a
+  Light deve ter perda técnica bem menor que a Enel SP;
+- as perdas declaradas (`PERD_A4 + PERD_B + PERD_A4_B`) dizem que a Light tem
+  perda **maior** — 5,17% contra 4,39%.
+
+Os dois conjuntos de campos vêm da mesma BDGD, da mesma data-base, submetidos ao
+mesmo regulador. **São mutuamente inconsistentes, e o sinal da inconsistência
+inverte entre distribuidoras.**
+
+O argumento que sustenta essa leitura: as premissas do nosso modelo — razões
+R0/X0, `Xhl` por faixa de potência, BT agregada, modelo ZIP, ajuste genérico de
+regulador — são **as mesmas nas duas bases**. Premissa comum não produz erro que
+troca de sinal.
+
+### O que ainda não está descartado
+
+Não é prova, é a leitura mais econômica. Falta:
+
+- rodar as outras quatro bases e ver se o padrão se mantém;
+- verificar se o `PERD_*` das duas distribuidoras é calculado com a mesma
+  metodologia do Módulo 7 — a norma define o resultado, não o procedimento;
+- checar se há parcela de perda que o modelo não representa e que pese
+  diferente nas duas (BT agregada é a suspeita natural).

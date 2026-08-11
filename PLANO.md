@@ -148,11 +148,21 @@ Tag, repositório público, modelos gerados pelo código publicado.
 - **Se em um dia não der para converter nenhuma subestação da segunda base**, o
   problema é maior do que "três blocos hardcoded" e o plano é reavaliado antes
   do passo 4.
-- **Se o viés de 1,65× aparecer também na segunda base**, ele deixa de ser bug e
-  passa a ser o objeto do artigo — e os passos 4 e 5 ganham prioridade sobre
-  investigar as 19.
-- **Se o viés for exclusivo da Enel SP**, é defeito nosso e precisa ser fechado
-  antes de qualquer submissão.
+- ~~**Se o viés de 1,65× aparecer também na segunda base**, ele deixa de ser bug
+  e passa a ser o objeto do artigo.~~
+- ~~**Se o viés for exclusivo da Enel SP**, é defeito nosso.~~
+
+**RESPONDIDO em 10/08/2026, e por um terceiro caminho que eu não tinha previsto**
+(achado 9 em `ACHADOS_GENERALIZACAO.md`): o viés **troca de sinal**. Enel SP
+1,88×, Light **0,19×**. Não é constante nem exclusivo — é dependente da base, e
+rastreável aos parâmetros declarados: a Enel SP tem 2,5× mais resistência por km
+de rede e o dobro da carga, o que o modelo reproduz. A contradição fica *dentro
+da BDGD*, entre os campos de parâmetro de rede e os campos `PERD_*`.
+
+Consequência para o plano: **investigar as 19 subestações da Enel SP deixa de
+ser prioridade** — não é lá que está a resposta. Os passos 4 e 5 seguem como
+estavam, e a pergunta das perdas passa a depender das quatro bases restantes,
+não de depurar a Enel SP.
 
 ---
 
