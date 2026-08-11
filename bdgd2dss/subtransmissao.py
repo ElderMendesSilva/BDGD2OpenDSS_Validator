@@ -400,7 +400,14 @@ def vaos(ctmt_info, info_trafos, barras, kv_mt_padrao=13.8, log=None):
         kv_orig = kvb.get(orig) or kv_mt_padrao
         fatia = alim_por_grupo[(sub, orig, kv_alim)] / max(alim_por_sub[sub], 1)
         mva = max(10.0, (mva_sub.get(sub) or 40.0) * fatia)
-        nome = f'TRB_{sub}_{kv_alim:g}'.replace('.', 'p')
+        # O nome sai da barra DERIVADA, que ja e unica por chave. Nomear por
+        # (subestacao, tensao) colidia quando a mesma subestacao tinha duas
+        # barras de origem distintas precisando do mesmo nivel derivado —
+        # saiam dois `Transformer.TRB_5003585_34p5` e o OpenDSS recusava o
+        # arquivo inteiro: "(#266) Duplicate new element definition".
+        # Nunca disparou na Enel SP; bloqueou 1 das 20 subestacoes de
+        # Roraima. Bug de nascenca, exposto pela segunda base.
+        nome = 'TRB_' + nova
         por_se[sub].insert(0, (
             f'! Transformador de barra: a BDGD poe alimentadores de '
             f'{kv_alim:g} kV no mesmo CTMT.BARR da barra de {kv_orig:g} kV.\n'

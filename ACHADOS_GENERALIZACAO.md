@@ -349,9 +349,15 @@ injetado, o que é erro de cadastro, não de física. Separando os dois:
 | CPFL Paulista | 1.537 | 43 (2,8%) | 67 | **14 (0,9%)** |
 | Light | 1.546 | 165 (10,7%) | 196 | **4 (0,3%)** |
 | Enel CE | 686 | 4 (0,6%) | 0 | **4 (0,6%)** |
+| Cemig-D¹ | 460 | 227 (49,3%) | 228 | **5 (1,1%)** |
 
 **A Enel SP é discrepante por um fator de ~40.** As outras quatro ficam entre
 0,3% e 0,9%, compatível com ruído residual de cadastro. A Enel SP tem 29,1%.
+
+¹ **A linha da Cemig-D não é comparável às demais e está aqui com ressalva.**
+Ela cruza 460 alimentadores de **2.456 declarados** — 23,9% de cobertura,
+contra 87% a 95% em todas as outras. O 1,1% é medido sobre um quarto da rede,
+e nada garante que esse quarto represente o resto. Ver achado 12.
 
 E os casos dela não são sutis:
 
@@ -411,6 +417,7 @@ Impossível de medir e portanto erro de cadastro. Vira indicador do auditor:
 
 | base | alimentadores | % |
 |---|---:|---:|
+| **Cemig-D** | **204** | **44,3%** |
 | Equatorial PA | 116 | **18,7%** |
 | Light | 113 | 7,3% |
 | Enel SP | 19 | 1,2% |
@@ -419,7 +426,12 @@ Impossível de medir e portanto erro de cadastro. Vira indicador do auditor:
 
 A Enel CE é a única base sem um único alimentador nessa condição — e também a
 de menor violação real. Pelo critério de coerência interna medida, **é a melhor
-das cinco**.
+das seis**.
+
+E a Cemig-D é a pior por larga margem: **quase metade dos alimentadores que
+chegam à medição faturam mais energia do que recebem.** Isso arrasta a perda
+não técnica implícita dela para 0,08% mediano — número que não descreve a
+Cemig, descreve a medição.
 
 ---
 
@@ -578,3 +590,71 @@ nenhuma informação externa.
 O que **não** autoriza: dizer qual é o valor correto do 593, nem publicar os
 números "corrigidos" como se fossem os da Enel SP. A sensibilidade é uma
 medida da influência do dado, não uma correção dele.
+
+---
+
+## Achado 12 — a Cemig-D quebra a MEDIÇÃO, não a conversão
+
+**11/08/2026.** Sexta e última base. Ela converte (413 de 413 subestações
+geradas, 148,4 min — a mais demorada), mas é a primeira em que o resultado
+**não pode ser lido junto com os das outras**.
+
+### Três degradações, em ordem crescente de gravidade
+
+| | Cemig-D | as outras cinco |
+|---|---:|---:|
+| sadias nos dois motores | **341/413 (82,6%)** | 780/787 (99,1%) |
+| resolvem os 96 passos | 340/413 | 155/155 na Enel SP |
+| **alimentadores que chegam à medição** | **492 de 2.062 (23,9%)** | **87,2% a 94,6%** |
+
+Os 72 casos de NaN são leves — 266 nós no total, mediana de ~4 por
+subestação, nos **dois** motores, convergindo em 3 iterações e com potência
+coerente. Não é modelo quebrado; é nó flutuante.
+
+O terceiro item é que inviabiliza a comparação. E os 1.570 alimentadores que
+não medem registram **exatamente zero**, não "pouco" — é medidor com zona
+vazia, não medidor com pouca carga.
+
+### A causa, medida
+
+Hipótese: os alimentadores de uma mesma subestação estão interligados na MT,
+a zona de um `EnergyMeter` engole as vizinhas, e as outras ficam sem nada. Se
+for isso, os que medem têm de carregar energia **inflada** frente à declarada.
+
+Razão entre a energia do modelo (dia × 365) e a declarada na CTMT do mesmo
+alimentador — 1,0 seria o medidor vendo exatamente o alimentador declarado:
+
+| base | p10 | mediana | p90 | acima de 2× |
+|---|---:|---:|---:|---:|
+| **Cemig-D** | 0,21 | **2,71** | 8,70 | **58,7%** |
+| Enel SP | 0,54 | 0,73 | 0,98 | 0,5% |
+| Enel CE | 0,77 | 0,93 | 1,11 | 1,9% |
+| CPFL | 0,80 | 0,93 | 1,05 | 0,8% |
+
+**Confirmada.** Nas três bases de controle a razão fica em 0,73 a 0,93 com
+menos de 2% acima do dobro; na Cemig-D a mediana é 2,71 e quase 60% passa do
+dobro. Os medidores que sobraram estão medindo os vizinhos junto.
+
+### O que isso invalida
+
+O 1,1% de violação real da Cemig-D **não é comparável** aos 0,3%–0,9% das
+outras nem aos 29,1% da Enel SP. Não é só cobertura baixa: o numerador (perda
+do modelo) e o denominador (energia declarada daquele alimentador) passam a
+ser de conjuntos diferentes de rede. Pela mesma razão, a perda não técnica
+implícita de 0,08% não descreve a Cemig — descreve a medição.
+
+E os 44,3% de alimentadores com faturado ≥ injetado, o pior índice das seis,
+são em boa parte o outro lado do mesmo efeito: quem perdeu a zona fica com
+energia injetada quase nula contra faturamento real.
+
+### O que fica pendente
+
+A causa da interligação em si não foi investigada — pode ser topologia real
+da Cemig (rede de MT malhada, e não radial como as outras cinco), pode ser
+`PAC_INI` apontando para dentro da zona de outro alimentador, pode ser o vão.
+**São hipóteses, nenhuma testada.** O que está medido é o efeito.
+
+Consequência para o auditor: **fração de alimentadores que chegam à medição**
+vira indicador de primeira linha, ao lado de faturado ≥ injetado. Sem ele, a
+Cemig-D teria entrado na tabela do achado 10 com um 1,1% de aparência
+excelente.

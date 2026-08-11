@@ -109,7 +109,29 @@ def energia_medida(gdb, log=print):
     return inj, dict(fat), sub, dict(n_uc)
 
 
-def cruzar(modelo, inj, fat, sub, n_uc):
+# Piso abaixo do qual a perda TOTAL medida deixa de servir de referencia.
+#
+# Violar o limite rigido pode ser duas coisas muito diferentes: modelo alto
+# demais, ou MEDICAO degenerada naquele alimentador. Se a total medida for
+# nula ou negativa (faturado >= injetado, impossivel de medir), ou apenas
+# implausivelmente baixa para rede de distribuicao real, qualquer perda
+# tecnica positiva "viola" — e isso nao diz nada sobre o modelo.
+#
+# O corte mudou a leitura do levantamento inteiro. Medido nas seis bases:
+#
+#     base             violam        degenerada   VIOLACAO REAL
+#     Enel SP          482 (30,6%)       29        458 (29,1%)
+#     Equatorial PA    124 (20,0%)      121          5 ( 0,8%)
+#     Light            165 (10,7%)      196          4 ( 0,3%)
+#     CPFL              43 ( 2,8%)       67         14 ( 0,9%)
+#     Enel CE            4 ( 0,6%)        0          4 ( 0,6%)
+#
+# Sem ele, a Equatorial pareceria 25x pior do que e, e a Enel SP apareceria
+# como diferenca de grau e nao de natureza.
+PISO_MEDIDA = 2.0
+
+
+def cruzar(modelo, inj, fat, sub, n_uc, piso=PISO_MEDIDA):
     """Junta o modelo com a medicao, alimentador a alimentador."""
     tec = {}
     for se in modelo:
@@ -124,6 +146,8 @@ def cruzar(modelo, inj, fat, sub, n_uc):
             sem_par += 1
             continue
         pct_total = 100.0 * (e_inj - e_fat) / e_inj
+        degenerada = bool(pct_total < piso)
+        viola = bool(pct_tec > pct_total)
         linhas.append({
             'ctmt': cod, 'sub': sub.get(cod, ''),
             'GWh_injetado': round(e_inj / 1e6, 4),
@@ -134,7 +158,11 @@ def cruzar(modelo, inj, fat, sub, n_uc):
             'pct_nao_tecnica_implicita': round(pct_total - pct_tec, 3),
             'cobertura': (round(100 * pct_tec / pct_total, 1)
                           if pct_total > 0 else None),
-            'viola_limite': bool(pct_tec > pct_total),
+            'viola_limite': viola,
+            # a separacao que antes era feita fora, num script de diagnostico
+            'medida_degenerada': degenerada,
+            'faturado_maior_que_injetado': bool(e_fat >= e_inj),
+            'viola_de_verdade': bool(viola and not degenerada),
         })
     return linhas, sem_par
 
@@ -226,17 +254,27 @@ def main():
         raise SystemExit('nenhum alimentador casou entre modelo e BDGD')
 
     viol = [x for x in linhas if x['viola_limite']]
+    real = [x for x in linhas if x['viola_de_verdade']]
+    degen = [x for x in linhas if x['medida_degenerada']]
+    neg = [x for x in linhas if x['faturado_maior_que_injetado']]
     tot = [x['pct_total_medido'] for x in linhas]
     tec = [x['pct_tecnica_modelo'] for x in linhas]
     res = [x['pct_nao_tecnica_implicita'] for x in linhas]
     cob = [x['cobertura'] for x in linhas if x['cobertura'] is not None]
 
     print(f'\n{len(linhas):,} alimentadores cruzados ({sem_par:,} sem par)\n')
-    print('NIVEL 1 — LIMITE RIGIDO (tecnica do modelo <= total medida)')
-    print(f'   violam: {len(viol):,} de {len(linhas):,} '
+    print('NIVEL 0 — QUALIDADE DA MEDICAO (antes de julgar o modelo)')
+    print(f'   faturado >= injetado: {len(neg):,} '
+          f'({100*len(neg)/len(linhas):.2f}%)  <- impossivel de medir, e cadastro')
+    print(f'   perda total medida < {PISO_MEDIDA:g}%: {len(degen):,} '
+          f'({100*len(degen)/len(linhas):.2f}%)  <- sem referencia utilizavel')
+    print('\nNIVEL 1 — LIMITE RIGIDO (tecnica do modelo <= total medida)')
+    print(f'   violam o limite:  {len(viol):,} de {len(linhas):,} '
           f'({100*len(viol)/len(linhas):.2f}%)')
-    print(f'   {"APROVA" if not viol else "REPROVA"}: '
-          f'{"nenhum alimentador tem perda tecnica maior que a total medida" if not viol else "ha modelo fisicamente impossivel"}')
+    print(f'   VIOLACAO REAL:    {len(real):,} de {len(linhas):,} '
+          f'({100*len(real)/len(linhas):.2f}%)  <- descontada a medida degenerada')
+    print(f'   {"APROVA" if not real else "REPROVA"}: '
+          f'{"nenhum alimentador com medida utilizavel tem perda tecnica maior que a total medida" if not real else "ha modelo fisicamente impossivel"}')
     print('\nNIVEL 2 — RESIDUO (perda nao tecnica implicita)')
     print(f'   mediana {statistics.median(res):6.2f}%   '
           f'p10 {sorted(res)[len(res)//10]:6.2f}%   '
@@ -246,9 +284,10 @@ def main():
     print(f'\n   perda total medida: mediana {statistics.median(tot):6.2f}%')
     print(f'   tecnica do modelo:  mediana {statistics.median(tec):6.2f}%')
 
-    if viol:
-        print(f'\nos 10 piores (tecnica acima da total medida):')
-        for x in sorted(viol, key=lambda z: z['pct_tecnica_modelo']
+    if real:
+        print(f'\nos 10 piores com medida utilizavel '
+              f'(tecnica acima da total medida):')
+        for x in sorted(real, key=lambda z: z['pct_tecnica_modelo']
                         - z['pct_total_medido'], reverse=True)[:10]:
             print(f'   {x["sub"]:10s} {x["ctmt"][:20]:20s} '
                   f'modelo {x["pct_tecnica_modelo"]:7.2f}%  '

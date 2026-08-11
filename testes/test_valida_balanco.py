@@ -165,21 +165,36 @@ class MedicaoDegenerada(unittest.TestCase):
         self.assertLess(viol[0]['pct_total_medido'], 0,
                         'o unico que viola e o que nao tem medida coerente')
 
-    @unittest.expectedFailure
-    def test_DEFEITO_CONHECIDO_falta_separar_cadastro_de_modelo(self):
-        """O requisito do passo 5. `cruzar` tem de marcar a medida degenerada
-        e a violacao REAL em campos distintos — hoje so existe `viola_limite`,
-        e a separacao foi feita fora, num script de diagnostico.
-
-        Enquanto isso nao esta no codigo de producao, a metrica que sustenta
-        o achado 10 nao e reproduzivel por quem so tem o repositorio.
-        """
+    def test_separa_cadastro_de_modelo(self):
+        """A separacao que sustenta o achado 10, agora no codigo de producao
+        e nao num script de diagnostico fora do repositorio."""
         linhas, _ = self._cruza({'F1': 5.0, 'F2': 3.0, 'F3': 0.01})
         d = {x['ctmt']: x for x in linhas}
         self.assertTrue(d['F3']['medida_degenerada'])
+        self.assertTrue(d['F3']['faturado_maior_que_injetado'])
         self.assertFalse(d['F3']['viola_de_verdade'])
         self.assertFalse(d['F1']['medida_degenerada'])
+        self.assertFalse(d['F1']['faturado_maior_que_injetado'])
         self.assertEqual(sum(1 for x in linhas if x['viola_de_verdade']), 0)
+
+    def test_modelo_alto_num_alimentador_de_medida_boa_viola_de_verdade(self):
+        """O contraste: F1 mede 20% de perda total, referencia utilizavel.
+        25% de perda tecnica ali e defeito de modelo, e tem de ser contado."""
+        linhas, _ = self._cruza({'F1': 25.0})
+        self.assertTrue(linhas[0]['viola_de_verdade'])
+        self.assertFalse(linhas[0]['medida_degenerada'])
+
+    def test_o_piso_e_parametro_e_nao_numero_solto(self):
+        """O piso de 2% e escolha, nao lei. Fica exposto para que outra base
+        possa ser medida com outro criterio — e para que a escolha apareca."""
+        self.assertEqual(vb.PISO_MEDIDA, 2.0)
+        linhas, _ = self._cruza({'F1': 25.0})
+        self.assertTrue(linhas[0]['viola_de_verdade'])
+        linhas, _ = vb.cruzar(_modelo({'F1': 25.0}), self.inj, self.fat,
+                              self.sub, self.n_uc, piso=50.0)
+        self.assertTrue(linhas[0]['medida_degenerada'],
+                        'com piso de 50%, os 20% de F1 deixam de servir')
+        self.assertFalse(linhas[0]['viola_de_verdade'])
 
 
 if __name__ == '__main__':

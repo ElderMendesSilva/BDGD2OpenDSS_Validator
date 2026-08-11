@@ -46,6 +46,7 @@ Tres decisoes deliberadas:
 
 Para desligar: FATOR_CORRIGE = 0.
 """
+import collections
 import math
 
 from .leitor import num, txt
@@ -97,6 +98,101 @@ def _ajuste(pares):
     a = (n * sxy - sx * sy) / den
     b = (sy - a * sx) / n
     return a, b, f'R1 = {math.exp(b):.1f} x CNOM^{a:.3f}, n={n}'
+
+
+def coerencia_de_uso(trechos, margem=1.0):
+    """Coerencia entre a ampacidade DECLARADA e a corrente CALCULADA.
+
+    A verificacao acima (`_ajuste`) confere R1 contra CNOM dentro da SEGCON.
+    Ela nao pega o caso mais caro que este projeto encontrou: o condutor 593
+    da Enel SP, 31 A com 8,232 ohm/km — um par internamente coerente, e por
+    isso intocado, cobrindo 13,5% de uma rede metropolitana de media tensao.
+    O defeito nao esta no registro; esta no USO. E uso so aparece depois de
+    resolver o fluxo.
+
+    `trechos` e uma lista de dicionarios, um por trecho de linha resolvido:
+
+        {'linecode': str, 'km': float, 'corrente': float, 'amps': float,
+         'perda_kw': float (opcional)}
+
+    Devolve, por linecode:
+
+        km                    quilometragem total da rede naquele condutor
+        km_sobrecarga         quanto dela opera acima de `margem` x amps
+        pct_do_proprio_km     ...em fracao do proprio condutor
+        pct_da_rede           fatia do condutor na rede inteira
+        pct_da_sobrecarga     fatia dele na sobrecarga total
+        enriquecimento        pct_da_sobrecarga / pct_da_rede
+        perda_kw, pct_da_perda_em_sobrecarga
+
+    O ENRIQUECIMENTO e o numero que denuncia. Um condutor que carrega a
+    sobrecarga na mesma proporcao em que carrega a rede tem enriquecimento
+    1,0 — e nao ha nada de especial nele. O 593 mediu **4,64x**: era 20,4%
+    da rede dos alimentadores rastreados e 94,7% da sobrecarga deles.
+    """
+    tot = collections.defaultdict(
+        lambda: {'km': 0.0, 'km_sobrecarga': 0.0, 'perda_kw': 0.0,
+                 'perda_kw_sobrecarga': 0.0, 'trechos': 0,
+                 'trechos_sobrecarga': 0})
+    for t in trechos:
+        lc = str(t.get('linecode') or '').strip()
+        if not lc:
+            continue
+        km = float(t.get('km') or 0.0)
+        amps = float(t.get('amps') or 0.0)
+        corr = float(t.get('corrente') or 0.0)
+        p = float(t.get('perda_kw') or 0.0)
+        d = tot[lc]
+        d['km'] += km
+        d['perda_kw'] += p
+        d['trechos'] += 1
+        if amps > 0 and corr > margem * amps:
+            d['km_sobrecarga'] += km
+            d['perda_kw_sobrecarga'] += p
+            d['trechos_sobrecarga'] += 1
+
+    km_rede = sum(d['km'] for d in tot.values())
+    km_sob = sum(d['km_sobrecarga'] for d in tot.values())
+    p_sob = sum(d['perda_kw_sobrecarga'] for d in tot.values())
+
+    saida = {}
+    for lc, d in tot.items():
+        pct_rede = 100.0 * d['km'] / km_rede if km_rede else 0.0
+        pct_sob = 100.0 * d['km_sobrecarga'] / km_sob if km_sob else 0.0
+        saida[lc] = {
+            'km': d['km'], 'km_sobrecarga': d['km_sobrecarga'],
+            'trechos': d['trechos'],
+            'trechos_sobrecarga': d['trechos_sobrecarga'],
+            'pct_do_proprio_km': (100.0 * d['km_sobrecarga'] / d['km']
+                                  if d['km'] else 0.0),
+            'pct_da_rede': pct_rede,
+            'pct_da_sobrecarga': pct_sob,
+            # None, e nao 1,0: sem sobrecarga na rede o enriquecimento nao
+            # esta definido, e devolver 1,0 fingiria uma medida que nao houve
+            'enriquecimento': (pct_sob / pct_rede) if (pct_rede and km_sob)
+                              else None,
+            'perda_kw': d['perda_kw'],
+            'perda_kw_sobrecarga': d['perda_kw_sobrecarga'],
+            'pct_da_perda_em_sobrecarga': (100.0 * d['perda_kw_sobrecarga']
+                                           / p_sob) if p_sob else 0.0,
+        }
+    return saida
+
+
+def concentracao(coer, minimo_km=1.0):
+    """O alerta: um unico condutor concentra a sobrecarga?
+
+    Devolve (linecode, enriquecimento, pct_da_sobrecarga) do pior caso, ou
+    None se nao ha sobrecarga. Referencia medida entre bases: a Enel CE tem
+    0,0% da quilometragem em sobrecarga; a Enel SP tem 8,5% a 12,8%, e o
+    campeao dela concentra 94,7% dela com enriquecimento 4,64x.
+    """
+    cand = [(v['enriquecimento'], k, v) for k, v in coer.items()
+            if v['enriquecimento'] is not None and v['km'] >= minimo_km]
+    if not cand:
+        return None
+    _, k, v = max(cand, key=lambda x: (x[2]['pct_da_sobrecarga'], x[0]))
+    return k, v['enriquecimento'], v['pct_da_sobrecarga']
 
 
 def gerar(bdgd, caminho_saida):

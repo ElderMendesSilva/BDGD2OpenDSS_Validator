@@ -164,11 +164,10 @@ class OCondutor593(unittest.TestCase):
         for prev in (v1, v2):
             self.assertLess(self.r1, linecodes.FATOR_CORRIGE * prev)
 
-    @unittest.expectedFailure
-    def test_DEFEITO_CONHECIDO_falta_coerencia_entre_ampacidade_e_corrente(self):
+    def test_coerencia_entre_ampacidade_e_corrente(self):
         """O item que o achado 11 acrescentou ao passo 5 do PLANO.md.
 
-        A verificacao que falta e de outra natureza: compara a corrente
+        A verificacao que faltava e de outra natureza: compara a corrente
         CALCULADA pelo fluxo com a ampacidade DECLARADA, por condutor, e
         reporta ENRIQUECIMENTO — a fatia da sobrecarga dividida pela fatia da
         rede. Foi essa razao, 4,64x, que denunciou o 593.
@@ -187,6 +186,81 @@ class OCondutor593(unittest.TestCase):
         self.assertAlmostEqual(r['CND_593_3F']['pct_da_sobrecarga'], 100.0, 1)
         self.assertAlmostEqual(r['CND_593_3F']['enriquecimento'], 3.572, 2)
         self.assertAlmostEqual(r['CND_1664_3F']['pct_da_sobrecarga'], 0.0, 1)
+        self.assertAlmostEqual(r['CND_593_3F']['pct_do_proprio_km'], 100.0, 1)
+
+
+class CoerenciaDeUso(unittest.TestCase):
+    """A verificacao nova, nos casos em que ela pode enganar."""
+
+    def test_rede_sem_sobrecarga_nao_produz_enriquecimento(self):
+        """O controle da Enel CE: 0,0% da quilometragem acima da ampacidade.
+        Enriquecimento tem de vir None, nao 1,0 — devolver 1,0 fingiria uma
+        medida que nao houve, e o alerta dispararia numa base sadia."""
+        r = linecodes.coerencia_de_uso([
+            {'linecode': 'A', 'km': 100.0, 'corrente': 10.0, 'amps': 254.0},
+            {'linecode': 'B', 'km': 50.0, 'corrente': 20.0, 'amps': 100.0},
+        ])
+        self.assertEqual(r['A']['pct_do_proprio_km'], 0.0)
+        self.assertIsNone(r['A']['enriquecimento'])
+        self.assertIsNone(linecodes.concentracao(r))
+
+    def test_enriquecimento_1_quando_a_sobrecarga_acompanha_a_rede(self):
+        """Se todo condutor sobrecarrega na mesma proporcao em que ocupa a
+        rede, ninguem se destaca — e o alerta nao pode disparar."""
+        r = linecodes.coerencia_de_uso([
+            {'linecode': 'A', 'km': 80.0, 'corrente': 300.0, 'amps': 100.0},
+            {'linecode': 'B', 'km': 20.0, 'corrente': 300.0, 'amps': 100.0},
+        ])
+        for k in ('A', 'B'):
+            self.assertAlmostEqual(r[k]['enriquecimento'], 1.0, places=6)
+
+    def test_condutor_extenso_e_sadio_nao_e_acusado(self):
+        """Armadilha obvia: o condutor com mais km nao pode ser apontado so
+        por ser o maior. Aqui A tem 90% da rede e nenhuma sobrecarga."""
+        r = linecodes.coerencia_de_uso([
+            {'linecode': 'A', 'km': 900.0, 'corrente': 50.0, 'amps': 254.0},
+            {'linecode': 'B', 'km': 100.0, 'corrente': 50.0, 'amps': 31.0},
+        ])
+        self.assertEqual(r['A']['pct_da_sobrecarga'], 0.0)
+        pior, enr, pct = linecodes.concentracao(r)
+        self.assertEqual(pior, 'B')
+        self.assertAlmostEqual(enr, 10.0, places=6)
+        self.assertAlmostEqual(pct, 100.0, places=6)
+
+    def test_a_perda_em_sobrecarga_e_atribuida_ao_condutor_certo(self):
+        """97,4% da perda em trecho sobrecarregado da Enel SP estava no 593.
+        A conta tem de somar sobre os trechos em sobrecarga, nao sobre todos
+        os trechos do condutor."""
+        r = linecodes.coerencia_de_uso([
+            {'linecode': 'A', 'km': 10.0, 'corrente': 50.0, 'amps': 31.0,
+             'perda_kw': 900.0},
+            {'linecode': 'A', 'km': 10.0, 'corrente': 5.0, 'amps': 31.0,
+             'perda_kw': 100.0},
+            {'linecode': 'B', 'km': 10.0, 'corrente': 50.0, 'amps': 31.0,
+             'perda_kw': 100.0},
+        ])
+        self.assertAlmostEqual(r['A']['perda_kw'], 1000.0)
+        self.assertAlmostEqual(r['A']['perda_kw_sobrecarga'], 900.0)
+        self.assertAlmostEqual(r['A']['pct_da_perda_em_sobrecarga'], 90.0, 6)
+        self.assertAlmostEqual(r['A']['pct_do_proprio_km'], 50.0, 6)
+
+    def test_ampacidade_ausente_nao_vira_sobrecarga(self):
+        """Trecho sem CNOM declarado tem amps 0. Comparar corrente > 0
+        acusaria a rede inteira."""
+        r = linecodes.coerencia_de_uso([
+            {'linecode': 'A', 'km': 10.0, 'corrente': 50.0, 'amps': 0.0},
+        ])
+        self.assertEqual(r['A']['km_sobrecarga'], 0.0)
+
+    def test_margem_desloca_o_limiar(self):
+        """`margem=2.0` mede a sobrecarga SEVERA, que foi a que separou os
+        458 alimentadores dos demais por fator 8 (7,0% contra 0,9%)."""
+        t = [{'linecode': 'A', 'km': 10.0, 'corrente': 50.0, 'amps': 31.0}]
+        self.assertEqual(linecodes.coerencia_de_uso(t)['A']['km_sobrecarga'],
+                         10.0)
+        self.assertEqual(
+            linecodes.coerencia_de_uso(t, margem=2.0)['A']['km_sobrecarga'],
+            0.0)
 
 
 if __name__ == '__main__':

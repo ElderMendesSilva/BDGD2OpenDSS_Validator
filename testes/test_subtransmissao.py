@@ -76,28 +76,37 @@ class BarraDerivada(unittest.TestCase):
         _, _, por_se = st.vaos(ctmt, info, set())
         self.assertEqual(len(_nomes_de_trafo(por_se)), 1)
 
-    @unittest.expectedFailure
-    def test_DEFEITO_CONHECIDO_duas_barras_de_origem_geram_nome_repetido(self):
+    def test_duas_barras_de_origem_geram_nomes_distintos(self):
         """O caso de Roraima, subestacao 5003585.
 
         Duas barras de origem DISTINTAS (BMT1 e BMT2) na mesma subestacao,
         ambas com alimentador de 34,5 kV. O dicionario `derivadas` e indexado
-        por (sub, barra_original, kv), mas o transformador e nomeado
-        `TRB_{sub}_{kv}` — SEM a barra de origem. Saem dois elementos com o
-        mesmo nome e o OpenDSS recusa:
+        por (sub, barra_original, kv), mas o transformador era nomeado
+        `TRB_{sub}_{kv}` — SEM a barra de origem. Saiam dois elementos com o
+        mesmo nome e o OpenDSS recusava o arquivo inteiro:
 
             (#266) Duplicate new element definition: Transformer.TRB_..._34p5
 
-        Correcao proposta no passo 5: nomear a partir da barra derivada, que
-        ja e unica por chave.
+        Corrigido no passo 5: o nome sai da barra derivada, que ja e unica
+        por chave.
         """
         info = _info({'T1': 'BMT1', 'T2': 'BMT2'})
         ctmt = {'F1': _ctmt('F1', 'SE1', 'BMT1', 'P1', 34.5, tr='T1'),
                 'F2': _ctmt('F2', 'SE1', 'BMT2', 'P2', 34.5, tr='T2')}
         _, _, por_se = st.vaos(ctmt, info, set())
         nomes = _nomes_de_trafo(por_se)
+        self.assertEqual(len(nomes), 2, 'um transformador por barra de origem')
         self.assertEqual(len(nomes), len(set(nomes)),
                          f'nomes repetidos: {nomes}')
+
+    def test_o_nome_do_trafo_de_barra_acompanha_a_barra_derivada(self):
+        """Nao basta ser unico: tem de ser rastreavel ate a barra que ele
+        alimenta, senao ninguem liga um ao outro lendo o .dss."""
+        info = _info({'T1': 'BMT1'})
+        ctmt = {'F1': _ctmt('F1', 'SE1', 'BMT1', 'P1', 34.5)}
+        ligados, _, por_se = st.vaos(ctmt, info, set())
+        nomes = _nomes_de_trafo(por_se)
+        self.assertEqual(nomes, ['TRB_' + ligados['F1']['barra']])
 
 
 def _base_at(pac_1_do_trafo):

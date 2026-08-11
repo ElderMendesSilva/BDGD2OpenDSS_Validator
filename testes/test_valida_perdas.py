@@ -19,6 +19,7 @@ ultimo enuncia o requisito do passo 5.
 """
 import os
 import sys
+import tempfile
 import unittest
 
 AQUI = os.path.dirname(os.path.abspath(__file__))
@@ -110,18 +111,98 @@ class ErroDeMetodoNaComparacao(unittest.TestCase):
         f3 = self.d['F3']['pct'] / self._pct('F3', ['PERD_A4'])
         self.assertNotAlmostEqual(f1, f3, places=2)
 
-    @unittest.expectedFailure
-    def test_DEFEITO_CONHECIDO_deveria_cobrar_so_o_que_o_modelo_gera(self):
+    def test_a_composicao_e_escolhivel(self):
         """O requisito do passo 5: as parcelas comparadas tem de acompanhar o
-        modo de BT com que o modelo foi gerado.
-
-        Com `--bt agregado` a comparacao e contra PERD_A4 apenas; com
-        `--bt completo` volta a ser contra as tres. Hoje `declarado` nao
-        aceita escolha e sempre soma as tres.
-        """
+        que o modelo REPRODUZ, e nao ser fixas."""
         d = vp.declarado(GDB, parcelas=['PERD_A4'])
         self.assertAlmostEqual(d['F1']['pct'], 100 * 100.0 / 12000, places=4)
         self.assertAlmostEqual(d['F1']['perda_ano'], 100.0, places=3)
+
+    def test_mt_mais_trafos_fica_entre_os_dois_extremos(self):
+        """A composicao que o modelo `--bt agregado` de fato produz —
+        rede de MT mais transformadores de distribuicao — nao e nenhum dos
+        dois extremos que o plano original considerou."""
+        so_a4 = vp.declarado(GDB, parcelas=['PERD_A4'])['F1']['pct']
+        meio = vp.declarado(GDB, parcelas=['PERD_A4', 'PERD_A4_B'])['F1']['pct']
+        tudo = vp.declarado(GDB)['F1']['pct']
+        self.assertLess(so_a4, meio)
+        self.assertLess(meio, tudo)
+        self.assertAlmostEqual(meio, 100 * 120.0 / 12000, places=4)
+
+    def test_por_parcela_permite_recompor_sem_reler(self):
+        """Ler a CTMT de uma concessao nao e barato; a comparacao entre
+        composicoes tem de sair de uma leitura so."""
+        d = vp.declarado(GDB, parcelas=['PERD_A4'])['F1']
+        self.assertEqual(set(d['por_parcela']), set(vp.PARCELAS))
+        self.assertAlmostEqual(d['por_parcela']['PERD_B'], 80.0, places=3)
+
+    def test_compara_composicoes_sobre_a_mesma_amostra(self):
+        """Se a amostra mudasse junto com a composicao, a comparacao nao
+        diria nada — cada linha estaria medindo outro conjunto de rede."""
+        decl = vp.declarado(GDB)
+        pares = [('SE1', 'F1', 1.0, 0.0, 0.0, 0.0),
+                 ('SE1', 'F2', 1.0, 0.0, 0.0, 0.0)]
+        r, fora = vp.comparar_composicoes(pares, decl)
+        self.assertEqual(len(r), len(vp.CANDIDATAS))
+        self.assertEqual({x['n'] for x in r}, {2})
+        self.assertEqual(fora, 0)
+        # cobrar menos parcelas -> denominador menor -> razao maior
+        self.assertGreater(r[0]['razao_mediana'], r[-1]['razao_mediana'])
+
+    def test_quem_declara_so_uma_parcela_sai_da_amostra_comum(self):
+        """O caso medido na Equatorial PA: 100 alimentadores declaram
+        PERD_B e nao declaram PERD_A4. Entrando so na linha que os inclui,
+        eles faziam as tres linhas medirem conjuntos diferentes."""
+        decl = vp.declarado(GDB)
+        decl['SO_BT'] = {'sub': 'SE1', 'ene_ano': 1000.0, 'perda_ano': 50.0,
+                         'por_parcela': {'PERD_A4': 0.0, 'PERD_B': 50.0,
+                                         'PERD_A4_B': 0.0},
+                         'parcelas': vp.PARCELAS, 'pct': 5.0}
+        pares = [('SE1', 'F1', 1.0, 0.0, 0.0, 0.0),
+                 ('SE1', 'SO_BT', 1.0, 0.0, 0.0, 0.0)]
+        r, fora = vp.comparar_composicoes(pares, decl)
+        self.assertEqual(fora, 1)
+        self.assertEqual({x['n'] for x in r}, {1},
+                         'as tres linhas tem de medir a mesma amostra')
+
+
+class ComposicaoSaiDoManifestoDoModelo(unittest.TestCase):
+    """A escolha nao pode ser adivinhada nem fixada: ela esta gravada no
+    `relatorio_rede.json` que o proprio conversor escreveu."""
+
+    def _raiz(self, conteudo):
+        d = tempfile.mkdtemp()
+        if conteudo is not None:
+            with open(os.path.join(d, 'relatorio_rede.json'), 'w',
+                      encoding='utf-8') as fh:
+                fh.write(conteudo)
+        return d
+
+    def test_bt_agregado_cobra_so_a_mt(self):
+        p, motivo = vp.parcelas_do_modelo(self._raiz('{"bt": "agregado"}'))
+        self.assertEqual(p, ['PERD_A4'])
+        self.assertIn('agregado', motivo)
+
+    def test_bt_completo_cobra_as_tres(self):
+        p, _ = vp.parcelas_do_modelo(self._raiz('{"bt": "completo"}'))
+        self.assertEqual(p, vp.PARCELAS)
+
+    def test_sem_manifesto_mantem_o_comportamento_antigo(self):
+        """Modelo gerado por uma versao anterior nao pode mudar de criterio
+        em silencio — a razao publicada dele deixaria de ser reproduzivel."""
+        p, motivo = vp.parcelas_do_modelo(self._raiz(None))
+        self.assertEqual(p, vp.PARCELAS)
+        self.assertIn('sem relatorio_rede.json', motivo)
+
+    def test_manifesto_ilegivel_nao_derruba(self):
+        p, motivo = vp.parcelas_do_modelo(self._raiz('{nao e json'))
+        self.assertEqual(p, vp.PARCELAS)
+        self.assertIn('ilegivel', motivo)
+
+    def test_modo_desconhecido_nao_inventa_composicao(self):
+        p, motivo = vp.parcelas_do_modelo(self._raiz('{"bt": "outro"}'))
+        self.assertEqual(p, vp.PARCELAS)
+        self.assertIn('desconhecido', motivo)
 
 
 if __name__ == '__main__':
