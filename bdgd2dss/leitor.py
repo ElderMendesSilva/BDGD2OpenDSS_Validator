@@ -24,6 +24,37 @@ except Exception as _e:                                 # pragma: no cover
         '    pip install pyogrio numpy opendssdirect.py')
 
 
+def pertence(coluna, valores):
+    """`np.isin` a prova de dtype — devolve a mascara de quem esta em `valores`.
+
+    O `np.isin` cru quebra quando os dois lados sao string de LARGURA
+    diferente. Medido na Cemig-D, subestacao 266 de 413, depois de 4h15 de
+    conversao:
+
+        ufunc 'minimum' did not contain a loop with signature matching
+        types (dtype('<U7'), dtype('<U')) -> None
+
+    Nao e caso exotico: a largura do `<U` sai do conteudo lido, entao basta uma
+    fatia em que todos os codigos tenham 7 caracteres e a lista de alvos venha
+    de outra fatia com largura diferente. As bases da Enel SP, Roraima, Light,
+    Equatorial e CPFL passaram por sorte de conteudo.
+
+    A correcao promove os dois lados a uma largura comum antes de comparar —
+    nunca truncando, que geraria casamento errado em silencio, pior que o erro.
+    """
+    coluna = np.asarray(coluna)
+    alvos = list(valores)
+    if not len(coluna) or not alvos:
+        return np.zeros(len(coluna), dtype=bool)
+    if coluna.dtype.kind in 'US' or any(isinstance(v, str) for v in alvos):
+        larg_col = (coluna.dtype.itemsize // 4
+                    if coluna.dtype.kind == 'U' else coluna.dtype.itemsize)
+        larg = max(larg_col, max(len(str(v)) for v in alvos), 1)
+        tipo = f'<U{larg}'
+        return np.isin(coluna.astype(tipo), np.asarray(alvos, dtype=tipo))
+    return np.isin(coluna, np.asarray(alvos))
+
+
 class BDGD:
     """Abre uma BDGD e entrega as tabelas ja filtradas."""
 
@@ -120,7 +151,7 @@ class BDGD:
             col = self._cache[ck]
             if len(col[chave]) == 0:
                 return {c: np.array([]) for c in colunas}
-            idx = np.nonzero(np.isin(col[chave], alvo))[0]
+            idx = np.nonzero(pertence(col[chave], alvo))[0]
             return {c: col[c][idx] for c in colunas}
 
         return self._ler_do_disco(layer, chave, alvo, colunas, passo,

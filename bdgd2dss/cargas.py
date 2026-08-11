@@ -45,7 +45,7 @@ constante (50% de P e 100% de Q) domina em tensao baixa e limita a corrente,
 que era a funcao do cutoff.
 """
 import collections
-from .leitor import num, txt, no
+from .leitor import num, txt, no, pertence as leitor_pertence
 
 HORAS = 730.0
 FASES = {'A': '1', 'B': '2', 'C': '3'}
@@ -59,7 +59,9 @@ def _agrega_bt(bdgd, ctmts, mes):
     alvo = set(ctmts)
     import numpy as np
     for col, lido, total in bdgd.ler_em_fatias('UCBT_tab', cols):
-        mask = np.isin(col['CTMT'], list(alvo))
+        # `pertence` em vez de `np.isin` cru: os dois lados podem ter largura
+        # de string diferente entre fatias, e ai o numpy levanta UFuncNoLoop.
+        mask = leitor_pertence(col['CTMT'], alvo)
         idx = np.nonzero(mask)[0]
         if len(idx):
             ene = np.nan_to_num(col[f'ENE_{mes:02d}'][idx].astype(float))
