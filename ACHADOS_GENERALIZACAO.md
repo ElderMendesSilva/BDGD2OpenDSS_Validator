@@ -888,6 +888,106 @@ Três saídas, nenhuma testada ainda:
 3. **aceitar o recorte por subestação** como o produto principal, com o
    MASTER-GERAL restrito às bases que couberem.
 
+### O primeiro uso externo, e o que ele encontrou
+
+**11/08/2026.** Uma equipe de fora — estudo de despacho otimizado de
+armazenamento, artigo em revisão na IEEE Access — recebeu o pacote de 05/08 e
+devolveu um relatório com hipóteses testadas e comandos de reprodução. É o
+primeiro uso independente do conversor, e vale mais que qualquer auditoria
+interna: eles olharam para os modelos sem saber o que esperar deles.
+
+Encontraram duas coisas. **Uma era nossa e está corrigida; a outra é nossa e
+continua aberta.**
+
+---
+
+## Achado 14 — a mesma subestação com duas tensões de cabeceira
+
+Eles relataram subtensão generalizada na DALP: metade da rede de 13,8 kV
+abaixo da faixa adequada do PRODIST, mediana 0,9270, mínima 0,2403.
+
+**A causa era inconsistência interna nossa.** No modelo geral, quem sustenta a
+barra de MT é o transformador de AT, com `tap` = **mediana** de
+`CTMT.TEN_OPE`. No modelo isolado não há esse transformador — a fonte o
+substitui, e deveria reproduzir o mesmo pu. Não reproduzia: o pu saía do
+`setdefault`, que faz vencer o **primeiro alimentador da iteração**, ou de um
+**`1.0` embutido** no ramo de fallback usado quando todas as barras são
+derivadas — que é o caso da DALP.
+
+Medido: **5 de 150 subestações com `pu` ≠ `tap`, e a diferença sempre 0,09 pu**
+— a distância entre operar a 1,09 e a 1,00. A Enel declara 1,09 em 1.586 dos
+1.806 alimentadores.
+
+| SE | V média antes | depois | |
+|---|---:|---:|---|
+| DALP | 0,9351 | **1,0144** | +0,0793 |
+| DTED | 0,9284 | 1,0091 | +0,0807 |
+| DCAM | 0,9709 | 1,0562 | +0,0853 |
+| DNAC | 0,8429 | 0,9148 | +0,0719 |
+| DGPR | 0,9529 | **0,8774** | **−0,0755** |
+| DVTA | 0,9230 | 0,9230 | **0,0000** |
+
+A DGPR **desce**: a mediana dela é 1,00 e o código antigo pegara 1,09 de um
+alimentador avulso. A correção não empurra tensão para cima — faz os dois
+modelos dizerem a mesma coisa. E a DVTA, que já concordava, não muda nem na
+quarta casa: é o controle que separa o efeito da correção de qualquer outra
+coisa.
+
+Quem abriu o modelo isolado — que é o recomendado para estudo de alimentador,
+e é o que o próprio `MASTER` sugere — recebeu a rede nove pontos abaixo.
+
+---
+
+## Achado 15 — a geração fotovoltaica derruba a convergência acima de 50%
+
+Este continua **aberto**, e é defeito nosso.
+
+A equipe externa mediu, na DALP, quantos dos 96 passos do dia convergem
+conforme se escala a irradiância. Reproduzi a varredura com o `pu` como única
+variável, para separar do achado 14:
+
+| irradiância | pu = 1,00 | pu = 1,09 (corrigido) | eles (OpenDSS 9.4.0.1) |
+|---|---:|---:|---:|
+| desabilitada | 96/96 | 96/96 | 96/96 |
+| 25% | 96/96 | 96/96 | 93/96 |
+| 50% | 96/96 | 96/96 | 80/96 |
+| **75%** | **73/96** | **73/96** | 30/96 |
+| **100%** | **34/96** | **35/96** | **29/96** |
+
+**Reproduzido em dois motores independentes** — DSS C-API 0.14.5 aqui, OpenDSS
+9.4.0.1 lá — e a correção do achado 14 não toca nele: muda um passo, que é
+ruído.
+
+### Por que nunca tínhamos pegado
+
+O ciclo diário do projeto usa a irradiância **medida**, que dá 5,1 MW de pico
+na DALP contra 11,97 MW de potência instalada — cerca de **43% do nominal**.
+A divergência começa entre 50% e 75%. **A validação de 96 passos nunca
+exercitou o regime onde o modelo quebra**, e por isso as 155 subestações
+"resolvem o dia" sem que isso seja garantia para um cenário de irradiância
+plena.
+
+É uma limitação da nossa validação, não só do modelo.
+
+### Hipóteses testadas
+
+Pela equipe externa, e descartadas por eles: histerese do inversor
+(`%cutin`/`%cutout`), modo de controle, número de iterações, algoritmo
+(`normal` e `newton`), e sobredimensionamento da GD frente ao transformador
+(das 544 barras com geração, só uma excede, e por 0,03 kVA em 75).
+
+Por mim:
+
+| hipótese | resultado |
+|---|---|
+| tensão de cabeceira baixa (achado 14) | **refutada** — 73/96 e ~35/96 nos dois pu |
+| impedância do aterramento de neutro | **refutada** — 0,5 Ω a 0,001 Ω, fator 500, não muda um passo |
+
+A hipótese do neutro era a da própria equipe externa, e era boa: com
+`--bt agregado` não há rede de baixa tensão, então toda a carga e toda a
+geração de um transformador ficam na mesma barra e voltam por um único reator.
+Mas o número não sustenta.
+
 ### E a lição, que é a mesma de sempre
 
 O número **1.669.937 barras, 4 iterações, sem NaN** estava no `PLANO.md` como
