@@ -109,7 +109,38 @@ por isso carregava irradiância e temperatura erradas — ver a seção 6.
 
 ---
 
-## 5. Validação de perdas — reprova o critério
+## 4b. O conversor em outras cinco distribuidoras
+
+Rodadas em 10 e 11/08/2026, **sem nenhuma alteração de código**:
+
+| base | subestações | sadias nos dois motores | conversão |
+|---|---:|---:|---:|
+| Roraima Energia (370) | 20 | 19/20 | 1,9 min |
+| Light (382) | 94 | 92/94 | 52,9 min |
+| Equatorial PA (371) | 119 | 118/119 | 40,1 min |
+| CPFL Paulista (63) | 265 | 264/265 | 85,3 min |
+| Enel CE (39) | 129 | **129/129** | 21,6 min |
+| Cemig-D (4950) | 413 | em processamento | — |
+
+**780 de 787 subestações resolvem**, somando com a Enel SP. As 24 tabelas que o
+conversor procura estavam presentes em todas as bases.
+
+Onze achados sobre a BDGD estão registrados em `ACHADOS_GENERALIZACAO.md`. Os
+de maior consequência:
+
+- a **camada de AT amarra pelo campo errado**: `UNTRAT.PAC_1` casa com a SSDAT
+  em 94,2% na Enel SP e em **0,0%** na Light; `BARR_1`→`BAR.COD_ID` funciona nas
+  duas, a ~95%;
+- **tensão fase-neutro em campo de fase-fase** aparece em bases independentes —
+  7,96 = 13,8/√3 em Roraima, 7,62 = 13,2/√3 na Light — o que sugere trocar a
+  tabela de correção por uma regra;
+- **tensões de BT legítimas ausentes** da lista montada com o censo da Enel SP:
+  216 V e 400 V na Light, 254 V na Equatorial;
+- o **clima padrão de São Paulo** era aplicado a qualquer base, em silêncio.
+
+---
+
+## 5. Validação de perdas — o critério antigo e o que o substituiu
 
 Critério declarado antes de medir: ±30% em pelo menos 80% dos alimentadores,
 viés mediano abaixo de 15%.
@@ -133,28 +164,119 @@ dentro de +-30%:   18,0% dos alimentadores  (o critério pede 80%)
 | 15 a 40 GWh | 853 | 8,99% | 4,44% | 2,15× |
 | acima de 40 GWh | 331 | 13,51% | 4,70% | 3,25× |
 
-O declarado é praticamente plano com o porte; o do modelo escala com ele —
-que é o comportamento fisicamente esperado, mais carga sobre a mesma rede.
-O declarado **varia** entre alimentadores (coeficiente de variação 46,7%, 620
-valores distintos em 1.496), então não é valor típico rateado: varia por algo
-que não é o tamanho.
-
-**Esta é a pergunta em aberto mais interessante do trabalho.** Duas leituras
-possíveis, ainda não separadas: o modelo superestima perda em alimentador
-grande por premissa de impedância, ou o cálculo regulatório não captura a
-dependência com o carregamento. Distinguir exige olhar a metodologia do
-Módulo 7 aplicada pela distribuidora.
-
 Foram excluídos 272 alimentadores por não terem par ou declaração utilizável,
 incluindo os com perda declarada de 0,00% ou 0,01% — casa vazia no cadastro,
 que produziam razões de até 105.874×.
 
-**Natureza da referência:** `PERD_*` é saída do cálculo da própria
-distribuidora, conforme o Módulo 7 do PRODIST. Isto é **cruzamento entre dois
-modelos**, não validação contra medição. A grandeza medida disponível é
-`CTMT.ENE_XX` menos a soma das UCs, que dá a perda **total** — técnica mais
-não técnica — e portanto não é cobrável do modelo. Verificado na DABR:
-13.625,6 contra 10.821,5 MWh, 20,58%.
+### Por que este critério foi abandonado
+
+**`PERD_*` é saída de modelo, não medição.** O Módulo 7 do PRODIST manda a
+distribuidora *calcular* a perda técnica por fluxo de potência na própria rede.
+Comparar o nosso resultado com ele é cruzamento entre dois modelos — e a
+validade da conclusão depende de a referência ser confiável.
+
+Ela não é. Rodando o mesmo cruzamento nas outras bases, a razão vai de **1,88×
+na Enel SP a 0,15× na Equatorial PA** — um fator de doze. E há um erro de
+método do nosso lado: o modelo roda com `--bt agregado`, sem rede de baixa
+tensão, logo **não produz `PERD_B`**; mas a comparação era contra
+`PERD_A4 + PERD_B + PERD_A4_B`. Estávamos cobrando uma parcela que o modelo
+estruturalmente não gera.
+
+### O critério que o substituiu: balanço de energia MEDIDA
+
+A BDGD traz duas grandezas de **medidor**: `CTMT.ENE_XX`, a energia injetada na
+cabeceira, e a energia faturada nas UCs. A diferença é a perda **total** —
+técnica mais não técnica. O modelo produz a parcela técnica, que está *contida*
+na total. Daí um limite rígido:
+
+> a perda técnica do modelo tem de ser **menor** que a perda total medida.
+> Passar dela é fisicamente impossível, sem leitura alternativa.
+
+É o único teste do projeto capaz de reprovar um modelo sozinho. Aplicado às
+cinco bases, separando violação real de medição degenerada — alimentador com
+faturado ≥ injetado é erro de cadastro, não de física:
+
+| base | alimentadores | **violação real** |
+|---|---:|---:|
+| **Enel SP** | 1.573 | **458 (29,1%)** |
+| CPFL Paulista | 1.537 | 14 (0,9%) |
+| Equatorial PA | 619 | 5 (0,8%) |
+| Enel CE | 686 | 4 (0,6%) |
+| Light | 1.546 | 4 (0,3%) |
+
+**A Enel SP é discrepante por um fator de 40.** As outras quatro passam.
+
+### A causa, rastreada: o condutor 593
+
+Os 458 têm o dobro do comprimento dos demais e **sobrecarga severa 8× maior**
+(7,0% contra 0,9% da quilometragem acima de 2× a ampacidade). Controle
+decisivo: a mesma medida na Enel CE dá **0,0%** de quilometragem em sobrecarga
+— o que descarta artefato do método, já que a Enel CE tem condutor pior (R1
+ponderado 5,307 contra 1,642 Ω/km) e passa.
+
+Censo da SEGCON ponderado pela quilometragem de rede:
+
+```
+Enel SP — condutor com mais km
+   cnd 593    2.993 km (13,5% da rede de MT)   CNOM 31,0 A   R1 8,232 ohm/km
+```
+
+Rastreando a sobrecarga em 30 subestações, cobrindo 237 dos 458:
+
+| | |
+|---|---:|
+| o 593 é, na rede desses alimentadores | 20,4% |
+| o 593 é, da quilometragem em sobrecarga | **94,7%** |
+| enriquecimento | **4,64×** |
+| perda que ocorre em trecho sobrecarregado, atribuível ao 593 | **97,4%** |
+| fração do próprio 593 que opera acima da ampacidade | 57,2% |
+
+Os valores do 593 são **internamente coerentes** — 31 A pede mesmo ~8 Ω/km — e
+por isso o auto-ajuste do `linecodes` não os toca. O implausível é o **uso**:
+2.993 km de rede metropolitana num cabo de 31 A.
+
+### Sensibilidade: quanto do fracasso vem daí
+
+Experimento de uma variável. Os modelos gerados foram copiados inteiros —
+topologia, cargas, transformadores, curvas e clima idênticos — e apenas as 35
+definições `New LineCode.CND_593_*` foram reescritas com os parâmetros do
+CND_1664 (254 A, 0,678 Ω/km, 2.230 km da mesma concessão).
+
+| 382 alimentadores | técnica mediana | violam | não técnica implícita |
+|---|---:|---:|---:|
+| antes (593 original) | 14,27% | 237 (62,0%) | **−2,99%** |
+| depois (593 = 1664) | **4,08%** | **29 (7,6%)** | **+6,91%** |
+
+**208 dos 237 — 87,8% — deixam de violar.** A perda não técnica implícita sai
+de **negativa** — o enunciado matemático de "impossível" — para positiva e
+plausível. E a técnica mediana de 4,08% fica ao lado dos **4,39% declarados**
+na CTMT, contra 14,27% antes.
+
+**A discordância de 1,88× não era propriedade do conversor. Era, em boa parte,
+este registro.**
+
+Ressalva de método, que é parte do resultado: o CND_1664 **não é afirmação
+sobre qual cabo está em campo**, e os números pós-troca **não devem ser
+publicados como se fossem os da Enel SP**. A sensibilidade mede a influência do
+dado; não o corrige.
+
+### Subproduto: a perda não técnica implícita
+
+O resíduo do nível 2 — total medida menos técnica do modelo — estima a perda
+**comercial** por alimentador a partir de dado público:
+
+| base | não técnica implícita (mediana) |
+|---|---:|
+| Light (RJ) | **35,23%** |
+| Equatorial PA | 22,17% |
+| CPFL Paulista | 13,62% |
+| Enel CE | 11,46% |
+| Enel SP | 5,07% |
+
+É a ordenação publicamente conhecida de perda comercial no Brasil, **reproduzida
+sem nenhuma calibração para isso**: o modelo só calcula a parcela técnica, e o
+resto sai por subtração contra medição. É a evidência externa mais forte que o
+trabalho produziu.
 
 ---
 
@@ -230,34 +352,27 @@ a otimizada, em 8 subestações. A única diferença são os `LineCodes.dss`.
 
 ## 8. Em aberto
 
-**Subtensão em 19 subestações.** Não é caso isolado da DPIP: o `validador`
-classifica 131 modelos como OK, 19 como `TENSAO_BAIXA` acionável, 3 com
-regulador saturado e 2 com rede extensa. As 19 têm `Vmin` de 0,196 a 0,75 pu,
-30 a 65% das barras fora de faixa e — 18 delas — nenhum regulador.
+**Subtensão em 19 subestações — RESOLVIDO em 11/08/2026.** Durante semanas isto
+foi tratado como problema próprio, com nove hipóteses levantadas e refutadas
+por medição: algoritmo numérico, reguladores, lista de `Voltagebases`,
+normalização de `TEN_LIN_SE`, resistência dos condutores contra a ampacidade,
+reatância `X1`, incoerência de condutor nos alimentadores afetados, unidade de
+comprimento, e a irradiância deslocada.
 
-O cruzamento com as perdas mostra que são um grupo distinto, não um extremo do
-mesmo comportamento:
+A décima explicou: **é o condutor 593** (seção 5). Subtensão e perda impossível
+eram o mesmo defeito — corrente muito acima da ampacidade num cabo de alta
+resistência derruba a tensão e infla a perda pelo mesmo `I²R`. DDIA, DEMB e
+DREG estavam nas duas listas.
 
-| grupo | alimentadores | modelo | declarado | razão |
-|---|---:|---:|---:|---:|
-| nas 19 com subtensão | 206 | 17,44% | 4,77% | **4,08×** |
-| nas outras 136 | 1.286 | 6,90% | 4,35% | 1,65× |
+Sobram **29 alimentadores** que continuam impossíveis depois da troca do
+condutor. Esses têm outra causa, ainda não investigada — e agora são um alvo
+pequeno e nominal, não um fenômeno difuso.
 
-Perda de 17% com 8 km por alimentador (DPIP, DDIA, DPEN) não é rede extensa.
-
-**Seis hipóteses refutadas por medição**, todas: algoritmo numérico (Newton e
-500 iterações não mudam nada), reguladores, lista de `Voltagebases`,
-normalização de `TEN_LIN_SE`, resistência dos condutores (`R1` declarado contra
-a ampacidade: mediana 1,19×, só 6 de 101 acima de 2×) e — verificado por
-último — a **reatância**: nos LineCodes efetivamente usados, `X1` mediano fica
-entre 0,30 e 0,42 Ω/km, sem zeros e sem valores acima de 1, e a razão `X1/R1`
-é idêntica entre doentes e sadias (mediana 0,68 nas duas). A impedância não
-separa os dois grupos. Restam alocação de carga, agregação de BT e topologia.
-
-**Consertar as 19 não valida o modelo.** Excluindo-as inteiras, a razão mediana
-cai de 1,88× para 1,65× e o critério continua reprovando — 20,0% dos
-alimentadores dentro de ±30%, contra 18,0% com elas. São dois problemas
-distintos: um defeito localizado e um viés sistemático.
+**Lição de método, e o motivo de registrar as nove.** Todas as nove hipóteses
+eram sobre *o modelo*. A causa estava *no dado*. O que quebrou o impasse não foi
+uma hipótese melhor: foi trocar a referência de validação — de `PERD_*`, que é
+saída de modelo, para energia medida, que dá um limite físico impossível de
+contornar. **A pergunta certa valeu mais que nove tentativas de resposta.**
 
 **Falha de trajetória no modo diário.** A sequência degrada e trava — DABR no
 passo 72, DPIP no 44 — e não se recupera. Não é a rede: compilando do zero e
@@ -302,12 +417,31 @@ infactibilidade da rede nos extremos do dia (a rede converge com carga
 dobrada); a falha diária ser do laço de simulação (o `Solve` único do próprio
 motor falha igual); a lista de `Voltagebases` causar subtensão (afeta o pu, não
 a física); o declarado ser valor típico rateado (varia, CV 46,7%); GD
-entregando 8,5× o `Pmpp` como defeito do inversor (era estado já divergido).
+entregando 8,5× o `Pmpp` como defeito do inversor (era estado já divergido); a
+irradiância deslocada causar a falha do modo diário (corrigi-la reduziu as
+recompilações em 6%, de 416 para 392); a incoerência R1×ampacidade distinguir
+os alimentadores defeituosos (razão ponderada 1,48× contra 1,49× nos sadios).
 
-**Erros de medição:** unidade de comprimento do OpenDSS, indexação de
-terminais, interface `Lines` não acompanhando `SetActiveElement`, caixa no
-nome do medidor, denominador de perdas sem a GD interna à zona, e um nome de
-API inexistente.
+**Diagnósticos intermediários que pareciam definitivos e não eram.** Vale
+registrar porque cada um foi escrito com convicção:
+
+1. *"a subtensão da DPIP é caso isolado"* — eram 19 subestações;
+2. *"o viés das perdas troca de sinal entre distribuidoras"* (10/08) —
+   verdadeiro como observação, mas confundia defeito localizado da Enel SP com
+   erro de método na comparação;
+3. **a resposta** (11/08): defeito de dado localizado, o condutor 593.
+
+**Erros de medição:** unidade de comprimento do OpenDSS — **duas vezes**, a
+segunda em 11/08, quando li `Lines.Length()` como quilômetros e anunciei
+trechos de 120 km que eram de 120 m; indexação de terminais; interface `Lines`
+não acompanhando `SetActiveElement`; caixa no nome do medidor; denominador de
+perdas sem a GD interna à zona; e um nome de API inexistente.
+
+**Erro de comparação, que invalidou o critério original:** o modelo roda com
+`--bt agregado`, sem rede de baixa tensão, e portanto não produz `PERD_B`; a
+validação comparava contra `PERD_A4 + PERD_B + PERD_A4_B`. Isso cobrava do
+modelo uma parcela que ele estruturalmente não gera, e contribuiu para a
+razão discrepante em todas as bases.
 
 **Erros de processo:** edição do conversor durante execução, que corrompeu
 duas rodadas de 2 h — o `converter.py` se relança por subestação e relê o
