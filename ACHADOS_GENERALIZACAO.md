@@ -1041,11 +1041,43 @@ transformador de derivação central — que sai em `TEN_LIN_SE / 2`, tipicament
 0,12 kV — e a entrada de 208 V do `Voltagebases`, cujo fase-neutro é 0,1201.
 Um número praticamente idêntico ao outro.
 
-É a **mesma classe** do defeito do `0,127` já corrigido: tensão de meia-bobina
-casando com entrada de tensão de linha. Aquele afetou 2.805 barras; este
-afeta 22. Fica registrado com o mecanismo suspeito e **sem correção**, porque
-confirmar exige rastrear os transformadores dessas 22 barras, e é trabalho
-próprio.
+### Rastreado até os transformadores, e o suspeito inicial caiu
+
+As 22 barras são secundário de transformadores **trifásicos de dois
+enrolamentos, 13,8 → 0,24 kV**. Não são de derivação central: a hipótese da
+meia-bobina, escrita acima, **está errada**.
+
+Com a base correta (`0,24/√3 = 0,1386`) os 0,1456 kV medidos dariam **1,050 pu**
+— normal para uma rede alimentada a 1,09. Com a base atribuída, 1,212 pu.
+
+O que foi eliminado, medindo:
+
+| hipótese | teste | resultado |
+|---|---|---|
+| meia-bobina de derivação central | tipo dos 22 transformadores | **refutada** — todos 3f, 2 enrolamentos |
+| texto do transformador diferente | diff contra um sadio | **refutada** — idênticos salvo `Xhl`, `kVA`, `%R` |
+| presença de geração na barra | remover o `GD.dss` inteiro | **refutada** — 0 barras mudam de base |
+| base do primário diferente | censo dos 355 | **refutada** — 7,9674 nas 22 e nas 333 |
+| ordem de atribuição | `CalcVoltagebases` de novo, com a rede resolvida | **refutada** — 0 das 22 mudam |
+
+A correlação com geração chegou a parecer causa numa comparação 1-a-1, e a
+população desmentiu: das 22 anômalas 18 têm GD, e das 333 sadias 202 também
+têm. Eu havia escolhido, por azar, uma barra sadia sem GD. **Comparação de um
+par não é medida.**
+
+### A pista que sobrou, e ela é numérica
+
+`0,24 / 2 = 0,1200`, e a base atribuída é **`0,1201`** — o fase-neutro da
+entrada `0,208` do `Voltagebases`. São o mesmo número até a quarta casa.
+
+Isso sugere que o traçado do OpenDSS calculou **metade** da tensão de linha
+para essas 22 barras e depois encaixou no vizinho mais próximo da lista. Por
+que metade, em transformador que não é de derivação central, é o que falta
+descobrir — e exige ler a atribuição de bases do próprio motor.
+
+Fica **sem correção**. São 22 barras de 17.220, e o efeito é de *relato*, não
+de física: a tensão em volts está certa, só o pu é que não. Mas é a mesma
+doença do `0,127`, que já custou 2.805 barras, e por isso vale fechar.
 
 Consequência imediata: a linha `0,1201 (208 V) | 1.060 nós | mediana 0,8318 |
 80,2% abaixo de 0,93` da tabela da equipe externa **é, em parte, artefato de
