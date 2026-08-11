@@ -198,23 +198,43 @@ Referência de calibração medida: **Enel CE tem 0,0%** de quilometragem em
 sobrecarga; Enel SP tem 8,5% a 12,8%. O limiar não precisa ser arbitrado — sai
 da comparação entre bases.
 
-#### Os critérios de aceitação já estão escritos
+#### Os critérios de aceitação estavam escritos — e o bloco A já é verde
 
-O passo 4 deixou quatro `expectedFailure` que são a especificação executável
-deste passo. Implementar é fazer cada um ficar verde — e nenhum passa só por
-existir, todos conferem número:
+O passo 4 deixou `expectedFailure` que são a especificação executável deste
+passo. Implementar é fazer cada um ficar verde, e nenhum passa só por existir:
+todos conferem número.
 
-| o que criar | onde o teste espera | critério |
-|---|---|---|
-| `linecodes.coerencia_de_uso(trechos)` | `test_linecodes.py` | por condutor: `pct_da_sobrecarga` e `enriquecimento` (fatia da sobrecarga ÷ fatia da rede) |
-| `valida_perdas.declarado(gdb, parcelas=[...])` | `test_valida_perdas.py` | com `['PERD_A4']`, F1 dá 0,8333% e não 1,6667% |
-| campos `medida_degenerada` e `viola_de_verdade` em `valida_balanco.cruzar` | `test_valida_balanco.py` | faturado ≥ injetado não conta como violação real |
-| âncora de AT que chegue na malha | `test_subtransmissao.py` | o teste aceita **qualquer** mecanismo — só exige que o primário do trafo não fique ilhado |
+**Bloco A — ✅ FEITO em 11/08/2026.** Só ferramenta de análise; nenhum modelo
+precisou ser regerado.
 
-O último é de propósito enunciado pelo resultado e não pelo mecanismo: as duas
-candidatas do achado 7 (`BARR_1`→`BAR.COD_ID`→`BAR.PAC`, ou ancorar na barra de
-AT que o `malha_at` já cria) resolvem bases diferentes, e a escolha é do passo 5,
-não do passo 4.
+| o que era pedido | estado |
+|---|---|
+| `linecodes.coerencia_de_uso` + `concentracao` | ✅ enriquecimento por condutor; devolve `None` quando não há sobrecarga, para o alerta não disparar numa base sadia |
+| `valida_perdas.declarado(gdb, parcelas=[...])` | ✅ e a composição sai do campo `bt` do `relatorio_rede.json`, com as três candidatas **medidas** e reportadas |
+| `medida_degenerada` / `viola_de_verdade` em `valida_balanco` | ✅ reproduz a tabela do achado 10 a partir do repositório, sem script externo |
+| nome do trafo de barra (achado 1) | ✅ sai da barra derivada — precisa de regeração para valer em Roraima |
+
+**108 testes, falhas esperadas de 9 para 5.** O resultado de maior
+consequência está no achado 9: a composição `PERD_A4 + PERD_B + PERD_A4_B`
+que estava em uso é a **pior das três em cinco das seis bases**, e corrigi-la
+leva Light, Equatorial PA e CPFL de 0,19×/0,14×/0,35× para 2,07×/1,36×/1,26×.
+
+**Bloco B — pendente, e é o que custa.** Altera a saída do conversor, logo
+exige regerar as seis bases (~7 h de conversão, mais verifica, energia e
+validações):
+
+| o que falta | risco |
+|---|---|
+| âncora de AT que chegue na malha | **alto** — mexe em como toda a camada de AT se conecta |
+| `tensoes.TENSAO_KV` e `bases()` derivados da própria base | médio |
+| `transformadores._FN_PARA_FF` virar regra (÷√3) e não tabela | médio |
+| clima por região, recusando em vez de aplicar o de São Paulo em silêncio | baixo |
+| `diagnostico.KM_ALIM_ALTO` e a mediana citada na mensagem | baixo |
+
+A âncora de AT é de propósito enunciada pelo resultado e não pelo mecanismo:
+as duas candidatas do achado 7 (`BARR_1`→`BAR.COD_ID`→`BAR.PAC`, ou ancorar
+na barra de AT que o `malha_at` já cria) resolvem bases diferentes, e a
+escolha é do passo 5, não do passo 4.
 
 ### 6. As outras cinco, depois oficializar
 
@@ -274,9 +294,13 @@ impossíveis, e a perda técnica mediana cai de 14,27% para 4,08% — ao lado do
   eram o mesmo, e está resolvido em 87,8%.
 - **Sobram 29 alimentadores** impossíveis por outra causa. Trabalho concreto e
   pequeno, para depois do passo 5.
-- **A comparação contra o `PERD_*` precisa de correção de método**: rodamos com
-  `--bt agregado`, sem rede de BT, logo sem produzir `PERD_B`, mas comparamos
-  contra `PERD_A4 + PERD_B + PERD_A4_B`. Verificar contra `PERD_A4` apenas.
+- ~~**A comparação contra o `PERD_*` precisa de correção de método**~~ —
+  **FEITO em 11/08/2026.** Medido em vez de arbitrado: `PERD_A4` sozinho é a
+  melhor composição em quatro das seis bases, `PERD_A4 + PERD_A4_B` na Enel
+  CE, e a soma das três só na Enel SP — que é a base com o defeito do 593.
+  Denominador maior disfarça modelo inflado, e a composição que estava em uso
+  era, sem que ninguém tivesse escolhido assim, a que mais escondia o defeito
+  que o projeto encontrou por outro caminho. Detalhe no achado 9.
 
 ---
 

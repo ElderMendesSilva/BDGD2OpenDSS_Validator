@@ -329,6 +329,64 @@ Não é prova, é a leitura mais econômica. Falta:
 - checar se há parcela de perda que o modelo não representa e que pese
   diferente nas duas (BT agregada é a suspeita natural).
 
+### RESOLVIDO em 11/08/2026 — era a terceira suspeita, e era erro nosso
+
+A última hipótese da lista acima estava certa. **O modelo roda com
+`--bt agregado`: não há rede de baixa tensão nele, e portanto ele não produz
+perda de rede de BT. Mesmo assim a comparação cobrava `PERD_A4 + PERD_B +
+PERD_A4_B`.**
+
+Corrigido no passo 5: a composição passou a sair do campo `bt` do
+`relatorio_rede.json` que o próprio conversor grava, e o programa **mede** as
+três candidatas em vez de arbitrar. Amostra comum por base, ancorada na soma
+das três para que não se mova com a composição avaliada. Critério: fração
+dentro de ±30%.
+
+| base | `PERD_A4` | `+PERD_A4_B` | as três |
+|---|---:|---:|---:|
+| Light | **15,6%** | 12,8% | 5,2% |
+| Equatorial PA | **22,2%** | 2,8% | 0,8% |
+| CPFL Paulista | **39,5%** | 2,8% | 1,0% |
+| Enel CE | 37,0% | **55,2%** | 27,6% |
+| Enel SP | 0,8% | 10,1% | **18,0%** |
+| Cemig-D | **14,6%** | 1,8% | 1,1% |
+
+**A soma das três — a que estava em uso — é a pior em cinco das seis bases.**
+
+Efeito na razão mediana, mesma amostra:
+
+| base | antes (as três) | depois (`PERD_A4`) |
+|---|---:|---:|
+| Light | 0,19× | **2,07×** |
+| Equatorial PA | 0,14× | **1,36×** |
+| CPFL Paulista | 0,35× | **1,26×** |
+| Enel SP | 1,88× | **11,89×** |
+
+O "viés que troca de sinal" era, em boa parte, **isto**. A subestimação de
+0,15× a 0,35% nas bases sadias vinha de cobrar do modelo uma parcela que ele
+estruturalmente não gera.
+
+### O detalhe desconfortável, e que precisa ficar registrado
+
+A composição antiga é a **única** em que a Enel SP parece menos ruim: ela sai
+de 11,89× para 1,88×. E a razão é mecânica — denominador maior disfarça
+modelo inflado, e a Enel SP é justamente a base com o defeito do condutor
+593 inflando o modelo.
+
+Ou seja: **a escolha de método que estava em uso era, sem que ninguém tivesse
+escolhido assim, a que mais escondia o defeito que o projeto acabou
+encontrando por outro caminho.** Não foi má-fé nem sorte — foi uma decisão
+tomada por plausibilidade, numa base só, nunca medida. É o mesmo padrão do
+achado 7 (a ancoragem por `PAC`) e do achado 3 (o limiar de 60 km): o que se
+calibra numa base e não se mede nas outras vira armadilha.
+
+### E o que isso NÃO resolve
+
+Mesmo na melhor composição, a concordância é de **39,5%** dentro de ±30% no
+melhor caso (CPFL) e 15,6% na Light. **O cruzamento com o `PERD_*` continua
+fraco em qualquer composição** — o que reforça, e não enfraquece, a decisão
+de usar o balanço por energia MEDIDA (achado 10) como validador de verdade.
+
 ---
 
 ## Achado 10 — a validação por MEDIÇÃO reprova a Enel SP e aprova as outras
