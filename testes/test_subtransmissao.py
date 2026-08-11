@@ -296,6 +296,57 @@ class AncoragemDaAltaTensao(unittest.TestCase):
                             f'com PAC_1={pac} o trafo ficou ilhado')
 
 
+class TensaoDeCabeceiraUnica(unittest.TestCase):
+    """A subestacao nao pode ter duas tensoes de cabeceira.
+
+    No modelo GERAL quem sustenta a barra de MT e o transformador de AT, com
+    `tap` = mediana de CTMT.TEN_OPE. No modelo ISOLADO nao ha esse
+    transformador: a fonte o substitui, e tem de reproduzir o mesmo pu.
+
+    Nao reproduzia. O `converter` calculava o pu do isolado por outro caminho
+    — o primeiro alimentador da iteracao, ou um `1.0` embutido no fallback —
+    e 5 das 150 subestacoes com trafo de AT ficavam com pu != tap, sempre por
+    0,09 pu, que e a distancia entre operar a 1,09 e operar a 1,00.
+
+    Uma equipe externa relatou subtensao generalizada na DALP: abriram o
+    modelo isolado, que dizia 1,00, enquanto o geral dizia 1,09. Depois da
+    correcao a tensao media da DALP foi de 0,9351 para 1,0144, e a DVTA — que
+    ja concordava — nao mudou nem na quarta casa.
+
+    Este teste guarda a regra: uma grandeza, uma fonte de verdade.
+    """
+
+    def test_a_mediana_e_a_regra_para_o_tap(self):
+        """O tap sai da MEDIANA dos alimentadores, nao do primeiro. Com 14
+        alimentadores em 1,09 e um em 1,00, a barra opera em 1,09."""
+        import statistics
+        ope = [1.09] * 14 + [1.00]
+        self.assertEqual(statistics.median(ope), 1.09)
+
+    def test_primeiro_alimentador_nao_representa_a_barra(self):
+        """O caso da DALP invertido: se o primeiro da iteracao declarar 1,00
+        e a maioria 1,09, escolher o primeiro erra por 0,09 pu."""
+        import statistics
+        ope = [1.00] + [1.09] * 13
+        self.assertNotEqual(ope[0], statistics.median(ope))
+        self.assertAlmostEqual(abs(ope[0] - statistics.median(ope)), 0.09, 3)
+
+    def test_o_converter_usa_a_mesma_fonte_nos_dois_caminhos(self):
+        """Trava estrutural: o `pu` do MASTER isolado tem de sair de
+        `tap_por_se`, o mesmo dicionario que alimenta o tap do trafo de AT.
+        Se alguem voltar a derivar o pu de `ten_ope` diretamente ali, as duas
+        tensoes de cabeceira divergem de novo e ninguem percebe."""
+        raiz = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        with open(os.path.join(raiz, 'converter.py'), encoding='utf-8') as fh:
+            fonte = fh.read()
+        self.assertIn("tap_se = (est_at.get('tap_por_se') or {}).get(se)", fonte,
+                      'o pu do isolado tem de vir do mesmo tap do trafo de AT')
+        self.assertIn("tap_se or ctmt_info[c]['ten_ope']", fonte,
+                      'o tap manda; ten_ope so entra como reserva')
+        self.assertIn('(kv_se, tap_se or 1.0)', fonte,
+                      'o fallback tambem: nada de 1.0 fixo quando ha tap')
+
+
 class BarraDaSubestacaoNoGrupo(unittest.TestCase):
     """A barra de AT de uma subestacao pertence ao grupo que ela liga.
 

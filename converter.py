@@ -582,15 +582,34 @@ def main():
         # de fora: quem a energiza e o transformador de barra escrito no
         # Vaos.dss, nao uma fonte propria. Duas fontes na mesma barra com
         # tensoes diferentes foi o que matou 2.238 cargas da TBAN.
+        # A TENSAO DE CABECEIRA TEM DE SER A MESMA NOS DOIS MODELOS.
+        #
+        # No modelo GERAL quem sustenta a barra de MT e o transformador de AT,
+        # com `tap` = mediana de CTMT.TEN_OPE dos alimentadores da subestacao.
+        # No modelo ISOLADO nao ha esse transformador: a fonte o substitui, e
+        # portanto tem de reproduzir o mesmo pu.
+        #
+        # Nao reproduzia. O pu saia daqui por dois caminhos diferentes — o
+        # `setdefault` abaixo, que faz vencer o PRIMEIRO alimentador da
+        # iteracao, e o `1.0` embutido no ramo de fallback. Medido: 5 das 150
+        # subestacoes com trafo de AT ficavam com pu diferente do tap, e a
+        # diferenca era sempre 0,09 pu — que e exatamente a distancia entre
+        # operar a 1,09 e operar a 1,00.
+        #
+        # A DALP e uma delas, e foi por isso que uma equipe externa relatou
+        # subtensao generalizada nela: abriram o modelo isolado, que dizia
+        # 1,00, enquanto o geral dizia 1,09. Nove pontos percentuais de
+        # tensao de cabeceira separando dois arquivos da mesma subestacao.
+        tap_se = (est_at.get('tap_por_se') or {}).get(se)
         barras_se = {}
         for c in ctmts:
             if c in vaos_lig and not vaos_lig[c].get('derivada'):
                 b_ = vaos_lig[c]['barra']
                 barras_se.setdefault(b_, (vaos_lig[c]['kv'],
-                                          ctmt_info[c]['ten_ope']))
+                                          tap_se or ctmt_info[c]['ten_ope']))
         if not barras_se:
             barras_se = {subtransmissao._no(ctmt_info[ctmts[0]]['pac_ini']):
-                         (kv_se, 1.0)}
+                         (kv_se, tap_se or 1.0)}
         itens = sorted(barras_se.items(), key=lambda x: -x[1][0])
         barra_se, (kv_se, pu_se) = itens[0]
         extras = [(b_, kv_, pu_) for b_, (kv_, pu_) in itens[1:]]
