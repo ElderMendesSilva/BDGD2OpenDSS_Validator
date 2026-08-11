@@ -350,8 +350,11 @@ def main():
         ent, perd, ok, falhos, n_comp, por_alim, serie = dia(dss, m, a.passos)
         pct = 100 * perd / ent if ent > 1 else None
         gd = [x for x in serie['gd_kw'] if x]
-        print(f'{se:6s} {ok:4d}/{a.passos:<3d} {ent:14,.0f} {perd:12,.0f} '
-              f'{pct if pct is None else round(pct, 2):>9} '
+        # o valor tem de virar texto ANTES do :>9 — aplicar formato a None
+        # levanta TypeError, e derruba a rodada inteira na primeira subestacao
+        # sem energia. Na Enel SP nunca houve uma; a Light tem.
+        print(f'{se:14s} {ok:4d}/{a.passos:<3d} {ent:14,.0f} {perd:12,.0f} '
+              f'{"—" if pct is None else f"{pct:.2f}":>9} '
               f'{(max(gd)/1000 if gd else 0):9,.1f} '
               f'{"" if not falhos else f"falham {len(falhos)}"}', flush=True)
         saida.append({'se': se, 'passos_ok': ok, 'passos': a.passos,

@@ -134,7 +134,7 @@ algo indevidamente.**
   tiveram a resistência substituída, calibrando na própria SEGCON de Roraima.
   É a peça que já generaliza, e agora está demonstrado.
 
-### O que este teste NÃO responde
+### O que o teste de Roraima NÃO responde
 
 A pergunta central — se o viés de 1,88× nas perdas é da Enel SP ou da conversão
 — **continua aberta**. Roraima tem 89 alimentadores contra 1.806, e a
@@ -142,3 +142,108 @@ distribuição de causas é diferente demais para comparar: 4 de 20 subestaçõe
 `REDE_EXTENSA` por alimentadores de 300 a 400 km, situação que quase não existe
 na Enel SP. Falta rodar `energia` e `valida_perdas` aqui e, principalmente,
 rodar uma base de porte comparável — CPFL Paulista ou Light.
+
+---
+
+## Light (382) — 10/08/2026
+
+Escolhida por ser o análogo estrutural da Enel SP — metrópole densa,
+alimentadores curtos, porte comparável. Se o viés das perdas aparecer aqui
+também, ele não é da Enel SP.
+
+| | Enel SP (390) | Roraima (370) | Light (382) |
+|---|---:|---:|---:|
+| subestações | 155 | 20 | 94 |
+| alimentadores | 1.806 | 89 | 1.713 |
+| unidades consumidoras de BT | 8.258.035 | — | 5.019.324 |
+| transformadores de distribuição | 159.061 | 27.700 | 98.455 |
+| condutores na SEGCON | 3.498 | 153 | 721 |
+| R1 corrigido pelo auto-ajuste | 77 | 8 | 20 |
+| tempo de conversão | 48,2 min | 1,9 min | 52,9 min |
+| **sadias nos dois motores** | **155/155** | **19/20** | **92/94** |
+
+### Achado 7 — a camada de AT amarra pelo campo errado
+
+**O achado mais importante do levantamento.** A camada de alta tensão da Light
+saiu vazia: `0 trechos de AT`, `0 fontes`, `0 km`.
+
+Não é dado ruim da Light. A SSDAT dela é impecável — 7.909 trechos, 2.380,8 km,
+nenhum PAC vazio, **100%** dos trechos casando com um circuito CTAT declarado
+(a Enel SP tem 99,8%). O problema é a chave de ligação que o conversor usa:
+
+| | Enel SP | Light |
+|---|---:|---:|
+| `UNTRAT.PAC_1` presente na SSDAT | **94,2%** | **0,0%** |
+| `UNTRAT.PAC_1` em `BAR.PAC` | 32,5% | 0,0% |
+| `UNTRAT.BARR_1` em `BAR.COD_ID` | **94,8%** | **94,6%** |
+| `BAR.PAC` presente na SSDAT | 45,0% | 0,0% |
+
+Na Light, transformadores de potência e trechos de subtransmissão vivem em
+espaços de identificador **separados**: nenhum dos 297 transformadores casa por
+PAC. Sem âncora, a malha não fecha; sem malha, nenhum trecho é emitido; sem
+trecho, nenhuma fonte é posicionada.
+
+O conversor amarra por `PAC` porque foi assim que a convenção da Enel SP foi
+decifrada por engenharia reversa. **`BARR_1`/`BARR_2` contra `BAR.COD_ID`
+funciona nas duas bases, a ~95%.** É a chave que deveria ter sido usada desde o
+início.
+
+Isto é a justificativa retrospectiva do plano inteiro: a parte do conversor que
+exigiu mais engenharia reversa é exatamente a que não generaliza, e só uma
+segunda base de porte comparável poderia mostrar isso.
+
+*Correção candidata:* migrar a ancoragem da AT de `PAC` para `BARR`→`BAR.COD_ID`,
+mantendo `PAC` como reserva.
+
+### Achado 8 — `TypeError` em subestação sem energia
+
+`energia.py` derrubava a rodada inteira na primeira subestação com energia
+injetada nula:
+
+```python
+f'{pct if pct is None else round(pct, 2):>9}'   # None nao aceita :>9
+```
+
+Bug antigo, nunca disparado porque toda subestação da Enel SP tem carga. A Light
+tem; Roraima também teria.
+
+**Corrigido na hora, abrindo exceção à disciplina do passo 3** — é um `f-string`
+de impressão que impedia qualquer medição, não uma premissa de modelagem. A
+exceção fica registrada de propósito.
+
+### Achados 2, 4 e 5 se repetem, e com mais força
+
+- **Código de tensão desconhecido em escala:** `67` em **132 dos 1.713
+  alimentadores (7,7%)**, contra zero em Roraima. Mais `46` em `EQTRAT.TEN_SEC`.
+  O `67` também aparece na Enel SP sem valor confirmado — vê-lo em duas bases
+  prova que é valor real do domínio da ANEEL, e abre caminho para inferi-lo.
+- **Clima de São Paulo aplicado de novo em silêncio,** com os mesmos
+  `0,2590 kW/m²` e `19,3 a 26,1 °C`. No caso da Light o erro é menor, porque Rio
+  e São Paulo têm irradiância parecida — o que o torna *menos visível* sem
+  torná-lo menos errado.
+- **`TEN_LIN_SE` fora do `Voltagebases`: 2.735 de 98.455 (2,8%)**, contra 0,12%
+  em Roraima:
+
+| valor | n | leitura |
+|---|---:|---|
+| **0,216** | 1.659 | **216 V — tensão de BT real ausente da nossa lista** |
+| 7,62 | 613 | **13,2/√3** — fase-neutro, segundo caso independente |
+| 13,8 | 252 | MT em campo de BT |
+| **0,4** | 172 | **400 V — outra tensão de BT real ausente** |
+| 13,0 / 6,0 / 15,0 | 39 | MT em campo de BT |
+
+Os `0,216` e `0,4` são o problema sério: são tensões de atendimento legítimas da
+Light, e a lista do `bases()` saiu do censo dos 159.061 transformadores da Enel
+SP, onde elas não existem. **1.831 transformadores recebem base de tensão
+errada** — o mesmo mecanismo que já tinha colocado 2.805 barras acima de 1,10 pu
+na Enel SP.
+
+E o `7,62` confirma o padrão do `7,96` de Roraima. Dois valores, duas bases,
+mesma regra: **se o valor bate com um nível conhecido dividido por √3, é
+fase-neutro em campo de fase-fase.** Sugere trocar a tabela `_FN_PARA_FF` por uma
+regra calculada.
+
+### Terceira confirmação do que sustenta o projeto
+
+As 24 tabelas que o conversor procura estão presentes nas três bases. Nenhuma
+ausência em Enel SP, Roraima ou Light.

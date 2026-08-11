@@ -83,9 +83,27 @@ bater, os modelos não vieram deste código.
 do passo 6, e quanto antes melhor — a partir do passo 3 haverá alteração de
 código com necessidade de voltar atrás.
 
-### 3. Uma segunda BDGD — a menor das seis
+### 3. Bases estrangeiras — EM ANDAMENTO desde 10/08/2026
 
-**Sem consertar nada antes.** Rodar e anotar tudo que quebra.
+Achados em `ACHADOS_GENERALIZACAO.md`. Rodadas até agora:
+
+| base | subestações | sadias nos dois motores | conversão |
+|---|---:|---:|---:|
+| Roraima Energia (370) | 20 | 19/20 | 1,9 min |
+| Light (382) | 94 | 92/94 | 52,9 min |
+
+**O conversor rodou nas duas na primeira tentativa, sem alteração de código** —
+266 de 269 subestações resolvem, somando com a Enel SP. Não era garantido.
+
+Oito achados registrados. O de maior consequência é o **nº 7**: a camada de AT
+amarra por `UNTRAT.PAC_1`, que casa a 94% na Enel SP e a **0% na Light**, e a
+chave que funciona nas duas (~95%) é `BARR_1`→`BAR.COD_ID`. A parte que exigiu
+mais engenharia reversa é a que não generaliza.
+
+Faltam: CPFL Paulista (63), Enel CE (39), Equatorial PA (371), Cemig-D (4950).
+
+**Sem consertar nada antes.** Rodar e anotar tudo que quebra. Exceção aberta e
+registrada: o `TypeError` do achado 8, que impedia qualquer medição.
 
 O que já se sabe que é da Enel SP e não da BDGD, e portanto é candidato a
 quebrar:
