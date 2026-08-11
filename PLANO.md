@@ -91,16 +91,28 @@ Achados em `ACHADOS_GENERALIZACAO.md`. Rodadas até agora:
 |---|---:|---:|---:|
 | Roraima Energia (370) | 20 | 19/20 | 1,9 min |
 | Light (382) | 94 | 92/94 | 52,9 min |
+| Equatorial PA (371) | 119 | 118/119 | 40,1 min |
+| CPFL Paulista (63) | 265 | 264/265 | 85,3 min |
+| Enel CE (39) | 129 | **129/129** | 21,6 min |
+| Cemig-D (4950) | 413 | em andamento | — |
 
-**O conversor rodou nas duas na primeira tentativa, sem alteração de código** —
-266 de 269 subestações resolvem, somando com a Enel SP. Não era garantido.
+**O conversor rodou em todas na primeira tentativa, sem alteração de código** —
+780 de 787 subestações resolvem, somando com a Enel SP.
 
-Oito achados registrados. O de maior consequência é o **nº 7**: a camada de AT
-amarra por `UNTRAT.PAC_1`, que casa a 94% na Enel SP e a **0% na Light**, e a
-chave que funciona nas duas (~95%) é `BARR_1`→`BAR.COD_ID`. A parte que exigiu
-mais engenharia reversa é a que não generaliza.
+Onze achados registrados. Os dois de maior consequência:
 
-Faltam: CPFL Paulista (63), Enel CE (39), Equatorial PA (371), Cemig-D (4950).
+- **nº 7** — a camada de AT amarra por `UNTRAT.PAC_1`, que casa a 94% na Enel SP
+  e a **0% na Light**; a chave que funciona nas duas (~95%) é
+  `BARR_1`→`BAR.COD_ID`. A parte que exigiu mais engenharia reversa é a que não
+  generaliza.
+- **nº 11** — o condutor **593** da SEGCON da Enel SP (31 A, 8,232 Ω/km,
+  **13,5% de toda a rede de MT**) responde por 94,7% da quilometragem em
+  sobrecarga e 97,4% da perda ali. Trocá-lo por um condutor plausível da própria
+  base resolve **87,8%** dos alimentadores fisicamente impossíveis.
+
+Falta a Cemig-D fechar. A conversão dela caiu na madrugada por bug de dtype no
+leitor (achado 8b), foi corrigida, e **retomou de onde parou** — as 265
+subestações já feitas foram aproveitadas.
 
 **Sem consertar nada antes.** Rodar e anotar tudo que quebra. Exceção aberta e
 registrada: o `TypeError` do achado 8, que impedia qualquer medição.
@@ -119,14 +131,23 @@ quebrar:
 
 *Timebox: um dia.* Anotando, não consertando.
 
-### 4. Transformar as quebras em testes
+### 4. Transformar as quebras em testes — EM ANDAMENTO desde 11/08/2026
 
 As falhas do passo 3 **são** os casos de teste, com dados reais de entrada.
 Escrever a suíte antes de ver uma segunda base é testar o que se imagina que
 varia, não o que varia.
 
-*Pronto quando:* houver `requirements.txt`, uma BDGD pequena versionada no
-repositório e testes que reproduzam cada quebra observada.
+Feito: `requirements.txt`; **54 testes** rodando em 1 s com o `unittest` da
+biblioteca padrão, sem dependência de teste a instalar; e uma **BDGD mínima de
+103 KB** — FileGeodatabase de verdade, gerada por `pyogrio.raw.write`, lida
+pelo caminho de produção inclusive no `ler_filtrado`. Defeito conhecido entra
+como `@unittest.expectedFailure`, não como teste vermelho.
+
+```bash
+python -m unittest discover -s testes -t testes -v
+```
+
+*Falta:* cobrir os achados 7, 9, 10 e 11, e o caminho do OpenDSS.
 
 ### 5. Tirar da Enel SP o que hoje é tabela fixa
 
@@ -134,6 +155,25 @@ Derivar da base sendo convertida, no padrão que o `linecodes._ajuste` já usa �
 ele calibra a relação R1×CNOM na própria base a cada execução, em vez de tabela
 externa. Aplicar o mesmo ao censo de `TEN_LIN_SE` (tensões de BT) e ao de
 `TEN_NOM` (códigos de tensão).
+
+**Item novo, vindo do achado 11 — coerência entre ampacidade e corrente.**
+
+O `linecodes._ajuste` confere R1 contra CNOM *dentro da SEGCON*. Isso não pega o
+condutor 593: 31 A com 8,2 Ω/km é um par internamente coerente. O que estava
+errado era o **uso** — 13,5% de uma rede metropolitana num cabo de 31 A —, e
+isso só aparece **depois de resolver o fluxo**, comparando a corrente calculada
+com a ampacidade declarada.
+
+Vira rotina, no conversor e no auditor:
+
+- por condutor: fração da quilometragem dele que opera acima da ampacidade;
+- por alimentador: fração do km em sobrecarga, e quanto da perda ocorre ali;
+- alerta quando um único condutor concentra a sobrecarga — foi a assinatura que
+  denunciou o 593 (enriquecimento 4,64×, 94,7% da sobrecarga).
+
+Referência de calibração medida: **Enel CE tem 0,0%** de quilometragem em
+sobrecarga; Enel SP tem 8,5% a 12,8%. O limiar não precisa ser arbitrado — sai
+da comparação entre bases.
 
 ### 6. As outras cinco, depois oficializar
 
@@ -152,17 +192,50 @@ Tag, repositório público, modelos gerados pelo código publicado.
   e passa a ser o objeto do artigo.~~
 - ~~**Se o viés for exclusivo da Enel SP**, é defeito nosso.~~
 
-**RESPONDIDO em 10/08/2026, e por um terceiro caminho que eu não tinha previsto**
-(achado 9 em `ACHADOS_GENERALIZACAO.md`): o viés **troca de sinal**. Enel SP
-1,88×, Light **0,19×**. Não é constante nem exclusivo — é dependente da base, e
-rastreável aos parâmetros declarados: a Enel SP tem 2,5× mais resistência por km
-de rede e o dobro da carga, o que o modelo reproduz. A contradição fica *dentro
-da BDGD*, entre os campos de parâmetro de rede e os campos `PERD_*`.
+~~**RESPONDIDO em 10/08/2026:** o viés troca de sinal, e a contradição fica
+dentro da BDGD.~~ *Leitura intermediária, superada em 11/08.*
 
-Consequência para o plano: **investigar as 19 subestações da Enel SP deixa de
-ser prioridade** — não é lá que está a resposta. Os passos 4 e 5 seguem como
-estavam, e a pergunta das perdas passa a depender das quatro bases restantes,
-não de depurar a Enel SP.
+## RESPONDIDO em 11/08/2026 — e a resposta é a terceira, não as duas previstas
+
+O caminho até aqui passou por três leituras, e vale registrar as duas primeiras
+porque cada uma parecia definitiva quando foi escrita:
+
+1. *"o viés é da Enel SP ou é sistemático"* — as duas hipóteses do plano
+   original;
+2. *"o viés troca de sinal entre bases"* (10/08) — verdadeiro como observação,
+   mas confundia dois fenômenos;
+3. **a resposta:** a Enel SP tem um **defeito de dado localizado**, e as outras
+   bases passam no teste físico.
+
+O que a mediu foi o `valida_balanco.py`, que compara a perda técnica do modelo
+com a perda **total medida** (`ENE_XX` injetada menos energia faturada). É o
+único teste do projeto capaz de reprovar sozinho, porque a referência é
+medidor, não saída de modelo.
+
+| base | violação real do limite físico |
+|---|---:|
+| **Enel SP** | **29,1%** |
+| CPFL Paulista | 0,9% |
+| Equatorial PA | 0,8% |
+| Enel CE | 0,6% |
+| Light | 0,3% |
+
+Rastreado até a causa (achado 11): o condutor **593** da SEGCON da Enel SP.
+Sensibilidade de uma variável: trocá-lo resolve **87,8%** dos alimentadores
+impossíveis, e a perda técnica mediana cai de 14,27% para 4,08% — ao lado dos
+4,39% declarados na CTMT.
+
+### Consequências para o plano
+
+- **A discordância com o `PERD_*` não era do conversor.** Era, em boa parte,
+  este registro. O passo 5 ganha o item de coerência ampacidade × corrente.
+- **As 19 subestações e os 458 alimentadores deixam de ser dois problemas** —
+  eram o mesmo, e está resolvido em 87,8%.
+- **Sobram 29 alimentadores** impossíveis por outra causa. Trabalho concreto e
+  pequeno, para depois do passo 5.
+- **A comparação contra o `PERD_*` precisa de correção de método**: rodamos com
+  `--bt agregado`, sem rede de BT, logo sem produzir `PERD_B`, mas comparamos
+  contra `PERD_A4 + PERD_B + PERD_A4_B`. Verificar contra `PERD_A4` apenas.
 
 ---
 
