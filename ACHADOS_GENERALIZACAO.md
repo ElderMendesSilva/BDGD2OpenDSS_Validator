@@ -420,3 +420,92 @@ Impossível de medir e portanto erro de cadastro. Vira indicador do auditor:
 A Enel CE é a única base sem um único alimentador nessa condição — e também a
 de menor violação real. Pelo critério de coerência interna medida, **é a melhor
 das cinco**.
+
+---
+
+## Achado 11 — um único registro de condutor explica a reprovação da Enel SP
+
+**11/08/2026.** Rastreamento dos 458 alimentadores que violam o limite físico
+até a causa, com dois controles independentes.
+
+### O que os 458 têm de diferente
+
+Comparados aos outros 1.115, **dentro das mesmas subestações**:
+
+| | violam (27) | não violam (69) |
+|---|---:|---:|
+| km de MT | 13,80 | 6,72 |
+| km acima da ampacidade | 12,8% | 8,5% |
+| **km acima de 2× a ampacidade** | **7,0%** | **0,9%** |
+| perda que ocorre em trecho sobrecarregado | 91,6% | 80,7% |
+
+A sobrecarga leve quase não separa os grupos. A **severa** separa por fator 8.
+E em ambos os grupos a perda está concentrada em trecho sobrecarregado — ou
+seja, o problema não é só dos 458: é da Enel SP.
+
+### Controle: a mesma medida numa base que passa
+
+Enel CE, 46 alimentadores em 6 subestações: **0,0% da quilometragem acima da
+ampacidade, 0,0% da perda em sobrecarga.** Zero, não "pouco".
+
+Isso descarta que a sobrecarga seja artefato do método — se fosse, apareceria
+lá. E a Enel CE tem condutor *pior*: R1 ponderado de 5,307 Ω/km contra 1,642 da
+Enel SP, com a mesma fração de 14,2% da rede em condutor de 0-50 A. O que muda
+é a densidade: **145 km por alimentador na Enel CE contra 12,3 na Enel SP.**
+Cabo fino em rede rural esparsa não satura; o mesmo cabo em rede urbana densa
+satura.
+
+### A causa: o condutor 593
+
+Censo da SEGCON ponderado pelo km de rede que cada condutor cobre:
+
+```
+Enel SP — os 5 condutores com mais quilometragem
+   cnd  593    2.993 km (13,5%)   CNOM   31,0 A   R1  8,232 ohm/km
+   cnd 1664    2.230 km (10,0%)   CNOM  254,0 A   R1  0,678
+   cnd 2027    1.654 km ( 7,4%)   CNOM  600,0 A   R1  0,197
+```
+
+**13,5% de toda a rede de média tensão da Enel SP está declarada num condutor
+de 31 A.**
+
+Rastreando a sobrecarga em 30 subestações, cobrindo 237 dos 458 (52%):
+
+| linecode | km na rede deles | km em sobrecarga | % da sobrecarga | **enriquecimento** | perda |
+|---|---:|---:|---:|---:|---:|
+| **CND_593** | 867,1 | **496,3** | **94,7%** | **4,64×** | 110.514 kW |
+| CND_597 | 44,1 | 20,1 | 3,8% | 3,70× | 2.538 kW |
+| CND_36 | 9,2 | 6,3 | 1,2% | 5,53× | 272 kW |
+
+- o 593 é **20,4%** da rede desses alimentadores e **94,7%** da sobrecarga;
+- **57,2% da própria quilometragem do 593 opera acima da ampacidade declarada**;
+- ele responde por **97,4% da perda que ocorre em trecho sobrecarregado**.
+
+### O que isso é, e o que não é
+
+Os valores do 593 são **internamente coerentes**: 31 A pede mesmo R1 da ordem
+de 8 Ω/km, e o ajuste calibrado da própria base prevê ~19 A para essa
+resistência. Por isso o auto-ajuste do `linecodes` não o toca — ele corrige
+incoerência entre R1 e CNOM, e aqui não há.
+
+O que é implausível é o **uso**: 2.993 km de rede metropolitana de MT num cabo
+de 31 A. Duas leituras possíveis, nenhuma testada ainda:
+
+1. o `TIP_CND` atribui o 593 a trechos que em campo são de condutor mais
+   grosso;
+2. o registro 593 na SEGCON tem valores errados.
+
+Nos dois casos é **problema de dado da BDGD, não do conversor** — e o conversor
+é o instrumento que o revela.
+
+### Como tratar
+
+**Não corrigir o 593 para o resultado melhorar.** Ajustar dado até o número
+agradar destrói a credibilidade de tudo o mais.
+
+O tratamento honesto: declarar e quantificar. *A Enel SP declara 13,5% da rede
+de MT num condutor de 31 A; tomando o dado ao pé da letra, 29,1% dos
+alimentadores produzem perda técnica maior que a perda total medida, o que é
+fisicamente impossível.* Opcionalmente, oferecer a análise de sensibilidade —
+substituir o 593 pelo condutor mediano da própria rede e reportar quanto muda —
+com os dois números lado a lado.
