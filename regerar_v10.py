@@ -105,8 +105,11 @@ def procedencia():
             'gerado_em': time.strftime('%Y-%m-%d %H:%M:%S')}
 
 
+SUFIXO = 'V10'          # sobrescrito por --sufixo
+
+
 def saida_de(tag):
-    return f'MODELOS_{tag}_V10'
+    return f'MODELOS_{tag}_{SUFIXO}'
 
 
 def passo(rot, cmd, log, limite):
@@ -180,12 +183,23 @@ def colher(tag, reg):
 
 
 def main():
+    global SUFIXO, LOGS
     ap = argparse.ArgumentParser(description=__doc__.split('\n')[2])
     ap.add_argument('--refazer', action='store_true',
                     help='ignora o que ja esta pronto e regera tudo')
     ap.add_argument('--so', nargs='+', metavar='TAG',
                     help='apenas estas bases (RR ENCE EQPA SP LT CPFL CMIG)')
+    # A saida NUNCA vai por cima: cada rodada tem o seu sufixo, e as anteriores
+    # ficam no disco. Sem elas nao ha com o que comparar, e comparar e o unico
+    # jeito de saber se a mudanca melhorou ou piorou — foi assim que se
+    # descobriu que o passo 5 nao moveu nenhum numero de energia (achado 23).
+    ap.add_argument('--sufixo', default=SUFIXO, metavar='TAG',
+                    help=f'sufixo das pastas de saida (padrao {SUFIXO}); '
+                         f'MODELOS_<base>_<sufixo>')
     a = ap.parse_args()
+
+    SUFIXO = a.sufixo
+    LOGS = os.path.join(AQUI, f'logs_{SUFIXO.lower()}')
 
     os.makedirs(LOGS, exist_ok=True)
     # Rodando pelo Agendador de Tarefas nao ha console: sem isto, o resumo
