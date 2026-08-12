@@ -45,7 +45,13 @@ conversao.log
 
 # Logs da regeração noturna (regerar_v10.py). O script entra no repositório,
 # a saída dele não — são centenas de MB de log por rodada.
-logs_v10/
+#
+# O curinga não é conveniência. A pasta de log é criada ANTES de o script medir
+# a procedência, então uma pasta não ignorada faz `git status --porcelain`
+# devolver conteúdo e a rodada se marca "ÁRVORE SUJA — modelo não
+# reproduzível" sozinha. Aconteceu na V11, em 12/08/2026: `logs_v10/` estava
+# aqui e `logs_v11/` não.
+logs_*/
 
 __pycache__/
 *.py[cod]

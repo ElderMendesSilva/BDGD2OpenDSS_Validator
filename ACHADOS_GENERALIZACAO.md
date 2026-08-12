@@ -1866,3 +1866,74 @@ conclusão — muda o mínimo, de 0,6797 para algo perto de 1,0.
 
 É a terceira vez esta noite que o mesmo `88/138` aparece: nos 107 trafos da
 Equatorial PA, nas subestações dela em 0,626–0,630, e agora em 4 da Enel SP.
+
+---
+
+## A Equatorial PA reconvertida — o que a correção conserta e o que ela não conserta
+
+A Equatorial PA é onde os achados 16 e 19 realmente aparecem: 5 dos 6 trechos
+degenerados de todas as bases, e 107 dos 220 transformadores de AT em 138 kV.
+Reconvertida com as três correções:
+
+| | antes (`MODELOS_EQPA_V10`) | depois |
+|---|---:|---:|
+| linhas com `Length=0.00` | 1 | **0** |
+| **a CUO compila** | **não** — `#183 Y matrix build aborted` | **sim** |
+| **a CUO resolve o dia em irradiância 1,00** | não rodava | **96/96**, `Vmax` 0,9792 |
+| transformadores com meia fase na CUO | — | 0 |
+| `basekV` das fontes de AT | 88 kV × 116 | **138 kV × 52, 88 kV × 64** |
+
+**A subestação que sozinha consumiu 3,5 h da rodada agora compila e resolve o
+dia inteiro.** É a verificação do achado 16 no caso exato que o produziu.
+
+### O achado 19 melhorou e não fechou, e a medição encontrou defeito na própria correção
+
+Com as fontes já nos dois níveis, o `MASTER-AT` da Equatorial PA **continua não
+convergindo** — 100 iterações, 12 nós NaN, 7 subestações mortas, os mesmos
+números de antes. E o diagnóstico apontou **três fontes cuja `basekV` a barra
+não tem**:
+
+```
+mab_490000065   fonte 138,0 kV, barra base 50,8068  (= 88/raiz(3))
+jui_03b1        fonte 138,0 kV, barra base  7,9674  (= 13,8/raiz(3))
+barra_at_cap    fonte 138,0 kV, barra base 50,8068
+```
+
+A primeira versão da correção escolhia o **nível mais alto do pátio**. Isso está
+errado quando a barra de injeção não é desse nível — e `jui_03b1` é uma barra de
+**13,8 kV** recebendo fonte de 138. Antes da correção as três também estavam
+erradas, de outro jeito: todas em 88 kV. Trocar um valor errado por outro não é
+progresso, e só apareceu porque a correção foi **medida no modelo em vez de
+declarada pronta pelos testes**.
+
+Regra corrigida: a fonte usa o nível do transformador cujo `PAC_1` **é** a barra
+de injeção; o mais alto do pátio vira último recurso, e a escolha fica escrita
+no arquivo.
+
+Reconvertida de novo com a regra nova: **de 3 fontes desalinhadas para 2**, e
+138 kV × 52 → × 50. As duas que restam — `jui_03b1` e `barra_at_cap` — não têm
+transformador nenhum na barra de injeção, então o nível veio do conjunto do
+pátio e não do ponto.
+
+E `jui_03b1` fecha o caso: a barra dela está em **7,9674 = 13,8/√3**. É uma
+barra de **média tensão** recebendo fonte de alta. Ali nenhuma tensão de fonte
+estaria certa, porque o defeito é a **âncora** do pátio — achado 7 — e não a
+tensão. A correção que cabia era outra: **contar e dizer**. Fonte cujo nível
+ninguém confirmou passa a ser registrada no log, comentada no próprio arquivo e
+devolvida no relatório como `nivel_deduzido`.
+
+### A não convergência que sobra é o achado 20, e não o 19
+
+Com 12 NaN e 27 nós em tensão zero **idênticos antes e depois**, a causa
+restante não é a tensão das fontes: é a malha não ter trechos. A Equatorial PA
+tem **1.458 chaves de AT e zero linhas de AT** — 284 componentes conexas que a
+`SSDAT` uniria se o espaço de nomes dela casasse com o das outras tabelas.
+
+Isso fecha o diagnóstico da subestação `TUR`, cujos nós `tur_lt_tur_brb_goi` e
+`tur_490000107` são os 12 NaN: são pontas de linha de transmissão que existem na
+`SSDAT` e não chegam ao modelo.
+
+**A camada de AT da Equatorial PA não é recuperável só com correção de código.**
+Ou se constrói o de-para de PACs para essa base, como já existe o de mnemônicos
+para a Enel SP, ou a decomposição AT↔SE não se aplica a ela — e essa é uma
+limitação da BDGD exportada, não do conversor.
