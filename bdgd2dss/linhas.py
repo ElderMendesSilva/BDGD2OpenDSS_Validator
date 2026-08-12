@@ -11,6 +11,37 @@ from .leitor import num, txt, no
 
 FASES = {'A': '1', 'B': '2', 'C': '3', 'N': '4'}
 
+# Achado 16. O guarda antigo era `if comp <= 0: comp = 1.0`, e ele olhava a
+# ENTRADA. O defeito nasce na SAIDA: `Length={comp:.2f}` escreve `0.00` para
+# qualquer valor abaixo de 0,005 m, e com comprimento zero a matriz de
+# impedancia fica nula, o OpenDSS nao a inverte e ABORTA a montagem da Y da
+# rede inteira — uma linha derruba a subestacao.
+#
+# Em 24,4 milhoes de trechos das sete bases NAO HA UM SO com COMP <= 0. O que
+# ha sao 6 positivos e curtos demais: 5 na Equatorial PA (o menor tem 0,001 m)
+# e 1 na Light. O guarda cobria o caso que nunca aparece.
+#
+# 1 cm e a escolha: esta abaixo de qualquer medicao real de rede (o menor piso
+# entre as distribuidoras e 0,10 m, da Cemig-D), acima da resolucao dos dois
+# formatos de saida (0.01 em metros, 0.00001 em km), e nao move o km do
+# relatorio. Preservar o valor declarado importa mais do que arredonda-lo para
+# 1 m: um vao de 1 mm continua sendo um vao curto, e nao um vao de um metro.
+COMP_MINIMO = 0.01
+
+
+def comprimento(v, padrao=1.0):
+    """Comprimento em metros que sobrevive aos dois formatos de saida.
+
+    `padrao` vale para campo ausente ou nao numerico — nao para valor pequeno.
+    Zero e negativo continuam virando o padrao, porque ali nao ha dado; o que
+    muda e o positivo minusculo, que agora e preservado com piso em vez de
+    virar zero.
+    """
+    c = num(v, padrao)
+    if c <= 0:
+        return padrao
+    return max(c, COMP_MINIMO)
+
 
 def nos(fas_con, incluir_neutro=False):
     """'ABC' -> '.1.2.3' ; 'AN' -> '.1' (neutro fica implicito no terra)."""
@@ -53,9 +84,7 @@ def gerar(bdgd, mapa_cnd, ctmts, caminho_saida, camada='SSDMT', col=None):
             continue
         fas = txt(col['FAS_CON'][i])
         nf = max(1, len([c for c in fas.upper() if c in 'ABC']))
-        comp = num(col['COMP'][i], 1.0)
-        if comp <= 0:
-            comp = 1.0
+        comp = comprimento(col['COMP'][i])
         lc = _linecode(mapa_cnd, col['TIP_CND'][i], nf)
         nd = nos(fas)
         linhas.append(f'New Line.{txt(col["COD_ID"][i])} '
@@ -105,9 +134,7 @@ def gerar_bt(bdgd, mapa_cnd, ctmts, caminho_saida, camada='SSDBT', col=None):
             continue
         fas = txt(col['FAS_CON'][i])
         nf = max(1, len([c for c in fas.upper() if c in 'ABC']))
-        comp = num(col['COMP'][i], 1.0)
-        if comp <= 0:
-            comp = 1.0
+        comp = comprimento(col['COMP'][i])
         d = mapa_cnd.get(txt(col['TIP_CND'][i]))
         lc = _linecode(mapa_cnd, col['TIP_CND'][i], nf)
         nd = nos(fas)

@@ -217,8 +217,14 @@ def gerar(bdgd, ctmts, caminho_trafos, caminho_aterramento, kv_mt=13.8,
         bb = b2
         nd_p = '.' + '.'.join(fp)
         kvp = kv_por_ctmt.get(txt(col['CTMT'][i]), kv_mt)
+        # Achado 17. `Kv` de um enrolamento e a tensao que ELE ve, e isso
+        # depende de quantos nos ele toca: dois nos e ligacao fase-fase, e ve
+        # a tensao de LINHA; um no e fase-neutro, e ve linha/raiz(3). Antes
+        # deste achado os ramos monofasicos escreviam sempre kvp/raiz(3),
+        # porque na pratica so caiam neles com FAS_CON_P de uma letra.
+        kv_prim = kvp if len(fp) >= 2 else kvp / (3 ** 0.5)
 
-        if len(fs) >= 3:
+        if len(fs) >= 3 and len(fp) >= 3:
             # trifasico: estrela com neutro no no 4
             kv2 = tl
             out.append(f'New Transformer.{cod} phases=3 windings=2 Xhl={xhl:.3f}\n'
@@ -231,7 +237,7 @@ def gerar(bdgd, ctmts, caminho_trafos, caminho_aterramento, kv_mt=13.8,
             k = str(ordem[bb].index(cod) % 3 + 1)
             kv2 = tl / 2.0
             out.append(f'New Transformer.{cod} phases=1 windings=2 Xhl={xhl:.3f}\n'
-                       f'~ wdg=1 bus={b1}{nd_p} conn=wye Kv={kvp/(3**0.5):.4f} Kva={kva:.1f} %R={r:.3f}\n'
+                       f'~ wdg=1 bus={b1}{nd_p} conn=wye Kv={kv_prim:.4f} Kva={kva:.1f} %R={r:.3f}\n'
                        f'~ wdg=2 bus={b2}.{k}.4 conn=wye Kv={kv2:.4f} Kva={kva:.1f} %R={r:.3f}')
             ant = sec.get(bb, {}).get('nos', [])
             sec[bb] = {'kv_fn': round(kv2, 4), 'nos': sorted(set(ant) | {k}),
@@ -241,7 +247,7 @@ def gerar(bdgd, ctmts, caminho_trafos, caminho_aterramento, kv_mt=13.8,
             kv2 = tl / 2.0
             out.append(f'New Transformer.{cod} phases=1 windings=3 '
                        f'Xhl={xhl:.3f} Xht={xhl:.3f} Xlt={xhl/2:.3f}\n'
-                       f'~ wdg=1 bus={b1}{nd_p} conn=wye Kv={kvp/(3**0.5):.4f} Kva={kva:.1f} %R={r:.3f}\n'
+                       f'~ wdg=1 bus={b1}{nd_p} conn=wye Kv={kv_prim:.4f} Kva={kva:.1f} %R={r:.3f}\n'
                        f'~ wdg=2 bus={b2}.1.4 conn=wye Kv={kv2:.4f} Kva={kva:.1f} %R={r:.3f}\n'
                        f'~ wdg=3 bus={b2}.4.2 conn=wye Kv={kv2:.4f} Kva={kva:.1f} %R={r:.3f}')
             sec[bb] = {'kv_fn': round(kv2, 4), 'nos': ['1', '2'],

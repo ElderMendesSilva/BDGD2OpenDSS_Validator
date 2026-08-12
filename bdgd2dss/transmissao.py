@@ -164,7 +164,8 @@ def mvasc_estimado(isa, sub, kv_alvo=None):
 
 # =========================================================== fontes do modelo
 def fontes(componentes, info_trafos, ctat_heads, isa, caminho,
-           kv_at_padrao=88.0, log=None, barra_por_sub=None):
+           kv_at_padrao=88.0, log=None, barra_por_sub=None,
+           kv_at_do_trafo=None):
     """Uma fonte por patio de AT que tenha transformador.
 
     Preferencia do ponto de injecao, da melhor para a pior:
@@ -177,6 +178,12 @@ def fontes(componentes, info_trafos, ctat_heads, isa, caminho,
     trechos energizados a toa. Entram no relatorio como ilhas.
     """
     barra_por_sub = barra_por_sub or {}
+    # `kv_at_do_trafo` vem do `subtransmissao.trafos`. Quando nao vem — chamada
+    # antiga, ou base sem EQTRAT —, todo patio cai no padrao, que e o
+    # comportamento de antes do achado 19.
+    kv_at_do_trafo = kv_at_do_trafo or info_trafos.get('kv_at_do_trafo') or {}
+    n_misto = 0
+    niveis_usados = {}
     # barras das subestacoes da transmissora: onde a energia realmente entra
     barras_ett = {barra_por_sub[s]: s for s in ISA_PARA_SUB.values()
                   if s in barra_por_sub}
@@ -225,20 +232,38 @@ def fontes(componentes, info_trafos, ctat_heads, isa, caminho,
             n_eq += 1
         subs = {sub_do_trafo.get(c) for c in trafos_aqui} - {None}
         sub = sub_ett or (sorted(subs)[0] if subs else '')
-        mvasc, real = mvasc_estimado(isa, sub, kv_at_padrao)
+        # Achado 19. A tensao do patio e a do PRIMARIO dos transformadores que
+        # estao nele, e nao um padrao global. A Equatorial PA tem 107 dos 220
+        # trafos de AT em 138 kV; com `basekV=88` para todos, metade da malha
+        # ficava alimentada na tensao errada e o MASTER-AT nao convergia —
+        # 100 iteracoes, 12 nos NaN, 7 subestacoes mortas.
+        kvs = sorted({round(kv_at_do_trafo[c], 4) for c in trafos_aqui
+                      if kv_at_do_trafo.get(c)}, reverse=True)
+        kv_patio = kvs[0] if kvs else kv_at_padrao
+        if len(kvs) > 1:
+            # Patio com dois niveis de AT e caso real (a TBAN da Enel SP tem
+            # 88 e 345). A fonte entra no mais alto, que e por onde a energia
+            # chega; dizer isso importa mais do que escolher em silencio.
+            n_misto += 1
+            out.append(f'! ATENCAO: {sub or "?"} tem transformadores em '
+                       f'{", ".join(f"{k:g}" for k in kvs)} kV no mesmo patio; '
+                       f'a fonte entra em {kv_patio:g} kV')
+        mvasc, real = mvasc_estimado(isa, sub, kv_patio)
         nome = f'FONTE_{sub or "SEM_SUB"}_{barra[:12]}'.replace('-', '_')
-        cmt = (f'! {sub or "?"}: {len(trafos_aqui)} trafo(s), {origem}, '
-               f'MVAsc={mvasc:g} ({"ISA" if real else "padrao"})')
+        cmt = (f'! {sub or "?"}: {len(trafos_aqui)} trafo(s) em {kv_patio:g} kV, '
+               f'{origem}, MVAsc={mvasc:g} ({"ISA" if real else "padrao"})')
         out.append(cmt)
         if primeira:
-            out.append(f'New Circuit.ENEL_SP basekV={kv_at_padrao} pu=1.0 phases=3 '
+            out.append(f'New Circuit.ENEL_SP basekV={kv_patio:g} pu=1.0 phases=3 '
                        f'bus1={barra} Angle=0 MVAsc3={mvasc:g} MVAsc1={mvasc*0.8:g}')
             primeira = False
         else:
-            out.append(f'New Vsource.{nome} bus1={barra} basekV={kv_at_padrao} pu=1.0 '
+            out.append(f'New Vsource.{nome} bus1={barra} basekV={kv_patio:g} pu=1.0 '
                        f'phases=3 Angle=0 MVAsc3={mvasc:g} MVAsc1={mvasc*0.8:g}')
         detalhe.append({'sub': sub, 'barra': barra, 'origem': origem,
-                        'mvasc': mvasc, 'isa': real, 'trafos': len(trafos_aqui)})
+                        'mvasc': mvasc, 'isa': real, 'trafos': len(trafos_aqui),
+                        'kv': kv_patio})
+        niveis_usados[kv_patio] = niveis_usados.get(kv_patio, 0) + 1
     if primeira:
         # nenhuma componente com trafo: circuito precisa de pelo menos uma fonte
         out.append(f'New Circuit.ENEL_SP basekV={kv_at_padrao} pu=1.0 phases=3 '
@@ -246,7 +271,16 @@ def fontes(componentes, info_trafos, ctat_heads, isa, caminho,
     open(caminho, 'w', encoding='utf-8').write('\n'.join(out) + '\n')
     if log:
         log(f'    fontes de AT: {n_head} em cabeceira real, {n_eq} equivalentes')
-    return {'com_cabeceira': n_head, 'equivalentes': n_eq, 'detalhe': detalhe}
+        if niveis_usados:
+            log('    niveis das fontes: ' + ', '.join(
+                f'{k:g} kV x{v}' for k, v in sorted(niveis_usados.items(),
+                                                    reverse=True)))
+        if n_misto:
+            log(f'    {n_misto} patio(s) com mais de um nivel de AT — a fonte '
+                f'entrou no mais alto')
+    return {'com_cabeceira': n_head, 'equivalentes': n_eq, 'detalhe': detalhe,
+            'niveis': {f'{k:g}': v for k, v in niveis_usados.items()},
+            'patios_multinivel': n_misto}
 
 
 # ============================== subestacoes da transmissora (as 5 orfas)
