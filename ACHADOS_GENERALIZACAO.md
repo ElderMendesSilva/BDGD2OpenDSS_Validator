@@ -1129,6 +1129,14 @@ Consequência imediata: a linha `0,1201 (208 V) | 1.060 nós | mediana 0,8318 |
 80,2% abaixo de 0,93` da tabela da equipe externa **é, em parte, artefato de
 base** — não retrato da rede.
 
+> **FECHADO em 12/08/2026 — ver o achado 17.** A causa não era a atribuição de
+> base, e a conclusão "o efeito é de relato, não de física" estava errada. As
+> 22 barras são a parte visível de 24 transformadores cujo primário bifásico
+> foi escrito como trifásico. Duas das três fases de cada secundário estão
+> genuinamente em meia tensão, com carga e sem carga. A base errada apenas
+> **inverte o sinal** do defeito no relatório, e por isso ele passou um mês
+> aparecendo como sobretensão.
+
 ### E a lição, que é a mesma de sempre
 
 O número **1.669.937 barras, 4 iterações, sem NaN** estava no `PLANO.md` como
@@ -1139,3 +1147,208 @@ da V9 no disco que o confirme.
 Se o controle não tivesse sido rodado, o desfecho seria desfazer a âncora de
 AT — a correção que resolve seis bases — para consertar um defeito que não
 existia.
+
+---
+
+## Achado 16 — um trecho de 1 mm custou 3,5 h da rodada de sete bases
+
+A regeração V10 gastou **221,6 min no `verifica` da Equatorial PA**, contra
+6,4 min nas 129 subestações da Enel CE. Perfilando, o custo não estava
+distribuído:
+
+| medição | resultado |
+|---|---|
+| as 10 maiores subestações da EQPA, cronometradas | **3,2 min somadas** |
+| as medianas, nos dois motores | 2,5 s cada — mais rápidas que as da ENCE |
+| 119 subestações a esse ritmo | ~10 min, não 221,6 |
+
+Sobravam ~216 min. Eles estavam numa subestação só, a **CUO**, que o log já
+apontava e que eu tinha lido como ruído:
+
+```
+(#183) Y matrix build aborted due to error in primitive Y calculations
+Matrix Inversion Error for Line "13302_10678971"
+```
+
+### A causa: o guarda protege a entrada e o formato desfaz na saída
+
+```python
+comp = num(col['COMP'][i], 1.0)
+if comp <= 0:
+    comp = 1.0                                   # o guarda
+...
+f'LineCode={lc} Length={comp:.2f} Units=m'       # e aqui ele é desfeito
+```
+
+O trecho `13302_10678971` tem **COMP = 0,001 m** na BDGD. Passa no guarda,
+porque é positivo, e o `{:.2f}` escreve `Length=0.00`. Com comprimento zero a
+matriz de impedância fica toda nula, o OpenDSS não consegue invertê-la e
+**aborta a montagem da Y da rede inteira** — uma linha derruba a subestação.
+
+São **três lugares** com a mesma forma, e o pior é a BT, que escreve o neutro
+em km: `Length={comp/1000:.5f}` zera abaixo do mesmo 0,005 m.
+
+| arquivo | o que escreve | zera abaixo de |
+|---|---|---|
+| `linhas.gerar` (MT) | `{comp:.2f}` em metros | 0,005 m |
+| `linhas.gerar_bt` (fases) | `{comp:.2f}` em metros | 0,005 m |
+| `linhas.gerar_bt` (neutro) | `{comp/1000:.5f}` em km | 0,005 m |
+| `subtransmissao.linhas` (AT) | `{comp:.2f}` em metros | 0,005 m |
+
+### A população: 6 trechos em 24,4 milhões
+
+Censo de `SSDAT` + `SSDMT` + `SSDBT` nas sete bases:
+
+| base | trechos | `COMP <= 0` | zeram no formato | alimentadores atingidos |
+|---|---:|---:|---:|---:|
+| Roraima | 299.105 | 0 | 0 | 0 |
+| Enel CE | 2.783.883 | 0 | 0 | 0 |
+| **Equatorial PA** | **2.640.585** | 0 | **5** | **5** |
+| Enel SP | 3.894.761 | 0 | 0 | 0 |
+| **Light** | **2.790.795** | 0 | **1** | **1** |
+| CPFL Paulista | 3.549.487 | 0 | 0 | 0 |
+| Cemig-D | 12.010.712 | 0 | 0 | 0 |
+
+Nenhuma base tem `COMP <= 0` — o guarda existente nunca disparou uma vez em 24
+milhões de registros. **O caso que ele deveria pegar não é o que aparece.**
+
+O menor comprimento positivo revela que a maioria das distribuidoras aplica um
+piso na própria BDGD: 1,00 m na Enel SP e na CPFL, 1,02 m na Enel CE, 0,10 m na
+Cemig-D. A Equatorial PA não aplica nenhum — o menor dela é **0,001 m**.
+
+Dos 5 da Equatorial, **4 estão na SSDBT**, em 4 alimentadores distintos. Eles
+não quebraram a rodada porque ela roda com `--bt agregado` e a SSDBT não é
+emitida. **Com `--bt completo` seriam 4 subestações a mais paradas**, e o modo
+completo é justamente para onde o projeto está indo.
+
+### E o segundo defeito, que é o que transformou o erro em 3,5 h
+
+O `verifica` roda os dois motores. No C-API a compilação levanta exceção e ele
+devolve `compila: False` sem resolver. No COM, `Error.Number` volta **zero**
+depois do mesmo aborto, e o `verifica` segue para o `Solve` — que não falha
+rápido: gira. Sozinho, esse `Solve` consumiu ~3,5 h das 3,7 h da etapa.
+
+Não é um defeito de desempenho. É um modelo impossível sendo resolvido em
+silêncio, e o único sintoma foi o relógio.
+
+---
+
+## Achado 17 — o primário bifásico escrito como trifásico
+
+Este achado **substitui** o diagnóstico das 22 barras de base `0,1201`. Aquele
+diagnóstico dizia que o efeito era "de relato, não de física". Ele é dos dois,
+e a física é a parte grave.
+
+### O que a medição encontrou
+
+Na DALP, `MODELOS_SP_V10` reproduz o achado registrado número a número — 36
+barras na base 0,1201, 22 acima de 1,10 pu. Separando por quem alimenta a barra,
+são **duas populações distintas** que estavam sendo contadas como uma:
+
+| população | n | base | acima de 1,10 pu |
+|---|---:|---|---:|
+| trafo monofásico de 3 enrolamentos, `[MT, 0,12, 0,12]`, ligado `.1.4` e `.4.2` | 14 | 0,1201 — **certa** | 0 |
+| trafo trifásico de 2 enrolamentos, 13,8→0,24 kV | 22 | 0,1201 — **errada** | 22 |
+
+A meia-bobina de derivação central, que o achado anterior deu por refutada,
+**existe** — são as 14. Só que não são elas as doentes.
+
+### O padrão, e ele é limpo demais para ser numérico
+
+```
+doente   [69,8 | 69,8 | 139,4]     duas fases em exatamente metade da terceira
+sadio    [139,3 | 139,1 | 139,7]
+```
+
+Com toda a carga e toda a geração desligadas o padrão **não muda** — 24 de 355
+transformadores, os mesmos 24. É topológico.
+
+O primário resolve: nos 24, um dos três nós de média tensão está em **2.172 V**
+e os outros dois em **8.689 V** — 75% de desequilíbrio, contra 0,0% nos 331
+sadios. E 2.172 = 8.689/4 é a tensão de um nó que **não é alimentado** e fica
+preso apenas pelas bobinas do delta.
+
+O trecho que chega nessas barras é bifásico:
+
+```
+New Line.5104165S1  Bus1=...46880022.2.3  Bus2=...46880013.2.3  LineCode=CND_66_2F
+New Line.5094792S1  Bus1=...46888128.3.1  Bus2=...46888101.3.1  LineCode=CND_1713_2F
+```
+
+E o transformador é escrito com as três fases:
+
+```
+New Transformer.14257963 phases=3 windings=2 Xhl=2.200
+~ wdg=1 bus=2345093246880013.1.2.3 conn=delta Kv=13.8 ...
+```
+
+### A BDGD tinha o dado, e o conversor o descarta
+
+Nos 23 transformadores encontrados na `UNTRMT`, `FAS_CON_P` declara **duas
+fases** — 14 em `BC`, 8 em `AB`, 1 em `CA` — e `FAS_CON_S` declara `ABCN` nos
+23. O campo do primário concorda com a rede em 17 dos 23 casos.
+
+O conversor **lê esse campo e não o usa**:
+
+```python
+fp = _fases(col['FAS_CON_P'][i], 'A')      # calculado
+...
+if len(fs) >= 3:                            # decidido pelo SECUNDARIO
+    out.append(f'... bus={b1}.1.2.3 conn=delta ...')   # e fp e descartado
+```
+
+`fp` é computado e não aparece em nenhum lugar do ramo trifásico. Nos outros
+dois ramos ele é usado (`nd_p`). É um valor calculado e silenciosamente jogado
+fora — a assinatura mais barata de encontrar e a mais fácil de não ver.
+
+### Por que só apareceu como sobretensão
+
+O OpenDSS atribui base lendo o **primeiro nó** da barra, multiplicando por raiz
+de 3 e encaixando no vizinho mais próximo de `Voltagebases`. Nas 21 barras em
+que o nó 1 calhou de ser uma das fases pela metade:
+
+```
+69,8 V x raiz(3) = 0,1208 kV  ->  vizinho mais proximo: 0,208
+                              ->  base = 0,208/raiz(3) = 0,1201
+```
+
+e a fase **sadia** passa a marcar `139,4 / 120,1 = 1,16 pu`. Nas outras 3, o nó
+1 é a fase cheia, a base sai 0,1386, e as duas fases pela metade aparecem como
+**subtensão de 0,50 pu** — o mesmo defeito com o sinal trocado.
+
+O `14257002` é o par de controle perfeito: mesmo defeito, `[139,1 | 69,6 |
+69,6]`, e base 0,1386 porque o nó 1 é a fase cheia. Ele nunca foi contado.
+
+### O que fica
+
+`FAS_CON_P = BC` com `FAS_CON_S = ABCN` não é dado inconsistente: é a descrição
+de um **banco em delta aberto (V-V)** — duas unidades monofásicas entre duas
+fases entregando três no secundário. É isso que o conversor precisa escrever, e
+não um trifásico em `.1.2.3` pendurado numa fase que não existe.
+
+**Correção retida** enquanto a rodada V10 está em voo: ela muda a saída do
+conversor, e aplicá-la agora deixaria RR/ENCE/EQPA/SP com um código e
+LT/CPFL/CMIG com outro — que é exatamente o que torna a comparação entre bases
+inútil. Vale para os dois achados desta noite.
+
+---
+
+## Achado 13, continuação — a decomposição em escala de 125 subestações
+
+A decomposição AT-SE tinha sido validada em Roraima, onde são 12 subestações na
+malha. A Enel CE dá o teste de escala:
+
+| | Roraima | **Enel CE** |
+|---|---:|---:|
+| subestações na malha | 12 | **125** |
+| iterações até < 0,002 pu | 4 | **5** |
+| deslocamento final | 0,0033 | **0,0022** |
+| tensão de cabeceira calculada | 0,8754 – 0,9932 | **0,9035 – 1,0442** |
+| diferem da declarada em >= 0,01 pu | 10 de 12 | **115 de 125** |
+| diferença mediana | −0,0294 | **−0,0248** |
+| pior caso | −0,1246 | **−0,1065** |
+
+A Enel CE não declara 1,0000 como Roraima: ela declara 1,02–1,05, vindo de
+`CTMT.TEN_OPE`. Mesmo assim **as 115 diferenças são todas para baixo**, e a
+mediana é praticamente a mesma das duas bases. O laço converge com dez vezes
+mais subestações sem mudar de comportamento.

@@ -9,7 +9,10 @@ que uma tabela que cresce a cada distribuidora.
 import math
 import os
 import sys
+import tempfile
 import unittest
+
+import numpy as np
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from bdgd2dss import transformadores as tr        # noqa: E402
@@ -118,6 +121,101 @@ class Fases(unittest.TestCase):
 
     def test_lixo_nao_derruba(self):
         self.assertEqual(tr._fases('XYZ'), ['1'])
+
+
+# ---------------------------------------------------------------- achado 17
+class _Leitor:
+    """O minimo que `transformadores.gerar` consome de uma BDGD.
+
+    Um stub e nao a fixture: o caso do achado 17 exige um transformador com
+    FAS_CON_P de duas fases, e acrescenta-lo a `bdgd_minima.gdb` mexeria nas
+    contagens que outros testes ja afirmam. O que esta sob teste aqui e a
+    funcao `gerar`, e ela so pede dois metodos.
+    """
+
+    def __init__(self, untrmt, eqtrmt=None):
+        self.untrmt, self.eqtrmt = untrmt, eqtrmt or {}
+
+    def ler_filtrado(self, camada, chave, valores, colunas=None, **kw):
+        assert camada == 'UNTRMT'
+        return self.untrmt
+
+    def ler(self, camada, colunas=None, **kw):
+        if not self.eqtrmt:
+            raise KeyError(camada)          # `gerar` trata e cai no padrao
+        return self.eqtrmt
+
+
+def _untrmt(fas_p, fas_s='ABCN'):
+    a = lambda *v: np.array(v, dtype=object)          # noqa: E731
+    return {'COD_ID': a('TX'), 'PAC_1': a('BMT'), 'PAC_2': a('BBT'),
+            'CTMT': a('F1'), 'POT_NOM': np.array([75.0]),
+            'TEN_LIN_SE': np.array([0.24]),
+            'FAS_CON_P': a(fas_p), 'FAS_CON_S': a(fas_s)}
+
+
+def _primario(fas_p, fas_s='ABCN'):
+    """Devolve a linha `~ wdg=1 ...` que o conversor escreve."""
+    tmp = tempfile.mkdtemp()
+    t = os.path.join(tmp, 'Trafos.dss')
+    tr.gerar(_Leitor(_untrmt(fas_p, fas_s)), ['F1'], t,
+             os.path.join(tmp, 'Aterr.dss'), kv_mt=13.8)
+    with open(t, encoding='utf-8') as fh:
+        for l in fh:
+            if l.startswith('~ wdg=1'):
+                return l.strip()
+    return ''
+
+
+class PrimarioBifasico(unittest.TestCase):
+    """Achado 17 — o campo que a BDGD da e o conversor descarta.
+
+    Na DALP, 24 de 355 transformadores trifasicos 13,8->0,24 kV estao
+    pendurados em trechos de media tensao BIFASICOS. A `UNTRMT` diz isso:
+    FAS_CON_P = 'BC' em 14 deles, 'AB' em 8, 'CA' em 1 — e FAS_CON_S = 'ABCN'
+    nos 23. O ramo trifasico do `gerar` calcula `fp = _fases(FAS_CON_P)` e
+    depois escreve `bus={b1}.1.2.3` fixo.
+
+    O efeito medido, com carga e sem carga: a fase que nao e alimentada fica
+    presa pelas bobinas do delta em 8.689/4 = 2.172 V, e o secundario sai
+    [139,4 | 69,8 | 69,8] — duas fases em metade. Depois a atribuicao de base
+    do OpenDSS le o PRIMEIRO no; quando ele calha de ser uma das metades, a
+    base vira 0,208/raiz(3) = 0,1201 e a fase SADIA marca 1,16 pu. Foi assim
+    que subtensao de 0,50 pu passou um mes sendo lida como sobretensao.
+    """
+
+    def test_primario_trifasico_continua_em_1_2_3(self):
+        """O caso normal, que a correcao nao pode mexer."""
+        self.assertIn('bus=bmt.1.2.3 ', _primario('ABC'))
+
+    def test_o_secundario_e_quem_escolhe_o_ramo(self):
+        """A regra atual, documentada: FAS_CON_S decide, FAS_CON_P nao entra.
+
+        Com o secundario em 'ABCN' o conversor escreve o primario em delta
+        mesmo quando o proprio registro declara duas fases — e e esse delta
+        que segura o no ausente em 1/4 da tensao."""
+        self.assertIn('conn=delta', _primario('BC', 'ABCN'))
+        self.assertNotIn('conn=delta', _primario('BC', 'A'))
+
+    @unittest.expectedFailure
+    def test_DEFEITO_CONHECIDO_primario_bifasico_sai_como_trifasico(self):
+        """FAS_CON_P='BC' tem de virar `.2.3`, e nao `.1.2.3`.
+
+        Correcao retida enquanto a rodada V10 esta em voo: ela muda a saida do
+        conversor, e aplica-la no meio deixaria quatro bases geradas com um
+        codigo e tres com outro.
+        """
+        self.assertIn('bus=bmt.2.3 ', _primario('BC'))
+
+    @unittest.expectedFailure
+    def test_DEFEITO_CONHECIDO_o_no_ausente_nunca_e_escrito(self):
+        """A propriedade, independente de quais duas fases sejam: nenhum no
+        que a BDGD nao declarou no primario pode aparecer na barra."""
+        for fas, ausente in (('BC', '.1'), ('AB', '.3'), ('CA', '.2')):
+            barra = _primario(fas).split('bus=')[1].split()[0]
+            nos = ['.' + x for x in barra.split('.')[1:]]
+            self.assertNotIn(ausente, nos,
+                             f'FAS_CON_P={fas} nao tem a fase de {ausente}')
 
 
 if __name__ == '__main__':
