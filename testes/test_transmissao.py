@@ -99,6 +99,71 @@ class UmaFontePorPatio(unittest.TestCase):
         self.assertEqual(info['equivalente'], 2)
 
 
+def _fontes(pac_at, kv_at, componentes, por_sub=None):
+    tmp = tempfile.mkdtemp()
+    cam = os.path.join(tmp, 'Fontes.dss')
+    info = {'pac_at': pac_at, 'kv_at_do_trafo': kv_at,
+            'por_sub': por_sub or {'SUB': list(pac_at)}}
+    r = transmissao.fontes(componentes, info, set(), {}, cam)
+    with open(cam, encoding='utf-8') as fh:
+        return fh.read(), r
+
+
+def _basekv(txt):
+    """{barra: basekV} das fontes escritas, Circuit inclusive."""
+    out = {}
+    for l in txt.splitlines():
+        if l.startswith(('New Vsource.', 'New Circuit.')) and 'bus1=' in l:
+            b = l.split('bus1=')[1].split()[0]
+            out[b] = float(l.split('basekV=')[1].split()[0])
+    return out
+
+
+class TensaoDaFonteVemDoPatio(unittest.TestCase):
+    """Achado 19 — e a correcao da propria correcao.
+
+    A primeira versao escolhia o nivel MAIS ALTO do patio. Medido na
+    Equatorial PA reconvertida, isso produziu 3 fontes com basekV que a barra
+    nao tem: `jui_03b1` recebeu 138 kV numa barra de 13,8. A tensao da fonte
+    tem de ser a do transformador que esta NAQUELA barra; o mais alto so vale
+    como ultimo recurso.
+    """
+
+    def test_um_nivel_so_sai_nele(self):
+        txt, _ = _fontes({'T1': 'b138'}, {'T1': 138.0}, [{'b138'}])
+        self.assertEqual(list(_basekv(txt).values()), [138.0])
+
+    def test_sem_dado_cai_no_padrao(self):
+        txt, _ = _fontes({'T1': 'bx'}, {}, [{'bx'}])
+        self.assertEqual(list(_basekv(txt).values()), [88.0])
+
+    def test_patio_misto_usa_o_trafo_DA_BARRA(self):
+        """Dois trafos no mesmo patio, 138 e 88, e a injecao cai na barra do
+        de 88. A fonte tem de sair em 88 — nao em 138."""
+        txt, _ = _fontes({'T138': 'outra', 'T88': 'ponto'},
+                         {'T138': 138.0, 'T88': 88.0},
+                         [{'outra', 'ponto'}])
+        # `barra` = pac_at do primeiro trafo da componente, em ordem de dict
+        kv = _basekv(txt)
+        self.assertEqual(len(kv), 1)
+        barra, base = next(iter(kv.items()))
+        esperado = {'outra': 138.0, 'ponto': 88.0}[barra]
+        self.assertEqual(base, esperado,
+                         f'a fonte injeta em {barra}, cujo trafo e de '
+                         f'{esperado:g} kV')
+
+    def test_a_escolha_fica_escrita(self):
+        txt, r = _fontes({'T138': 'p', 'T88': 'p2'},
+                         {'T138': 138.0, 'T88': 88.0}, [{'p', 'p2'}])
+        self.assertIn('ATENCAO', txt)
+        self.assertEqual(r['patios_multinivel'], 1)
+
+    def test_o_relatorio_conta_por_nivel(self):
+        txt, r = _fontes({'A': 'ba', 'B': 'bb'}, {'A': 138.0, 'B': 88.0},
+                         [{'ba'}, {'bb'}])
+        self.assertEqual(r['niveis'], {'138': 1, '88': 1})
+
+
 class NiveisDeAtDiferentesContinuamSeparados(unittest.TestCase):
     """O motivo pelo qual a barra depende do nivel de AT, ja registrado no
     codigo: com uma barra so, duas Vsource caiam no mesmo no com basekV

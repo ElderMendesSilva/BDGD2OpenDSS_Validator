@@ -239,15 +239,24 @@ def fontes(componentes, info_trafos, ctat_heads, isa, caminho,
         # 100 iteracoes, 12 nos NaN, 7 subestacoes mortas.
         kvs = sorted({round(kv_at_do_trafo[c], 4) for c in trafos_aqui
                       if kv_at_do_trafo.get(c)}, reverse=True)
-        kv_patio = kvs[0] if kvs else kv_at_padrao
+        # A tensao da fonte tem de ser a da BARRA em que ela injeta, e nao a
+        # mais alta do patio. Medido na Equatorial PA depois da primeira versao
+        # desta correcao: 3 fontes sairam com basekV que a barra nao tem —
+        # `jui_03b1` recebeu 138 kV numa barra de 13,8. A regra "entra no mais
+        # alto" so vale como ultimo recurso.
+        no_ponto = sorted({round(kv_at_do_trafo[c], 4) for c in trafos_aqui
+                           if kv_at_do_trafo.get(c) and pac_at.get(c) == barra})
+        kv_patio = (no_ponto[-1] if no_ponto else
+                    (kvs[0] if kvs else kv_at_padrao))
         if len(kvs) > 1:
             # Patio com dois niveis de AT e caso real (a TBAN da Enel SP tem
-            # 88 e 345). A fonte entra no mais alto, que e por onde a energia
-            # chega; dizer isso importa mais do que escolher em silencio.
+            # 88 e 345). Dizer qual foi escolhido importa mais do que escolher
+            # em silencio.
             n_misto += 1
             out.append(f'! ATENCAO: {sub or "?"} tem transformadores em '
                        f'{", ".join(f"{k:g}" for k in kvs)} kV no mesmo patio; '
-                       f'a fonte entra em {kv_patio:g} kV')
+                       f'a fonte entra em {kv_patio:g} kV, que e '
+                       f'{"o nivel do trafo desta barra" if no_ponto else "o mais alto"}')
         mvasc, real = mvasc_estimado(isa, sub, kv_patio)
         nome = f'FONTE_{sub or "SEM_SUB"}_{barra[:12]}'.replace('-', '_')
         cmt = (f'! {sub or "?"}: {len(trafos_aqui)} trafo(s) em {kv_patio:g} kV, '
