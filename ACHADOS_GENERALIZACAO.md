@@ -1748,3 +1748,74 @@ E o achado 16 tem consequência direta aqui: **4 dos 5 trechos degenerados da
 Equatorial PA estão na `SSDBT`**, em 4 alimentadores distintos. Eles nunca
 apareceram porque a rodada usa `--bt agregado`. No modo completo, seriam 4
 subestações a mais paradas com `#183 Y matrix build aborted`.
+
+---
+
+## Achado 23 — o passo 5 não moveu um único número de energia, e isso é o resultado
+
+A regeração V10 existe para validar as mudanças do passo 5: âncora de AT
+derivada da base, tabela de tensões vinda do censo da própria distribuidora, e
+composição das parcelas de perda. Nenhuma delas foi feita para mexer na razão
+de perdas — mas todas podiam. Comparando as duas rodadas na Enel SP, população
+inteira e não um par:
+
+| | V9 | V10 |
+|---|---|---|
+| razão modelo/declarado — mediana | **9,919** | **9,919** |
+| razão — média · p10 · p90 | 11,784 · 2,779 · 22,529 | 11,786 · 2,779 · 22,529 |
+| alimentadores cruzados | 1.573 | 1.573 |
+| viola o limite físico | 482 | 482 |
+| viola de verdade | **458 (29,12%)** | **458 (29,12%)** |
+| medição degenerada | 29 | 29 |
+| subestações sadias | 155/155 | 155/155 |
+| cobertura de medição | 87,2% | 87,2% |
+| perdas% — mediana | 7,29 | 7,30 |
+
+**Nada se moveu além da terceira casa.**
+
+E os modelos **mudaram** — a distribuição de bases de tensão da DALP é outra:
+
+```
+V9    0,1201 (564) | 0,1270 (562) | 0,1386 (333)
+V10   0,1386 (903) | 0,1328 (511) | 0,1201 (36) | 0,1270 (17)
+```
+
+As duas coisas juntas dizem exatamente o que aconteceu: **as mudanças do passo
+5 são do lado do relato, e não do fluxo de potência.** A base de tensão
+corrige o pu; ela não altera a corrente que passa no condutor nem a energia que
+o medidor conta. É por isso que a razão de perdas fica igual até a terceira
+casa enquanto 1.400 barras trocam de base.
+
+Consequência prática, e ela é boa: **a comparação entre distribuidoras feita na
+V9 continua válida para energia**, e a V10 acrescenta o pu correto e a camada
+de AT sem invalidar nada do que já estava medido. Uma regeração de 11 h que não
+muda número nenhum não é desperdício — é a única forma de saber que não mudou.
+
+### O que só a V10 tem
+
+O `validador.py --ses` entrou na fila desta rodada, e é a primeira vez que ele
+roda na concessão inteira:
+
+| veredicto | subestações |
+|---|---:|
+| OK | 126 |
+| TENSAO_BAIXA | 22 |
+| REGULADOR_SATURADO | 5 |
+| REDE_EXTENSA | 2 |
+
+E o número que ele produziu de lado: **86.499 linhas acima da ampacidade nas
+155 subestações** — mediana 422 por subestação, máximo 1.938. É a assinatura do
+achado 11 medida na concessão inteira pela primeira vez.
+
+### A tabela entre distribuidoras, com quatro das sete
+
+| base | sadias | cobertura | razão mediana | viola de verdade | medição degenerada |
+|---|---|---:|---:|---:|---:|
+| Roraima | 20/20 | 88,8% | 3,95× | 10,13% | 29 |
+| Enel CE | 129/129 | 94,2% | **1,32×** | **0,44%** | 0 |
+| Equatorial PA | 118/119 | 93,5% | **1,10×** | **0,65%** | 121 |
+| **Enel SP** | 155/155 | 87,2% | **9,92×** | **29,12%** | 29 |
+
+A Enel SP continua discrepante por uma ordem de grandeza contra duas
+distribuidoras cujo modelo fecha em 1,1–1,3×. Isso reproduz o achado 10 com o
+código atual, e agora com o `validador` junto.
