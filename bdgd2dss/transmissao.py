@@ -270,6 +270,18 @@ def trafos_transmissora(orfas, isa, caminho, kv_mt_padrao=13.8, log=None):
     n_real = n_eq = 0
     barras = {}
     niveis = set()          # tensoes introduzidas por estes trafos (230, 345...)
+    # A fonte e UMA POR PATIO, e o patio e (subestacao, nivel de AT). O laco
+    # abaixo percorre (subestacao, nivel de MT), entao uma subestacao que
+    # alimenta dois niveis de MT a partir do MESMO nivel de AT passa duas vezes
+    # pela mesma fonte. Medido na Equatorial PA: SSB e TUR emitiam
+    # `Vsource.FONTE_SSB_88kv` e `FONTE_TUR_88kv` duas vezes cada.
+    #
+    # A linha repetida e IDENTICA — nome, barra, basekV e MVAsc dependem so de
+    # (sub, kv1) —, entao nao havia diferenca eletrica. Mas o C-API recusa a
+    # redefinicao com o erro #266 e o MASTER-AT inteiro deixa de compilar; o
+    # motor COM aceita calado e a segunda apaga a primeira. Nenhum dos dois
+    # comportamentos e o que se quer de uma duplicata exata.
+    fontes_emitidas = set()
     for sub, por_kv in sorted(orfas.items()):
         lst = isa.get(sub) or []
         for kv_mt, alims in sorted(por_kv.items()):
@@ -295,9 +307,15 @@ def trafos_transmissora(orfas, isa, caminho, kv_mt_padrao=13.8, log=None):
             # 29 alimentadores ficavam sem tensao — foram 2.238 cargas mortas.
             barra_at = f'barra_at_{sub.lower()}_{kv1:g}kv'.replace('.', 'p')
             out.append(f'! {sub} — {len(alims)} alimentadores em {kv_mt:g} kV. {fonte}')
-            out.append(f'New Vsource.FONTE_{sub}_{kv1:g}kv bus1={barra_at} '
-                       f'basekV={kv1:g} pu=1.0 phases=3 Angle=0 '
-                       f'MVAsc3={mvasc:g} MVAsc1={mvasc*0.8:g}')
+            nome_fonte = f'FONTE_{sub}_{kv1:g}kv'
+            if nome_fonte not in fontes_emitidas:
+                fontes_emitidas.add(nome_fonte)
+                out.append(f'New Vsource.{nome_fonte} bus1={barra_at} '
+                           f'basekV={kv1:g} pu=1.0 phases=3 Angle=0 '
+                           f'MVAsc3={mvasc:g} MVAsc1={mvasc*0.8:g}')
+            else:
+                out.append(f'! (a fonte {nome_fonte} ja foi emitida para outro '
+                           f'nivel de MT desta subestacao)')
             out.append(f'New Transformer.TT_{sub}_{str(kv_mt).replace(".", "p")} '
                        f'phases=3 windings=2 Xhl=12.0\n'
                        f'~ %loadloss=0.5 %noloadloss=0.15\n'

@@ -128,6 +128,10 @@ def demanda(raiz, se, pu, log=print):
     cwd = os.getcwd()
     try:
         dss.Text.Command('Clear')
+        # Uma subestacao que nao compila nao pode derrubar a decomposicao das
+        # outras 109. Medido na Equatorial PA: a CUO tem um trecho de 0,001 m
+        # que vira `Length=0.00` e aborta a montagem da Y (achado 16), e a
+        # excecao subia ate matar o programa inteiro no meio do laco.
         dss.Text.Command(f'Compile "{cam}"')
         # `source` e o Vsource que o `New Circuit` cria; as barras extras
         # ganham FONTE1_, FONTE2_... e tambem acompanham
@@ -139,6 +143,9 @@ def demanda(raiz, se, pu, log=print):
         if not dss.Solution.Converged():
             return None
         p, q = dss.Circuit.TotalPower()[:2]    # kW e kvar, negativos = entregues
+    except Exception as e:
+        log(f'   {se}: nao resolve — {str(e).splitlines()[0][:90]}')
+        return None
     finally:
         os.chdir(cwd)
     if p != p or q != q:
@@ -169,11 +176,21 @@ def acoplar(raiz, ses, passos=4, tol=0.002, log=print):
             log(f'   convergiu em {it} iteracoes')
             break
         cargas = {}
+        mudas = []
         for se in ses:
             if se in pu:
                 d = demanda(raiz, se, pu[se], log)
                 if d:
                     cargas[se] = d
+                else:
+                    mudas.append(se)
+        if mudas:
+            # Subestacao que nao devolve demanda fica com a carga da rodada
+            # anterior — a do MASTER-AT, sem realimentacao. Isso precisa
+            # aparecer: silencio aqui se leria como "todas mediram".
+            log(f'   {len(mudas)} de {len(ses)} nao devolveram demanda nesta '
+                f'iteracao: {", ".join(sorted(mudas)[:8])}'
+                f'{" ..." if len(mudas) > 8 else ""}')
     return pu, hist, calc
 
 

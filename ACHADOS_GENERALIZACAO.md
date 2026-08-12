@@ -1352,3 +1352,143 @@ A Enel CE não declara 1,0000 como Roraima: ela declara 1,02–1,05, vindo de
 `CTMT.TEN_OPE`. Mesmo assim **as 115 diferenças são todas para baixo**, e a
 mediana é praticamente a mesma das duas bases. O laço converge com dez vezes
 mais subestações sem mudar de comportamento.
+
+---
+
+## Achado 15 FECHADO — e a causa é o achado 17
+
+O achado 15 estava aberto desde o relatório da equipe externa, com três
+hipóteses caídas: tensão de cabeceira, impedância do aterramento de neutro
+(fator 500) e a faixa `Vminpu`/`Vmaxpu` do `PVSystem`. A quarta hipótese só
+existiu depois do achado 17, e ela não vem da geração — vem das barras.
+
+**O raciocínio.** A DALP tem 24 transformadores cujo primário bifásico foi
+escrito como trifásico, e duas das três fases de cada secundário ficam em
+**0,50 pu** da base verdadeira. O padrão do `PVSystem` é `Vminpu = 0,85`.
+Abaixo disso ele deixa de ser injeção de potência constante e vira impedância
+constante — que é exatamente o mecanismo de troca de modelo já documentado no
+`cargas.py`: *"a carga desliga, a tensão sobe, a carga religa, a tensão cai, e
+o fluxo nunca converge"*. **Um inversor a 0,50 pu está permanentemente do lado
+errado da faixa.**
+
+**O experimento, com controle de população** — que é a lição que este projeto
+já pagou duas vezes:
+
+| irradiância | base | desligando os 126 inversores das 24 barras | controle: 126 inversores sorteados entre barras sadias |
+|---:|---:|---:|---:|
+| 0,25 | 96/96 | 96/96 | 96/96 |
+| 0,50 | 96/96 | 96/96 | 96/96 |
+| **0,75** | **73/96** | **96/96** | **73/96** |
+| **1,00** | **35/96** | **96/96** | **35/96** |
+
+A coluna `base` reproduz **os dois números registrados no achado 15** — 73/96 e
+35/96 — sem ajuste nenhum. O tratamento recupera **96/96 nas quatro
+irradiâncias**. O controle, com a mesma quantidade de inversores desligados e
+semente fixa, ganha **exatamente zero passos**.
+
+Ganho somado: **+84 passos no tratamento, +0 no controle.**
+
+**126 inversores, 3,0% dos 4.218, explicam 100% da falha de convergência.**
+
+E fecha a última pergunta aberta do achado 15 — por que `Vmax = 1,229` era
+idêntico em 75% e 100%: aquela tensão nunca veio da geração. Ela é a fase sadia
+de uma barra da base 0,1201, dividida pela base errada. Os dois sintomas que
+pareciam dois problemas eram o mesmo defeito visto de dois ângulos.
+
+**Consequência para a equipe externa:** a correção do achado 17 resolve o
+problema de convergência que eles relataram. Não é ajuste de parâmetro do
+inversor, não é modo de controle e não é algoritmo — é conexão de fase.
+
+---
+
+## Achado 18 — a fonte duplicada, e o silêncio de um motor
+
+A decomposição AT-SE não rodou na Equatorial PA:
+
+```
+(#266) Duplicate new element definition: "Vsource.FONTE_SSB_88kv".
+Element being redefined.       [_AT/Trafos_Transmissora.dss, linha 112]
+```
+
+`trafos_transmissora` percorre pares **(subestação, nível de MT)**, mas a fonte
+pertence ao **pátio**, que é (subestação, nível de AT). Uma subestação que
+alimenta 13,8 kV e 34,5 kV a partir do mesmo barramento de 88 kV passava duas
+vezes pela mesma fonte.
+
+A linha repetida era **idêntica** — nome, barra, `basekV` e `MVAsc` saem todos
+de `(sub, kv1)` —, então não havia diferença elétrica nenhuma. O estrago era o
+tratamento, e ele difere por motor:
+
+| motor | o que faz com a duplicata exata |
+|---|---|
+| DSS C-API | recusa, e o `MASTER-AT` inteiro deixa de compilar |
+| OpenDSS COM (EPRI) | aceita calado, e a segunda definição apaga a primeira |
+
+Nenhum dos dois é o que se quer de uma duplicata exata.
+
+Medido nas quatro bases já regeradas: **2 na Equatorial PA** (SSB e TUR), **0**
+em Roraima, **0** na Enel CE, **0** na Enel SP — que tem 19.484 elementos de AT.
+
+**Corrigido** (`transmissao.trafos_transmissora`), com 8 testes. É a única
+correção desta noite que foi aplicada com a rodada em voo, porque ela só pode
+remover linha exatamente repetida, e nenhuma métrica da V10 lê esse arquivo —
+os modelos por subestação não o redirecionam, e a Equatorial PA fechou 118/119
+no `verifica` com a duplicata presente.
+
+O arquivo já gerado da `MODELOS_EQPA_V10` recebeu a mesma dedup à mão, com
+cópia em `.antes_da_dedup`, para que a decomposição pudesse rodar nela hoje.
+
+---
+
+## Achado 19 — a tensão da fonte de AT é fixa em 88 kV
+
+Deduplicadas as fontes, o `MASTER-AT` da Equatorial PA compila com 110
+subestações e **não converge**: 100 iterações, 12 nós NaN, 27 em tensão zero, 7
+cargas de subestação mortas.
+
+As barras mortas têm base **79,6743** — que é `138/√3`.
+
+| base | primário dos transformadores de AT | `basekV` das fontes | converge |
+|---|---|---|---|
+| Roraima | 88 kV x29 | 88 kV x18 | sim |
+| Enel CE | 88 kV x208 | 88 kV x118 | sim |
+| **Equatorial PA** | **88 kV x113 e 138 kV x107** | **88 kV x116** | **não** |
+| Enel SP | 88 kV x425, 138 kV x12 | 88 kV x144, 230 x1, 345 x2 | sim |
+
+**Metade da malha da Equatorial PA é de 138 kV e recebe fonte de 88 kV.**
+Roraima e Enel CE convergem porque são 88 kV puras — não porque o código
+esteja certo.
+
+### É a mesma forma do achado 17
+
+O `subtransmissao.trafos` **calcula** a tensão primária de cada transformador,
+de `EQTRAT.TEN_PRI`, e a escreve no próprio transformador:
+
+```python
+kv1 = tensoes.kv(e.get('ten_pri'), kv_at_padrao, log, 'EQTRAT.TEN_PRI')
+...
+f'~ wdg=1 bus={no_at}{nd1} conn={conn1} kV={kv1:.4f} ...'
+```
+
+E depois **não a devolve**. O dicionário de retorno traz `barra_do_trafo`,
+`kv_da_barra`, `pac_at`, `por_sub`, `mva_por_sub` — a tensão de MT está lá, a
+de AT não. Sem ela, `fontes()` não tem de onde tirar o nível do pátio e usa o
+parâmetro global:
+
+```python
+f'New Vsource.{nome} bus1={barra} basekV={kv_at_padrao} pu=1.0 ...'
+```
+
+Dois achados na mesma noite com a mesma assinatura: **um valor é calculado
+corretamente e não chega onde é necessário.** No achado 17 é `fp` dentro da
+mesma função; aqui é `kv1` atravessando a fronteira de dois módulos.
+
+### O que a correção precisa fazer
+
+Devolver `kv_at_do_trafo` em `info_trafos` e, em `fontes()`, tirar o `basekV` de
+cada fonte dos transformadores daquele pátio — e registrar quando eles
+discordarem entre si, porque pátio com dois níveis de AT é caso real (a TBAN da
+Enel SP tem 88 e 345).
+
+**Correção retida** enquanto a rodada V10 está em voo, pelo mesmo motivo dos
+achados 16 e 17: ela muda a saída do conversor.
