@@ -1492,3 +1492,55 @@ Enel SP tem 88 e 345).
 
 **Correção retida** enquanto a rodada V10 está em voo, pelo mesmo motivo dos
 achados 16 e 17: ela muda a saída do conversor.
+
+---
+
+## As três correções retidas, medidas no modelo que elas produzem
+
+Escritas num *worktree* separado (`correcoes-retidas`), sem tocar na árvore que
+a rodada V10 está usando. Teste verde prova que a função faz o que o teste diz;
+o que segue prova a outra coisa, que é a que importa: **que o modelo gerado
+deixou de ter o defeito.**
+
+### Regressão primeiro
+
+Roraima convertida com as três correções: o `MASTER-AT.dss` sai **byte a byte
+idêntico** ao da `MODELOS_RR_V10`. Onde não havia defeito, nada mudou.
+
+### A DALP, convertida com as correções
+
+| | antes (`MODELOS_SP_V10`) | depois |
+|---|---:|---:|
+| linhas com `Length=0.00` | 1 | **0** |
+| transformadores com duas fases pela metade | 24 | **0** |
+| barras na base 0,1201 | 36 | 20 |
+| barras acima de 1,10 pu | 22 | **0** |
+| **dia inteiro em irradiância 1,00** | **35/96** | **96/96** |
+| `Vmax` | 1,229 | **1,0791** |
+| `MASTER-AT`: converge / NaN / subestações mortas | — | sim / 0 / 0 |
+
+**O dia fecha 96/96 em irradiância plena sem desligar inversor nenhum.** A
+correção do achado 17 resolve o achado 15 sozinha, e o `Vmax` cai de 1,229 para
+1,0791 — que é um número plausível para rede alimentada a 1,09, e não o
+artefato de base que era antes.
+
+As 20 barras que continuam na base 0,1201 são as **legítimas**: secundário de
+transformador monofásico de derivação central, onde o nó 1 fica em 120 V por
+construção e 0,1201 é a base certa.
+
+### O que cada correção faz
+
+| achado | onde | o que muda |
+|---|---|---|
+| 16 | `linhas.comprimento`, usada nas três camadas | piso de `COMP_MINIMO = 0,01 m`. 1 cm está abaixo de qualquer medição real (o menor piso entre as sete distribuidoras é 0,10 m, da Cemig-D), acima da resolução dos dois formatos de saída, e não move o km do relatório. O 1,0 m continua valendo só para campo **ausente**, onde não há dado a preservar |
+| 17 | `transformadores.gerar` | o delta trifásico passa a exigir três fases **dos dois lados**; e `Kv` do primário passa a depender de quantos nós o enrolamento toca — dois nós é fase-fase e vê 13,8 kV, um nó vê 13,8/√3 |
+| 19 | `subtransmissao.trafos` + `transmissao.fontes` | `kv_at_do_trafo` passa a ser devolvido e a fonte de cada pátio sai no nível dos transformadores que estão nele. Pátio com mais de um nível recebe a fonte no mais alto, **e isso é registrado no log e no arquivo** |
+
+190 testes, e as 5 falhas esperadas deixam de ser esperadas.
+
+### O que ainda não foi medido
+
+A Equatorial PA, que é onde o achado 19 aparece (107 dos 220 transformadores de
+AT em 138 kV) e onde estão 5 dos 6 trechos do achado 16, **não foi reconvertida**
+— são ~35 min de conversão e a máquina está com a rodada V10 em voo. Fica como
+a primeira coisa a rodar quando ela fechar.
