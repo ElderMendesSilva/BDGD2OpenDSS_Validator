@@ -654,7 +654,13 @@ def main():
             print(f'As {len(resumo)} subestacoes concluidas estao salvas. '
                   f'Rode o mesmo comando de novo — ele retoma da proxima.', flush=True)
             break
-        print(f'   {n_ln:,} linhas | {n_tr:,} trafos | {info["n_cargas"]:,} cargas | '
+        # `n_ln` e so a MT. Com `--bt completo` o modelo ganha LinhasBT e
+        # Ramais — medido na 5003525 de Roraima, 6.277 -> 24.267 linhas —, e
+        # imprimir so a MT fazia os dois modos parecerem identicos no log.
+        _lbt = info.get('linhas_BT') or 0
+        print(f'   {n_ln:,} linhas MT'
+              f'{f" + {_lbt:,} BT" if _lbt else ""} | {n_tr:,} trafos | '
+              f'{info["n_cargas"]:,} cargas | '
               f'{info["kW_BT"]+info["kW_MT"]:,.0f} kW', flush=True)
 
     b.fechar_lote()
