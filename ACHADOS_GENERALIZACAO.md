@@ -1647,3 +1647,53 @@ removidas à mão), as subestações saem em **0,6250 – 0,6298 pu**, e
 138 kV, com a queda da malha por cima. O laço até "converge" em 5 iterações —
 e o `decompor` avisa, em toda iteração, que o modelo de AT não convergiu e que
 os números não valem.
+
+---
+
+## Achado 21 — a cabeceira de cada alimentador é invisível à checagem de sobrecarga
+
+O vão de saída é escrito como chave, sem ampacidade:
+
+```python
+f'New Line.VAO_{cod} phases=3 Bus1={alvo}.1.2.3 Bus2={pac}.1.2.3 '
+f'Switch=y r1={R_VAO} r0={R_VAO} x1=0 x0=0 c1=0 c0=0'
+```
+
+e o `validador` conta sobrecarga varrendo **todas** as linhas:
+
+```python
+na = dss.CktElement.NormalAmps()
+if na > 1:
+    ... if mx > na: sob += 1
+```
+
+Então o vão entra na conta com a ampacidade que o OpenDSS inventou. Medindo em
+12 subestações da Enel SP, 130 vãos:
+
+| | |
+|---|---|
+| `normamps` encontradas | **400,0 A em todos os 130** — o padrão do OpenDSS para `Switch=y` |
+| corrente máxima num vão | 306,1 A |
+| `I/normamps` | mediana 0,229 · p90 0,449 · **máx 0,765** |
+| sobrecargas contadas que são vão | **0 de 5.092** |
+
+**O número do validador não está inflado — e também não está medindo nada.**
+Os 400 A são um valor que ninguém escolheu; ele simplesmente calha de estar
+acima da maior corrente de cabeceira da amostra. Numa base cujo condutor de
+cabeceira seja mais fino — e a Enel SP tem o caso do 593, com 31 A carregando a
+maior fatia de km da rede (achado 11) —, uma sobrecarga real na saída da
+subestação passaria despercebida.
+
+O dado existe: a ampacidade da cabeceira é a do primeiro trecho de `SSDMT` a
+jusante do vão, que já está no `LineCode` daquele trecho. A correção é herdar
+`normamps` dele em vez de aceitar o padrão.
+
+Fica **aberto**, junto com os achados 16, 17 e 19, para depois que a rodada V10
+fechar.
+
+### Um número que apareceu de lado e merece nota
+
+**5.092 linhas acima da ampacidade em 12 subestações** — 1.214 só na DANC. Não
+é novidade em si (é a assinatura do achado 11), mas é a primeira vez que ele
+aparece contado por subestação, e a distribuição é muito desigual: de 18 linhas
+na DAUG a 1.214 na DANC.
