@@ -1544,3 +1544,33 @@ A Equatorial PA, que é onde o achado 19 aparece (107 dos 220 transformadores de
 AT em 138 kV) e onde estão 5 dos 6 trechos do achado 16, **não foi reconvertida**
 — são ~35 min de conversão e a máquina está com a rodada V10 em voo. Fica como
 a primeira coisa a rodar quando ela fechar.
+
+---
+
+## Correção de relato — quanto da concessão a decomposição realmente cobre
+
+Registrei que "10 de 12 subestações de Roraima diferem da declarada" **sem
+dizer que 12 não era o total**. Roraima tem 20 subestações modeladas; o
+`MASTER-AT` escreve 18 como carga equivalente; e apenas **12 chegam a receber
+tensão**. As outras 8 ficam com a tensão de cabeceira declarada e nunca são
+medidas — o que é um resultado legítimo, mas só se for dito.
+
+| base | subestações modeladas | no `MASTER-AT` | com tensão | cobertura | AT converge |
+|---|---:|---:|---:|---:|---|
+| Roraima | 20 | 18 | 12 | **60,0%** | sim |
+| Enel CE | 129 | 127 | 125 | **96,9%** | sim |
+| Equatorial PA | 119 | 117 | 110 | 92,4% | **não** (achado 19) |
+| **Enel SP** | **155** | **155** | **154** | **99,4%** | sim |
+
+**A base que menos cobre é justamente aquela em que a decomposição foi
+validada.** Roraima serviu de referência porque é onde o monólito cabe — e é a
+rede mais fragmentada das quatro, com 8 subestações fora do alcance da malha.
+A validação contra o monólito continua valendo para as 12 que ela alcança; o
+que não vale é ler "10 de 12" como se fossem 10 de 20.
+
+Na Enel SP, que é a base do trabalho, a decomposição alcança **154 das 155**.
+
+A causa das mortas é a mesma dos 844 componentes desconexos já registrados: o
+pátio de AT dessas subestações não tem transformador na `UNTRAT`, ou a barra
+não se liga a nenhuma fonte. Não é defeito novo — é o alcance da camada de AT,
+e agora ele tem número por base.
