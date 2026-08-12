@@ -878,15 +878,61 @@ do trabalho. Ele funciona nas bases menores — o `MASTER-GERAL` de Roraima
 compila, converge em 10 iterações e resolve. Na maior distribuidora do país,
 com esta máquina, não.
 
-Três saídas, nenhuma testada ainda:
+Três saídas foram consideradas — mais memória, `--bt nenhum` no modelo geral,
+ou aceitar o recorte por subestação. **Nenhuma foi adotada, porque havia uma
+quarta e ela é melhor.**
 
-1. **mais memória** — medir o pico real e dizer quanto pede. O cluster do
-   laboratório resolveria, e é o primeiro uso concreto que ele ganha;
-2. **`--bt nenhum` no modelo geral** — as 351.144 cargas e boa parte dos
-   158.998 reatores de aterramento são de BT. Um MASTER-GERAL só de MT
-   caberia, e para estudo de subtransmissão é o recorte certo;
-3. **aceitar o recorte por subestação** como o produto principal, com o
-   MASTER-GERAL restrito às bases que couberem.
+### A saída: decompor, sem apagar nada
+
+Dois modelos acoplados, em vez de um monólito:
+
+| | elementos | |
+|---|---:|---|
+| `MASTER-GERAL` | 2.391.177 | não cabe em 15,8 GB |
+| **`MASTER-AT`** | **19.498** | **0,82% do porte** |
+| `MASTER-<SE>` × 155 | intactos | BT completa, nada apagado |
+
+O `MASTER-AT` é a malha de 88 kV com os transformadores de potência e cada
+subestação representada pela demanda que ela de fato tem. O porte dele escala
+com a **subtransmissão**, não com a concessão — cabe em qualquer máquina e
+continua cabendo em qualquer distribuidora.
+
+O acoplamento é a **tensão de cabeceira**, que hoje é declarada
+(`CTMT.TEN_OPE`) e não calculada. O `decompor.py` itera: resolve a AT, mede a
+demanda que cada subestação puxa naquela tensão, realimenta, repete.
+
+### Validado contra o monólito, na base onde ele cabe
+
+Roraima. O `MASTER-GERAL` dela compila (232.579 barras, 11 iterações), então
+serve de referência:
+
+| erro contra o monólito | mediano | p90 | pior |
+|---|---:|---:|---:|
+| premissa declarada *(hoje)* | 0,0220 | 0,0439 | 0,0807 |
+| **decomposição AT↔SE** | **0,0081** | 0,0267 | 0,0439 |
+
+**A decomposição erra 2,7× menos que a premissa que ela substitui**, e o pior
+caso cai pela metade. Não é exata — é melhor, e isso está medido.
+
+O laço converge em 4 iterações: deslocamento máximo 0,0344 → 0,0086 → 0,0033 pu.
+
+### Duas decisões que o número forçou
+
+**Realimentar o REATIVO, não só a potência ativa.** Com pf fixo em 0,92 o erro
+mediano ficava em 0,0162 pu; realimentando kW *e* kvar caiu para 0,0081 — pela
+metade. Numa malha de 88 kV o X domina o R, e a queda de tensão é comandada
+pelo reativo. Fixar o fator de potência erra a tensão diretamente.
+
+**Carga de potência constante (`Model=1`).** Com impedância constante a
+demanda cairia junto com a tensão, e o resultado sairia otimista justamente no
+caso que interessa medir: o da subestação mal alimentada.
+
+### O que a decomposição já revelou em Roraima
+
+A tensão de cabeceira declarada é **1,0000 em todas as 12** subestações da
+malha. A calculada vai de **0,8754 a 0,9932**, e **10 das 12 diferem em 0,01 pu
+ou mais — todas para baixo**. A pior opera 12,5 pontos abaixo do que o modelo
+isolado dela supõe.
 
 ### O primeiro uso externo, e o que ele encontrou
 

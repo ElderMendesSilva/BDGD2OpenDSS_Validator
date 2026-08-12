@@ -689,6 +689,34 @@ def main():
                            bt=bt_da_base)
         print(f'\nMASTER-GERAL.dss escrito com {len(todas)} subestacoes.', flush=True)
 
+        # --- MASTER-AT: a metade de cima da decomposicao (achado 13)
+        # O MASTER-GERAL da Enel SP tem 2,39 milhoes de elementos e nao cabe
+        # em 15,8 GB. Este tem ~19.500 — menos de 1% — porque as subestacoes
+        # entram como carga equivalente na barra de MT, em vez de com a rede
+        # inteira delas. E o unico modelo que CALCULA a tensao de cabeceira,
+        # que nos modelos por subestacao e declarada.
+        #
+        # Le os resumo.json do disco, e nao a lista `resumo` da memoria, para
+        # incluir tambem as subestacoes que ja estavam prontas de uma execucao
+        # anterior — do contrario uma conversao retomada geraria um MASTER-AT
+        # com metade da concessao e ninguem notaria.
+        ses_at = []
+        for s_ in todas:
+            fr = os.path.join(a.saida, s_, 'resumo.json')
+            if not os.path.exists(fr):
+                continue
+            try:
+                with open(fr, encoding='utf-8') as fh:
+                    ses_at.append(json.load(fh))
+            except Exception:
+                pass
+        n_se_at, mw_at = master.gerar_at(
+            os.path.join(a.saida, 'MASTER-AT.dss'), arq_at, ses_at, niveis,
+            buscoords='Buscoords _AT/BusCoords_AT.dat', bt=bt_da_base,
+            arquivos_globais=globais)
+        print(f'MASTER-AT.dss escrito: {n_se_at} subestacoes como carga '
+              f'equivalente, {mw_at:,.0f} MW.', flush=True)
+
     rel = {'gdb': os.path.basename(a.gdb),
            'dist': dist_base,
            'clima_fonte': clima_fonte,

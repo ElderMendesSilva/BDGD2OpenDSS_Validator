@@ -226,6 +226,106 @@ def gerar_se(se, caminho, barra_mt, kv_mt, n_alim, n_barras, mvasc,
     open(caminho, 'w', encoding='utf-8').write('\n'.join(out))
 
 
+CAB_AT = """clear
+set defaultbasefrequency=60
+
+! ==========================================================================
+!  MASTER-AT — subtransmissao com as subestacoes como carga equivalente
+! ==========================================================================
+!  {n_se} subestacoes | {mw:,.0f} MW agregados
+!
+!  POR QUE ESTE MODELO EXISTE
+!  --------------------------
+!  O MASTER-GERAL junta tudo num arquivo so: 2,39 milhoes de elementos na
+!  Enel SP, que nao cabem em 15,8 GB de RAM. Este aqui e a metade de cima da
+!  decomposicao: a rede de AT inteira, com cada subestacao representada pela
+!  demanda que ela de fato tem.
+!
+!  Sao ~19.500 elementos, menos de 1% do modelo monolitico, e por isso cabe
+!  em qualquer maquina e continua cabendo em qualquer distribuidora — o porte
+!  dele escala com a subtransmissao, nao com a concessao.
+!
+!  O QUE ELE MEDE, E QUE HOJE E SUPOSTO
+!  ------------------------------------
+!  A tensao na barra de MT de cada subestacao. Nos modelos por subestacao ela
+!  e DECLARADA (CTMT.TEN_OPE, que na Enel SP e 1,09 em 1.586 dos 1.806
+!  alimentadores) e nao calculada. Aqui ela sai do fluxo, com a impedancia da
+!  malha de 88 kV e o carregamento dos transformadores de potencia.
+!
+!  A CARGA EQUIVALENTE E UMA PREMISSA, e esta declarada
+!  ---------------------------------------------------
+!  Cada subestacao vira uma carga de potencia constante na sua barra de MT.
+!  Isso e exato para rede radial abaixo do transformador — que e o caso — a
+!  menos do acoplamento: a demanda real depende da tensao, e a tensao depende
+!  da demanda. O laco do `decompor.py` resolve isso iterando.
+! ==========================================================================
+"""
+
+RODAPE_AT = """
+Set Voltagebases=[{bases}]
+CalcVoltagebases
+
+Set maxcontroliter=200
+Set maxiterations=100
+Set controlmode=static
+
+Set mode=snap
+Solve
+CalcVoltagebases
+Solve
+{buscoords}
+"""
+
+
+def gerar_at(caminho, arquivos_at, ses, niveis, buscoords='', bt=None,
+             fator=1.0, arquivos_globais=()):
+    """MASTER-AT.dss — a rede de alta tensao com as subestacoes agregadas.
+
+    `ses` e uma lista de dicionarios com `SE`, `barra_mt`, `kv_mt` e a
+    demanda (`kW_BT` + `kW_MT`). Cada uma vira uma carga trifasica de
+    potencia constante na barra de MT.
+
+    `fator` multiplica a demanda — e o que o laco de decomposicao usa para
+    reinjetar a carga medida no modelo por subestacao depois de resolver.
+
+    MODELO 1 (potencia constante) e deliberado. Com modelo de impedancia
+    constante a carga cairia junto com a tensao e o resultado seria
+    otimista justamente no caso que interessa medir, que e o da subestacao
+    mal alimentada.
+    """
+    linhas, mw = [], 0.0
+    for s in ses:
+        barra = (s.get('barra_mt') or '').strip()
+        kv = float(s.get('kv_mt') or 0)
+        kw = (float(s.get('kW_BT') or 0) + float(s.get('kW_MT') or 0)) * fator
+        if not barra or kv <= 0 or kw <= 0:
+            continue
+        mw += kw / 1000.0
+        # pf 0,92: o mesmo das cargas de MT e BT, para o reativo da
+        # subtransmissao nao sair de premissa diferente da do resto
+        linhas.append(f'New Load.SE_{s["SE"]} Bus1={barra}.1.2.3 Phases=3 '
+                      f'Conn=wye Model=1 kV={kv:.4f} kW={kw:.3f} pf=0.92 '
+                      f'Vminpu=0.5 Vmaxpu=1.5')
+
+    out = [CAB_AT.format(n_se=len(linhas), mw=mw)]
+    # A ORDEM E OBRIGATORIA, e ja custou uma depuracao antes:
+    #   1. `Fontes.dss`, porque e nele que nasce o `New Circuit` — sem
+    #      circuito, o OpenDSS recusa qualquer definicao com o erro #265;
+    #   2. os globais, porque os condutores de AT saem da mesma SEGCON da MT
+    #      e sem os LineCodes o `Linhas_AT.dss` recusa na primeira linha;
+    #   3. o resto da camada de AT.
+    fontes = [a for a in arquivos_at if 'fontes' in os.path.basename(a).lower()]
+    resto = [a for a in arquivos_at if a not in fontes]
+    for a in fontes + list(arquivos_globais) + resto:
+        out.append(f'redirect {a}')
+    out.append('\n! ---------------------- subestacoes como carga equivalente')
+    out += linhas
+    bases = ' '.join(f'{x:g}' for x in tensoes.bases(*niveis, bt=bt))
+    out.append(RODAPE_AT.format(bases=bases, buscoords=buscoords))
+    open(caminho, 'w', encoding='utf-8').write('\n'.join(out))
+    return len(linhas), round(mw, 1)
+
+
 def medicao(vaos, trafos_at, linhas_at, max_linhas=200):
     """EnergyMeter por alimentador e monitores nos trafos e troncos de AT.
 
