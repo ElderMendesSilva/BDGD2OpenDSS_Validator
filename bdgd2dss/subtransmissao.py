@@ -35,6 +35,7 @@ import math
 
 from .leitor import num, txt, no as _no
 from . import tensoes
+from .linhas import comprimento
 
 FASES = {'A': '1', 'B': '2', 'C': '3'}
 
@@ -178,7 +179,8 @@ def trafos(dados, caminho, kv_at_padrao=88.0, kv_mt_padrao=13.8, log=None,
            '! ==========================================================']
     barra_do_trafo = {}          # COD_ID do trafo -> no da barra de MT
     kv_da_barra = {}             # no da barra de MT -> kV
-    pac_at = {}                  # COD_ID do trafo -> PAC de 88 kV
+    pac_at = {}                  # COD_ID do trafo -> PAC de AT
+    kv_at_do_trafo = {}          # COD_ID do trafo -> kV do primario (achado 19)
     por_sub = collections.defaultdict(list)
     mva_por_sub = collections.Counter()
     ativos = 0
@@ -231,6 +233,12 @@ def trafos(dados, caminho, kv_at_padrao=88.0, kv_mt_padrao=13.8, log=None,
         barra_do_trafo[cod] = no_mt
         kv_da_barra[no_mt] = kv2
         pac_at[cod] = no_at
+        # Achado 19. `kv1` sai de EQTRAT.TEN_PRI e ate hoje era escrito no
+        # transformador e jogado fora. Quem precisa dele e a fonte do patio:
+        # sem isso `transmissao.fontes` usava 88 kV para todo mundo, e na
+        # Equatorial PA — 107 dos 220 trafos de AT sao de 138 kV — metade da
+        # malha ficava alimentada na tensao errada e o modelo nao convergia.
+        kv_at_do_trafo[cod] = kv1
         por_sub[sub].append(cod)
         mva_por_sub[sub] += mva
         ativos += 1
@@ -240,6 +248,7 @@ def trafos(dados, caminho, kv_at_padrao=88.0, kv_mt_padrao=13.8, log=None,
             f'da subestacao (PAC_1 fora da malha) — achado 7')
     return {'n': ativos, 'barra_do_trafo': barra_do_trafo,
             'kv_da_barra': kv_da_barra, 'pac_at': pac_at,
+            'kv_at_do_trafo': kv_at_do_trafo,
             'por_sub': dict(por_sub), 'mva_por_sub': dict(mva_por_sub),
             'ancorados_por_barra_sub': por_barra_sub}
 
@@ -267,7 +276,7 @@ def linhas(dados, mapa_cnd, caminho, log=None, nos_alvo=None):
         if nos_alvo is not None and b1 not in nos_alvo:
             continue
         fs = _fases(s['FAS_CON'][i], 'ABC')
-        comp = num(s['COMP'][i], 1.0) or 1.0
+        comp = comprimento(s['COMP'][i])
         d = mapa_cnd.get(txt(s['TIP_CND'][i]))
         lc = d[len(fs)] if (d and len(fs) in d) else f'CND_GENERICO_{len(fs)}F'
         nd = '.' + '.'.join(fs)

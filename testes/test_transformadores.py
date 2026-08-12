@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*-
+﻿# -*- coding: utf-8 -*-
 """Normalizacao de TEN_LIN_SE — o campo trocado.
 
 Achado 5 de ACHADOS_GENERALIZACAO.md, observado em DUAS bases independentes:
@@ -188,17 +188,25 @@ class PrimarioBifasico(unittest.TestCase):
         """O caso normal, que a correcao nao pode mexer."""
         self.assertIn('bus=bmt.1.2.3 ', _primario('ABC'))
 
-    def test_o_secundario_e_quem_escolhe_o_ramo(self):
-        """A regra atual, documentada: FAS_CON_S decide, FAS_CON_P nao entra.
+    def test_os_dois_lados_decidem_o_ramo(self):
+        """A regra corrigida: o delta trifasico exige TRES fases no primario.
 
-        Com o secundario em 'ABCN' o conversor escreve o primario em delta
-        mesmo quando o proprio registro declara duas fases — e e esse delta
-        que segura o no ausente em 1/4 da tensao."""
-        self.assertIn('conn=delta', _primario('BC', 'ABCN'))
-        self.assertNotIn('conn=delta', _primario('BC', 'A'))
+        Antes bastava o secundario declarar 'ABCN', e o primario saia em delta
+        `.1.2.3` mesmo com duas fases — era esse delta que segurava o no
+        ausente em 1/4 da tensao."""
+        self.assertIn('conn=delta', _primario('ABC', 'ABCN'))
+        self.assertNotIn('conn=delta', _primario('BC', 'ABCN'))
 
-    @unittest.expectedFailure
-    def test_DEFEITO_CONHECIDO_primario_bifasico_sai_como_trifasico(self):
+    def test_duas_fases_veem_tensao_de_LINHA(self):
+        """Enrolamento que toca dois nos esta entre fases e ve 13,8 kV; o que
+        toca um so esta entre fase e neutro e ve 13,8/raiz(3) = 7,9674.
+
+        Escrever 7,9674 num enrolamento ligado fase-fase seria trocar a
+        relacao do transformador por raiz(3) — o mesmo fator que ja custou
+        1.831 transformadores no achado 5."""
+        self.assertIn('Kv=13.8000', _primario('BC', 'ABCN'))
+        self.assertIn('Kv=7.9674', _primario('A', 'AN'))
+    def test_corrigido_primario_bifasico_sai_como_trifasico(self):
         """FAS_CON_P='BC' tem de virar `.2.3`, e nao `.1.2.3`.
 
         Correcao retida enquanto a rodada V10 esta em voo: ela muda a saida do
@@ -206,9 +214,7 @@ class PrimarioBifasico(unittest.TestCase):
         codigo e tres com outro.
         """
         self.assertIn('bus=bmt.2.3 ', _primario('BC'))
-
-    @unittest.expectedFailure
-    def test_DEFEITO_CONHECIDO_o_no_ausente_nunca_e_escrito(self):
+    def test_corrigido_o_no_ausente_nunca_e_escrito(self):
         """A propriedade, independente de quais duas fases sejam: nenhum no
         que a BDGD nao declarou no primario pode aparecer na barra."""
         for fas, ausente in (('BC', '.1'), ('AB', '.3'), ('CA', '.2')):

@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*-
+﻿# -*- coding: utf-8 -*-
 """Comprimento de trecho — achado 16.
 
 Um trecho de 1 mm na Equatorial PA parou a subestacao CUO e consumiu ~3,5 h
@@ -92,21 +92,15 @@ class ComprimentoQueZeraNoFormato(unittest.TestCase):
     ficou retida enquanto a rodada V10 esta em voo, para nao deixar tres bases
     geradas com um codigo e quatro com outro.
     """
-
-    @unittest.expectedFailure
-    def test_DEFEITO_CONHECIDO_um_milimetro_vira_zero(self):
+    def test_corrigido_um_milimetro_vira_zero(self):
         """COMP = 0,001 m. O valor real do trecho 13302_10678971 da CUO."""
         self.assertNotEqual(_lengths(_gera([0.001]))[0], '0.00')
-
-    @unittest.expectedFailure
-    def test_DEFEITO_CONHECIDO_nenhum_comprimento_escrito_e_zero(self):
+    def test_corrigido_nenhum_comprimento_escrito_e_zero(self):
         """A propriedade que importa, independente do valor de entrada:
         nenhuma linha pode sair com comprimento nulo."""
         for v in _lengths(_gera([0.001, 0.0023, 0.0043, 0.0046, 0.00361])):
             self.assertNotEqual(float(v), 0.0)
-
-    @unittest.expectedFailure
-    def test_DEFEITO_CONHECIDO_o_neutro_da_bt_zera_igual(self):
+    def test_corrigido_o_neutro_da_bt_zera_igual(self):
         """A BT escreve o neutro em km com `{comp/1000:.5f}` — mesmo limiar de
         0,005 m, e este e o pior dos tres porque a rede de BT e onde estao 4
         dos 5 casos da Equatorial PA."""
@@ -117,12 +111,24 @@ class ComprimentoQueZeraNoFormato(unittest.TestCase):
         self.assertNotEqual(float(v), 0.0)
 
 
-class OLimiarEOMesmoNasTresCamadas(unittest.TestCase):
-    """0,005 m. Abaixo disso o `{:.2f}` em metros e o `{:.5f}` em km zeram."""
+class OPisoDeUmCentimetro(unittest.TestCase):
+    """`COMP_MINIMO = 0,01 m`. Abaixo dele o `{:.2f}` em metros e o `{:.5f}`
+    em km zerariam, e comprimento zero aborta a montagem da Y da rede inteira.
 
-    def test_o_limiar_medido(self):
-        self.assertEqual(_lengths(_gera([0.0049]))[0], '0.00')
-        self.assertNotEqual(_lengths(_gera([0.005]))[0], '0.00')
+    1 cm esta abaixo de qualquer medicao real — o menor piso entre as sete
+    distribuidoras e 0,10 m, da Cemig-D —, acima da resolucao dos dois
+    formatos, e nao move o km do relatorio."""
+
+    def test_o_piso_e_aplicado_e_o_resto_passa_intacto(self):
+        self.assertEqual(_lengths(_gera([0.0049]))[0], '0.01')
+        self.assertEqual(_lengths(_gera([0.001]))[0], '0.01')
+        self.assertEqual(_lengths(_gera([3.24]))[0], '3.24')
+
+    def test_o_piso_nao_sobe_para_um_metro(self):
+        """Preservar o valor declarado importa: um vao de 1 mm continua sendo
+        um vao curto, e nao um vao de um metro. O 1,0 m e so para campo
+        AUSENTE, onde nao ha dado nenhum a preservar."""
+        self.assertNotEqual(_lengths(_gera([0.001]))[0], '1.00')
 
     def test_km_do_relatorio_nao_e_afetado(self):
         """O `km` devolvido soma o comprimento REAL, nao o escrito. Um trecho
