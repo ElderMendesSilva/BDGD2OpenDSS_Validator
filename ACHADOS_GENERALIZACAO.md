@@ -1574,3 +1574,76 @@ A causa das mortas é a mesma dos 844 componentes desconexos já registrados: o
 pátio de AT dessas subestações não tem transformador na `UNTRAT`, ou a barra
 não se liga a nenhuma fonte. Não é defeito novo — é o alcance da camada de AT,
 e agora ele tem número por base.
+
+---
+
+## Achado 20 — a subtransmissão só se conecta ao resto do modelo na Enel SP
+
+A Equatorial PA declara **21.811 trechos na `SSDAT`** e o conversor emite
+**zero**:
+
+| base | trechos de AT emitidos | km |
+|---|---:|---:|
+| Roraima | 169 | 13,2 |
+| Enel CE | 4.024 | 1.522,2 |
+| **Equatorial PA** | **0** | **0,0** |
+| Enel SP | 16.490 | 896,8 |
+
+O filtro de `subtransmissao.linhas` descarta o trecho cujo `PAC_1` não esteja
+entre os nós dos pátios energizados. A primeira suspeita foi a **assimetria do
+filtro** — ele olha só o `PAC_1`, e um trecho com `PAC_2` na malha e `PAC_1`
+fora seria descartado sem motivo. Medindo, a causa é outra e é maior.
+
+### O espaço de nomes da SSDAT não é o das outras tabelas de AT
+
+| base | PACs distintos na `SSDAT` | na `UNSEAT` | `SSDAT ∩ UNSEAT` | `SSDAT ∩ UNTRAT` |
+|---|---:|---:|---:|---:|
+| Roraima | 3.891 | 306 | **7** | 0 |
+| Enel CE | 15.636 | 2.729 | **102** | 0 |
+| Equatorial PA | 21.968 | 493 | **0** | 0 |
+| **Enel SP** | 32.213 | 5.244 | **5.224** | **435** |
+
+```
+RR     SSDAT  1203737              UNSEAT  511
+ENCE   SSDAT  100351899            UNSEAT  02b1-aca
+EQPA   SSDAT  a100000              UNSEAT  aaz_490000010
+SP     SSDAT  -1001043072b58bdbh   UNSEAT  -10470-2882b58b02a
+```
+
+Nas três primeiras a `SSDAT` usa identificador numérico e a `UNSEAT`/`UNTRAT`
+usam mnemônico da subestação. **Só na Enel SP as duas famílias compartilham a
+mesma codificação**, e é por isso que só lá a interseção é praticamente total
+(5.224 de 5.244 PACs de chave).
+
+Não é defeito do conversor: é como cada distribuidora exportou. E não é o
+filtro: com interseção zero, nenhum critério sobre `PAC_1` ou `PAC_2` salvaria
+a Equatorial PA.
+
+### O que isso significa para a generalização
+
+O `de_para_mnemonicos.csv` foi construído **para a Enel SP** — ele resolve
+`CTAT.NOME` ("LTA ANH-MUT 1") em código de subestação, e é o que permite fechar
+as componentes desconexas. Nas outras bases ele tem alcance parcial (86
+mnemônicos na Equatorial PA) e não chega à `SSDAT`.
+
+Consequência honesta, e ela pertence ao artigo:
+
+> **A topologia de subtransmissão é efetivamente modelada em uma das quatro
+> bases.** Nas outras, a camada de AT é uma coleção de pátios com fonte
+> equivalente, ligados por chaves da `UNSEAT`, sem os trechos de linha que os
+> unem. Isso não invalida os modelos por subestação — eles não dependem da
+> `SSDAT` —, mas limita o que a decomposição AT↔SE pode afirmar fora da
+> Enel SP.
+
+Isso também explica, sem hipótese nova, três coisas já medidas: a cobertura de
+**60% em Roraima**, os **97 pátios** da Equatorial PA que não se juntam, e o
+fato de o `MASTER-AT` dela ter 1.458 chaves e nenhum trecho.
+
+### Confirmação numérica do achado 19, de quebra
+
+Rodando a decomposição na Equatorial PA da V10 (com as fontes duplicadas
+removidas à mão), as subestações saem em **0,6250 – 0,6298 pu**, e
+`88/138 = 0,6377`. É a assinatura exata de fonte de 88 kV alimentando barra de
+138 kV, com a queda da malha por cima. O laço até "converge" em 5 iterações —
+e o `decompor` avisa, em toda iteração, que o modelo de AT não convergiu e que
+os números não valem.
