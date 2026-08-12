@@ -1819,3 +1819,50 @@ achado 11 medida na concessão inteira pela primeira vez.
 A Enel SP continua discrepante por uma ordem de grandeza contra duas
 distribuidoras cujo modelo fecha em 1,1–1,3×. Isso reproduz o achado 10 com o
 código atual, e agora com o `validador` junto.
+
+---
+
+## A decomposição AT↔SE na Enel SP — a base do trabalho
+
+Com a `MODELOS_SP_V10` fechada, a decomposição rodou na concessão inteira:
+
+| | |
+|---|---|
+| subestações na malha | **154 de 155** |
+| iterações até `< 0,002 pu` | **4** (0,0403 → 0,0027 → 0,0003) |
+| tensão de cabeceira calculada | 0,6797 – 1,1256, mediana **1,0646** |
+| diferença contra a declarada | −0,4103 a +0,1174, mediana **−0,0229** |
+| diferem em ≥ 0,01 pu | **147 de 154** |
+
+A Enel SP declara `1,09` na maioria e `1,00` em algumas — é o `CTMT.TEN_OPE`,
+o comutador sob carga. A malha entrega **1,0646** na mediana: 2,3 pontos abaixo
+do declarado, e **147 das 154 subestações diferem**.
+
+Três subestações aparecem **acima** do declarado — `daug` +0,1174, `dpso`
++0,1049, `dreg` +0,0672 — todas declarando 1,00 onde a malha entrega ~1,07 a
+1,12. Nas outras 144 a diferença é para baixo, como em Roraima e na Enel CE.
+
+### Quatro dessas 154 são artefato do achado 19, e isso foi previsto antes de medir
+
+Quatro subestações saíram muito fora da distribuição: `ditp` 0,6797, `dbav`
+0,6811, `dmaz` 0,6828, `dpre` 0,6903. A previsão, escrita antes do teste, era
+que fossem as alimentadas em 138 kV — porque a Enel SP tem 12 transformadores
+de AT nesse nível contra 425 em 88 kV, e o achado 19 põe **todas** as fontes em
+88 kV.
+
+| nível do transformador de AT | n | pu mediano | mín | máx |
+|---|---:|---:|---:|---:|
+| **138 kV** | 5 | **0,6828** | 0,6797 | 1,0672 |
+| 88 kV | 145 | 1,0649 | 0,9732 | 1,1256 |
+| sem transformador próprio | 4 | 0,9849 | 0,9789 | 0,9930 |
+
+E `88/138 = 0,6377`. **As quatro mais baixas são exatamente quatro das cinco de
+138 kV** — a quinta, `dreg`, é alimentada por um pátio de 88 kV e sai em 1,0672,
+dentro da distribuição normal.
+
+Então o resultado honesto é: **150 das 154 valem; 4 estão contaminadas pelo
+achado 19** e vão para ~1,0 quando a correção entrar. Não muda a mediana nem a
+conclusão — muda o mínimo, de 0,6797 para algo perto de 1,0.
+
+É a terceira vez esta noite que o mesmo `88/138` aparece: nos 107 trafos da
+Equatorial PA, nas subestações dela em 0,626–0,630, e agora em 4 da Enel SP.
