@@ -1697,3 +1697,54 @@ fechar.
 é novidade em si (é a assinatura do achado 11), mas é a primeira vez que ele
 aparece contado por subestação, e a distribuição é muito desigual: de 18 linhas
 na DAUG a 1.214 na DANC.
+
+---
+
+## Achado 22 — o modo `--bt completo` funciona, e o contador do log mente
+
+O objetivo do projeto é a rede completa AT+MT+BT, e o modo `completo` da
+`cargas.gerar_bt_completa` estava escrito sem nunca ter sido exercitado a
+fundo. Rodando na 5003525 de Roraima (5 alimentadores):
+
+O log do conversor imprime **`5.679 linhas` nos dois modos**. Isso assusta e é
+falso: o contador só soma a MT. Compilando os dois modelos, o OpenDSS vê:
+
+| | `--bt agregado` | `--bt completo` | fator |
+|---|---:|---:|---:|
+| barras | 6.994 | **15.990** | 2,3× |
+| nós | 15.530 | **45.000** | 2,9× |
+| linhas | 6.277 | **24.267** | 3,9× |
+| transformadores | 729 | 729 | 1,0× |
+| cargas | 1.079 | **7.390** | 6,8× |
+| converge | sim, 3 it | **sim, 5 it** | |
+| tensão média | 0,9199 | **0,8592** | −6,1 pontos |
+| tensão mínima | 0,1539 | **0,0100** | |
+| cargas sem tensão | 3 | **15** | |
+
+**A rede de BT está lá e o modelo fecha.** `LinhasBT.dss` (861 KB) e
+`Ramais.dss` (1,4 MB) são redirecionados pelo `REDE-<SE>.dss`, e o
+`_ATERRAMENTO.dss` sobe para 57 KB — o neutro explícito do achado que custou
+29.834 cargas sem tensão na primeira tentativa está funcionando.
+
+### O que o modo completo revela, e que o agregado escondia
+
+A tensão média cai **6,1 pontos** e as cargas mortas vão de 3 para 15. Não é
+surpresa que a BT tenha queda — é para isso que ela existe no modelo —, mas
+`Vmin = 0,0100` é nó praticamente morto, e 12 cargas novas sem tensão são
+trechos de BT que não fecham.
+
+**Isso é o próximo trabalho, e agora tem número.** O modo completo não está
+pronto para ser o padrão; está pronto para ser depurado, que é diferente de
+estar escrito e nunca ter rodado.
+
+### Escala
+
+2,3× em barras por subestação. Para a Enel SP, cujos modelos por subestação
+hoje têm ~17 mil barras cada, isso dá ~40 mil — perfeitamente tratável **por
+subestação**. O que não muda é o achado 13: o monólito continua fora de
+alcance, e a decomposição AT↔SE continua sendo o caminho.
+
+E o achado 16 tem consequência direta aqui: **4 dos 5 trechos degenerados da
+Equatorial PA estão na `SSDBT`**, em 4 alimentadores distintos. Eles nunca
+apareceram porque a rodada usa `--bt agregado`. No modo completo, seriam 4
+subestações a mais paradas com `#183 Y matrix build aborted`.
