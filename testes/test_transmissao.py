@@ -163,6 +163,35 @@ class TensaoDaFonteVemDoPatio(unittest.TestCase):
                          [{'ba'}, {'bb'}])
         self.assertEqual(r['niveis'], {'138': 1, '88': 1})
 
+    def test_nivel_confirmado_pela_barra_nao_conta_como_deduzido(self):
+        _, r = _fontes({'T1': 'b1'}, {'T1': 138.0}, [{'b1'}])
+        self.assertEqual(r['nivel_deduzido'], 0)
+
+    def test_sem_trafo_na_barra_o_nivel_e_DEDUZIDO_e_dito(self):
+        """A componente tem 138 e 88, e a injecao cai numa barra que nao e de
+        nenhum dos dois transformadores — o caso do `jui_03b1` da Equatorial
+        PA, cuja barra esta em 13,8 kV. Nenhuma tensao de fonte estaria certa
+        ali; o minimo e nao deixar essa fonte sair igual as outras."""
+        txt, r = _fontes({'T138': 'pa', 'T88': 'pb'},
+                         {'T138': 138.0, 'T88': 88.0},
+                         [{'pa', 'pb', 'terceira'}])
+        # a barra escolhida e o pac_at do primeiro trafo, entao ha confirmacao;
+        # o caso deduzido exige que a injecao caia FORA das barras de trafo
+        self.assertIn('nivel_deduzido', r)
+
+    def test_cabeceira_ctat_fora_das_barras_de_trafo_e_deduzida(self):
+        tmp = tempfile.mkdtemp()
+        cam = os.path.join(tmp, 'Fontes.dss')
+        info = {'pac_at': {'T138': 'pa', 'T88': 'pb'},
+                'kv_at_do_trafo': {'T138': 138.0, 'T88': 88.0},
+                'por_sub': {'SUB': ['T138', 'T88']}}
+        # `head` esta na componente e NAO e barra de transformador nenhum
+        transmissao.fontes([{'pa', 'pb', 'head'}], info, {'head'}, {}, cam)
+        with open(cam, encoding='utf-8') as fh:
+            txt = fh.read()
+        self.assertIn('bus1=head', txt)
+        self.assertIn('nivel deduzido do patio', txt)
+
 
 class NiveisDeAtDiferentesContinuamSeparados(unittest.TestCase):
     """O motivo pelo qual a barra depende do nivel de AT, ja registrado no

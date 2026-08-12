@@ -183,6 +183,7 @@ def fontes(componentes, info_trafos, ctat_heads, isa, caminho,
     # comportamento de antes do achado 19.
     kv_at_do_trafo = kv_at_do_trafo or info_trafos.get('kv_at_do_trafo') or {}
     n_misto = 0
+    n_deduzido = 0
     niveis_usados = {}
     # barras das subestacoes da transmissora: onde a energia realmente entra
     barras_ett = {barra_por_sub[s]: s for s in ISA_PARA_SUB.values()
@@ -248,6 +249,17 @@ def fontes(componentes, info_trafos, ctat_heads, isa, caminho,
                            if kv_at_do_trafo.get(c) and pac_at.get(c) == barra})
         kv_patio = (no_ponto[-1] if no_ponto else
                     (kvs[0] if kvs else kv_at_padrao))
+        if not no_ponto and len(kvs) > 1:
+            # Nenhum transformador NA barra de injecao: o nivel foi deduzido do
+            # patio, e nao confirmado pelo ponto. Medido na Equatorial PA, 2 de
+            # 116 caem aqui, e uma delas (`jui_03b1`) tem a barra em 13,8 kV —
+            # ali nenhuma tensao de fonte estaria certa, porque o problema e a
+            # ancora (achado 7) e nao a tensao. Contar e o minimo: fonte cuja
+            # tensao ninguem confirmou nao pode sair igual as outras.
+            n_deduzido += 1
+            out.append(f'! (nivel deduzido do patio: nao ha transformador em '
+                       f'{barra}, entao {kv_patio:g} kV vem do conjunto e nao '
+                       f'do ponto de injecao)')
         if len(kvs) > 1:
             # Patio com dois niveis de AT e caso real (a TBAN da Enel SP tem
             # 88 e 345). Dizer qual foi escolhido importa mais do que escolher
@@ -285,11 +297,13 @@ def fontes(componentes, info_trafos, ctat_heads, isa, caminho,
                 f'{k:g} kV x{v}' for k, v in sorted(niveis_usados.items(),
                                                     reverse=True)))
         if n_misto:
-            log(f'    {n_misto} patio(s) com mais de um nivel de AT — a fonte '
-                f'entrou no mais alto')
+            log(f'    {n_misto} patio(s) com mais de um nivel de AT')
+        if n_deduzido:
+            log(f'    {n_deduzido} fonte(s) com nivel DEDUZIDO do patio — nao '
+                f'ha transformador na barra de injecao para confirmar')
     return {'com_cabeceira': n_head, 'equivalentes': n_eq, 'detalhe': detalhe,
             'niveis': {f'{k:g}': v for k, v in niveis_usados.items()},
-            'patios_multinivel': n_misto}
+            'patios_multinivel': n_misto, 'nivel_deduzido': n_deduzido}
 
 
 # ============================== subestacoes da transmissora (as 5 orfas)
