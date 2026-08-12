@@ -63,5 +63,55 @@ class Pertence(unittest.TestCase):
         self.assertEqual(int(pertence(col, alvo).sum()), 10)
 
 
+class ColunaDeObjeto(unittest.TestCase):
+    """Segunda volta, 12/08/2026. A primeira correcao nao bastou: a Cemig-D
+    caiu com o MESMO erro na subestacao 265 de 413, depois de 5h57.
+
+    A coluna CTMT dela chega como `dtype('O')`, e para objeto o `itemsize` e
+    8 — o tamanho do ponteiro, nao o comprimento da string. A versao anterior
+    usava esse 8 como largura.
+    """
+
+    def test_string_maior_que_oito_nao_e_truncada(self):
+        """O caso que o `itemsize` de objeto produzia: com largura 8, os dois
+        codigos abaixo viram o MESMO 'ABCDEFGH' e casam os dois. Casamento
+        errado em silencio e pior que o erro — a docstring do proprio modulo
+        diz isso."""
+        col = np.array(['ABCDEFGH_1', 'ABCDEFGH_2'], dtype=object)
+        self.assertEqual(list(pertence(col, ['ABCDEFGH_2'])), [False, True])
+
+    def test_objeto_com_codigos_longos_e_curtos_juntos(self):
+        col = np.array(['F1', 'ALIMENTADOR_MUITO_LONGO_01', 'F3'],
+                       dtype=object)
+        self.assertEqual(list(pertence(col, ['ALIMENTADOR_MUITO_LONGO_01'])),
+                         [False, True, False])
+
+    def test_objeto_com_none_no_meio(self):
+        """Campo nulo da BDGD nao pode derrubar o filtro."""
+        col = np.array(['F1', None, 'F2'], dtype=object)
+        self.assertEqual(list(pertence(col, ['F2'])), [False, False, True])
+
+    def test_objeto_com_numero_no_meio(self):
+        col = np.array(['F1', 7, 'F2'], dtype=object)
+        self.assertEqual(list(pertence(col, ['F2'])), [False, False, True])
+
+    def test_o_caso_medido_na_cemig(self):
+        """A coluna real: object, itemsize 8, conteudo de 5 caracteres."""
+        col = np.array(['ENC13', 'FIO12', 'GHE10', 'FIO13'], dtype=object)
+        self.assertEqual(col.dtype.itemsize, 8)
+        self.assertEqual(list(pertence(col, ['FIO13', 'FIO12'])),
+                         [False, True, False, True])
+
+    def test_alvo_numpy_str_em_coluna_de_objeto(self):
+        col = np.array(['F1', 'F2'], dtype=object)
+        alvo = np.array(['F2'])                  # numpy.str_, nao str
+        self.assertEqual(list(pertence(col, alvo)), [False, True])
+
+    def test_volume_de_objeto_nao_perde_correcao(self):
+        col = np.array([f'CTMT_{i:06d}' for i in range(20000)], dtype=object)
+        alvo = [f'CTMT_{i:06d}' for i in range(0, 20000, 1000)]
+        self.assertEqual(int(pertence(col, alvo).sum()), 20)
+
+
 if __name__ == '__main__':
     unittest.main()

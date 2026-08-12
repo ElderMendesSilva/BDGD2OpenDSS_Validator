@@ -41,17 +41,47 @@ def pertence(coluna, valores):
 
     A correcao promove os dois lados a uma largura comum antes de comparar —
     nunca truncando, que geraria casamento errado em silencio, pior que o erro.
+
+    SEGUNDA VOLTA, 12/08/2026. A primeira correcao nao bastou: a Cemig-D caiu
+    com o MESMO erro na subestacao 265 de 413, depois de 5h57 de conversao.
+
+        ufunc 'minimum' did not contain a loop with signature matching
+        types (dtype('<U8'), dtype('<U')) -> None
+
+    A causa e a linha que calcula a largura:
+
+        larg_col = itemsize // 4 se kind == 'U' senao itemsize
+
+    Para coluna de OBJETO — que e como o pyogrio devolve a CTMT da Cemig-D —
+    `itemsize` e 8 porque esse e o tamanho do ponteiro na maquina, e nao o
+    comprimento da string. Usar 8 como largura faz duas coisas ruins: entrega
+    ao numpy um par de dtypes que ele nem sempre sabe reduzir, e, quando
+    funciona, TRUNCA em 8 caracteres — exatamente o casamento errado em
+    silencio que a docstring acima diz querer evitar.
+
+    A largura so significa alguma coisa quando o dtype E de string. Para
+    objeto, a comparacao passa a ser por conjunto de strings Python: nao
+    depende de dtype, nao trunca, e nao deixa o numpy escolher caminho.
     """
     coluna = np.asarray(coluna)
     alvos = list(valores)
     if not len(coluna) or not alvos:
         return np.zeros(len(coluna), dtype=bool)
-    if coluna.dtype.kind in 'US' or any(isinstance(v, str) for v in alvos):
+    if coluna.dtype.kind in 'US':
+        # aqui, e SO aqui, o itemsize e mesmo a largura da string
         larg_col = (coluna.dtype.itemsize // 4
                     if coluna.dtype.kind == 'U' else coluna.dtype.itemsize)
         larg = max(larg_col, max(len(str(v)) for v in alvos), 1)
         tipo = f'<U{larg}'
-        return np.isin(coluna.astype(tipo), np.asarray(alvos, dtype=tipo))
+        try:
+            return np.isin(coluna.astype(tipo),
+                           np.asarray(alvos, dtype=tipo))
+        except Exception:
+            pass          # cai no conjunto, que sempre funciona
+    if coluna.dtype.kind == 'O' or any(isinstance(v, str) for v in alvos):
+        conj = {str(v) for v in alvos}
+        return np.fromiter((str(x) in conj for x in coluna.tolist()),
+                           dtype=bool, count=len(coluna))
     return np.isin(coluna, np.asarray(alvos))
 
 
