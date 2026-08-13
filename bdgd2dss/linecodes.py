@@ -279,13 +279,32 @@ def escrever_usados(origem, destino, pasta_dss):
     gerados: assim nao depende de nenhum modulo lembrar de declarar o que
     usou, e cobre tambem LinhasBT.dss e Ramais.dss no modo --bt completo.
     """
-    import glob
     import os
     import re
 
+    # `os.listdir` e nao `glob`. A conversao da Cemig-D morreu aqui na
+    # subestacao 278 de 413, depois de 4h26:
+    #
+    #     File ".../linecodes.py", line 287, in escrever_usados
+    #     File ".../glob.py", line 105, in _iglob
+    #     File ".../glob.py", line 73, in _iglob
+    #     AssertionError
+    #
+    # O `assert not dironly` do glob so deveria ser alcancavel com caractere
+    # especial no caminho, e nao ha nenhum: o mesmo padrao, testado depois na
+    # mesma pasta, funciona. Listar UMA pasta nao precisa de casamento de
+    # padrao — precisa de `listdir` e um `endswith`. Trocar remove o modo de
+    # falha inteiro em vez de explica-lo, e ainda e mais rapido.
     usados = set()
-    for arq in glob.glob(os.path.join(pasta_dss, '*.dss')):
-        if os.path.basename(arq).lower() == 'linecodes.dss':
+    try:
+        nomes = sorted(os.listdir(pasta_dss))
+    except OSError:
+        nomes = []
+    for nome in nomes:
+        if not nome.lower().endswith('.dss') or nome.lower() == 'linecodes.dss':
+            continue
+        arq = os.path.join(pasta_dss, nome)
+        if not os.path.isfile(arq):
             continue
         with open(arq, encoding='utf-8', errors='replace') as fh:
             for l in fh:

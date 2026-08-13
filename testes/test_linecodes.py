@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*-
+﻿# -*- coding: utf-8 -*-
 """Coerencia de condutor — o que o auto-ajuste pega e o que ele deixa passar.
 
 Achado 11 de ACHADOS_GENERALIZACAO.md. O condutor 593 da Enel SP (31 A,
@@ -262,6 +262,98 @@ class CoerenciaDeUso(unittest.TestCase):
             linecodes.coerencia_de_uso(t, margem=2.0)['A']['km_sobrecarga'],
             0.0)
 
+
+
+
+class EscreverUsados(unittest.TestCase):
+    """O corte do LineCodes por subestacao — e o `glob` que derrubou 4h26.
+
+    A conversao da Cemig-D morreu aqui na subestacao 278 de 413:
+
+        File ".../linecodes.py", line 287, in escrever_usados
+        File ".../glob.py", line 73, in _iglob
+        AssertionError
+
+    O `assert not dironly` do glob so deveria ser alcancavel com caractere
+    especial no caminho, e nao havia nenhum — o mesmo padrao, testado depois
+    na mesma pasta, funcionava. Listar UMA pasta nao precisa de casamento de
+    padrao: `os.listdir` mais `endswith` remove o modo de falha inteiro em vez
+    de explica-lo.
+    """
+
+    GLOBAL = ('! cabecalho\n'
+              'New LineCode.CA_A nphases=3 R1=0.5\n'
+              '~ X1=0.35\n'
+              'New LineCode.CB_B nphases=3 R1=1.2\n'
+              '~ X1=0.40\n'
+              'New LineCode.CC_C nphases=1 R1=8.2\n'
+              '~ X1=0.42\n')
+
+    def _monta(self, nome_pasta='sub', extras=None):
+        raiz = tempfile.mkdtemp()
+        d = os.path.join(raiz, nome_pasta)
+        os.makedirs(d)
+        with open(os.path.join(d, 'Linhas.dss'), 'w', encoding='utf-8') as fh:
+            fh.write('New Line.L1 Bus1=a Bus2=b LineCode=CA_A Length=10\n')
+        with open(os.path.join(d, 'Trafos.dss'), 'w', encoding='utf-8') as fh:
+            fh.write('New Transformer.T1 phases=3 windings=2\n')
+        for nome, txt_ in (extras or {}).items():
+            alvo = os.path.join(d, nome)
+            os.makedirs(os.path.dirname(alvo), exist_ok=True)
+            with open(alvo, 'w', encoding='utf-8') as fh:
+                fh.write(txt_)
+        org = os.path.join(raiz, 'global.dss')
+        with open(org, 'w', encoding='utf-8') as fh:
+            fh.write(self.GLOBAL)
+        dest = os.path.join(d, 'LineCodes.dss')
+        return org, dest, d
+
+    def test_copia_so_o_que_e_citado(self):
+        org, dest, d = self._monta()
+        n = linecodes.escrever_usados(org, dest, d)
+        self.assertEqual(n, 1)
+        txt_ = open(dest, encoding='utf-8').read()
+        self.assertIn('New LineCode.CA_A', txt_)
+        self.assertNotIn('New LineCode.CB_B', txt_)
+        self.assertNotIn('New LineCode.CC_C', txt_)
+
+    def test_o_proprio_linecodes_nao_se_conta(self):
+        """Sem pular o LineCodes.dss, a definicao referenciaria a si mesma e o
+        corte nao cortaria nada."""
+        org, dest, d = self._monta()
+        with open(dest, 'w', encoding='utf-8') as fh:
+            fh.write('New LineCode.CB_B nphases=3\nLineCode=CB_B\n')
+        self.assertEqual(linecodes.escrever_usados(org, dest, d), 1)
+
+    def test_pasta_com_caractere_de_glob_funciona(self):
+        """A guarda de regressao da falha da Cemig-D: nome de pasta com `[`,
+        `]`, `*` ou `?` nao pode mudar o resultado. Com `glob` isso e
+        casamento de padrao; com `listdir` e so um nome."""
+        for nome in ('sub[1]', 'sub_a?b', 'sub*x'):
+            with self.subTest(pasta=nome):
+                try:
+                    org, dest, d = self._monta(nome)
+                except OSError:
+                    self.skipTest(f'o sistema de arquivos recusa {nome!r}')
+                self.assertEqual(linecodes.escrever_usados(org, dest, d), 1)
+                self.assertIn('New LineCode.CA_A',
+                              open(dest, encoding='utf-8').read())
+
+    def test_subpasta_nao_e_lida_como_arquivo(self):
+        org, dest, d = self._monta(extras={os.path.join('interna', 'x.dss'):
+                                           'LineCode=CB_B\n'})
+        self.assertEqual(linecodes.escrever_usados(org, dest, d), 1)
+
+    def test_arquivo_que_nao_e_dss_e_ignorado(self):
+        org, dest, d = self._monta(extras={'notas.txt': 'LineCode=CC_C\n'})
+        self.assertEqual(linecodes.escrever_usados(org, dest, d), 1)
+
+    def test_pasta_inexistente_nao_derruba(self):
+        """Uma pasta que sumiu no meio de uma conversao de horas nao pode
+        matar o processo: sem citacao, o corte devolve zero."""
+        org, dest, d = self._monta()
+        n = linecodes.escrever_usados(org, dest, os.path.join(d, 'nao_existe'))
+        self.assertEqual(n, 0)
 
 if __name__ == '__main__':
     unittest.main()
