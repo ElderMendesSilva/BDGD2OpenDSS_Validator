@@ -2119,3 +2119,103 @@ não citação.
 
 **Correção escrita e testada no ramo `correcao-pctr`, fora da `main`**, com a
 V11 no ar. Não entra sem a confirmação documental.
+
+---
+
+## Achado 26, confirmação documental — `EQTRMT.R` é a resistência TOTAL
+
+O Módulo 10 do PRODIST, **Anexo I — Estrutura da Base de Dados Geográfica da
+Distribuidora**, Revisão 2, página 98, define na mesma tabela:
+
+| campo | descrição no Anexo I |
+|---|---|
+| `PER_FER` | Perda ferro (W) |
+| `PER_TOT` | Perda total (W) |
+| **`R`** | **Resistência percentual na base de potência do transformador (%)** |
+| `XHL` | Reatância percentual do primário para o secundário (%) |
+
+E a página 91, para o regulador, repete a construção em texto corrido: *"R: Deve
+apresentar o valor da resistência percentual na base de potência do regulador.
+XHL: ... reatância percentual do primário para o secundário..."*.
+
+`R` é grandeza **do transformador**, na base de potência dele — mesma classe do
+`XHL`, que é explicitamente primário‑para‑secundário. **Nenhum dos dois é por
+enrolamento.**
+
+### Confirmado também pelo dado, e não só pelo texto
+
+Se `R` é a resistência total, ela é a perda no cobre em percentual. Juntando
+`EQTRMT` a `UNTRMT` pela chave, na Enel SP (o `POT_NOM` da `EQTRMT` é código, e
+o kVA real está na `UNTRMT`):
+
+| código | n | kVA real | `R` % | cobre (`PER_TOT − PER_FER`) | cobre % | **R / cobre** |
+|---:|---:|---:|---:|---:|---:|---:|
+| 3 | 19.264 | 10,0 | 1,95 | 200 W | 2,00 | **0,975** |
+| 16 | 10.397 | 75,0 | 1,47 | 1.140 W | 1,52 | **0,967** |
+| 24 | 7.535 | 150,0 | 1,23 | 1.910 W | 1,27 | **0,966** |
+| 20 | 5.704 | 112,5 | 1,33 | 1.550 W | 1,38 | **0,965** |
+| 30 | 5.305 | 225,0 | 1,16 | 2.700 W | 1,20 | **0,967** |
+
+Os grupos que destoam (códigos 7, 14, 19) têm kVA mediano de 62,5 e 60,0 —
+valores não padronizados, porque o próprio Módulo 10 define `UNTRMT.POT_NOM`
+como *"a soma entre a parcela regulada e a parcela direta"*: são bancos, e a
+razão por unidade não se aplica.
+
+**A trava documental do achado 26 está removida.** O ramo `correcao-pctr` pode
+ser fundido assim que a V11 fechar.
+
+---
+
+## Achado 27 — o que a BDGD tem e o conversor não lê
+
+Censo das camadas da BDGD da Enel SP contra o que o código referencia:
+**43 camadas, 26 usadas, 17 não.** As que têm conteúdo elétrico:
+
+| camada | registros | o que é | por que importa |
+|---|---:|---|---|
+| **`UNSEBT`** | **119.109** | chaves de baixa tensão | **372 normalmente ABERTAS**, e nenhuma é modelada |
+| **`PIP`** | **466.117** | iluminação pública | **40 GWh/mês de carga**, com `PAC` e `CTMT` |
+| `EQSE` | 316.298 | equipamento seccionador | tem `COR_NOM` — a ampacidade que falta ao achado 21 |
+| `EQTRM` | 55.474 | — | não investigado |
+| `EQCR` | 1.789 | equipamento de compensação reativa | ratings dos capacitores |
+| `EQRE` | 226 | equipamento regulador | ratings dos reguladores |
+| `CONJ` | 143 | conjunto elétrico | é a unidade em que a ANEEL agrupa para o PRODIST |
+
+`EQME` (8,8 M medidores) e `PONNOT` (1,4 M pontos notáveis) não têm efeito
+elétrico e a ausência é correta.
+
+### O que isso custa hoje, medido
+
+**As chaves de BT.** No modo `--bt completo` o modelo não tem nenhuma das
+119.109, e **372 estão normalmente abertas**. Uma chave aberta que o modelo
+fecha junta trechos que na rede real estão separados — e é candidato direto às
+componentes órfãs do achado 25, que ficaram sem explicação do lado do conversor.
+
+**A iluminação pública, e esta toca o resultado principal.** O
+`valida_balanco` soma o faturado varrendo `UCBT_tab` e `UCMT_tab`:
+
+```python
+for tab in ('UCBT_tab', 'UCMT_tab'):
+```
+
+Na Enel SP:
+
+| tabela | energia | registros | entra no faturado? |
+|---|---:|---:|---|
+| `UCBT_tab` | 2.104.148.338 kWh/mês | 8.258.035 | sim |
+| `UCMT_tab` | 1.095.144.148 kWh/mês | 15.892 | sim |
+| `UCAT_tab` | 394.431.233 kWh/mês | 186 | **não** |
+| **`PIP`** | **40.064.351 kWh/mês** | **466.117** | **não** |
+
+A `UCAT_tab` **não tem coluna `CTMT`** — aqueles 186 consumidores de alta
+tensão não estão a jusante de alimentador nenhum, então a energia deles também
+não está na injetada, e excluí‑los está **certo**.
+
+A `PIP` é o oposto: **os 466.117 pontos têm `CTMT` válido, todos.** Eles
+consomem de alimentadores cuja energia injetada É contada, e o consumo deles
+não entra no faturado. **É um viés de mão única que infla a perda medida em
+~1,25%.**
+
+Não explica os 9,92× da Enel SP — mas é um erro sistemático de sinal conhecido
+no número que é o resultado do trabalho, e é o tipo de coisa que um revisor
+encontra.
