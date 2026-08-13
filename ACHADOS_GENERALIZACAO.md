@@ -1937,3 +1937,104 @@ Isso fecha o diagnóstico da subestação `TUR`, cujos nós `tur_lt_tur_brb_goi`
 Ou se constrói o de-para de PACs para essa base, como já existe o de mnemônicos
 para a Enel SP, ou a decomposição AT↔SE não se aplica a ela — e essa é uma
 limitação da BDGD exportada, não do conversor.
+
+---
+
+## Achado 25 — a BT isolada: o neutro não é a causa, o ramal também não, e o método quase mentiu
+
+A rede de baixa tensão de cada transformador é uma **ilha**: liga-se ao resto
+só pelo próprio trafo. Medido na 5003525 de Roraima, **723 das 725** barras de
+secundário pertencem a um transformador só. Isso torna a BT estudável sem
+resolver a concessão — e o estudo inteiro abaixo custou três compilações de um
+modelo de 0,3 min.
+
+### Primeiro: separar desligada de longe
+
+| | |
+|---|---|
+| cargas de BT | 7.348 |
+| acima de 0,80 pu | 7.231 |
+| entre 0,01 e 0,80 | 144 |
+| **abaixo de 0,01** | **15** |
+
+Das 15 sem tensão, **14 não são alcançadas por nenhum secundário** — são 3
+componentes órfãs, 20 barras de 15.990 (0,13%). E a origem:
+
+| tabela da BDGD | dos 20 PACs órfãos |
+|---|---:|
+| `UNTRMT.PAC_2` (secundário de trafo) | **0** |
+| `SSDBT` | 10 |
+| `RAMLIG` | 12 |
+| `UCBT_tab` | 7 |
+
+**Nenhum é secundário de transformador**: o conversor não perdeu trafo nenhum.
+A base tem trechos de BT com unidades consumidoras penduradas que não chegam a
+transformador algum. É o achado 20 um nível abaixo, e é da exportação.
+
+### Segundo: o `K_NEUTRO`, que o próprio código convidava a contestar
+
+`linhas.py` declara `K_NEUTRO = 1.0` como "hipótese conservadora... para poder
+ser contestada". Varrendo de 0,01 (retorno quase ideal) a 3,0:
+
+| `K_NEUTRO` | mediana na carga | < 0,92 | < 0,80 |
+|---:|---:|---:|---:|
+| 0,01 | 0,9323 | 2.804 | 464 |
+| **1,00** | **0,9308** | **2.972** | **557** |
+| 3,00 | 0,9286 | 3.178 | 683 |
+
+**Um fator de 300 move a mediana em 0,0037 pu — 2% da queda.** A hipótese está
+refutada como causa. Ela custa 168 cargas a mais abaixo de 0,92 contra o
+retorno ideal: 6%, e só na cauda.
+
+### O erro de método que a própria varredura denunciou
+
+A primeira medição usou `Bus.puVmagAngle`, que é tensão **nó‑terra**. A carga
+de BT está entre a fase e o nó 4, e quando o neutro piora **os dois sobem
+juntos**:
+
+| `K_NEUTRO` | na carga (certo) | nó‑terra (errado) |
+|---:|---:|---:|
+| 0,01 | 0,3702 | 0,6617 |
+| 3,00 | **0,2207** | **0,7163** |
+
+A grandeza errada melhorava enquanto a rede piorava. O sinal foi a
+monotonicidade invertida — piorar o neutro por 300× não pode elevar a tensão
+mínima. As duas colunas ficam no registro lado a lado de propósito.
+
+### Terceiro: rede secundária ou ramal de ligação?
+
+O `Ramais.dss` tem **11.262 linhas contra 6.728** do `LinhasBT.dss`, e é o
+último salto, o mais fino. Parecia o suspeito. Medindo os três pontos do
+caminho — secundário → fronteira → carga, sempre fase‑neutro na mesma barra:
+
+| ponto | mediana |
+|---|---:|
+| pu no secundário do trafo | 0,9495 |
+| pu na fronteira rede/ramal | 0,9321 |
+| pu na carga | 0,9308 |
+
+| trecho | queda mediana | fatia |
+|---|---:|---:|
+| **rede secundária (SSDBT)** | **0,0129** | **94,4%** |
+| ramal de ligação (RAMLIG) | 0,0008 | 5,6% |
+
+E entre as 2.972 abaixo de 0,92, a separação é ainda mais nítida: **98,3% na
+rede, 1,7% no ramal**, com mediana de 1 salto de ramal e máximo de 2.
+
+**O ramal está inocentado.** Ele é 63% das linhas e 5,6% da queda — tamanho de
+arquivo não é importância elétrica, e a suspeita baseada nele estava errada.
+
+### O que sobra, e é onde o próximo trabalho vai
+
+O secundário do transformador já está em **0,9495** enquanto a MT da mesma
+subestação está em 0,982. A rede de BT inteira custa **1,9 ponto** da mediana;
+os outros ~3,3 nascem antes dela.
+
+E a cauda é outra história: as dez piores têm o próprio secundário em
+**0,8055 a 0,9255**, e uma delas perde **0,3976 pu só na rede secundária**.
+São redes secundárias específicas, não um viés geral.
+
+Então a pergunta que ficou tem forma nova, e é mais barata do que a original:
+**não é "por que a BT cai", é "por que estes secundários específicos começam
+baixo e por que estas redes secundárias específicas perdem 40 pontos"** — e as
+duas se respondem numa ilha de dezenas de barras.
