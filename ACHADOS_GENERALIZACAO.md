@@ -2219,3 +2219,43 @@ não entra no faturado. **É um viés de mão única que infla a perda medida em
 Não explica os 9,92× da Enel SP — mas é um erro sistemático de sinal conhecido
 no número que é o resultado do trabalho, e é o tipo de coisa que um revisor
 encontra.
+
+### Correção do achado 27, no mesmo dia em que ele foi escrito
+
+Escrevi acima que a `UNSEBT` ausente é "candidato direto" às componentes órfãs
+do achado 25. Isso foi **afirmado, não medido**. Medindo:
+
+**A `UNSEBT` da 5003525 de Roraima tem zero chaves.** Nenhuma toca as 20 barras
+órfãs, porque não há nenhuma para tocar. O teste não refuta a hipótese — ele é
+**inconclusivo nessa base**, e a redação original dava a entender outra coisa.
+
+E o censo nas sete mostra por quê:
+
+| base | `UNSEBT` | `PIP` | `EQSE` |
+|---|---:|---:|---:|
+| Roraima | **0** | 60.311 | 24.541 |
+| Enel CE | **0** | 439.142 | 210.166 |
+| Equatorial PA | **0** | 590.463 | 343.877 |
+| Enel SP | 119.109 | 466.117 | 316.298 |
+| Light | 26.330 | 468.881 | 186.087 |
+| CPFL | 3.605 | 1.388.652 | 518.011 |
+| Cemig-D | 9.612 | 2.373.663 | 1.427.728 |
+
+Três leituras, e elas reordenam o trabalho:
+
+**A `UNSEBT` está vazia em 3 das 7.** Não é tabela que se possa assumir: modelar
+chave de BT beneficia quatro distribuidoras e não faz nada pelas outras três.
+Isso a tira da frente da fila — e mantém de pé a conclusão do achado 25, de que
+as componentes órfãs de Roraima são limitação da base, sem elo faltando do lado
+do conversor.
+
+**A `PIP` existe nas sete**, somando **5,8 milhões de pontos**. É a lacuna
+universal, e é a que toca o resultado do trabalho pelo viés de 1,25% no
+faturado. **É ela que deve vir primeiro.**
+
+**A `EQSE` existe nas sete**, somando 3,0 milhões de registros com `COR_NOM` —
+a ampacidade que falta ao achado 21.
+
+A hipótese da chave de BT continua **aberta e não testada**, e para testá-la é
+preciso rodar `--bt completo` numa subestação da Enel SP, da Light, da CPFL ou
+da Cemig-D. Fica dito assim, e não como suspeita que virou fato por repetição.
