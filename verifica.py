@@ -91,9 +91,32 @@ def _capi(master):
         dss.Circuit.SetActiveBus(b)
         r['nan_exemplo'] = (f"{b} PCE={[x for x in (dss.Bus.AllPCEatBus() or []) if x]} "
                             f"PDE={[x for x in (dss.Bus.AllPDEatBus() or []) if x]}")
+        r['nan_com_pce'] = _nan_com_pce(dss, nomes, r.pop('_nan_idx', ()))
     r.pop('_i0', None)
+    r.pop('_nan_idx', None)
     r['compila'] = True
     return r
+
+
+# quantas barras NaN sao inspecionadas antes de desistir. Numa subestacao com
+# NaN propagado sao dezenas de milhares e nao ha o que aprender depois das
+# primeiras; numa com ponta solta sao duas.
+TETO_INSPECAO = 300
+
+
+def _nan_com_pce(dss, nomes, idx):
+    """Quantas barras NaN tem elemento de conversao (carga, GD, gerador).
+
+    E a distincao que separa um NaN que importa de um que nao importa. Barra
+    sem PCE nao consome nem injeta: o NaN dela nao entra em nenhuma grandeza
+    medida. Barra COM carga contamina a energia, e ai o modelo nao serve.
+    """
+    n = 0
+    for b in sorted({nomes[i].split('.')[0] for i in list(idx)[:TETO_INSPECAO]}):
+        dss.Circuit.SetActiveBus(b)
+        if [x for x in (dss.Bus.AllPCEatBus() or []) if x]:
+            n += 1
+    return n
 
 
 # ------------------------------------------------------------------------ COM
@@ -175,8 +198,23 @@ def _mede(v, nomes, p_total, perdas_kw, convergiu, iteracoes, carga=0.0, gd=0.0)
          'V_min': round(min(bons), 4) if bons else None}
     if maus:
         r['_i0'] = maus[0]
-    # o veredicto: convergir com NaN nao e convergir
-    r['saudavel'] = bool(convergiu) and not maus and r['P_kW'] is not None
+        r['_nan_idx'] = maus
+    # O veredicto: convergir com NaN nao e convergir — mas QUAL NaN.
+    #
+    # A regra nasceu do caso da DALP: 49.857 nos NaN propagados pela fatoracao,
+    # com a `TotalPower` inteira NaN. Ali nada e aproveitavel, e reprovar e o
+    # certo. Medido depois na Cemig-D, o outro extremo: 72 subestacoes de 413
+    # reprovadas por uma MEDIANA DE 2 nos NaN em 42.556, todos em ponta de
+    # linha solta — `PCE=[]`, sem carga nem geracao. Esses nos nao conduzem
+    # corrente e nao entram em grandeza nenhuma, e reprovar por eles descartou
+    # 72 subestacoes inteiras da medicao de energia.
+    #
+    # O criterio passa a ser proporcional ao que o NaN atinge: barra sem
+    # elemento de conversao nao contamina nada; barra com carga, sim. E se a
+    # potencia total saiu NaN, o NaN chegou ao agregado e o modelo nao serve,
+    # independente de onde comecou.
+    r['saudavel'] = (bool(convergiu) and r['P_kW'] is not None
+                     and r['perdas_kW'] is not None)
     return r
 
 
@@ -185,16 +223,21 @@ def veredicto(cap, com):
     for m, rot in ((cap, 'C-API'), (com, 'COM')):
         if m and not m.get('compila'):
             return f'NAO_COMPILA[{rot}]'
+    # NaN em barra COM carga ou geracao contamina a energia medida
     for m, rot in ((cap, 'C-API'), (com, 'COM')):
-        if m and m.get('nan_nos'):
+        if m and m.get('nan_com_pce'):
             return f'NAN[{rot}:{m["nan_nos"]}]'
     for m, rot in ((cap, 'C-API'), (com, 'COM')):
         if m and not m.get('convergiu'):
             return f'NAO_CONVERGE[{rot}:{m.get("iteracoes")}]'
+    # potencia ou perda NaN = o NaN chegou ao agregado, venha de onde vier
     for m, rot in ((cap, 'C-API'), (com, 'COM')):
-        if m and m.get('P_kW') is None:
+        if m and (m.get('P_kW') is None or m.get('perdas_kW') is None):
             return f'POTENCIA_NAN[{rot}]'
-    return 'OK'
+    # sobrou o NaN que nao atinge nada: a subestacao serve, e o numero
+    # continua dito — silenciar seria trocar um extremo pelo outro
+    n = max((m.get('nan_nos') or 0) for m in (cap, com) if m)
+    return f'OK_PONTA_SOLTA[{n}]' if n else 'OK'
 
 
 def grafico(saida, raiz):

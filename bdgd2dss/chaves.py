@@ -18,7 +18,27 @@ from .linhas import nos
 ABERTA = {'A', 'ABERTA', 'ABERTO', '0', 'N'}
 
 
-def gerar(bdgd, ctmts, caminho_chaves, caminho_controles):
+def gerar(bdgd, ctmts, caminho_chaves, caminho_controles, barras=None):
+    """`barras` sao os nos que a rede de media tensao ja criou.
+
+    Chave cujos DOIS PACs estao fora dela nao liga nada: cria uma ilha de duas
+    barras sem fonte e sem caminho para a terra, a matriz de admitancia daquele
+    pedaco fica singular e a tensao sai NaN. O NaN nao fica quieto — a perda do
+    elemento vira NaN e contamina `Circuit.Losses()` da subestacao inteira.
+
+    Medido na Cemig-D V11: 72 subestacoes de 413 reprovadas por exatamente 2
+    nos NaN cada, sempre no mesmo formato —
+
+        Line.2294073839 len=0.001 Switch=Y
+        barras=['node_2553646456.1', 'node_2553646457.1']   ambas so com ela
+
+    e 2 elementos NaN em 25.326. Com `perdas_kW` NaN, o `energia` perde os 96
+    passos do dia e a subestacao sai da medicao inteira.
+
+    Uma ponta fora da rede continua sendo emitida: ali a chave energiza um
+    trecho, e o dado e legitimo. O que nao se sustenta e a chave que nao toca
+    a rede em ponta nenhuma.
+    """
     cols = ['COD_ID', 'PAC_1', 'PAC_2', 'CTMT', 'FAS_CON', 'P_N_OPE',
             'COR_NOM', 'TIP_UNID']
     col = bdgd.ler_filtrado('UNSEMT', 'CTMT', ctmts, cols)
@@ -28,10 +48,15 @@ def gerar(bdgd, ctmts, caminho_chaves, caminho_controles):
           '! ==========================================================']
     ct = ['! SwtControl — estado normal de operacao (P_N_OPE)']
     abertas = []
+    ilhadas = []
+    rede = set(barras) if barras else None
     for i in range(n):
         b1 = no(col['PAC_1'][i])
         b2 = no(col['PAC_2'][i])
         if not b1 or not b2 or b1 == b2:
+            continue
+        if rede is not None and b1 not in rede and b2 not in rede:
+            ilhadas.append(txt(col['COD_ID'][i]))
             continue
         nome = txt(col['COD_ID'][i])
         nd = nos(col['FAS_CON'][i])
@@ -43,6 +68,12 @@ def gerar(bdgd, ctmts, caminho_chaves, caminho_controles):
                   f'Lock=No Delay=0 State={estado}')
         if estado == 'Open':
             abertas.append(nome)
+    if ilhadas:
+        # dito no proprio arquivo: chave suprimida em silencio e chave que
+        # ninguem sabe que faltou
+        ch.insert(3, f'! {len(ilhadas)} chave(s) omitida(s): os dois PACs fora '
+                     f'da rede de MT deste alimentador, o que criaria ilha '
+                     f'flutuante — ex.: {", ".join(ilhadas[:3])}')
     open(caminho_chaves, 'w', encoding='utf-8').write('\n'.join(ch) + '\n')
     open(caminho_controles, 'w', encoding='utf-8').write('\n'.join(ct) + '\n')
-    return len(ch) - 3, abertas
+    return len(ch) - 3 - bool(ilhadas), abertas, ilhadas

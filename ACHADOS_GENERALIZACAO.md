@@ -2259,3 +2259,82 @@ a ampacidade que falta ao achado 21.
 A hipótese da chave de BT continua **aberta e não testada**, e para testá-la é
 preciso rodar `--bt completo` numa subestação da Enel SP, da Light, da CPFL ou
 da Cemig-D. Fica dito assim, e não como suspeita que virou fato por repetição.
+
+---
+
+## Achado 28 — quatro chaves que não tocam a rede tiram 72 subestações da medição
+
+A Cemig-D fechou o ciclo pela primeira vez na V11 e trouxe números que
+destoavam de tudo: **341/413 sadias**, **cobertura 23,9%**, **razão 0,46×**.
+
+### Quatro hipóteses minhas, e as quatro caíram
+
+| hipótese | teste | resultado |
+|---|---|---|
+| o veredicto NaN é severo demais | mediana de 2 nós NaN em 42.556 | **verdadeiro, mas não é a causa da cobertura** |
+| as zonas de medidor são canibalizadas | PACs da `SSDMT` por alimentador | **refutada** — 0 nós em comum entre pares |
+| os alimentadores são tocos | censo de porte | **parcial** — 16,1% abaixo de 50 trechos, não 76% |
+| falta transformador ou UC | contagem por alimentador | **refutada** — só 2,6% sem trafo |
+| o PAC do trafo não casa com a rede | junção `UNTRMT` × `SSDMT` | **refutada** — 99,9% casam |
+
+Registro isso porque cheguei a escrever "zonas canibalizadas" como fato antes
+de medir. Não era.
+
+### O que era
+
+O `nan_exemplo` do `verifica` tinha a resposta desde o começo, na mesma forma
+nas 72:
+
+```
+node_2553646456  PCE=[]  PDE=['Line.2294073839']
+
+Line.2294073839  len=0.001  Switch=Y  C1=1.1  R1=0.0001  phases=1
+   barras=['node_2553646456.1', 'node_2553646457.1']
+SwtControl.sw_2294073839
+```
+
+**Uma chave cujas duas barras existem só por causa dela.** É uma ilha de dois
+nós, sem fonte e sem caminho para a terra: a matriz de admitância daquele
+pedaço fica singular e a tensão sai NaN. Foram **2 elementos NaN em 25.326**.
+
+E o estrago não é local. `Circuit.Losses()` soma tudo, então **a perda da
+subestação inteira vira NaN**, o `energia` perde os 96 passos do dia e a
+subestação sai da medição. `P_kW` continuava correto — 1.048,1 kW — e só
+`perdas_kW` era NaN, nos dois motores, nas 72.
+
+### A correção, e o que ela não muda
+
+`chaves.gerar` passa a receber as barras que a rede de MT criou e **omite a
+chave cujos DOIS PACs estão fora dela** — a que não liga nada. Uma ponta fora
+continua valendo: ali a chave energiza um trecho e o dado é legítimo.
+
+Medido na subestação `1323264954`:
+
+| | antes | depois |
+|---|---:|---:|
+| nós NaN | 2 | **0** |
+| perdas | **NaN** | **14,3 kW** |
+| potência da fonte | 1.048,1 kW | **1.048,1 kW** |
+| barras | 15.432 | 15.428 |
+
+**A potência é idêntica.** Nada elétrico foi removido — só quatro barras que
+não conduziam nada e envenenavam o agregado. E a omissão fica escrita no
+próprio `Chaves.dss`, com os códigos.
+
+### O veredicto do `verifica`, que também mudou
+
+A regra "convergir com NaN não é convergir" nasceu do caso da DALP: 49.857 nós
+NaN propagados, `TotalPower` inteira NaN. Ali reprovar é o certo. Reprovar uma
+subestação de 42.556 nós por dois nós de ponta solta é o outro extremo.
+
+O critério passa a ser proporcional ao que o NaN atinge: NaN em barra **com**
+carga ou geração reprova; NaN que não chega a agregado nenhum não reprova, mas
+**aparece** — o veredicto vira `OK_PONTA_SOLTA[n]` em vez de `OK`. Silenciar
+seria trocar um extremo pelo outro.
+
+### O que continua aberto
+
+Corrigidas as 72, a cobertura da Cemig-D deve subir — **mas não se sabe para
+quanto**. Restam 1.219 alimentadores (59%) com rede e zero energia no medidor,
+e as hipóteses acima não os explicam. **Fica aberto, e com quatro caminhos já
+eliminados.**

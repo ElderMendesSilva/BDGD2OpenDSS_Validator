@@ -485,8 +485,12 @@ def main():
                                  'TIP_CND', 'COMP'])
         n_ln, km, barras = linhas.gerar(b, mapa_cnd, ctmts, os.path.join(d, 'Linhas.dss'),
                                         'SSDMT', col=col_mt)
-        n_ch, abertas = chaves.gerar(b, ctmts, os.path.join(d, 'Chaves.dss'),
-                                     os.path.join(d, 'Controles.dss'))
+        # `barras` vem da rede de MT acima: chave cujos dois PACs estao fora
+        # dela cria ilha flutuante, e o NaN dela contamina a perda da
+        # subestacao inteira (achado 28)
+        n_ch, abertas, ch_ilhadas = chaves.gerar(
+            b, ctmts, os.path.join(d, 'Chaves.dss'),
+            os.path.join(d, 'Controles.dss'), barras=barras)
         n_tr, sec = transformadores.gerar(b, ctmts, os.path.join(d, 'Trafos.dss'),
                                           os.path.join(d, '_ATERRAMENTO.dss'),
                                           a.kv_mt, kv_por_ctmt)
@@ -628,7 +632,9 @@ def main():
              'kv_mt': kv_se, 'barra_mt': barra_se,
              'barras_mt': len(barras_se),
              'linhas': n_ln, 'km_MT': km, 'barras': len(barras), 'chaves': n_ch,
-             'chaves_abertas': len(abertas), 'trafos': n_tr, 'capacitores': n_cp,
+             'chaves_abertas': len(abertas),
+             'chaves_ilhadas': len(ch_ilhadas), 'trafos': n_tr,
+             'capacitores': n_cp,
              'reguladores': n_rg, 'GD': n_gd, 'GD_nulos': gd_nulos,
              'GD_realocada': gd_realoc, 'GD_fora_da_rede': gd_fora,
              'GD_barras_limitadas': gd_lim, 'GD_kW_cortado': gd_kw_cortado,
