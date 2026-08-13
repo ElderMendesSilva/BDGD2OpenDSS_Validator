@@ -220,7 +220,10 @@ def main():
           f'  | {proc["descricao"][:60]}\n', flush=True)
 
     resumo = []
-    dest_resumo = os.path.join(LOGS, 'resumo_v10.json')
+    # o nome acompanha o sufixo: a V11 gravava `resumo_v10.json` dentro de
+    # `logs_v11/`, e nome que mente sobre a rodada e o tipo de coisa que
+    # confunde quem for comparar duas delas daqui a um mes
+    dest_resumo = os.path.join(LOGS, f'resumo_{SUFIXO.lower()}.json')
     for k, (tag, gdb, _) in enumerate(bases):
         saida = saida_de(tag)
         log = os.path.join(LOGS, f'{tag}.log')
