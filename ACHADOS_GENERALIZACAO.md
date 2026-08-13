@@ -2038,3 +2038,84 @@ Então a pergunta que ficou tem forma nova, e é mais barata do que a original:
 **não é "por que a BT cai", é "por que estes secundários específicos começam
 baixo e por que estas redes secundárias específicas perdem 40 pontos"** — e as
 duas se respondem numa ilha de dezenas de barras.
+
+---
+
+## Achado 26 — o `%R` do transformador de distribuição, e o próprio projeto já faz certo um nível acima
+
+Perseguindo por que certos secundários começam baixos (achado 25), a coluna que
+saltou não foi a esperada:
+
+```
+pctR    min 4.1500   p10 4.1500   mediana 4.1500   p90 4.1500   max 4.1500
+```
+
+**Idêntico nos 62 transformadores da subestação**, de 30 a 112,5 kVA.
+Resistência percentual real cai com o tamanho — valor único não é distribuição.
+
+### Primeiro: o campo é dado em uma base e preenchimento em duas
+
+| base | registros na `EQTRMT` | valores distintos de `R` | mediana | varia com `POT_NOM`? |
+|---|---:|---:|---:|---|
+| Roraima | 27.700 | **16** | **4,150** | **não** — 4,15 de 2 a 20 kVA |
+| Enel CE | 169.357 | **6** | 2,960 | quase não |
+| **Enel SP** | 236.523 | **38** | **1,330** | **sim** — 1,95 · 1,56 · 1,23 · 1,19 conforme cresce |
+
+Só a Enel SP tem `R` que se comporta como grandeza física. E **1,33% é o `%R`
+total de placa de um transformador de distribuição** — perda em carga sobre a
+potência nominal. Roraima usa 4,15 em tudo, **3,1× a mediana da Enel SP**.
+
+Isso sozinho já explica parte do achado 25: os transformadores de Roraima estão
+modelados com três vezes a resistência dos equivalentes da Enel SP, e a queda é
+proporcional ao carregamento — que nos 25 piores é 42,5% contra 8,8% no resto.
+
+### Segundo, e maior: o valor provavelmente está dobrado
+
+```python
+~ wdg=1 bus={b1}.1.2.3 conn=delta Kv={kvp:g} Kva={kva:.1f} %R={r:.3f}
+~ wdg=2 bus={b2}.1.2.3.4 conn=wye Kv={kv2:.4f} Kva={kva:.1f} %R={r:.3f}
+```
+
+No OpenDSS, `Xhl` é a reatância **do par** de enrolamentos — e o conversor a
+passa direto, correto. Mas `%R` é **por enrolamento**, e a resistência série
+total do transformador é a **soma dos dois**. Escrever `r` nos dois dá `2r`.
+
+### O argumento mais forte está dentro do próprio projeto
+
+O caminho de **alta tensão**, no `subtransmissao.trafos`, escreve outra coisa:
+
+```python
+New Transformer.AT_{cod} phases=3 windings=2 Xhl={...}
+~ %loadloss={carga:.3f} %noloadloss={per_fer:.3f}
+```
+
+`%loadloss` é a perda em carga **total**, exatamente a grandeza de placa. Ou
+seja: **o mesmo código já trata o transformador de potência da forma correta, e
+o de distribuição não.** Os dois leem campos análogos de tabelas análogas
+(`EQTRAT` e `EQTRMT`).
+
+### O efeito, medido
+
+Metade do `%R` por enrolamento, na 5003525 de Roraima:
+
+| | mediana na carga | mín | < 0,92 | < 0,80 |
+|---|---:|---:|---:|---:|
+| `%R` inteiro nos dois (hoje) | 0,9311 | 0,3019 | 2.972 | 557 |
+| **`%R`/2 por enrolamento** | **0,9439** | 0,3259 | **2.284** | 431 |
+
+**688 cargas saem de baixo de 0,92 — 23% delas.** A mediana sobe 0,0128 pu, que
+é **dez vezes** o efeito do `K_NEUTRO` (0,0015) que o achado 25 refutou.
+
+### O que falta, e é decisão de vocês
+
+A favor da correção: `R` fica ao lado de `XHL`, que é grandeza do par; a única
+base com dado real dá 1,33%, que é `%R` total típico (por enrolamento daria
+2,66% total, alto demais); e o próprio projeto usa `%loadloss` no nível acima.
+
+O que falta: **confirmação no dicionário de dados da BDGD (ANEEL) de que
+`EQTRMT.R` é o percentual total.** A correção muda todo transformador de
+distribuição de todas as bases, e o argumento acima é forte mas é inferência,
+não citação.
+
+**Correção escrita e testada no ramo `correcao-pctr`, fora da `main`**, com a
+V11 no ar. Não entra sem a confirmação documental.
