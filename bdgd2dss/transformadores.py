@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*-
+﻿# -*- coding: utf-8 -*-
 """
 UNTRMT (+ EQTRMT) -> New Transformer
 
@@ -223,13 +223,24 @@ def gerar(bdgd, ctmts, caminho_trafos, caminho_aterramento, kv_mt=13.8,
         # deste achado os ramos monofasicos escreviam sempre kvp/raiz(3),
         # porque na pratica so caiam neles com FAS_CON_P de uma letra.
         kv_prim = kvp if len(fp) >= 2 else kvp / (3 ** 0.5)
+        # Achado 26. `EQTRMT.R` e a resistencia percentual TOTAL do
+        # transformador — a perda em carga sobre a nominal. No OpenDSS, `%R` e
+        # POR ENROLAMENTO, e a serie total e a soma dos dois; escrever `r` nos
+        # dois da `2r`.
+        #
+        # Metade em CADA enrolamento e a forma que serve aos dois ramos: no de
+        # dois enrolamentos da `r` entre primario e secundario, e no de tres
+        # (derivacao central) da `r` do primario ate CADA meia bobina, que e o
+        # que a placa declara. O `%loadloss`, que o caminho de AT usa, so
+        # ajusta os enrolamentos 1 e 2 e deixaria o terceiro no padrao.
+        r_enrol = r / 2.0
 
         if len(fs) >= 3 and len(fp) >= 3:
             # trifasico: estrela com neutro no no 4
             kv2 = tl
             out.append(f'New Transformer.{cod} phases=3 windings=2 Xhl={xhl:.3f}\n'
-                       f'~ wdg=1 bus={b1}.1.2.3 conn=delta Kv={kvp:g} Kva={kva:.1f} %R={r:.3f}\n'
-                       f'~ wdg=2 bus={b2}.1.2.3.4 conn=wye Kv={kv2:.4f} Kva={kva:.1f} %R={r:.3f}')
+                       f'~ wdg=1 bus={b1}.1.2.3 conn=delta Kv={kvp:g} Kva={kva:.1f} %R={r_enrol:.3f}\n'
+                       f'~ wdg=2 bus={b2}.1.2.3.4 conn=wye Kv={kv2:.4f} Kva={kva:.1f} %R={r_enrol:.3f}')
             sec[bb] = {'kv_fn': round(tl / (3 ** 0.5), 4), 'nos': ['1', '2', '3'],
                        'kva': kva, 'trifasico': True}
         elif banco[bb] > 1:
@@ -237,8 +248,8 @@ def gerar(bdgd, ctmts, caminho_trafos, caminho_aterramento, kv_mt=13.8,
             k = str(ordem[bb].index(cod) % 3 + 1)
             kv2 = tl / 2.0
             out.append(f'New Transformer.{cod} phases=1 windings=2 Xhl={xhl:.3f}\n'
-                       f'~ wdg=1 bus={b1}{nd_p} conn=wye Kv={kv_prim:.4f} Kva={kva:.1f} %R={r:.3f}\n'
-                       f'~ wdg=2 bus={b2}.{k}.4 conn=wye Kv={kv2:.4f} Kva={kva:.1f} %R={r:.3f}')
+                       f'~ wdg=1 bus={b1}{nd_p} conn=wye Kv={kv_prim:.4f} Kva={kva:.1f} %R={r_enrol:.3f}\n'
+                       f'~ wdg=2 bus={b2}.{k}.4 conn=wye Kv={kv2:.4f} Kva={kva:.1f} %R={r_enrol:.3f}')
             ant = sec.get(bb, {}).get('nos', [])
             sec[bb] = {'kv_fn': round(kv2, 4), 'nos': sorted(set(ant) | {k}),
                        'kva': sec.get(bb, {}).get('kva', 0) + kva, 'trifasico': False}
@@ -247,9 +258,9 @@ def gerar(bdgd, ctmts, caminho_trafos, caminho_aterramento, kv_mt=13.8,
             kv2 = tl / 2.0
             out.append(f'New Transformer.{cod} phases=1 windings=3 '
                        f'Xhl={xhl:.3f} Xht={xhl:.3f} Xlt={xhl/2:.3f}\n'
-                       f'~ wdg=1 bus={b1}{nd_p} conn=wye Kv={kv_prim:.4f} Kva={kva:.1f} %R={r:.3f}\n'
-                       f'~ wdg=2 bus={b2}.1.4 conn=wye Kv={kv2:.4f} Kva={kva:.1f} %R={r:.3f}\n'
-                       f'~ wdg=3 bus={b2}.4.2 conn=wye Kv={kv2:.4f} Kva={kva:.1f} %R={r:.3f}')
+                       f'~ wdg=1 bus={b1}{nd_p} conn=wye Kv={kv_prim:.4f} Kva={kva:.1f} %R={r_enrol:.3f}\n'
+                       f'~ wdg=2 bus={b2}.1.4 conn=wye Kv={kv2:.4f} Kva={kva:.1f} %R={r_enrol:.3f}\n'
+                       f'~ wdg=3 bus={b2}.4.2 conn=wye Kv={kv2:.4f} Kva={kva:.1f} %R={r_enrol:.3f}')
             sec[bb] = {'kv_fn': round(kv2, 4), 'nos': ['1', '2'],
                        'kva': kva, 'trifasico': False}
         aterrar.add(bb)
