@@ -22,7 +22,13 @@ GDB = None
 
 def setUpModule():
     global GDB
-    GDB = fixture.gerar()          # regenera: as tabelas de UC sao novas
+    # `garantir`, nao `gerar`. O `gerar` reescrevia a .gdb a cada execucao e o
+    # GDAL nao produz os mesmos bytes duas vezes: rodar a suite deixava dois
+    # .gdbtable modificados e a arvore SUJA. Isso corrompe a procedencia — o
+    # `_procedencia.json` marca `sujo` para dizer qual codigo gerou o modelo,
+    # e um `sujo` que so significa "a suite rodou" nao diz nada. O `garantir`
+    # ja regera quando o `fixture.py` muda, que e o caso que importa.
+    GDB = fixture.garantir()
 
 
 def _modelo(pct_por_alim):
