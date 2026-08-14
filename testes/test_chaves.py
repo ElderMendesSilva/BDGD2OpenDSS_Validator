@@ -120,12 +120,19 @@ class ChaveIlhada(unittest.TestCase):
 
 class BarrasQueAChaveTraz(unittest.TestCase):
     """Achado 32. O regulador da BDGD nao toca a SSDMT: ele fica ENTRE DUAS
-    CHAVES, e os dois PACs dele sao nomes `segm_*` que so existem na UNSEMT.
-    Se a rede for definida so pela SSDMT, os dois lados do regulador caem
-    fora, ele e descartado inteiro e o tronco morre logo depois da cabeceira.
+    CHAVES, com par de nos proprio, fora do conjunto de PACs da SSDMT. Se a
+    rede for definida so pela SSDMT, os dois lados do regulador caem fora, ele
+    e descartado inteiro e o tronco morre logo depois da cabeceira.
 
-    Na Cemig-D isso deixava 62% das barras de MT inalcancaveis a partir da
-    cabeceira declarada. Por isso a chave devolve as barras que emite.
+    O NOME NAO E A REGRA. Na Cemig-D esses PACs saem como `segm_*`, mas a
+    Enel CE tem 1.056 reguladores sem um unico `segm_` e quebra igual: o
+    alcance a partir da cabeceira cai de 99,6% para 25,1%. Guarda escrita
+    contra o prefixo conserta uma distribuidora e deixa as outras seis
+    quebradas.
+
+    Medido nas sete bases: o alcance sem os elementos em serie vai de 98,6%
+    na Enel SP a 25,1% na Enel CE. A Enel SP e a menos afetada — e e a base
+    em que o conversor foi escrito, que e por que isto passou despercebido.
     """
 
     def test_devolve_as_duas_barras_da_chave_emitida(self):

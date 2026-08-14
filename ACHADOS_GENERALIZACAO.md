@@ -2577,11 +2577,20 @@ if barras is not None and b1 not in barras and b2 not in barras:
     continue
 ```
 
-`barras` vinha só da SSDMT. Os dois PACs do regulador são nomes `segm_*` que
-**não existem na SSDMT** — 33 deles nesses quatro alimentadores, nenhum
-resolvível como `COD_ID` de camada alguma. Os dois lados caíam fora, o
-regulador sumia inteiro, as duas chaves fechadas passavam a apontar para o
-vazio e sobrava só o by-pass, aberto. Tronco cortado.
+`barras` vinha só da SSDMT, e **o PAC do regulador não é ponto da SSDMT**. Os
+dois lados caíam fora, o regulador sumia inteiro, as duas chaves fechadas
+passavam a apontar para o vazio e sobrava só o by-pass, aberto. Tronco
+cortado.
+
+**A regra é essa, e não o nome.** Na Cemig-D os PACs saem como `segm_*` — 33
+deles nesses quatro alimentadores, nenhum resolvível como `COD_ID` de camada
+alguma —, e a primeira leitura foi tratar o prefixo como se fosse a
+assinatura do defeito. Não é: a Enel CE tem **1.056 reguladores e nenhum PAC
+`segm_*`**, com nomes arbitrários, e cai de 99,6% para 25,1% de alcance
+exatamente do mesmo jeito. O que vale em todas as bases é que o regulador
+tem par de nós próprio, fora do conjunto de PACs da SSDMT, e chega à rede
+pelas chaves. Quem escrever a guarda contra o nome vai consertar uma
+distribuidora e deixar as outras seis quebradas.
 
 ### Não é defeito do dado
 
@@ -2636,5 +2645,33 @@ como causa principal: a perda era baixa porque **a rede carregava um terço da
 corrente real**. A falta de BT continua existindo, mas o tamanho dela ainda
 não foi medido, e só poderá ser depois de reconverter com o regulador no
 lugar.
+
+### Medido nas sete bases
+
+O mesmo teste de alcance, rodado em cada BDGD crua — sem OpenDSS e sem
+conversor. `sem` é o que o conversor enxergava; `com` é somando os elementos
+em série (UNREMT e UNCRMT):
+
+| base | alcance sem | alcance com | alimentadores | com série | abaixo de 25% |
+|---|---|---|---|---|---|
+| Enel SP | 98,6% | 99,8% | 1.808 | 851 | 4 → 2 |
+| Light | 97,4% | 98,5% | 1.713 | 325 | 9 → 7 |
+| CPFL Paulista | 70,8% | 94,7% | 1.639 | 1.341 | 81 → 18 |
+| Roraima | 69,6% | 94,8% | 85 | 69 | 10 → 3 |
+| Equatorial PA | 50,2% | 81,8% | 702 | 524 | 119 → 36 |
+| Enel CE | 25,1% | 99,6% | 729 | 532 | 276 → 1 |
+
+Nenhuma passa ilesa, mas o estrago varia de 1,2 ponto na Enel SP a **74,5 na
+Enel CE**. O que separa é o volume de reguladores: a Light tem 14, a Enel SP
+tem 77, a Enel CE tem 1.056 e a Cemig-D 3.099. Quem tem poucos não sente.
+
+E aqui está a explicação de por que o conversor parecia saudável durante todo
+o desenvolvimento: **a Enel SP, a base em que ele foi escrito, é a menos
+afetada das sete.** O defeito só apareceu quando a Cemig-D — a maior, e a
+última a converter até o fim — foi medida.
+
+Duas bases não fecham em ~99% nem com os reguladores: a **Equatorial PA**
+(81,8%, com 36 alimentadores ainda abaixo de 25%) e, em menor grau, Roraima
+e CPFL. Sobra ali um segundo mecanismo, ainda não investigado.
 
 Vale para as sete bases: a guarda é a mesma e a UNREMT existe em todas.
