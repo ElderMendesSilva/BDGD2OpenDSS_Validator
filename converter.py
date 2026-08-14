@@ -488,7 +488,7 @@ def main():
         # `barras` vem da rede de MT acima: chave cujos dois PACs estao fora
         # dela cria ilha flutuante, e o NaN dela contamina a perda da
         # subestacao inteira (achado 28)
-        n_ch, abertas, ch_ilhadas = chaves.gerar(
+        n_ch, abertas, ch_ilhadas, barras_chave = chaves.gerar(
             b, ctmts, os.path.join(d, 'Chaves.dss'),
             os.path.join(d, 'Controles.dss'), barras=barras)
         n_tr, sec = transformadores.gerar(b, ctmts, os.path.join(d, 'Trafos.dss'),
@@ -498,7 +498,13 @@ def main():
         # (carga, banco, PVSystem) num PAC ausente daqui cria a barra sozinho,
         # a ilha fica sem fonte e a solucao devolve NaN — foi o que travava a
         # DBSI em 100 iteracoes.
-        barras_rede = set(barras) | set(sec)
+        # ACHADO 32. `barras_chave` entra aqui. O regulador da BDGD nao se
+        # liga a SSDMT: ele fica ENTRE DUAS CHAVES, e os dois PACs dele sao
+        # nomes `segm_*` que so existem na UNSEMT. Com a rede definida apenas
+        # pela SSDMT, os dois lados caiam fora e o regulador era descartado
+        # inteiro — cortando o tronco logo depois da cabeceira. Medido na
+        # Cemig-D: 62% das barras de MT ficavam inalcancaveis.
+        barras_rede = set(barras) | set(sec) | set(barras_chave)
         barras_bt = set()          # so o --bt completo a preenche
 
         n_cp = complementos.capacitores(b, ctmts, os.path.join(d, 'Capacitores.dss'),

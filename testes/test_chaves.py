@@ -53,9 +53,17 @@ def _gera(linhas, barras=None):
     tmp = tempfile.mkdtemp()
     c = os.path.join(tmp, 'Chaves.dss')
     k = os.path.join(tmp, 'Controles.dss')
-    n, ab, ilh = chaves.gerar(_Leitor(_unsemt(*linhas)), ['F1'], c, k,
-                              barras=barras)
+    n, ab, ilh, _criadas = chaves.gerar(_Leitor(_unsemt(*linhas)), ['F1'], c, k,
+                                        barras=barras)
     return n, ab, ilh, open(c, encoding='utf-8').read()
+
+
+def _criadas(linhas, barras=None):
+    """So o quarto retorno: as barras que as chaves emitidas trazem."""
+    tmp = tempfile.mkdtemp()
+    return chaves.gerar(_Leitor(_unsemt(*linhas)), ['F1'],
+                        os.path.join(tmp, 'Chaves.dss'),
+                        os.path.join(tmp, 'Controles.dss'), barras=barras)[3]
 
 
 REDE = {'b1', 'b2', 'b3'}
@@ -108,6 +116,39 @@ class ChaveIlhada(unittest.TestCase):
         n, _, ilh, _ = _gera(linhas, REDE)
         self.assertEqual(n, 1)
         self.assertEqual(len(ilh), 5)
+
+
+class BarrasQueAChaveTraz(unittest.TestCase):
+    """Achado 32. O regulador da BDGD nao toca a SSDMT: ele fica ENTRE DUAS
+    CHAVES, e os dois PACs dele sao nomes `segm_*` que so existem na UNSEMT.
+    Se a rede for definida so pela SSDMT, os dois lados do regulador caem
+    fora, ele e descartado inteiro e o tronco morre logo depois da cabeceira.
+
+    Na Cemig-D isso deixava 62% das barras de MT inalcancaveis a partir da
+    cabeceira declarada. Por isso a chave devolve as barras que emite.
+    """
+
+    def test_devolve_as_duas_barras_da_chave_emitida(self):
+        c = _criadas([('SW1', 'b1', 'segm_9', 'F')], REDE)
+        self.assertEqual(c, {'b1', 'segm_9'})
+
+    def test_a_chave_ilhada_nao_contribui_barra(self):
+        """Se ela nao foi emitida, as barras dela nao existem no modelo."""
+        c = _criadas([('SW1', 'x', 'y', 'F')], REDE)
+        self.assertEqual(c, set())
+
+    def test_a_chave_aberta_tambem_traz_as_barras(self):
+        """Aberta ou fechada, a Line existe e as barras existem com ela."""
+        c = _criadas([('SW1', 'b1', 'segm_9', 'A')], REDE)
+        self.assertEqual(c, {'b1', 'segm_9'})
+
+    def test_e_o_segm_que_sustenta_o_regulador(self):
+        """O caso medido: o regulador liga segm_X a segm_Y, e cada um deles
+        chega a rede por uma chave fechada."""
+        c = _criadas([('SW1', 'b1', 'segm_603', 'F'),
+                      ('SW2', 'b2', 'segm_542', 'F')], REDE)
+        self.assertIn('segm_603', c)
+        self.assertIn('segm_542', c)
 
 
 if __name__ == '__main__':

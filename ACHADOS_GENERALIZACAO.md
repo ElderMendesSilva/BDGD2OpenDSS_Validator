@@ -2525,3 +2525,116 @@ que os caminhos existentes já cobrem quase tudo; o que falta é o último.
 Se a quarta preferência resolve as seis ou só as cinco — a IUMD34 está numa
 SUB que já tem vãos para os outros alimentadores, e o caso dela pode ser
 outro. Medir antes de afirmar.
+
+---
+
+## Achado 32 — o regulador que ninguém emitia, e 62% da rede no escuro
+
+O maior defeito encontrado até aqui. Ele estava escondido atrás de um número
+que parecia burocrático: **36 de 413 modelos sem ressalva** no `validador`.
+
+### O que a ressalva era
+
+376 subestações reprovavam por `MODELO_QUEBRADO`, e não por pouco:
+
+```
+1.051.255 de 1.631.593 cargas sem tensao  (64,4%)
+mediana por subestacao: 66%   |   270 subestacoes acima de 50%
+```
+
+Não é caso de limiar. **Dois terços das cargas da Cemig-D estavam
+desenergizadas** — em modelos que compilam, convergem em 2 ou 3 iterações e
+não têm um NaN sequer.
+
+### A cadeia, medida passo a passo
+
+Fechar todas as chaves à força revivia 3.094 das 3.102 cargas mortas da
+subestação 1726836 — o problema era conectividade, não carga. Mas fechar
+chave normalmente aberta malha a rede e não é resposta: em 1726631 isso dava
+perda de 95,5%.
+
+A fronteira entre a parte viva e a morta eram **9 elementos, todos chaves**.
+E as quatro cabeceiras estavam energizadas, cada uma puxando 3 a 44 A — cada
+alimentador acendia um toco e morria logo depois da saída.
+
+O que morre logo depois da saída é o que **está** logo depois da saída:
+
+```
+UNREMT 349330554   segm_349330603 -> segm_349330542   RSP05
+UNSEMT 349330584   100_349330602  -> segm_349330603   F     (fechada)
+UNSEMT 349330569   100_349330541  -> segm_349330542   F     (fechada)
+UNSEMT 349330593   100_349330541  -> 100_349330602    A     (aberta)
+```
+
+O caminho existe e está inteiro: segmento → chave fechada → **regulador** →
+chave fechada → segmento. A chave aberta em paralelo é o *by-pass* do
+regulador, normalmente aberta como manda o projeto.
+
+**O regulador não era emitido.** A guarda que o descarta é esta:
+
+```python
+if barras is not None and b1 not in barras and b2 not in barras:
+    continue
+```
+
+`barras` vinha só da SSDMT. Os dois PACs do regulador são nomes `segm_*` que
+**não existem na SSDMT** — 33 deles nesses quatro alimentadores, nenhum
+resolvível como `COD_ID` de camada alguma. Os dois lados caíam fora, o
+regulador sumia inteiro, as duas chaves fechadas passavam a apontar para o
+vazio e sobrava só o by-pass, aberto. Tronco cortado.
+
+### Não é defeito do dado
+
+O teste que separa as duas coisas foi refazer a conectividade **na BDGD
+crua**, sem OpenDSS e sem conversor: SSDMT mais as UNSEMT fechadas, busca em
+largura a partir do `PAC_INI` de cada CTMT.
+
+| grafo | alcançável a partir da cabeceira |
+|---|---|
+| SSDMT + chaves fechadas | 23,3% |
+| **+ UNREMT (7 ligações)** | **99,9%** |
+
+Sete ligações de regulador levam 23,3% a 99,9%. Na base inteira, sem elas:
+
+```
+2.459 alimentadores | 5.626.693 trechos | 846.968 chaves fechadas
+global: 2.458.027 de 6.486.890 barras alcancaveis (37,9%)
+   0 a  25%:  597 alimentadores        75 a  95%:  154
+  25 a  50%:  306                      95 a 100%: 1223
+```
+
+Distribuição bimodal: metade dos alimentadores íntegra, um quarto com menos
+de 25% da rede alcançável. **1.050 dos 2.456 alimentadores têm regulador** —
+e é o alimentador com regulador que quebra. Daí os 36 de 413: uma subestação
+só passa se *todos* os seus alimentadores passarem.
+
+### A correção
+
+`chaves.gerar` passou a devolver as barras que emite, e elas entram em
+`barras_rede` junto com a SSDMT e os secundários. Barra que uma chave emitida
+cria é rede tanto quanto a da SSDMT — e é o único caminho pelo qual o
+regulador se liga.
+
+### Provado de ponta a ponta
+
+Subestação 1726836 reconvertida, mesmo comando, mesma base:
+
+| | antes | corrigido |
+|---|---|---|
+| cargas sem tensão | 3.102 (73,4%) | **188 (4,4%)** |
+| kW desenergizado | 2.483 | **60** |
+| carga servida | 1.377,7 kW | **1.778,4 kW** |
+| perdas | 0,99% | **2,94%** |
+| razão sobre o PERD_A4 declarado (3,21%) | 0,31× | **0,92×** |
+
+### O que isto desmente
+
+A razão de 0,41× da Cemig-D vinha sendo lida como assinatura da rede
+secundária ausente, e o gradiente por porte — 0,33× nos alimentadores
+pequenos contra 0,62× nos grandes — reforçava a leitura. Ela não se sustenta
+como causa principal: a perda era baixa porque **a rede carregava um terço da
+corrente real**. A falta de BT continua existindo, mas o tamanho dela ainda
+não foi medido, e só poderá ser depois de reconverter com o regulador no
+lugar.
+
+Vale para as sete bases: a guarda é a mesma e a UNREMT existe em todas.

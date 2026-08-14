@@ -49,6 +49,7 @@ def gerar(bdgd, ctmts, caminho_chaves, caminho_controles, barras=None):
     ct = ['! SwtControl — estado normal de operacao (P_N_OPE)']
     abertas = []
     ilhadas = []
+    criadas = set()          # barras que as chaves emitidas trazem
     rede = set(barras) if barras else None
     for i in range(n):
         b1 = no(col['PAC_1'][i])
@@ -63,6 +64,9 @@ def gerar(bdgd, ctmts, caminho_chaves, caminho_controles, barras=None):
         nf = max(1, len([c for c in txt(col['FAS_CON'][i]).upper() if c in 'ABC']))
         ch.append(f'New Line.{nome} Phases={nf} Bus1={b1}{nd} Bus2={b2}{nd} '
                   f'Switch=Y r1=1e-4 x1=1e-4 r0=1e-4 x0=1e-4 normamps=9999')
+        # as barras que a chave cria fazem parte da rede tanto quanto as da
+        # SSDMT — e o regulador so se liga por elas (achado 32)
+        criadas.add(b1); criadas.add(b2)
         estado = 'Open' if txt(col['P_N_OPE'][i]).strip().upper() in ABERTA else 'Closed'
         ct.append(f'New SwtControl.SW_{nome} SwitchedObj=Line.{nome} SwitchedTerm=1 '
                   f'Lock=No Delay=0 State={estado}')
@@ -76,4 +80,4 @@ def gerar(bdgd, ctmts, caminho_chaves, caminho_controles, barras=None):
                      f'flutuante — ex.: {", ".join(ilhadas[:3])}')
     open(caminho_chaves, 'w', encoding='utf-8').write('\n'.join(ch) + '\n')
     open(caminho_controles, 'w', encoding='utf-8').write('\n'.join(ct) + '\n')
-    return len(ch) - 3 - bool(ilhadas), abertas, ilhadas
+    return len(ch) - 3 - bool(ilhadas), abertas, ilhadas, criadas
