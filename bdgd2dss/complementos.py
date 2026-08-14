@@ -375,7 +375,7 @@ def reguladores(bdgd, ctmts, caminho, kv=13.8, kv_por_ctmt=None,
 
 # ------------------------------------------------------------------ geracao
 def geracao(bdgd, ctmts, sec, caminho, kv_mt=13.8, barras=None,
-            irradiancia=1.0, fp=1.0, mes=1, fc=None):
+            irradiancia=1.0, fp=1.0, mes=1, fc=None, barras_bt=None):
     """UGBT_tab e UGMT_tab -> PVSystem.
 
     A POTENCIA VEM DA ENERGIA, NAO DE POT_INST
@@ -472,7 +472,21 @@ def geracao(bdgd, ctmts, sec, caminho, kv_mt=13.8, barras=None,
             cod = txt(col['COD_ID'][i])
             if is_bt:
                 s = sec.get(pac)
-                if s is None and barras is not None and pac not in barras:
+                # ACHADO 30. A condicao antiga era `pac not in barras`, e
+                # `barras` e a rede INTEIRA — a de MT inclusive. Um PAC de
+                # UGBT que casa com uma barra de MT passava por "ja esta na
+                # rede" e o inversor de 127 V era escrito na barra de 7,97 kV,
+                # nos nos 1, 2 e 4, que ninguem mais toca. No de baixo, sem
+                # caminho para a fonte, um PVSystem e uma fonte de corrente
+                # solta: NaN. Medido na Cemig-D, subestacao 1726836, 4 unidades
+                # em 2 barras — os 6 unicos nos NaN das 413 subestacoes, com os
+                # dois motores concordando no a no.
+                #
+                # Pertencer a BT tem de ser verificado contra a BT: `sec`
+                # (secundarios de trafo) ou `barras_bt` (rede de BT, que so
+                # existe com --bt). Fora disso vale o plano B de sempre.
+                na_bt = bool(barras_bt) and pac in barras_bt
+                if s is None and not na_bt:
                     # `UNI_TR_MT` e o plano B quando o PAC da geracao nao esta
                     # na rede. Se a coluna nao veio, nao ha plano B — e isso e
                     # contado como geracao sem rede, nao como excecao

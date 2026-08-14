@@ -2396,3 +2396,116 @@ que era o que estava em uso quando caiu.
 `sys.path` — funcionava porque outro teste da suíte inseria o caminho antes.
 Rodado sozinho, quebrava. Corrigido junto: módulo de teste que só passa em
 companhia não é teste.
+
+---
+
+## Achado 30 — o inversor de 127 V na barra de 7,97 kV
+
+Fechado o achado 28, a Cemig-D V12 passou de 341 subestações medidas para
+**412 de 413**. A que sobrou tinha **6 nós NaN em 31.834**, nas duas mesmas
+barras, com os dois motores concordando nó a nó — sinal de defeito de modelo,
+não de solver.
+
+### O que está escrito no modelo
+
+```
+New Transformer.484736801_484736800 phases=1 windings=3
+~ wdg=1 bus=node_754880953.3 conn=wye Kv=7.9674 Kva=15.0     <- MT
+~ wdg=2 bus=node_457463634.1.4 conn=wye Kv=0.1200            <- BT
+New Line.244637127 Bus1=node_754880953.3 Bus2=node_429598913.3
+New PVSystem.GD_acab...891_1 bus1=node_754880953.1.4 kv=0.1270   <- BT!
+```
+
+`node_754880953` é barra de **média**: primário do transformador e ponta de
+uma linha, e só a fase C existe nela. O inversor de 127 V foi escrito nos nós
+**1, 2 e 4** dessa barra — três nós que nascem do próprio PVSystem e que
+ninguém mais toca. Um PVSystem nessa condição é uma fonte de corrente solta,
+sem caminho para a fonte: a solução devolve NaN.
+
+Censo na subestação: **4 unidades em 2 barras**, de 2.377 PVSystems. Dois nós
+por barra mais o neutro — exatamente os 6 nós NaN medidos.
+
+### A condição que deixava passar
+
+```python
+s = sec.get(pac)
+if s is None and barras is not None and pac not in barras:
+    ...  # plano B: UNI_TR_MT
+```
+
+`barras` é a rede **inteira**, a de MT inclusive. Um PAC de UGBT que casasse
+com uma barra de MT satisfazia `pac in barras`, e isso contava como "já está
+na rede": o plano B do `UNI_TR_MT` era desligado e o inversor escrito ali
+mesmo, com `kv = 0.127` de padrão.
+
+Pertencer à BT tem de ser verificado **contra a BT** — `sec`, que são os
+secundários de transformador, ou `barras_bt`, que só existe com `--bt`
+completo. O `converter` passou a entregar as duas coisas separadas em vez de
+um saco único de barras.
+
+Sem plano B a unidade é descartada e **contada** em `sem_rede`, que é o balde
+que já existe. Perder uma unidade de 0,8 kW é preferível a envenenar a perda
+da subestação inteira: `Circuit.Losses()` soma tudo, e um NaN em 6 nós de
+31.834 tirava a subestação da medição — o mesmo estrago do achado 28, por
+outra porta.
+
+### Por que só apareceu agora
+
+O defeito exige que o PAC de uma UGBT case com uma barra de MT do mesmo
+alimentador. É raro: 4 ocorrências em 413 subestações da maior das sete bases.
+As outras seis passaram por sorte de dado, como no achado do `pertence`.
+
+### Estado
+
+Retido no ramo `correcao-gd-bt-na-mt`, com 7 testes novos em
+`testes/test_geracao.py`. Cinco deles falham na condição antiga e dois passam
+— os dois que verificam que o caminho normal não foi estreitado junto. Suíte
+em 230 testes, verde.
+
+---
+
+## Achado 31 — a subestação sem vão não tem medidor, e some da medição
+
+Diagnóstico apenas. **A correção não foi implementada nem provada.**
+
+O `energia` da Cemig-D V12 fechou em 411 de 413. A que não rodou não falhou
+por convergência:
+
+```
+1726751   ERRO: (#8989) No active EnergyMeter object found!
+```
+
+O EnergyMeter é escrito no vão de saída — `element=Line.VAO_<ctmt>` — porque é
+o único ponto por onde toda a energia do alimentador passa. Sem vão não há
+medidor; sem medidor a subestação inteira sai da medição. São **7.803 cargas,
+25.974 barras e 1.782 km de MT** que existem no modelo, compilam e resolvem,
+mas não entram em nenhum número de perda.
+
+### Por que não houve vão
+
+`relatorio_rede.json` diz `sem_vao: 6` — e cinco dos seis são de 1726751:
+
+| alimentador | SUB | BARR | UNI_TR_AT |
+|---|---|---|---|
+| FMA03…FMA07 | 1726751 | `' '` | `'0'` |
+| IUMD34 | 1726790 | `' '` | `'192244623'` (não existe na UNTRAT) |
+
+A ordem de preferência do `vaos()` é BARR-que-é-secundário → trafo do
+`UNI_TR_AT` → BARR mesmo sem trafo → nada. Com `BARR` preenchida com **um
+espaço** e `UNI_TR_AT` valendo `'0'`, os quatro caminhos morrem e o
+alimentador cai no quarto.
+
+O dado para resolver existe: a **UNTRAT tem 2 transformadores de AT na SUB
+1726751**. Ninguém os alcança porque o único elo que o `vaos()` conhece é o
+`UNI_TR_AT` do CTMT, que aqui não aponta para lugar nenhum. Falta uma quarta
+preferência — a barra de um transformador de AT da **própria SUB**.
+
+Na base inteira: 487 CTMTs de 2.456 têm `BARR` em branco e 279 têm
+`UNI_TR_AT` que não existe na UNTRAT. Que só 6 tenham terminado sem vão diz
+que os caminhos existentes já cobrem quase tudo; o que falta é o último.
+
+### O que ainda não se sabe
+
+Se a quarta preferência resolve as seis ou só as cinco — a IUMD34 está numa
+SUB que já tem vãos para os outros alimentadores, e o caso dela pode ser
+outro. Medir antes de afirmar.
