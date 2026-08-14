@@ -2603,7 +2603,9 @@ largura a partir do `PAC_INI` de cada CTMT.
 | SSDMT + chaves fechadas | 23,3% |
 | **+ UNREMT (7 ligações)** | **99,9%** |
 
-Sete ligações de regulador levam 23,3% a 99,9%. Na base inteira, sem elas:
+Sete ligações de regulador levam 23,3% a 99,9%. Isso é a subestação 1726836;
+na base inteira o salto é de 37,9% para **96,1%**, e os 3,9 que sobram são o
+achado 33. Na base inteira, sem elas:
 
 ```
 2.459 alimentadores | 5.626.693 trechos | 846.968 chaves fechadas
@@ -2660,6 +2662,7 @@ em série (UNREMT e UNCRMT):
 | Roraima | 69,6% | 94,8% | 85 | 69 | 10 → 3 |
 | Equatorial PA | 50,2% | 81,8% | 702 | 524 | 119 → 36 |
 | Enel CE | 25,1% | 99,6% | 729 | 532 | 276 → 1 |
+| Cemig-D | 37,9% | 96,1% | 2.459 | 1.458 | 597 → 109 |
 
 Nenhuma passa ilesa, mas o estrago varia de 1,2 ponto na Enel SP a **74,5 na
 Enel CE**. O que separa é o volume de reguladores: a Light tem 14, a Enel SP
@@ -2675,3 +2678,71 @@ Duas bases não fecham em ~99% nem com os reguladores: a **Equatorial PA**
 e CPFL. Sobra ali um segundo mecanismo, ainda não investigado.
 
 Vale para as sete bases: a guarda é a mesma e a UNREMT existe em todas.
+
+---
+
+## Achado 33 — o resíduo: cabeceira que não existe, e o balde `-FC`
+
+Diagnóstico. **Nenhuma correção implementada.**
+
+Corrigido o achado 32, sobra um resíduo que não é uniforme:
+
+| base | alcance | alimentadores abaixo de 25% | destes, com alcance ≤ 3 barras | com alcance ZERO |
+|---|---|---|---|---|
+| Enel SP | 99,8% | 2 | 2 | 2 |
+| Enel CE | 99,6% | 1 | 1 | 1 |
+| Light | 98,5% | 7 | 1 | 1 |
+| Cemig-D | 96,1% | 109 | 82 | 80 |
+| Roraima | 94,8% | 3 | 2 | 2 |
+| CPFL Paulista | 94,7% | 18 | 4 | 4 |
+| Equatorial PA | 81,8% | 36 | 23 | 1 |
+
+São dois mecanismos distintos, e a coluna do meio os separa.
+
+### O primeiro: a cabeceira que não está na rede
+
+`PAC_INI` declarado no CTMT **não aparece entre os PACs do próprio
+alimentador**. Não é questão de estar longe: não existe. São 80 dos 109 casos
+da Cemig-D, e a esmagadora maioria do resíduo de todas as outras menos a
+EQPA. Sem cabeceira não há de onde partir, e a busca devolve zero.
+
+Há remédio plausível — o mesmo do achado 31, alcançar o pátio pela `SUB` em
+vez de pelo campo que aponta para o vazio — mas ele não foi testado.
+
+### O segundo: o balde `-FC` da Equatorial PA
+
+A EQPA é a única onde o resíduo tem outra forma: a cabeceira existe, entra no
+grafo, e alcança **2 ou 3 barras** de vinte mil. São 20 alimentadores cujo
+código termina em `-FC`:
+
+```
+CAPCP-FC   SUB=CAP   9 alimentadores na SUB   21.895 barras   alcance 0,01%
+GOIGI-FC   SUB=GOI   4 alimentadores na SUB   21.352 barras   alcance 0,01%
+CSOCO-FC   SUB=CSO   3 alimentadores na SUB   20.295 barras   alcance 0,01%
+```
+
+O que os caracteriza, medido:
+
+- **mediana de 12.695 barras contra 854 dos demais** — quinze vezes maiores;
+- convivem com 3 a 9 alimentadores normais na mesma subestação, ou seja não
+  são "a subestação inteira num CTMT só";
+- a rede deles é fragmentada: a CAPCP-FC tem **7 componentes conexas**, a
+  maior com 11.094 barras;
+- o `PAC_INI` é a própria barra da subestação (`cap01b1` = `BARR` = `CAP01B1`)
+  e tem **grau 1**;
+- somam 218.471 barras, **11% de toda a MT da EQPA**.
+
+Excluídos os vinte, a EQPA alcança **91,8%**, na faixa das outras.
+
+O que `-FC` significa não está estabelecido. A forma — grande, fragmentado,
+sem cabeceira efetiva, coexistindo com os alimentadores reais — é a de um
+balde de rede não atribuída, mas isso é leitura, não medição, e não deve
+entrar em texto nenhum como se fosse fato.
+
+### Uma medida que foi verificada antes de ser usada
+
+O alcance é calculado por alimentador, e o conversor monta por subestação:
+alimentadores irmãos poderiam se socorrer e a medida estaria subestimando.
+Refeito para a EQPA com o grafo unido por `SUB` e busca a partir de todas as
+cabeceiras da subestação, dá **81,8%** — o mesmo número. Irmãos não se
+socorrem, e a medida vale.
