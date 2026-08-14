@@ -2746,3 +2746,47 @@ alimentadores irmãos poderiam se socorrer e a medida estaria subestimando.
 Refeito para a EQPA com o grafo unido por `SUB` e busca a partir de todas as
 cabeceiras da subestação, dá **81,8%** — o mesmo número. Irmãos não se
 socorrem, e a medida vale.
+
+### Correção do próprio achado 33: são três formas, e eu tinha errado o peso
+
+Propus atacar primeiro a "cabeceira que não existe" dizendo que ela recuperava
+80 alimentadores da Cemig-D. Medido, ela vale muito menos do que eu disse.
+Onde a barra não alcançada realmente mora:
+
+| faixa de alcance do alimentador | alim. | barras não alcançadas | fatia do resíduo |
+|---|---|---|---|
+| alcance zero | 80 | 18.744 | **7,5%** |
+| 0 a 25% | 29 | 154.916 | **61,9%** |
+| 25 a 75% | 94 | 60.877 | 24,3% |
+| 75 a 95% | 95 | 9.174 | 3,7% |
+| 95 a 99,9% | 555 | 6.368 | 2,5% |
+| 100% | 1.606 | 2 | 0,0% |
+
+Os 80 de alcance zero somam 18.744 barras — **0,29% da rede**, e seis deles
+nem são CTMT de verdade (o `''` e o `'0'` são baldes de trecho com o campo em
+branco). O resíduo mora nos 29 alimentadores grandes de alcance parcial.
+
+E esses 29 não têm uma forma só:
+
+```
+UHST04    15.141 barras     3 comps  maiores=[14749, 263, 129]  cabeceira na de 129
+CMH80     13.823 barras     3 comps  maiores=[13688, 133, 2]    cabeceira na de 133
+SFIQ415    9.610 barras     3 comps  maiores=[8499, 1109, 2]    cabeceira na de 1109
+CCHU13    13.748 barras 1.922 comps  maiores=[77, 75, 74, 73]   cabeceira na de 5
+```
+
+**Forma B** — UHST04, CMH80, SFIQ415: a rede está inteira numa componente
+gigante, e a cabeceira declarada está numa ilha pequena ao lado. Não é rede
+partida: é cabeceira no lugar errado, ou falta o elo entre as duas.
+
+**Forma C** — CCHU13: 1.922 componentes, a maior com 77 barras. A rede está
+estilhaçada e não há tronco nenhum. É outro problema.
+
+### Onde isto para, e por quê
+
+A forma B tem conserto óbvio e perigoso: ligar a barra da subestação também à
+componente gigante. Isso **inventa um elo que a BDGD não declara** — deixa de
+ser conversão e passa a ser modelagem. Pode ser a decisão certa, já que a
+alternativa é modelar 0,85% de um alimentador de 15 mil barras, mas é decisão
+de quem assina o artigo, não de quem escreve o código. Fica aqui medida e não
+implementada.
