@@ -224,5 +224,79 @@ class PrimarioBifasico(unittest.TestCase):
                              f'FAS_CON_P={fas} nao tem a fase de {ausente}')
 
 
+def _eqtrmt(r, xhl=3.2):
+    a = lambda *v: np.array(v, dtype=object)          # noqa: E731
+    return {'UNI_TR_MT': a('TX'), 'R': np.array([r]),
+            'XHL': np.array([xhl]), 'POT_NOM': np.array([75.0])}
+
+
+def _texto(fas_p, fas_s, r=4.15):
+    tmp = tempfile.mkdtemp()
+    t = os.path.join(tmp, 'Trafos.dss')
+    tr.gerar(_Leitor(_untrmt(fas_p, fas_s), _eqtrmt(r)), ['F1'], t,
+             os.path.join(tmp, 'Aterr.dss'), kv_mt=13.8)
+    with open(t, encoding='utf-8') as fh:
+        return fh.read()
+
+
+def _pcts(txt):
+    return [float(l.split('%R=')[1].split()[0])
+            for l in txt.splitlines() if '%R=' in l]
+
+
+class ResistenciaPorEnrolamento(unittest.TestCase):
+    """Achado 26 — `EQTRMT.R` e o total, e o OpenDSS quer por enrolamento.
+
+    `Xhl` e a reatancia do PAR de enrolamentos, e o conversor a passa direto,
+    correto. Mas `%R` e POR ENROLAMENTO e a serie total e a soma dos dois:
+    escrever `r` nos dois da `2r`.
+
+    O argumento mais forte esta dentro do proprio projeto — o caminho de alta
+    tensao, em `subtransmissao.trafos`, ja escreve `%loadloss`, que e a perda
+    em carga TOTAL. O mesmo codigo trata o trafo de potencia certo e o de
+    distribuicao nao.
+
+    Medido na 5003525 de Roraima: com metade por enrolamento, 688 cargas saem
+    de baixo de 0,92 pu — 23% delas.
+    """
+
+    def test_trifasico_metade_em_cada_enrolamento(self):
+        p = _pcts(_texto('ABC', 'ABCN', r=4.15))
+        self.assertEqual(len(p), 2)
+        self.assertEqual(p, [2.075, 2.075])
+
+    def test_a_soma_dos_enrolamentos_e_o_valor_da_base(self):
+        """A propriedade que importa, e nao o numero em si."""
+        for r in (1.33, 2.96, 4.15):
+            p = _pcts(_texto('ABC', 'ABCN', r=r))
+            self.assertAlmostEqual(sum(p), r, places=2,
+                                   msg=f'EQTRMT.R={r} tem de sair inteiro na '
+                                       f'soma dos enrolamentos')
+
+    def test_derivacao_central_da_o_total_ate_CADA_meia_bobina(self):
+        """Tres enrolamentos: primario mais cada metade. Meio em cada da `r`
+        do primario ate a bobina 2 E ate a bobina 3, que e o que a placa
+        declara. Somar os tres daria 1,5r e nao significa nada."""
+        p = _pcts(_texto('A', 'A', r=4.15))
+        self.assertEqual(len(p), 3)
+        self.assertEqual(p, [2.075, 2.075, 2.075])
+        self.assertAlmostEqual(p[0] + p[1], 4.15, places=2)
+        self.assertAlmostEqual(p[0] + p[2], 4.15, places=2)
+
+    def test_xhl_nao_e_dividida(self):
+        """`Xhl` ja e do par. Divide-la seria trocar um erro por outro."""
+        txt = _texto('ABC', 'ABCN', r=4.15)
+        self.assertIn('Xhl=3.200', txt)
+
+    def test_o_padrao_quando_a_eqtrmt_nao_tem_o_registro(self):
+        """Sem EQTRMT o `gerar` cai em (0,5 ; 2,0), e o 0,5 tambem e total."""
+        tmp = tempfile.mkdtemp()
+        t = os.path.join(tmp, 'Trafos.dss')
+        tr.gerar(_Leitor(_untrmt('ABC', 'ABCN')), ['F1'], t,
+                 os.path.join(tmp, 'Aterr.dss'), kv_mt=13.8)
+        with open(t, encoding='utf-8') as fh:
+            self.assertAlmostEqual(sum(_pcts(fh.read())), 0.5, places=3)
+
+
 if __name__ == '__main__':
     unittest.main()
