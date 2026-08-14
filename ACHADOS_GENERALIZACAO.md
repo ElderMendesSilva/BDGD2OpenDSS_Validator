@@ -2455,6 +2455,22 @@ O defeito exige que o PAC de uma UGBT case com uma barra de MT do mesmo
 alimentador. É raro: 4 ocorrências em 413 subestações da maior das sete bases.
 As outras seis passaram por sorte de dado, como no achado do `pertence`.
 
+### Provado de ponta a ponta
+
+Fundido no `main` depois que a rodada da Cemig-D fechou. A mesma subestacao
+reconvertida em 3,7 min:
+
+| | V12 (antes) | com a correcao |
+|---|---|---|
+| nos NaN | 6 | **0** |
+| convergiu | nao, em 100 iteracoes | **sim, em 2** |
+| GD medida | NaN | **1.661,1 kW** |
+| perdas | NaN | **0,45%** |
+
+Os 2.377 PVSystems continuam la: as 4 unidades nao foram perdidas, foram
+para o secundario do transformador, junto com as outras 736 que ja seguiam
+esse caminho. Nenhum inversor sobrou nas duas barras de MT.
+
 ### Estado
 
 Retido no ramo `correcao-gd-bt-na-mt`, com 7 testes novos em
