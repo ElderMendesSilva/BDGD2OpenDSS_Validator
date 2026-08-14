@@ -473,7 +473,11 @@ def geracao(bdgd, ctmts, sec, caminho, kv_mt=13.8, barras=None,
             if is_bt:
                 s = sec.get(pac)
                 if s is None and barras is not None and pac not in barras:
-                    s = sec.get(txt(col['UNI_TR_MT'][i]))
+                    # `UNI_TR_MT` e o plano B quando o PAC da geracao nao esta
+                    # na rede. Se a coluna nao veio, nao ha plano B — e isso e
+                    # contado como geracao sem rede, nao como excecao
+                    s = (sec.get(txt(col['UNI_TR_MT'][i]))
+                         if 'UNI_TR_MT' in col else None)
                     if s is None:
                         sem_rede += 1
                         continue

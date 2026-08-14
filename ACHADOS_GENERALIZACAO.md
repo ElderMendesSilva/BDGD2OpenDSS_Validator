@@ -2338,3 +2338,61 @@ Corrigidas as 72, a cobertura da Cemig-D deve subir — **mas não se sabe para
 quanto**. Restam 1.219 alimentadores (59%) com rede e zero energia no medidor,
 e as hipóteses acima não os explicam. **Fica aberto, e com quatro caminhos já
 eliminados.**
+
+---
+
+## Achado 29 — a coluna que não volta, e a Cemig-D como caça-suposições
+
+Terceira tentativa de converter a Cemig-D, terceira falha, cada uma mais
+funda que a anterior:
+
+| tentativa | caiu em | causa |
+|---|---|---|
+| V10 | subestação **265** de 413, após 5h57 | `pertence` com `dtype` de objeto (achado 26 do `leitor`) |
+| V11 | subestação **278**, após 4h26 | `glob` com `AssertionError` no corte do `LineCodes` |
+| V12 | subestação **348**, após 4h36 | `KeyError: 'UNI_TR_MT'` |
+
+Nenhuma das três aparece nas outras seis distribuidoras. **A Cemig-D é a maior
+das sete e a única que exercita essas suposições até quebrá-las** — 413
+subestações, 2.456 alimentadores, 12 milhões de registros de UCBT. Cada
+correção revela a próxima, e isso é o que se espera de uma base que nunca
+tinha sido convertida até o fim.
+
+### A terceira
+
+```
+File ".../complementos.py", line 476, in geracao
+    s = sec.get(txt(col['UNI_TR_MT'][i]))
+KeyError: 'UNI_TR_MT'
+```
+
+O `leitor.ler` monta o dicionário a partir do que o `pyogrio` devolveu:
+
+```python
+cs = list(meta['fields'])
+return {c: data[cs.index(c)] for c in cs}
+```
+
+Coluna que não volta **some do dicionário sem ruído**, e o erro aparece muito
+depois, em quem consome.
+
+### Não foi reproduzido, e a correção assume isso
+
+`UNI_TR_MT` existe em `UGBT_tab` nas **sete** bases. A mesma leitura, refeita
+depois — direta e com o lote aberto, nas dez subestações do mesmo grupo —
+devolve as oito colunas, sempre. Não consegui forçar a falha.
+
+Por isso a correção não é no ponto: é no **contrato**. Quem pede N colunas
+recebe N colunas. Coluna que não volta passa a ser preenchida vazia e **dita
+no log**, e quem consome decide o que fazer com o vazio — no caso da geração,
+contar como "sem rede", que é o balde que já existia para isso.
+
+Vale para os dois caminhos: a leitura direta e a servida pelo cache do lote,
+que era o que estava em uso quando caiu.
+
+### E um teste que só passava por carona
+
+`test_leitor_fixture.py` importava `fixture` sem pôr a própria pasta no
+`sys.path` — funcionava porque outro teste da suíte inseria o caminho antes.
+Rodado sozinho, quebrava. Corrigido junto: módulo de teste que só passa em
+companhia não é teste.

@@ -118,13 +118,40 @@ class BDGD:
 
     # ------------------------------------------------------------------ leitura
     def ler(self, layer, colunas=None, where=None):
-        """Le a camada inteira de uma vez. Use so em tabelas pequenas."""
+        """Le a camada inteira de uma vez. Use so em tabelas pequenas.
+
+        CONTRATO: quem pede N colunas recebe N colunas. O `pyogrio` devolve
+        apenas o que ele resolveu, e uma coluna que nao volta some do
+        dicionario sem ruido — o erro so aparece muito depois, no `col[nome]`
+        de quem consumiu.
+
+        Foi assim que a Cemig-D caiu na terceira tentativa, na subestacao 348
+        de 413, depois de 4h36:
+
+            File ".../complementos.py", line 476, in geracao
+            KeyError: 'UNI_TR_MT'
+
+        O campo existe na camada nas SETE bases, e a mesma leitura, refeita
+        depois — direta e com o lote aberto — devolve as oito colunas. Nao
+        consegui reproduzir, e por isso a correcao nao e no ponto: e no
+        contrato. Coluna que nao volta passa a ser preenchida vazia e DITA,
+        e quem consome decide o que fazer com o vazio.
+        """
+        pedidas = list(colunas) if colunas else None
         colunas = colunas or self.campos(layer)
         r = pyogrio.raw.read(self.gdb, layer=layer, columns=colunas,
                              read_geometry=False, where=where)
         meta, _, _, data = r
         cs = list(meta['fields'])
-        return {c: data[cs.index(c)] for c in cs}
+        out = {c: data[cs.index(c)] for c in cs}
+        if pedidas:
+            n = len(next(iter(out.values()))) if out else 0
+            for c in pedidas:
+                if c not in out:
+                    self.log(f'    AVISO: {layer}.{c} nao voltou na leitura '
+                             f'({n} linhas); preenchida vazia')
+                    out[c] = np.full(n, '', dtype=object)
+        return out
 
     def ler_em_fatias(self, layer, colunas=None, passo=700_000):
         """Gera dicionarios coluna->array, uma fatia por vez."""
@@ -182,7 +209,10 @@ class BDGD:
             if len(col[chave]) == 0:
                 return {c: np.array([]) for c in colunas}
             idx = np.nonzero(pertence(col[chave], alvo))[0]
-            return {c: col[c][idx] for c in colunas}
+            # o mesmo contrato do `ler`: coluna ausente sai vazia, nunca some
+            return {c: (col[c][idx] if c in col
+                        else np.full(len(idx), '', dtype=object))
+                    for c in colunas}
 
         return self._ler_do_disco(layer, chave, alvo, colunas, passo,
                                   forcar_varredura)

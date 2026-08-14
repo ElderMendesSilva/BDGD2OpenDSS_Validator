@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*-
+﻿# -*- coding: utf-8 -*-
 """O leitor le uma BDGD de verdade, gerada aqui, sem alteracao nenhuma.
 
 E o teste que sustenta todos os outros: se o fixture nao for lido pelo mesmo
@@ -11,6 +11,8 @@ import unittest
 
 AQUI = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.dirname(AQUI))
+sys.path.insert(0, AQUI)          # o `fixture` mora aqui; sem isto o modulo
+                                  # so importava quando outro teste rodava antes
 from bdgd2dss.leitor import BDGD, no, num, txt    # noqa: E402
 import fixture                                    # noqa: E402
 
@@ -128,6 +130,61 @@ class Normalizacao(unittest.TestCase):
         self.assertIsInstance(txt(None), str)
         self.assertIsInstance(txt(123), str)
 
+
+
+
+class ContratoDasColunas(unittest.TestCase):
+    """Quem pede N colunas recebe N colunas — achado 29.
+
+    A Cemig-D caiu na terceira tentativa, na subestacao 348 de 413, depois de
+    4h36:
+
+        File ".../complementos.py", line 476, in geracao
+        KeyError: 'UNI_TR_MT'
+
+    O `pyogrio` devolve so o que resolveu, e coluna que nao volta some do
+    dicionario sem ruido: o erro aparece muito depois, em quem consome. O
+    campo existe na camada nas SETE bases e a leitura, refeita, devolve tudo —
+    nao foi reproduzido. Por isso a correcao e no contrato e nao no ponto.
+    """
+
+    def setUp(self):
+        self.gdb = fixture.garantir()
+        self.b = BDGD(self.gdb, verbose=False)
+
+    def test_pedir_coluna_inexistente_devolve_vazia_e_nao_levanta(self):
+        col = self.b.ler('SEGCON', ['COD_ID', 'R1', 'NAO_EXISTE'])
+        self.assertIn('NAO_EXISTE', col)
+        self.assertEqual(len(col['NAO_EXISTE']), len(col['COD_ID']))
+        self.assertTrue(all(x == '' for x in col['NAO_EXISTE']))
+
+    def test_as_colunas_reais_continuam_certas(self):
+        col = self.b.ler('SEGCON', ['COD_ID', 'R1', 'NAO_EXISTE'])
+        self.assertEqual(len(col['COD_ID']), 4)
+        self.assertAlmostEqual(float(col['R1'][0]), 0.5, places=3)
+
+    def test_o_filtrado_tambem_honra_o_contrato(self):
+        col = self.b.ler_filtrado('SSDMT', 'CTMT', ['F1'],
+                                  ['COD_ID', 'COMP', 'NAO_EXISTE'])
+        self.assertIn('NAO_EXISTE', col)
+        self.assertEqual(len(col['NAO_EXISTE']), len(col['COD_ID']))
+
+    def test_o_contrato_vale_com_o_lote_aberto(self):
+        """O caminho do lote serve da leitura em cache, e era ele que estava
+        em uso quando a Cemig-D caiu."""
+        self.b.abrir_lote(['F1', 'F2', 'F3'])
+        try:
+            col = self.b.ler_filtrado('SSDMT', 'CTMT', ['F1'],
+                                      ['COD_ID', 'COMP', 'NAO_EXISTE'])
+            self.assertIn('NAO_EXISTE', col)
+            self.assertEqual(len(col['NAO_EXISTE']), len(col['COD_ID']))
+        finally:
+            self.b.fechar_lote()
+
+    def test_sem_pedir_colunas_devolve_o_que_a_camada_tem(self):
+        col = self.b.ler('SEGCON')
+        self.assertIn('COD_ID', col)
+        self.assertNotIn('NAO_EXISTE', col)
 
 if __name__ == '__main__':
     unittest.main()
