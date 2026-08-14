@@ -499,6 +499,7 @@ def main():
         # a ilha fica sem fonte e a solucao devolve NaN — foi o que travava a
         # DBSI em 100 iteracoes.
         barras_rede = set(barras) | set(sec)
+        barras_bt = set()          # so o --bt completo a preenche
 
         n_cp = complementos.capacitores(b, ctmts, os.path.join(d, 'Capacitores.dss'),
                                         a.kv_mt, kv_por_ctmt, barras=barras_rede)
@@ -527,7 +528,10 @@ def main():
                                                  os.path.join(d, 'Ramais.dss'), 'RAMLIG')
             info['linhas_BT'] = n_bt + n_rm
             info['km_BT'] = round(km_bt + km_rm, 2)
-            barras_rede |= set(bb_bt) | set(bb_rm)
+            # guardadas em separado: a GD de BT precisa saber o que e barra DE
+            # BT, e nao apenas o que e barra (achado 30)
+            barras_bt = set(bb_bt) | set(bb_rm)
+            barras_rede |= barras_bt
         else:
             info = cargas.gerar(b, ctmts, sec, os.path.join(d, 'Cargas.dss'), a.mes,
                                 nomes_curva, a.fator_carga, agregado,
@@ -538,7 +542,8 @@ def main():
         (n_gd, gd_nulos, gd_realoc, gd_fora, gd_lim, gd_kw_cortado,
          gd_por_ceg) = complementos.geracao(
             b, ctmts, sec, os.path.join(d, 'GD.dss'), a.kv_mt,
-            barras=barras_rede, irradiancia=a.irradiancia, fp=a.gd_fp,
+            barras=barras_rede, barras_bt=barras_bt,
+            irradiancia=a.irradiancia, fp=a.gd_fp,
             mes=a.mes, fc=fc_gd)
 
         # vaos desta subestacao: ligam a barra de MT as cabeceiras
