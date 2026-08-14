@@ -2461,3 +2461,51 @@ Retido no ramo `correcao-gd-bt-na-mt`, com 7 testes novos em
 `testes/test_geracao.py`. Cinco deles falham na condição antiga e dois passam
 — os dois que verificam que o caminho normal não foi estreitado junto. Suíte
 em 230 testes, verde.
+
+---
+
+## Achado 31 — a subestação sem vão não tem medidor, e some da medição
+
+Diagnóstico apenas. **A correção não foi implementada nem provada.**
+
+O `energia` da Cemig-D V12 fechou em 411 de 413. A que não rodou não falhou
+por convergência:
+
+```
+1726751   ERRO: (#8989) No active EnergyMeter object found!
+```
+
+O EnergyMeter é escrito no vão de saída — `element=Line.VAO_<ctmt>` — porque é
+o único ponto por onde toda a energia do alimentador passa. Sem vão não há
+medidor; sem medidor a subestação inteira sai da medição. São **7.803 cargas,
+25.974 barras e 1.782 km de MT** que existem no modelo, compilam e resolvem,
+mas não entram em nenhum número de perda.
+
+### Por que não houve vão
+
+`relatorio_rede.json` diz `sem_vao: 6` — e cinco dos seis são de 1726751:
+
+| alimentador | SUB | BARR | UNI_TR_AT |
+|---|---|---|---|
+| FMA03…FMA07 | 1726751 | `' '` | `'0'` |
+| IUMD34 | 1726790 | `' '` | `'192244623'` (não existe na UNTRAT) |
+
+A ordem de preferência do `vaos()` é BARR-que-é-secundário → trafo do
+`UNI_TR_AT` → BARR mesmo sem trafo → nada. Com `BARR` preenchida com **um
+espaço** e `UNI_TR_AT` valendo `'0'`, os quatro caminhos morrem e o
+alimentador cai no quarto.
+
+O dado para resolver existe: a **UNTRAT tem 2 transformadores de AT na SUB
+1726751**. Ninguém os alcança porque o único elo que o `vaos()` conhece é o
+`UNI_TR_AT` do CTMT, que aqui não aponta para lugar nenhum. Falta uma quarta
+preferência — a barra de um transformador de AT da **própria SUB**.
+
+Na base inteira: 487 CTMTs de 2.456 têm `BARR` em branco e 279 têm
+`UNI_TR_AT` que não existe na UNTRAT. Que só 6 tenham terminado sem vão diz
+que os caminhos existentes já cobrem quase tudo; o que falta é o último.
+
+### O que ainda não se sabe
+
+Se a quarta preferência resolve as seis ou só as cinco — a IUMD34 está numa
+SUB que já tem vãos para os outros alimentadores, e o caso dela pode ser
+outro. Medir antes de afirmar.
