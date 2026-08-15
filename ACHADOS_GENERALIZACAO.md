@@ -2790,3 +2790,122 @@ ser conversão e passa a ser modelagem. Pode ser a decisão certa, já que a
 alternativa é modelar 0,85% de um alimentador de 15 mil barras, mas é decisão
 de quem assina o artigo, não de quem escreve o código. Fica aqui medida e não
 implementada.
+
+---
+
+## Achado 34 — o fio de 31 A que é tronco de 13,5% da Enel SP
+
+Fase 0 do `PLANO_V1.md`, fechada. A causa do 10× está estabelecida por
+experimento controlado, e **não é defeito do conversor**.
+
+### O que se media
+
+O modelo da Enel SP dá perda mediana de 11,87% contra 1,12% declarado no
+`PERD_A4` — razão 9,92×, com 96,5% dos alimentadores acima de 1,5×. O mesmo
+conversor, na Cemig-D, errava 3× para BAIXO. Mesmo código, dois sentidos.
+
+Primeira hipótese, e ela caiu: métrica. O `validador` mede perda instantânea e
+o `valida_perdas` mede a do dia por alimentador, pela zona do EnergyMeter.
+Confrontadas nas 155 subestações, concordam — **9,30% instantânea, 9,92%
+diária por SE, 7,28% diária por alimentador**. Não há artefato de medida.
+
+### Onde a perda está
+
+Partindo a perda por classe de elemento:
+
+| SE | linha kW | trafo kW | % no trafo | carga MW | km MT | kW/km |
+|---|---|---|---|---|---|---|
+| DIBP | 326,1 | 285,0 | 46,6% | 29,32 | 55 | 5,95 |
+| DALV | 3.621,7 | 262,7 | 6,8% | 32,79 | 214 | 16,93 |
+| DANC | 4.273,5 | 429,3 | 9,1% | 26,83 | 125 | 34,13 |
+| DABR | 850,7 | 150,6 | 15,0% | 15,55 | 26 | 32,37 |
+
+Está nas **linhas**, não nos transformadores — o que já descarta o achado 26 e
+tudo que é de trafo. E o kW por km varia 6× entre subestações da mesma
+concessão, o que aponta para o condutor e não para o carregamento.
+
+### O condutor
+
+```
+CND_593_3F   r1=8,232 ohm/km   normamps=31     <- 2.990 km, 13,5% da rede
+CND_1664_3F  r1=0,678 ohm/km   normamps=254
+CND_2027_3F  r1=0,197 ohm/km   normamps=600
+```
+
+Na Enel SP inteira — 155 subestações, 22.218 km de MT, 1.954 condutores:
+
+```
+km em condutor com ampacidade <  50 A:  3.150  (14,2% da rede)
+km em condutor com ampacidade < 100 A:  3.567  (16,1% da rede)
+
+R1 medio ponderado pela quilometragem: 1,608 ohm/km
+   contribuicao dos condutores < 100 A: 1,184  (74% do R1 ponderado)
+```
+
+**16% da quilometragem carrega 74% da resistência.** Um fio de 31 A não é
+tronco de alimentador de 30 MW — a 13,8 kV isso seriam 1.370 A, quarenta e
+quatro vezes a ampacidade declarada.
+
+### O experimento
+
+Trocando o `R1` dos condutores abaixo de 100 A por 0,678 ohm/km — o valor do
+condutor de 254 A que é o segundo em quilometragem — e reatribuindo o LineCode
+a cada linha (editar o LineCode sozinho não pega: o OpenDSS copia a impedância
+na criação da Line):
+
+| SE | perdas antes | depois | Vmin antes | depois | km tocado |
+|---|---|---|---|---|---|
+| DALV | 11,85% | **3,05%** | 0,655 | 0,731 | 42 de 214 |
+| DANC | 17,53% | **4,88%** | 0,431 | 0,594 | 51 de 125 |
+| DABR | 6,44% | **2,00%** | 0,753 | 0,826 | 8 de 26 |
+| DIBP | 2,08% | 2,07% | 0,912 | 0,912 | 2 de 55 |
+
+A DIBP é o controle: quase não tem condutor fino e não se move. As três caem
+de 3 a 4× e pousam entre 2,0% e 4,9%, faixa fisicamente plausível para média
+tensão.
+
+### Isto já estava escrito no próprio código
+
+O `linecodes.py` descreve o caso desde antes, no docstring de
+`coerencia_de_uso`:
+
+> o condutor 593 da Enel SP, 31 A com 8,232 ohm/km — um par internamente
+> coerente, e por isso intocado, cobrindo 13,5% de uma rede metropolitana de
+> média tensão. O defeito não está no registro; está no USO.
+
+E mede o enriquecimento: o 593 era 20,4% da rede dos alimentadores rastreados
+e **94,7% da sobrecarga** deles, enriquecimento de 4,64×. O auto-ajuste do
+`_ajuste` não o toca porque só corrige par R1×CNOM internamente incoerente — e
+um fio fino de 31 A tem mesmo 8,2 ohm/km. O registro está certo; a atribuição
+dele ao tronco é que não está.
+
+Ou seja: a função que denuncia existe, mede e **não age**. O que faltava não
+era descobrir, era decidir.
+
+### E é decisão, não conserto
+
+Substituir o R1 de um condutor porque ele parece fino demais para o papel que
+exerce **não é conversão, é modelagem** — a mesma natureza da forma B do
+achado 33. A BDGD declara aquele condutor naquele trecho, e o conversor o
+reproduz fielmente.
+
+Fica medido e não implementado. As opções, para decidir:
+
+1. **Não tocar.** A perda da Enel SP fica 10× acima do declarado e isso vira
+   limitação escrita. Barato e honesto, mas inutiliza a base para qualquer
+   estudo quantitativo de perda.
+2. **Substituir por ampacidade insuficiente**, usando a `coerencia_de_uso` que
+   já existe: onde a corrente calculada excede a ampacidade declarada por
+   margem, trocar o R1 pelo do condutor coerente com a corrente. Precisa de
+   duas passadas de fluxo e de um relatório do que foi trocado.
+3. **Substituir por posição na topologia** — trecho a montante recebe condutor
+   de tronco. Mais invasivo e menos defensável.
+
+Seja qual for, a premissa entra no artigo, e o que foi trocado tem de sair
+contado no `relatorio_rede.json`.
+
+### Vale para as outras seis?
+
+Não medido. O censo de condutor por quilometragem é barato e não precisa de
+conversão — só do modelo já gerado ou da SEGCON mais a SSDMT. Fica como
+próximo passo desta frente.
