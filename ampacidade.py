@@ -1,0 +1,177 @@
+# -*- coding: utf-8 -*-
+"""
+SUBSTITUICAO POR AMPACIDADE INSUFICIENTE — achado 34
+====================================================
+
+    python ampacidade.py MODELOS_SP_V13
+    python ampacidade.py MODELOS_SP_V13 --margem 1.5 --se DALV DANC
+
+Roda DEPOIS do `converter.py`, porque precisa do fluxo resolvido: o criterio
+nao e o registro do condutor, e o USO dele. Para cada subestacao, resolve,
+mede a corrente de cada trecho, e escreve `_AMPACIDADE.dss` com um `Edit Line`
+por trecho cuja corrente excede a ampacidade declarada.
+
+ISTO E MODELAGEM, NAO CONVERSAO. Sem rodar este script o modelo reproduz a
+BDGD como ela e — que continua sendo o padrao. A premissa e explicita, o
+arquivo gerado e legivel, e apagar o `redirect _AMPACIDADE.dss` do MASTER
+desfaz tudo.
+
+Por que existe: em duas das sete bases a BDGD poe fio fino no tronco. Na Enel
+SP, 16,1% da quilometragem carrega 73,6% da resistencia ponderada, e o
+condutor 593 — 31 A, 8,232 ohm/km — cobre 2.990 km. Medido: trocar o R1 desses
+trechos leva a DALV de 11,85% para 3,05% de perda. Nas outras cinco bases o
+script nao troca praticamente nada, e e assim que tem de ser.
+"""
+import argparse
+import json
+import os
+import sys
+import time
+
+AQUI = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, AQUI)
+from bdgd2dss import ampacidade                        # noqa: E402
+
+try:
+    import opendssdirect as dss
+except Exception as e:                                  # pragma: no cover
+    raise SystemExit(f'opendssdirect indisponivel: {e}')
+
+
+def catalogo_do_modelo():
+    """Le o catalogo de condutores do circuito ja compilado.
+
+    Vem do proprio modelo, e nao da SEGCON: o substituto tem de ser um
+    condutor que a base declara possuir E que o modelo saiba montar.
+    """
+    cat = {}
+    i = dss.LineCodes.First()
+    while i:
+        n = dss.LineCodes.Name()
+        cat[n.lower()] = {'cnom': dss.LineCodes.NormAmps(),
+                          'r1': dss.LineCodes.R1(), 'x1': dss.LineCodes.X1(),
+                          'nfases': dss.LineCodes.Phases()}
+        i = dss.LineCodes.Next()
+    return cat
+
+
+def trechos_resolvidos():
+    """Um dicionario por linha nao-chave, com a corrente do terminal 1."""
+    out = []
+    i = dss.Lines.First()
+    while i:
+        nome = dss.Lines.Name()
+        if not dss.Lines.IsSwitch():
+            dss.Circuit.SetActiveElement('Line.' + nome)
+            c = dss.CktElement.CurrentsMagAng()[0::2]
+            nf = max(1, dss.Lines.Phases())
+            out.append({'linha': nome,
+                        'linecode': (dss.Lines.LineCode() or '').lower(),
+                        'km': dss.Lines.Length() / 1000.0,
+                        'corrente': max(c[:nf]) if c else 0.0})
+        i = dss.Lines.Next()
+    return out
+
+
+def uma(pasta, se, margem):
+    d = os.path.join(pasta, se)
+    master = os.path.join(d, f'MASTER-{se}.dss')
+    if not os.path.exists(master):
+        return None
+    cwd = os.getcwd()
+    os.chdir(d)
+    try:
+        # IDEMPOTENCIA. O MASTER redireciona `_AMPACIDADE.dss`, entao rodar
+        # duas vezes mediria a linha de base JA substituida e a segunda
+        # rodada trocaria em cima da primeira. Zera-se antes de medir, e o
+        # ponto de partida volta a ser o que a BDGD declara.
+        ampacidade.escrever('_AMPACIDADE.dss', [], {
+            'margem': margem, 'trechos': 0, 'trocados': 0,
+            'km_total': 0.0, 'km_trocado': 0.0, 'pct_km': 0.0})
+        dss.Text.Command('Clear')
+        dss.Text.Command(f'Redirect MASTER-{se}.dss')
+        if not dss.Solution.Converged():
+            return {'se': se, 'erro': 'nao convergiu'}
+        antes = dss.Circuit.Losses()[0] / 1000.0
+        carga = -dss.Circuit.TotalPower()[0]
+        subs, resumo = ampacidade.decidir(trechos_resolvidos(),
+                                          catalogo_do_modelo(), margem)
+        ampacidade.escrever('_AMPACIDADE.dss', subs, resumo)
+        # confere no proprio motor: o arquivo vale o que ele faz
+        dss.Text.Command('Redirect _AMPACIDADE.dss')
+        dss.Text.Command('Solve')
+        depois = dss.Circuit.Losses()[0] / 1000.0
+        carga2 = -dss.Circuit.TotalPower()[0]
+        return {'se': se, 'trocados': resumo['trocados'],
+                'trechos': resumo['trechos'],
+                'km_trocado': resumo['km_trocado'],
+                'pct_km': resumo['pct_km'],
+                'sem_candidato': sum(resumo['sem_candidato'].values()),
+                'perdas_pct_antes': round(100 * antes / carga, 3) if carga else None,
+                'perdas_pct_depois': round(100 * depois / carga2, 3) if carga2 else None,
+                'por_condutor': resumo['por_condutor']}
+    finally:
+        os.chdir(cwd)
+
+
+def main():
+    ap = argparse.ArgumentParser(description=__doc__.split('\n')[2])
+    ap.add_argument('pasta', help='pasta do modelo (MODELOS_*)')
+    ap.add_argument('--margem', type=float, default=ampacidade.MARGEM,
+                    help='quantas vezes a ampacidade a corrente precisa '
+                         f'exceder (padrao {ampacidade.MARGEM:g})')
+    ap.add_argument('--se', nargs='+', help='apenas estas subestacoes')
+    a = ap.parse_args()
+
+    raiz = a.pasta if os.path.isabs(a.pasta) else os.path.join(AQUI, a.pasta)
+    if not os.path.isdir(raiz):
+        raise SystemExit(f'pasta nao encontrada: {raiz}')
+    ses = a.se or sorted(x for x in os.listdir(raiz)
+                         if os.path.isdir(os.path.join(raiz, x))
+                         and not x.startswith('_'))
+
+    print(f'{len(ses)} subestacoes | margem {a.margem:g}x a ampacidade '
+          f'declarada\n', flush=True)
+    print(f'{"SE":14s} {"trocados":>9s} {"km":>9s} {"%km":>7s} '
+          f'{"perdas antes":>13s} {"depois":>9s}', flush=True)
+    t0 = time.time()
+    saida = []
+    for se in ses:
+        r = uma(raiz, se, a.margem)
+        if r is None:
+            continue
+        saida.append(r)
+        if r.get('erro'):
+            print(f'{se:14s} {r["erro"]}', flush=True)
+            continue
+        print(f'{se:14s} {r["trocados"]:9,d} {r["km_trocado"]:9,.1f} '
+              f'{r["pct_km"]:6.1f}% {r["perdas_pct_antes"]:12.2f}% '
+              f'{r["perdas_pct_depois"]:8.2f}%', flush=True)
+
+    ok = [r for r in saida if not r.get('erro')]
+    tr = sum(r['trocados'] for r in ok)
+    km = sum(r['km_trocado'] for r in ok)
+    print(f'\n{"="*70}')
+    print(f'{tr:,} trechos trocados, {km:,.0f} km, em {len(ok)} subestacoes '
+          f'({time.time()-t0:.0f} s)')
+    if ok:
+        import statistics as st
+        a_ = [r['perdas_pct_antes'] for r in ok if r['perdas_pct_antes']]
+        d_ = [r['perdas_pct_depois'] for r in ok if r['perdas_pct_depois']]
+        if a_ and d_:
+            print(f'perdas medianas: {st.median(a_):.2f}%  ->  '
+                  f'{st.median(d_):.2f}%')
+    sc = sum(r.get('sem_candidato', 0) for r in ok)
+    if sc:
+        print(f'{sc:,} trechos excedem a ampacidade e NAO tem candidato no '
+              f'catalogo da base — nada foi trocado neles, e isso e alerta '
+              f'de dado, nao de modelo')
+    with open(os.path.join(raiz, 'ampacidade.json'), 'w',
+              encoding='utf-8') as fh:
+        json.dump({'margem': a.margem, 'subestacoes': saida}, fh,
+                  indent=1, ensure_ascii=False)
+    print(f'\ndetalhe em {os.path.join(raiz, "ampacidade.json")}')
+
+
+if __name__ == '__main__':
+    main()
