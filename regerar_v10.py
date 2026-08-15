@@ -112,6 +112,43 @@ def saida_de(tag):
     return f'MODELOS_{tag}_{SUFIXO}'
 
 
+def mesclar(antes, agora):
+    """Junta o resumo desta rodada com o que ja estava no arquivo.
+
+    `--so CMIG` sobrescrevia o resumo INTEIRO com uma base so. Aconteceu na
+    V11: as seis bases da noite sumiram do JSON quando a Cemig-D foi
+    reprocessada sozinha, e a tabela teve de ser remontada na mao a partir
+    dos JSONs de cada modelo.
+
+    O resumo e por base, entao a regra e por base: quem rodou agora vale
+    agora, quem nao rodou continua como estava. A ordem segue a de `BASES`,
+    para a tabela sair sempre igual.
+    """
+    novo = {r['tag']: r for r in agora}
+    velho = {r['tag']: r for r in antes if r.get('tag') not in novo}
+    juntos = {**velho, **novo}
+    ordem = [t for t, _, _ in BASES]
+    return sorted(juntos.values(),
+                  key=lambda r: (ordem.index(r['tag'])
+                                 if r.get('tag') in ordem else len(ordem)))
+
+
+def _gravador(destino):
+    """Devolve a funcao que grava o resumo mesclado em `destino`."""
+    def gravar(proc, agora):
+        antes = []
+        if os.path.exists(destino):
+            try:
+                with open(destino, encoding='utf-8') as fh:
+                    antes = json.load(fh).get('bases') or []
+            except Exception:
+                antes = []          # arquivo ilegivel nao pode travar a rodada
+        with open(destino, 'w', encoding='utf-8') as fh:
+            json.dump({'procedencia': proc, 'bases': mesclar(antes, agora)},
+                      fh, indent=1, ensure_ascii=False)
+    return gravar
+
+
 def passo(rot, cmd, log, limite):
     """Roda um comando, despeja a saida no log, devolve (ok, minutos)."""
     t0 = time.time()
@@ -224,6 +261,7 @@ def main():
     # `logs_v11/`, e nome que mente sobre a rodada e o tipo de coisa que
     # confunde quem for comparar duas delas daqui a um mes
     dest_resumo = os.path.join(LOGS, f'resumo_{SUFIXO.lower()}.json')
+    gravar = _gravador(dest_resumo)
     for k, (tag, gdb, _) in enumerate(bases):
         saida = saida_de(tag)
         log = os.path.join(LOGS, f'{tag}.log')
@@ -294,13 +332,9 @@ def main():
         with open(os.path.join(AQUI, saida, '_procedencia.json'), 'w',
                   encoding='utf-8') as fh:
             json.dump(dict(proc, base=tag), fh, indent=1, ensure_ascii=False)
-        with open(dest_resumo, 'w', encoding='utf-8') as fh:
-            json.dump({'procedencia': proc, 'bases': resumo}, fh, indent=1,
-                      ensure_ascii=False)
+        gravar(proc, resumo)
 
-    with open(dest_resumo, 'w', encoding='utf-8') as fh:
-        json.dump({'procedencia': proc, 'bases': resumo}, fh, indent=1,
-                  ensure_ascii=False)
+    gravar(proc, resumo)
 
     print(f'\n{"="*72}\nRESUMO — {(time.time()-t0)/60:.0f} min no total')
     print(f'{"base":6s} {"sadias":>12s} {"cobertura":>10s} {"razao":>8s} '
