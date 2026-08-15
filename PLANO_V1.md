@@ -7,7 +7,7 @@ auditável em vez de palpite. A régua abaixo é a definição operacional de
 "v1.0 extremamente consistente". Cada critério tem peso, nota de hoje e o que
 precisa acontecer para a nota subir.
 
-**Estado hoje: 42%.**  (era 39% — a Fase 0 fechou em 14/08/2026)
+**Estado hoje: 42%.**  Última mudança: Fase 0 fechada em 14/08/2026 (39% → 42%).
 
 ---
 
@@ -59,8 +59,9 @@ cadastro, e não que concorda com a rede.
 funciona nesta safra, o artigo nasce datado. Barato de testar assim que a
 próxima aparecer, e caro de descobrir tarde.
 
-Incluir os quatro derrubou a nota de 42% para 39%. A ferramenta não piorou; a
-régua ficou honesta.
+Incluir os quatro derrubou a nota de 42% para 39% no dia em que a régua foi
+escrita. A ferramenta não piorou; a régua ficou honesta. (A nota voltou a 42%
+depois, pela Fase 0 — e desta vez por trabalho feito.)
 
 ---
 
@@ -84,31 +85,6 @@ Sobrou uma pergunta barata desta frente: **o mesmo censo de condutor nas
 outras seis bases**, que não precisa de conversão.
 
 ---
-
-### Fase 0 — texto original, para conferência
-**Custo: dias. Ganho: 39% → 44%.**
-
-A Enel SP produz perda mediana de **11,87%** contra **1,12%** declarado —
-razão 9,92×, com 96,5% dos alimentadores acima de 1,5×. A Cemig-D, com o mesmo
-conversor e o mesmo campo, dá 1,3% contra 3,21% declarado. **O mesmo código
-erra por 10× para cima numa base e por 3× para baixo em outra**, e isso é a
-maior inconsistência aberta.
-
-Vem **antes** de regerar por um motivo prático: se a causa for compartilhada,
-regerar agora é queimar um fim de semana de máquina para refazer em seguida.
-
-Candidatos não testados, em ordem de suspeita:
-- LineCodes com `R1` incoerente com a ampacidade (é o achado 11, tratado por
-  auto-ajuste — o auto-ajuste pode estar errando de lado nesta base);
-- nível de carga: a carga vem da energia média mensal, e o fator de carga é
-  por classe;
-- comprimento de trecho: `COMP` em unidade diferente mudaria a perda
-  proporcionalmente;
-- a tensão da fonte fixada em 1,09 pu combinada com carga de potência
-  constante.
-
-Critério de saída: causa identificada e medida, ou quatro candidatos
-eliminados com número.
 
 ### Fase 1 — regerar as sete com o código atual
 **Custo: um fim de semana de máquina. Ganho: 44% → 60%.**
