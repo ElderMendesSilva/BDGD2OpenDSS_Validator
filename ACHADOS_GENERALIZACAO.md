@@ -2904,8 +2904,58 @@ Fica medido e não implementado. As opções, para decidir:
 Seja qual for, a premissa entra no artigo, e o que foi trocado tem de sair
 contado no `relatorio_rede.json`.
 
-### Vale para as outras seis?
+### Vale para as outras seis? Medido — e a resposta refuta a generalização
 
-Não medido. O censo de condutor por quilometragem é barato e não precisa de
-conversão — só do modelo já gerado ou da SEGCON mais a SSDMT. Fica como
-próximo passo desta frente.
+Censo feito nas sete, sobre os modelos já gerados:
+
+| base | km MT | R1 pond | %km < 100 A | %R1 vindo daí | pior condutor |
+|---|---|---|---|---|---|
+| Enel SP | 22.218 | 1,608 | **16,1%** | **73,6%** | 31 A, 8,232 ohm/km |
+| Enel CE | 99.832 | 5,307 | **15,3%** | **80,1%** | 25 A, 29,142 ohm/km |
+| CPFL | 90.817 | 1,061 | 0,9% | 1,6% | — |
+| Roraima | 15.712 | 0,983 | 0,6% | 14,5% | — |
+| Light | 25.611 | 0,652 | 0,2% | 10,0% | — |
+| Equatorial PA | 149.635 | 0,945 | 0,0% | 0,0% | — |
+| Cemig-D | 468.572 | 1,315 | 0,0% | 0,0% | — |
+
+Duas das sete têm o padrão, e são as duas do mesmo grupo: **Enel SP e Enel
+CE**. Isso sugere convenção de cadastro do grupo, não defeito de conversão —
+mas é leitura, não medição.
+
+**E aqui a generalização cai.** Confrontando o censo com a razão medida:
+
+| base | modelo | declarado | razão | %km fino | %R1 fino |
+|---|---|---|---|---|---|
+| Enel SP | 11,87% | **1,12%** | **9,92×** | 16,1% | 73,6% |
+| Enel CE | 4,04% | 3,54% | **1,20×** | 15,3% | 80,1% |
+| Roraima | 5,60% | 1,49% | **3,95×** | 0,6% | 14,5% |
+| CPFL | 1,37% | 1,28% | 1,10× | 0,9% | 1,6% |
+| Light | — | — | 1,04× | 0,2% | 10,0% |
+| Equatorial PA | — | — | 1,13× | 0,0% | 0,0% |
+
+A **Enel CE tem o mesmo perfil de condutor — pior, aliás — e razão de 1,20×**.
+E a **Roraima quase não tem condutor fino e erra por 3,95×**. O condutor não
+prediz a razão entre bases.
+
+O que sobrevive e o que não:
+
+- **Sobrevive**: o condutor explica o NÍVEL de perda do modelo da Enel SP.
+  O experimento é controlado e direto — trocar o R1 leva a DALV de 11,85% a
+  3,05% e não move a DIBP, que não tem fio fino. Isso não depende de nenhuma
+  outra base.
+- **Não sobrevive**: a ideia de que o mecanismo explica a razão em geral. A
+  Enel CE refuta. Lá os condutores finos devem estar em ramais de pouca
+  corrente — I²R com I pequeno não gera perda — mas isso não foi medido.
+- **Fica aberto**: a Roraima, com 3,95× e sem condutor fino, tem causa
+  própria, ainda não investigada.
+
+E há um segundo fator independente que o censo revelou: **o declarado da Enel
+SP é o mais baixo das sete**, 1,12% contra 3,54% da Enel CE. Os 9,92× são
+produto de duas coisas — um modelo alto e uma declaração baixa — e eu vinha
+tratando como se fosse só a primeira.
+
+### A boa notícia que o censo trouxe de brinde
+
+Quatro das seis bases medidas já validam dentro de 20%: Light 1,04×, CPFL
+1,10×, Equatorial PA 1,13×, Enel CE 1,20×. O problema de perda não é geral do
+conversor — está concentrado em **duas bases, por dois motivos diferentes**.
