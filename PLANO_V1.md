@@ -7,8 +7,9 @@ auditável em vez de palpite. A régua abaixo é a definição operacional de
 "v1.0 extremamente consistente". Cada critério tem peso, nota de hoje e o que
 precisa acontecer para a nota subir.
 
-**Estado hoje: 44%.**  Última mudança: censo de condutor nas sete, 14/08/2026
-(42% → 44%) — quatro das seis bases medidas já validam dentro de 20%.
+**Estado hoje: 46%.**  Última mudança: achado 35, 15/08/2026 (44% → 46%) — a
+Roraima não precisa de correção nova, e das sete sobra só a Enel SP com causa
+de perda específica e ainda não tratada.
 
 ---
 
@@ -18,7 +19,7 @@ precisa acontecer para a nota subir.
 |---|---|---|---|---|
 | 1 | O modelo energiza o que a BDGD declara | 15 | 70% | 10,5 |
 | 2 | Compila, converge, sem NaN, nas sete | 10 | 90% | 9,0 |
-| 3 | Perda valida contra o declarado nas sete | 20 | 40% | 8,0 |
+| 3 | Perda valida contra o declarado nas sete | 20 | 50% | 10,0 |
 | 4 | As sete regeradas com o código atual | 10 | 0% | 0,0 |
 | 5 | BT modelada ou sua ausência quantificada | 8 | 20% | 1,6 |
 | 6 | Camada de AT coerente ou limitação declarada | 4 | 70% | 2,8 |
@@ -28,7 +29,7 @@ precisa acontecer para a nota subir.
 | 10 | **Cobertura de medição** | 7 | 45% | 3,2 |
 | 11 | **Validação contra referência externa** | 6 | 0% | 0,0 |
 | 12 | **Sobrevive à próxima safra da BDGD** | 4 | 10% | 0,4 |
-| | | **100** | | **43,9** |
+| | | **100** | | **45,9** |
 
 ### Os quatro critérios novos, e por que entraram
 
