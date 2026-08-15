@@ -14,7 +14,9 @@ PROVA_*/
 # Medição de alcance da cabeceira (achado 32): um JSON por base, refeito em
 # poucos minutos. Os números medidos entram no ACHADOS, os arquivos não.
 alcance_*.json
+censo_condutor.json
 logs_alcance*.txt
+logs_censo.txt
 TF8/
 TF10/
 TFCLIMA/
