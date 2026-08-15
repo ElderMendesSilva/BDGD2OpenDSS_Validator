@@ -2959,3 +2959,77 @@ tratando como se fosse só a primeira.
 Quatro das seis bases medidas já validam dentro de 20%: Light 1,04×, CPFL
 1,10×, Equatorial PA 1,13×, Enel CE 1,20×. O problema de perda não é geral do
 conversor — está concentrado em **duas bases, por dois motivos diferentes**.
+
+---
+
+## Achado 35 — a Roraima erra por metade de achado 26, não por causa nova
+
+Segunda e última das duas bases com problema de perda. A Roraima dá modelo de
+**5,60%** contra **1,49%** declarado — razão 3,95× — e o censo do achado 34 já
+tinha eliminado o condutor: só 0,6% da quilometragem abaixo de 100 A.
+
+### Onde a perda está — e é o oposto da Enel SP
+
+| SE | linha kW | trafo kW | **% no trafo** | carga MW | km | perdas% | Vmin |
+|---|---|---|---|---|---|---|---|
+| 5003305 | 267,8 | 951,7 | **78,0%** | 26,53 | 181 | 4,60% | 0,313 |
+| 5003345 | 56,0 | 403,6 | **87,8%** | 8,17 | 76 | 5,62% | 0,222 |
+| 5003487 | 30,7 | 134,2 | **81,4%** | 3,35 | 1.868 | 4,93% | 0,352 |
+| 5003525 | 293,9 | 83,1 | 22,0% | 2,53 | 465 | 14,90% | 0,154 |
+| 5003625 | 1.495,1 | 610,2 | 29,0% | 16,51 | 1.730 | 12,76% | 0,063 |
+
+Na Enel SP a perda é de linha (93% na DALV); aqui é de **transformador** em
+três das cinco. Duas bases, dois mecanismos opostos — o que já explicava por
+que o condutor não predizia a razão.
+
+### E perda de transformador tem suspeito conhecido
+
+O `MODELOS_RR_V11` foi gerado no commit `3f42dc0`, **antes** do achado 26
+entrar (`6cebc32`). Ou seja: o `%R` está lançado inteiro em cada enrolamento
+quando o Módulo 10 define `R` como resistência percentual na base do
+transformador — o dobro do que devia.
+
+Dividindo o `%R` por dois nos modelos existentes:
+
+| SE | perdas antes | depois | Vmin antes | depois |
+|---|---|---|---|---|
+| 5003305 | 4,60% | **3,07%** | 0,313 | 0,481 |
+| 5003345 | 5,62% | **2,70%** | 0,222 | 0,368 |
+| 5003487 | 4,93% | **2,62%** | 0,352 | 0,357 |
+| 5003525 | 14,90% | 12,85% | 0,154 | 0,154 |
+| 5003625 | 12,76% | 10,66% | 0,063 | 0,062 |
+
+Mediana das cinco: **5,62% → 3,07%**, queda de 45%. Aplicado à mediana da base,
+5,60% → ~3,06%, e a razão de **3,95× cai para ~2,05×**.
+
+As duas que quase não se movem são justamente as de perda dominada por linha —
+consistente, e é o mesmo motivo pelo qual a Enel SP mal reagiu ao achado 26
+(11,85% → 11,53%).
+
+### O que NÃO é
+
+Conectividade. Nas cinco subestações, **zero a três cargas sem tensão** de até
+4.510, e os reguladores estão emitidos (6 e 12 nas duas piores). O achado 32
+mexe no alcance da Roraima na BDGD crua (69,6% → 94,8%), mas não é ele que
+segura a perda aqui.
+
+### O que sobra
+
+Duas subestações com perda de linha alta e cauda colapsada: 5003525 com 465 km
+para 2,53 MW e Vmin 0,154, e 5003625 com 1.730 km para 16,51 MW e Vmin
+**0,063**. Alimentador rural de 1.700 km tem perda alta por física, mas 0,063
+pu não é estado operativo — e a Roraima declara **40 reguladores para 15.712
+km**, um a cada 393 km. Se a rede real tem mais do que isso, eles não estão na
+UNREMT.
+
+Não investigado. E, ao contrário da Enel SP, aqui a medida boa só vem **depois
+de regerar**: o `%R` muda a tensão, a tensão muda a corrente, e a corrente muda
+a perda de linha. Medir o resíduo sobre um modelo com o `%R` dobrado é medir
+ruído.
+
+### Conclusão
+
+A Roraima **não precisa de correção nova**. Metade do erro dela é achado 26,
+que já está no `main` desde 14/08/2026, e o resto só é mensurável depois da
+regeração. Das sete bases, sobra a **Enel SP** como única com causa de perda
+específica e ainda não tratada — e ela depende da decisão do achado 34.
