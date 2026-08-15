@@ -7,7 +7,7 @@ auditável em vez de palpite. A régua abaixo é a definição operacional de
 "v1.0 extremamente consistente". Cada critério tem peso, nota de hoje e o que
 precisa acontecer para a nota subir.
 
-**Estado hoje: 39%.**
+**Estado hoje: 42%.**  (era 39% — a Fase 0 fechou em 14/08/2026)
 
 ---
 
@@ -17,7 +17,7 @@ precisa acontecer para a nota subir.
 |---|---|---|---|---|
 | 1 | O modelo energiza o que a BDGD declara | 15 | 70% | 10,5 |
 | 2 | Compila, converge, sem NaN, nas sete | 10 | 90% | 9,0 |
-| 3 | Perda valida contra o declarado nas sete | 20 | 15% | 3,0 |
+| 3 | Perda valida contra o declarado nas sete | 20 | 30% | 6,0 |
 | 4 | As sete regeradas com o código atual | 10 | 0% | 0,0 |
 | 5 | BT modelada ou sua ausência quantificada | 8 | 20% | 1,6 |
 | 6 | Camada de AT coerente ou limitação declarada | 4 | 70% | 2,8 |
@@ -27,7 +27,7 @@ precisa acontecer para a nota subir.
 | 10 | **Cobertura de medição** | 7 | 45% | 3,2 |
 | 11 | **Validação contra referência externa** | 6 | 0% | 0,0 |
 | 12 | **Sobrevive à próxima safra da BDGD** | 4 | 10% | 0,4 |
-| | | **100** | | **38,9** |
+| | | **100** | | **41,9** |
 
 ### Os quatro critérios novos, e por que entraram
 
@@ -66,7 +66,26 @@ régua ficou honesta.
 
 ## 2. As fases
 
-### Fase 0 — achar a causa do 10× da Enel SP
+### Fase 0 — achar a causa do 10× da Enel SP  ✅ FECHADA em 14/08/2026
+**Custo previsto: dias. Real: uma tarde. Ganho previsto 39% → 44%; real 39% → 42%.**
+
+Causa estabelecida por experimento controlado — **achado 34**. O condutor
+`CND_593`, 31 A e 8,232 ohm/km, cobre 2.990 km: 13,5% da rede. Na Enel SP
+inteira, 16% da quilometragem carrega 74% da resistência ponderada. Trocando o
+R1 dos condutores abaixo de 100 A por um de tronco, a DALV cai de 11,85% para
+3,05% e a DANC de 17,53% para 4,88%, enquanto a DIBP — que não tem fio fino —
+não se move.
+
+Ficou em 42% e não em 44% porque a causa foi **identificada, não tratada**:
+substituir o R1 é decisão de modelagem, igual à forma B do achado 33, e entra
+como premissa do artigo. Três opções registradas no achado 34.
+
+Sobrou uma pergunta barata desta frente: **o mesmo censo de condutor nas
+outras seis bases**, que não precisa de conversão.
+
+---
+
+### Fase 0 — texto original, para conferência
 **Custo: dias. Ganho: 39% → 44%.**
 
 A Enel SP produz perda mediana de **11,87%** contra **1,12%** declarado —
