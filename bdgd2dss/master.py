@@ -170,6 +170,16 @@ Set controlmode=static
 
 redirect _CHAVES_ABERTAS.dss
 
+! Premissa de modelagem, e nao conversao — achado 34. Vazio quando a base nao
+! tem trecho conduzindo acima da propria ampacidade. Apagar esta linha devolve
+! o modelo ao que a BDGD declara.
+redirect _AMPACIDADE.dss
+
+! Premissa de modelagem que INVENTA um elo — achado 33, forma B. Vazio ate
+! alguem rodar `ligacao.py`. Apagar esta linha devolve o modelo a topologia
+! que a BDGD declara.
+redirect _LIGACAO.dss
+
 Set mode=snap
 Solve
 CalcVoltagebases

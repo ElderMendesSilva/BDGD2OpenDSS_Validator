@@ -579,6 +579,22 @@ def main():
         open(os.path.join(d, '_CHAVES_ABERTAS.dss'), 'w',
              encoding='utf-8').write('\n'.join(ab) + '\n')
 
+        # O MASTER redireciona `_AMPACIDADE.dss` SEMPRE, e `Redirect` de
+        # arquivo ausente derruba a compilacao da subestacao inteira. Quem
+        # preenche e o `ampacidade.py`, que roda depois porque precisa do
+        # fluxo resolvido; ate la o arquivo existe e nao faz nada.
+        open(os.path.join(d, '_AMPACIDADE.dss'), 'w', encoding='utf-8').write(
+            '! Substituicao por ampacidade insuficiente — achado 34.\n'
+            '! Vazio: rode `python ampacidade.py <pasta>` para preencher.\n'
+            '! Sem isso o modelo reproduz a BDGD como ela e, que e o padrao.\n')
+
+        # Mesma razao do `_AMPACIDADE.dss`: o MASTER redireciona sempre, e
+        # `Redirect` de arquivo ausente derruba a subestacao inteira.
+        open(os.path.join(d, '_LIGACAO.dss'), 'w', encoding='utf-8').write(
+            '! Ligacao a componente desenergizada — achado 33, forma B.\n'
+            '! Vazio: rode `python ligacao.py <pasta>` para preencher.\n'
+            '! Sem isso o modelo reproduz a topologia que a BDGD declara.\n')
+
         # coordenadas geograficas desta subestacao
         co = coordenadas.coletar(b, 'SSDMT', ctmts)
         if a.bt == 'completo':
@@ -698,6 +714,10 @@ def main():
         niveis = sorted(niveis)
         aberturas = ['_AT/_CHAVES_ABERTAS_AT.dss']
         aberturas += [f'{s}/_CHAVES_ABERTAS.dss' for s in todas]
+        # a sobreposicao de ampacidade entra na mesma secao: as duas sao
+        # ajustes aplicados depois que a rede inteira ja existe
+        aberturas += [f'{s}/_AMPACIDADE.dss' for s in todas]
+        aberturas += [f'{s}/_LIGACAO.dss' for s in todas]
         aberturas = [x for x in aberturas if os.path.exists(os.path.join(a.saida, x))]
         vaos_todos = [c for s_ in todas for c in ses[s_]
                       if c in (vaos_lig or {})]
