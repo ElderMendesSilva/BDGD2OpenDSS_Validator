@@ -6,6 +6,18 @@ REGERACAO COMPLETA — as sete bases, do zero, com o codigo atual.
     python regerar_v10.py                 roda o que falta
     python regerar_v10.py --refazer       ignora o que ja esta pronto
     python regerar_v10.py --so RR ENCE    apenas essas
+    python regerar_v10.py --sem-premissas conversao pura, sem modelagem
+
+O CICLO, EM ORDEM
+-----------------
+    converter -> ligacao -> ampacidade -> verifica -> energia -> validador
+              -> valida_perdas -> valida_balanco
+
+`ligacao` e `ampacidade` sao PREMISSAS DE MODELAGEM, e nao conversao: a
+primeira inventa um elo que a BDGD nao declara (achado 33, forma B) e a
+segunda troca a resistencia de trecho que conduz acima da propria ampacidade
+(achado 34). As duas vem antes de medir, porque o que se mede tem de ser o
+modelo que o usuario recebe. `--sem-premissas` pula as duas.
 
 Por que existe: o passo 5 do PLANO.md muda a SAIDA do conversor (ancoragem
 da AT, tabelas de tensao derivadas da base, clima por regiao). Nenhuma dessas
@@ -207,6 +219,20 @@ def colher(tag, reg):
             reg['razao_mediana'] = round(statistics.median(r), 2)
             reg['parcelas'] = p[0].get('parcelas')
 
+    amp = ler('ampacidade.json')
+    if amp:
+        ses = [x for x in (amp.get('subestacoes') or []) if not x.get('erro')]
+        reg['ampacidade_trocados'] = sum(x.get('trocados', 0) for x in ses)
+        reg['ampacidade_km'] = round(sum(x.get('km_trocado', 0.0)
+                                         for x in ses), 1)
+
+    lg = ler('ligacao.json')
+    if lg:
+        ses = [x for x in (lg.get('subestacoes') or []) if not x.get('erro')]
+        reg['ligacao_elos'] = sum(x.get('elos', 0) for x in ses)
+        reg['ligacao_cargas'] = sum(x.get('mortas_antes', 0)
+                                    - x.get('mortas_depois', 0) for x in ses)
+
     b = ler('validacao_balanco.json')
     if b:
         reg['cruzados'] = len(b)
@@ -224,6 +250,10 @@ def main():
     ap = argparse.ArgumentParser(description=__doc__.split('\n')[2])
     ap.add_argument('--refazer', action='store_true',
                     help='ignora o que ja esta pronto e regera tudo')
+    ap.add_argument('--sem-premissas', action='store_true',
+                    help='pula a ligacao e a ampacidade: gera a conversao '
+                         'PURA, so o que a BDGD declara. Serve para medir '
+                         'quanto do resultado depende de premissa nossa')
     ap.add_argument('--so', nargs='+', metavar='TAG',
                     help='apenas estas bases (RR ENCE EQPA SP LT CPFL CMIG)')
     # A saida NUNCA vai por cima: cada rodada tem o seu sufixo, e as anteriores
@@ -300,6 +330,27 @@ def main():
                       'vez de gastar a noite. ***', flush=True)
                 break
             continue
+
+        # --- as duas premissas de MODELAGEM, nesta ordem e antes de medir
+        #
+        # A ordem importa. A `ligacao` energiza rede que estava no escuro; a
+        # `ampacidade` decide pela corrente que passa em cada trecho. Rodar a
+        # ampacidade primeiro mediria corrente numa rede menor e trocaria
+        # menos condutor do que deve.
+        #
+        # As duas vem ANTES do `verifica`: o que se mede tem de ser o modelo
+        # que o usuario vai receber, e nao um estagio intermediario dele.
+        #
+        # `--sem-premissas` pula as duas e regera a conversao pura, que e o
+        # que a BDGD declara. Ter esse caminho e o que permite dizer, com
+        # numero, quanto do resultado depende de premissa nossa.
+        if not a.sem_premissas:
+            ok, reg['min_ligacao'] = passo(
+                'ligacao', [PY, '-u', 'ligacao.py', saida], log, 4 * 3600)
+            reg['ligacao_ok'] = ok
+            ok, reg['min_ampacidade'] = passo(
+                'ampacidade', [PY, '-u', 'ampacidade.py', saida], log, 4 * 3600)
+            reg['ampacidade_ok'] = ok
 
         ok, reg['min_verifica'] = passo('verifica', [PY, '-u', 'verifica.py',
                                                      saida], log, 6 * 3600)
