@@ -1,0 +1,227 @@
+# -*- coding: utf-8 -*-
+"""
+LIGACAO A COMPONENTE DESENERGIZADA — achado 33, forma B
+=======================================================
+
+    python ligacao.py MODELOS_CMIG_V13
+    python ligacao.py MODELOS_CMIG_V13 --min-cargas 50 --se 1645246100
+
+Roda DEPOIS do `converter.py`, porque o criterio e eletrico: liga-se o que
+ficou SEM TENSAO depois de resolver, e nao o que a topologia sugere.
+
+ISTO E MODELAGEM, NAO CONVERSAO, E INVENTA UM ELO QUE A BDGD NAO DECLARA.
+Sem rodar este script o modelo reproduz a BDGD como ela e — que continua
+sendo o padrao.
+
+Por que existe: fechado o achado 32, sobra na Cemig-D um residuo de 3,9%, e
+61,9% dele esta em 29 alimentadores cuja rede esta inteira numa componente
+conexa grande enquanto a cabeceira declarada esta numa ilha ao lado. A UHST04
+tem 14.749 barras numa componente e a cabeceira na de 129. A BDGD nao diz
+qual e o elo entre as duas.
+"""
+import argparse
+import json
+import os
+import sys
+import time
+
+AQUI = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, AQUI)
+from bdgd2dss import ligacao                          # noqa: E402
+
+try:
+    import opendssdirect as dss
+except Exception as e:                                 # pragma: no cover
+    raise SystemExit(f'opendssdirect indisponivel: {e}')
+
+MORTA_V = 1.0            # volts: abaixo disso a barra nao esta energizada
+
+
+def _bus(x):
+    return x.split('.')[0].lower()
+
+
+def radiografia():
+    """Adjacencia, barras mortas, cargas por barra, kV por barra, vaos.
+
+    Sao DOIS grafos. `adj` inclui os transformadores e serve para agrupar a
+    rede desenergizada e contar a carga que ela carrega. `adj_mt` e so de
+    linhas, e e a camada de media: e nela que a tensao declarada no primario
+    do trafo se propaga, e e dela que sai a ancora.
+    """
+    adj, adj_mt = {}, {}
+
+    def liga(a, b, onde=None):
+        for g in ((adj,) if onde is None else (adj, onde)):
+            g.setdefault(a, set()).add(b)
+            g.setdefault(b, set()).add(a)
+
+    kvs_vao, barra_de_vao = set(), {}
+    for nome in dss.Lines.AllNames():
+        dss.Lines.Name(nome)
+        dss.Circuit.SetActiveElement('Line.' + nome)
+        b = [_bus(x) for x in dss.CktElement.BusNames()]
+        if len(b) >= 2:
+            liga(b[0], b[1], adj_mt)
+        if nome.lower().startswith('vao_'):
+            dss.Circuit.SetActiveBus(b[0])
+            kv = dss.Bus.kVBase()
+            kvs_vao.add(round(kv, 4))
+            barra_de_vao.setdefault(round(kv, 4), b[0])
+    i = dss.Transformers.First()
+    while i:
+        dss.Circuit.SetActiveElement('Transformer.' + dss.Transformers.Name())
+        b = [_bus(x) for x in dss.CktElement.BusNames()]
+        for j in range(len(b) - 1):
+            liga(b[0], b[j + 1])          # so no grafo completo
+        i = dss.Transformers.Next()
+
+    mortas = set()
+    for b in dss.Circuit.AllBusNames():
+        dss.Circuit.SetActiveBus(b)
+        v = dss.Bus.VMagAngle()[0::2]
+        if not v or max(v) < MORTA_V:
+            mortas.add(b.lower())
+
+    # A TENSAO DE BARRA MORTA NAO SERVE. `kVBase` sai do `CalcVoltagebases`,
+    # que le a tensao RESOLVIDA: barra sem tensao recebe a base que sobrar —
+    # nesta subestacao, todas as 36.698 barras mortas vieram com 50,8068 kV,
+    # que e a base de AT. Filtrar por ela descartava a rede inteira.
+    #
+    # A tensao que vale e a DECLARADA no primario do transformador, e ela se
+    # propaga pela camada de MT, que aqui e o grafo so-de-linhas: no modo
+    # agregado toda Line e de media e a carga mora atras do trafo.
+    kv_prim, secundarias = {}, set()
+    i = dss.Transformers.First()
+    while i:
+        nome = dss.Transformers.Name()
+        dss.Circuit.SetActiveElement('Transformer.' + nome)
+        bs = [_bus(x) for x in dss.CktElement.BusNames()]
+        secundarias.update(bs[1:])
+        try:
+            dss.Transformers.Wdg(1)
+            kv_prim[bs[0]] = dss.Transformers.kV()
+        except Exception:
+            pass
+        i = dss.Transformers.Next()
+    com_carga = set()
+    kv_por_barra = {}
+
+    cargas = {}
+    i = dss.Loads.First()
+    while i:
+        dss.Circuit.SetActiveElement('Load.' + dss.Loads.Name())
+        b = _bus(dss.CktElement.BusNames()[0])
+        cargas[b] = cargas.get(b, 0) + 1
+        com_carga.add(b)
+        i = dss.Loads.Next()
+
+    # a tensao declarada, propagada por cada componente da camada de MT
+    for comp in ligacao.componentes(adj_mt, set(adj_mt)):
+        kvs = [kv_prim[b] for b in comp if b in kv_prim]
+        if not kvs:
+            continue
+        kv = max(set(kvs), key=kvs.count)
+        for b in comp:
+            # so barra de MEDIA entra: secundario de trafo e barra com carga
+            # sao de baixa, e pendura-las na barra da SE seria pior que
+            # deixa-las desligadas
+            if b not in secundarias and b not in com_carga:
+                kv_por_barra[b] = kv
+    return adj, mortas, cargas, kv_por_barra, sorted(kvs_vao), barra_de_vao
+
+
+def uma(pasta, se, min_cargas):
+    d = os.path.join(pasta, se)
+    if not os.path.exists(os.path.join(d, f'MASTER-{se}.dss')):
+        return None
+    cwd = os.getcwd()
+    os.chdir(d)
+    try:
+        # idempotencia: o MASTER carrega o `_LIGACAO.dss` da rodada anterior,
+        # e medir a linha de base sobre ele daria a rede ja ligada
+        ligacao.escrever('_LIGACAO.dss', [], lambda kv: None)
+        dss.Text.Command('Clear')
+        dss.Text.Command(f'Redirect MASTER-{se}.dss')
+        if not dss.Solution.Converged():
+            return {'se': se, 'erro': 'nao convergiu'}
+        adj, mortas, cargas, kvb, kvs, barra = radiografia()
+        n_cargas = dss.Loads.Count()
+        mortas_antes = sum(v for b, v in cargas.items() if b in mortas)
+        comps = ligacao.componentes(adj, mortas)
+        lig, fora = ligacao.decidir(comps, adj, cargas, kvb, kvs, min_cargas)
+        ligacao.escrever('_LIGACAO.dss', lig,
+                         lambda kv: barra.get(round(kv, 4)) or
+                         (barra.get(min(barra, key=lambda k: abs(k - kv)))
+                          if barra else None), fora)
+        dss.Text.Command('Redirect _LIGACAO.dss')
+        dss.Text.Command('Solve')
+        m2 = 0
+        i = dss.Loads.First()
+        while i:
+            dss.Circuit.SetActiveElement('Load.' + dss.Loads.Name())
+            v = dss.CktElement.VoltagesMagAng()[0::2]
+            if v and max(v) < MORTA_V:
+                m2 += 1
+            i = dss.Loads.Next()
+        p = dss.Circuit.TotalPower()
+        return {'se': se, 'elos': len(lig), 'cargas': n_cargas,
+                'mortas_antes': mortas_antes, 'mortas_depois': m2,
+                'componentes': len(comps), 'descartadas': len(fora),
+                'carga_kW': round(-p[0], 1),
+                'convergiu': bool(dss.Solution.Converged()),
+                'ligacoes': lig}
+    finally:
+        os.chdir(cwd)
+
+
+def main():
+    ap = argparse.ArgumentParser(description=__doc__.split('\n')[2])
+    ap.add_argument('pasta')
+    ap.add_argument('--min-cargas', type=int, default=ligacao.MIN_CARGAS,
+                    help='componente com menos cargas que isto e ruido '
+                         f'(padrao {ligacao.MIN_CARGAS})')
+    ap.add_argument('--se', nargs='+')
+    a = ap.parse_args()
+
+    raiz = a.pasta if os.path.isabs(a.pasta) else os.path.join(AQUI, a.pasta)
+    if not os.path.isdir(raiz):
+        raise SystemExit(f'pasta nao encontrada: {raiz}')
+    ses = a.se or sorted(x for x in os.listdir(raiz)
+                         if os.path.isdir(os.path.join(raiz, x))
+                         and not x.startswith('_'))
+
+    print(f'{len(ses)} subestacoes | componente com menos de '
+          f'{a.min_cargas} cargas e ruido\n', flush=True)
+    print(f'{"SE":14s} {"elos":>5s} {"comps":>6s} {"mortas antes":>13s} '
+          f'{"depois":>9s} {"recuperadas":>12s}', flush=True)
+    t0, saida = time.time(), []
+    for se in ses:
+        r = uma(raiz, se, a.min_cargas)
+        if r is None:
+            continue
+        saida.append(r)
+        if r.get('erro'):
+            print(f'{se:14s} {r["erro"]}', flush=True)
+            continue
+        print(f'{se:14s} {r["elos"]:5d} {r["componentes"]:6d} '
+              f'{r["mortas_antes"]:13,d} {r["mortas_depois"]:9,d} '
+              f'{r["mortas_antes"]-r["mortas_depois"]:12,d}', flush=True)
+
+    ok = [r for r in saida if not r.get('erro')]
+    rec = sum(r['mortas_antes'] - r['mortas_depois'] for r in ok)
+    print(f'\n{"="*70}')
+    print(f'{sum(r["elos"] for r in ok):,} elos em {len(ok)} subestacoes, '
+          f'{rec:,} cargas recuperadas ({time.time()-t0:.0f} s)')
+    nc = [r['se'] for r in ok if not r['convergiu']]
+    if nc:
+        print(f'ATENCAO: {len(nc)} deixaram de convergir depois do elo: '
+              f'{", ".join(nc[:5])}')
+    with open(os.path.join(raiz, 'ligacao.json'), 'w', encoding='utf-8') as fh:
+        json.dump({'min_cargas': a.min_cargas, 'subestacoes': saida}, fh,
+                  indent=1, ensure_ascii=False)
+    print(f'\ndetalhe em {os.path.join(raiz, "ligacao.json")}')
+
+
+if __name__ == '__main__':
+    main()
