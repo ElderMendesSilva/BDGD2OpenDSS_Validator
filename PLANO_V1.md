@@ -7,9 +7,8 @@ auditável em vez de palpite. A régua abaixo é a definição operacional de
 "v1.0 extremamente consistente". Cada critério tem peso, nota de hoje e o que
 precisa acontecer para a nota subir.
 
-**Estado hoje: 46%.**  Última mudança: achado 35, 15/08/2026 (44% → 46%) — a
-Roraima não precisa de correção nova, e das sete sobra só a Enel SP com causa
-de perda específica e ainda não tratada.
+**Estado hoje: 50%.**  Última mudança: as duas premissas de modelagem
+implementadas e fundidas, 15/08/2026 (46% → 50%).
 
 ---
 
@@ -17,9 +16,9 @@ de perda específica e ainda não tratada.
 
 | # | critério | peso | hoje | contribui |
 |---|---|---|---|---|
-| 1 | O modelo energiza o que a BDGD declara | 15 | 70% | 10,5 |
+| 1 | O modelo energiza o que a BDGD declara | 15 | 85% | 12,8 |
 | 2 | Compila, converge, sem NaN, nas sete | 10 | 90% | 9,0 |
-| 3 | Perda valida contra o declarado nas sete | 20 | 50% | 10,0 |
+| 3 | Perda valida contra o declarado nas sete | 20 | 60% | 12,0 |
 | 4 | As sete regeradas com o código atual | 10 | 0% | 0,0 |
 | 5 | BT modelada ou sua ausência quantificada | 8 | 20% | 1,6 |
 | 6 | Camada de AT coerente ou limitação declarada | 4 | 70% | 2,8 |
@@ -29,7 +28,7 @@ de perda específica e ainda não tratada.
 | 10 | **Cobertura de medição** | 7 | 45% | 3,2 |
 | 11 | **Validação contra referência externa** | 6 | 0% | 0,0 |
 | 12 | **Sobrevive à próxima safra da BDGD** | 4 | 10% | 0,4 |
-| | | **100** | | **45,9** |
+| | | **100** | | **50,2** |
 
 ### Os quatro critérios novos, e por que entraram
 
@@ -102,18 +101,34 @@ Ordem: canário primeiro (Roraima, 1,9 min), Cemig-D por último. O
 Critério de saída: as sete com `validacao_balanco.json`, árvore limpa na
 procedência, e a tabela das sete montada de uma vez.
 
+### Premissas de modelagem — decididas e implementadas em 15/08/2026
+
+As duas foram aprovadas pelo Elder e estão no `main`. As duas são
+**reversíveis**: cada uma é um `_*.dss` que o MASTER redireciona, e
+`regerar_v10.py --sem-premissas` gera a conversão pura, só o que a BDGD
+declara. É esse caminho que permite dizer, com número, quanto do resultado
+depende de premissa nossa.
+
+**Ampacidade insuficiente (achado 34).** Troca R1 e R0 do trecho cuja corrente
+calculada excede a ampacidade declarada, pelo condutor mais fino do catálogo
+da própria base que cobre a corrente. Medido: DALV 11,53% → 3,56%, DANC
+17,12% → 5,80%, DIBP (sem fio fino) 1,61% → 1,60%.
+
+**Ligação à componente desenergizada (achado 33, forma B).** Liga a barra de
+MT da subestação à barra de maior grau da componente que ficou sem tensão.
+**Inventa um elo que a BDGD não declara**, e o cabeçalho do arquivo diz isso.
+Medido na SUB 1645246100 da Cemig-D: 8.027 → 2.798 cargas sem tensão.
+
+O ciclo passou a ser `converter → ligacao → ampacidade → verifica → …`, nesta
+ordem: a ligação energiza rede que estava no escuro, e a ampacidade decide
+pela corrente que passa depois disso.
+
 ### Fase 2 — fechar o resíduo de alcance
 **Custo: dias. Ganho: 60% → 70%.**
 
-Três frentes, em ordem de peso medido:
+Sobram duas frentes, agora que a forma B está tratada:
 
-1. **A forma B do achado 33** — 61,9% do resíduo da Cemig-D. Vinte e nove
-   alimentadores grandes com a rede inteira numa componente gigante e a
-   cabeceira declarada numa ilha ao lado. **Exige decisão tua**: consertar é
-   ligar a barra da subestação à componente gigante, o que inventa um elo que
-   a BDGD não declara. Vira premissa escrita do artigo, não conserto
-   silencioso.
-2. **O achado 31** — cabeceira alcançada pela `SUB` quando `UNI_TR_AT` aponta
+1. **O achado 31** — cabeceira alcançada pela `SUB` quando `UNI_TR_AT` aponta
    para o vazio. Vale a subestação 1726751 inteira, 7.803 cargas.
 3. **A forma C e o balde `-FC`** — rede estilhaçada em 1.922 componentes, e os
    20 alimentadores da EQPA que somam 11% da MT daquela base. É o menos
