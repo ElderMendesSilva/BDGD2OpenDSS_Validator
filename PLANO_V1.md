@@ -7,8 +7,9 @@ auditável em vez de palpite. A régua abaixo é a definição operacional de
 "v1.0 extremamente consistente". Cada critério tem peso, nota de hoje e o que
 precisa acontecer para a nota subir.
 
-**Estado hoje: 50%.**  Última mudança: as duas premissas de modelagem
-implementadas e fundidas, 15/08/2026 (46% → 50%).
+**Estado hoje: 53%.**  Última mudança: Fase 1 em curso, 17/08/2026 — duas das
+sete bases regeradas (50% → 53%). O critério 4 é uma contagem e sobe 1,4 ponto
+por base; a Fase 1 completa leva a régua a ~59%.
 
 ---
 
@@ -19,7 +20,7 @@ implementadas e fundidas, 15/08/2026 (46% → 50%).
 | 1 | O modelo energiza o que a BDGD declara | 15 | 85% | 12,8 |
 | 2 | Compila, converge, sem NaN, nas sete | 10 | 90% | 9,0 |
 | 3 | Perda valida contra o declarado nas sete | 20 | 60% | 12,0 |
-| 4 | As sete regeradas com o código atual | 10 | 0% | 0,0 |
+| 4 | As sete regeradas com o código atual | 10 | 29% | 2,9 |
 | 5 | BT modelada ou sua ausência quantificada | 8 | 20% | 1,6 |
 | 6 | Camada de AT coerente ou limitação declarada | 4 | 70% | 2,8 |
 | 7 | PIP, EQSE, UNSEBT resolvidas ou declaradas | 4 | 30% | 1,2 |
@@ -28,7 +29,7 @@ implementadas e fundidas, 15/08/2026 (46% → 50%).
 | 10 | **Cobertura de medição** | 7 | 45% | 3,2 |
 | 11 | **Validação contra referência externa** | 6 | 0% | 0,0 |
 | 12 | **Sobrevive à próxima safra da BDGD** | 4 | 10% | 0,4 |
-| | | **100** | | **50,2** |
+| | | **100** | | **53,1** |
 
 ### Os quatro critérios novos, e por que entraram
 
