@@ -42,3 +42,27 @@ medição —, e é isto aqui que a torna automática.
 `dados/extraido_bdgd/`, `dados/resultados/`. Saída de execução não entra no
 repositório; os **números medidos** entram, no
 `docs/ACHADOS_GENERALIZACAO.md`.
+
+## Retenção: o que se guarda e o que se joga fora
+
+A saída do conversor é **reproduzível a partir do `.gdb`** — guardar rodada
+velha é ocupar disco com o que um comando refaz. Em 17/08/2026 a pasta tinha
+20 GB; foi a 8,3 GB apagando o que já não servia de comparação.
+
+**Guardar:**
+
+- a rodada **corrente** e a **anterior**, para comparar. Hoje: V13 (corrente)
+  e V11/V12 (comparação). Quando a V13 fechar e validar, V11 e V12 saem.
+- `logs/<sufixo>/` de **todas** as rodadas. São megabytes e são a memória do
+  projeto: as tabelas "V11 → V13" saem deles, não dos modelos.
+- `MODELOS_V9/LINHA_DE_BASE.md` e `linha_de_base.json`, que estão no git de
+  propósito — é a linha de base declarada.
+- `relatorios/`, que são PDF institucional e **não** se refazem.
+
+**Jogar fora sem dó:** rodada de duas versões atrás, `TESTE_*`, `TF*`,
+`PROVA_*`, pasta de modelo sem sufixo de versão, e qualquer saída que um
+comando registrado reproduza.
+
+**Nunca apagar sem olhar:** `dados/` é insumo, não resultado. `relatorios/`
+não se refaz. E código, mesmo morto, sai por `git rm` e não por `rm` — fica
+recuperável no histórico.
