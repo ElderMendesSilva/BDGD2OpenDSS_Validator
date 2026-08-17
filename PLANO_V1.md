@@ -130,7 +130,7 @@ Sobram duas frentes, agora que a forma B está tratada:
 
 1. **O achado 31** — cabeceira alcançada pela `SUB` quando `UNI_TR_AT` aponta
    para o vazio. Vale a subestação 1726751 inteira, 7.803 cargas.
-3. **A forma C e o balde `-FC`** — rede estilhaçada em 1.922 componentes, e os
+2. **A forma C e o balde `-FC`** — rede estilhaçada em 1.922 componentes, e os
    20 alimentadores da EQPA que somam 11% da MT daquela base. É o menos
    entendido dos três.
 
