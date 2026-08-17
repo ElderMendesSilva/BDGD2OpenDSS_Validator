@@ -52,7 +52,7 @@ import time
 AQUI = os.path.dirname(os.path.abspath(__file__))
 BDGDS = r'D:\Elder\Elder\BDGDs'
 CRIT = os.path.dirname(AQUI)
-LOGS = os.path.join(AQUI, 'logs_v10')
+LOGS = os.path.join(AQUI, 'logs', 'v10')      # ver PASTAS, no CLAUDE.md
 PY = sys.executable
 
 # (tag, caminho da .gdb, minutos de conversao medidos na rodada anterior)
@@ -266,7 +266,7 @@ def main():
     a = ap.parse_args()
 
     SUFIXO = a.sufixo
-    LOGS = os.path.join(AQUI, f'logs_{SUFIXO.lower()}')
+    LOGS = os.path.join(AQUI, 'logs', SUFIXO.lower())
 
     os.makedirs(LOGS, exist_ok=True)
     # Rodando pelo Agendador de Tarefas nao ha console: sem isto, o resumo

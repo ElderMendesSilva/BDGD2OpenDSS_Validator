@@ -13,12 +13,9 @@ PROVA_*/
 
 # Medição de alcance da cabeceira (achado 32): um JSON por base, refeito em
 # poucos minutos. Os números medidos entram no ACHADOS, os arquivos não.
-alcance_*.json
-censo_condutor.json
+medicoes/
 memoria_*.csv
 logs_amostrador.txt
-logs_alcance*.txt
-logs_censo.txt
 TF8/
 TF10/
 TFCLIMA/
@@ -61,6 +58,7 @@ conversao.log
 # devolver conteúdo e a rodada se marca "ÁRVORE SUJA — modelo não
 # reproduzível" sozinha. Aconteceu na V11, em 12/08/2026: `logs_v10/` estava
 # aqui e `logs_v11/` não.
+logs/
 logs_*/
 
 __pycache__/
