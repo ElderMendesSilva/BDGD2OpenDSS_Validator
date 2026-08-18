@@ -3033,3 +3033,95 @@ A Roraima **não precisa de correção nova**. Metade do erro dela é achado 26,
 que já está no `main` desde 14/08/2026, e o resto só é mensurável depois da
 regeração. Das sete bases, sobra a **Enel SP** como única com causa de perda
 específica e ainda não tratada — e ela depende da decisão do achado 34.
+
+---
+
+## Achado 36 — 85% da conversão era revarredura de geometria
+
+A regeração V13 levou **24,7 h** e a Cemig-D sozinha **7h17 de conversão**,
+contra 148 min previstos. O `energia` dela estourou o limite de 8 h em 291 de
+413 subestações e foi morto sem gravar nada, o que deixou a base sem cobertura,
+sem razão e sem violação. O ciclo deixou de ser viável.
+
+### Onde o tempo estava — e onde eu achei que estivesse
+
+Primeiro medi o custo por subestação sem perfilar, pelas marcas de tempo do
+`resumo.json` de cada pasta:
+
+```
+412 subestacoes, 432 min somados
+por SE: mediana 50,5 s | media 62,9 s | p90 111,9 s
+as 20 mais caras somam 69 min — 16% do total
+```
+
+**Custo uniforme, sem correlação com tamanho**: uma subestação de 11.814 barras
+levou 10,1 min e outra de 23.163 levou 3,8. Isso é custo fixo por subestação, a
+assinatura de varredura de tabela inteira.
+
+A primeira hipótese foi o lote de atributos, e ela estava **errada**. A leitura
+isolada da SSDMT parecia dar razão a ela:
+
+| lote (SEs) | CTMTs | tempo de uma leitura | por SE |
+|---|---|---|---|
+| 10 | 215 | 88,7 s | 8,9 s |
+| 40 | 365 | 109,2 s | 2,7 s |
+| 100 | 657 | 152,0 s | 1,5 s |
+
+Mas o A/B na conversão real deu **13%**, não 6×: 1.612 s com lote 6 contra
+1.399 s com lote 24, em 24 subestações. Extrapolei o custo de **uma** leitura
+para o custo **inteiro** da subestação — o mesmo erro dos 50 s da `ligacao` e
+do censo da Enel CE.
+
+### O gargalo de verdade
+
+`coordenadas.coletar` faz a **própria** leitura, com `read_geometry=True` e
+cláusula `WHERE`, e era chamado **uma vez por subestação** — por fora do lote,
+que existe justamente para não revarrer a camada:
+
+```
+SUB com   4 CTMTs -> 51,6 s  so de coordenada
+SUB com   4 CTMTs -> 51,2 s
+SUB com 175 CTMTs -> 73,0 s        o preco e da varredura, nao do dado
+as tres JUNTAS    -> 83,4 s        contra 175,8 s separadas
+```
+
+Em 413 subestações, **~358 min dos 437**. O total medido por subestação era
+58–63 s, e 51 deles eram coordenada.
+
+### A fidelidade decidiu o desenho
+
+A primeira correção filtrou o dicionário do lote por **conjunto de barras**, e
+o `BusCoords.dat` mudou nas seis subestações de teste — a leitura por
+subestação também trazia barra fora da rede modelada. O critério certo é o
+mesmo de antes: o **CTMT da linha**, percorrida na **ordem do arquivo**. Daí
+`linhas_do_lote`, que guarda as pontas em ordem com o CTMT de cada uma.
+
+Foi a comparação byte a byte que pegou o erro, não o raciocínio.
+
+| | tempo, 6 SEs da Cemig-D, mesmo lote |
+|---|---|
+| código velho | 388 s |
+| código novo | **222 s** |
+| arquivos comparados | **114 idênticos, 0 diferentes** (inclui `BusCoords.dat`) |
+
+### O lote deixou de ser contagem de subestação
+
+Contar subestação não serve: a Cemig-D tem **mediana de 4** alimentadores por
+subestação e **uma com 175**. Lote fixo de 10 usava 215 dos 900 valores da
+cláusula `IN`; lote fixo de 100, na subestação errada, estouraria o teto e
+cairia na varredura em fatias. Agora o lote é montado por **número de
+alimentadores**, com teto de 850.
+
+### O que isso protege daqui pra frente
+
+Seis testes em `testes/test_invariancia_lote.py` trancam que mudar o tamanho do
+lote não muda uma linha do que sai — inclusive que o superconjunto lido **não
+vaza** para o modelo. Fidelidade à BDGD é o argumento do artigo; verificar uma
+vez não sustenta, a suíte impedir sustenta.
+
+### E o `energia` parou de perder trabalho
+
+Oito horas sem gravar nada é falha de robustez, não de desempenho, e num ciclo
+de horas custa mais caro que qualquer lentidão. Agora ele grava a cada
+subestação, por arquivo temporário e troca atômica, e retoma o que já mediu.
+Provado: morto aos 45 s tinha 7 de 20 gravadas; ao retomar, fechou as 20.

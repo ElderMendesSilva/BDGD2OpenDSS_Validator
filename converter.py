@@ -321,7 +321,12 @@ def main():
                     help='nao gerar a camada de alta tensao nem o MASTER-GERAL')
     ap.add_argument('--reg-vreg', type=float, default=122.0,
                     help='tensao de referencia dos reguladores, em V no TP')
-    ap.add_argument('--lote', type=int, default=10,
+    ap.add_argument('--max-ctmt', type=int, default=850,
+                    dest='max_ctmt',
+                    help='teto de alimentadores por varredura da BDGD '
+                         '(padrao 850; a clausula IN do OpenFileGDB aceita '
+                         '900). E este que governa o tamanho do lote')
+    ap.add_argument('--lote', type=int, default=200,
                     help='subestacoes por varredura de camada da BDGD. Maior '
                          'reduz o numero de varreduras e usa mais memoria; '
                          '1 volta ao comportamento antigo (uma varredura por '
@@ -460,13 +465,42 @@ def main():
     # custa os mesmos 13 s de trazer 6.927. Um lote de 10 subestacoes custa
     # 19 s onde 10 leituras separadas custam 135. Sem isto, ~45 dos ~75 min da
     # rodada eram revarredura de tabela.
+    # O LOTE E MONTADO POR NUMERO DE ALIMENTADORES, NAO DE SUBESTACOES.
+    #
+    # Contar subestacoes nao serve porque a densidade varia demais: a
+    # Cemig-D tem MEDIANA de 4 alimentadores por subestacao e uma unica com
+    # 175. Um lote fixo de 10 usava 215 dos 900 valores que a clausula IN
+    # aceita — varriamos a camada 15 vezes mais do que o necessario; um lote
+    # fixo de 100, na subestacao errada, estouraria o teto e cairia na
+    # varredura em fatias, que e o caminho lento.
+    #
+    # O teto de 850 deixa folga para os 900 do SQLite do OpenFileGDB. Uma
+    # subestacao sozinha maior que o teto vira um lote so dela — o WHERE
+    # entao nao cabe e a leitura cai na varredura, que e o comportamento
+    # correto e ja existia.
+    lotes, atual, n_ctmt = [], [], 0
+    for se in alvo:
+        q = len(ses.get(se, []))
+        if atual and (n_ctmt + q > a.max_ctmt or len(atual) >= a.lote):
+            lotes.append(atual)
+            atual, n_ctmt = [], 0
+        atual.append(se)
+        n_ctmt += q
+    if atual:
+        lotes.append(atual)
+    de_qual_lote = {se: i for i, g in enumerate(lotes) for se in g}
+    print(f'{len(lotes)} lotes de leitura para {len(alvo)} subestacoes '
+          f'(teto de {a.max_ctmt} alimentadores por lote)', flush=True)
+
     feitas = []
+    lote_atual = None
     for k, se in enumerate(alvo, 1):
         if CANCELAR is not None and CANCELAR.is_set():
             print('Cancelado pelo usuario.', flush=True)
             break
-        if (k - 1) % a.lote == 0:
-            grupo = alvo[k - 1:k - 1 + a.lote]
+        if de_qual_lote.get(se) != lote_atual:
+            lote_atual = de_qual_lote.get(se)
+            grupo = lotes[lote_atual]
             ctmts_lote = [c for s in grupo for c in ses.get(s, [])]
             b.abrir_lote(ctmts_lote)
             co_cache = {}          # a geometria do lote, lida sob demanda
