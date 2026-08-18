@@ -216,6 +216,9 @@ def main():
     ap.add_argument('--min-cargas', type=int, default=ligacao.MIN_CARGAS,
                     help='componente com menos cargas que isto e ruido '
                          f'(padrao {ligacao.MIN_CARGAS})')
+    ap.add_argument('--jobs', type=int, default=4,
+                    help='subestacoes em paralelo (padrao 4); cada uma custa '
+                         'um processo com a sua instancia do OpenDSS')
     ap.add_argument('--se', nargs='+')
     a = ap.parse_args()
 
@@ -230,18 +233,45 @@ def main():
           f'{a.min_cargas} cargas e ruido\n', flush=True)
     print(f'{"SE":14s} {"elos":>5s} {"comps":>6s} {"mortas antes":>13s} '
           f'{"depois":>9s} {"recuperadas":>12s}', flush=True)
-    t0, saida = time.time(), []
-    for se in ses:
-        r = uma(raiz, se, a.min_cargas)
-        if r is None:
-            continue
-        saida.append(r)
+    t0 = time.time()
+
+    def _linha(r):
         if r.get('erro'):
-            print(f'{se:14s} {r["erro"]}', flush=True)
-            continue
-        print(f'{se:14s} {r["elos"]:5d} {r["componentes"]:6d} '
+            print(f'{r["se"]:14s} {r["erro"]}', flush=True)
+            return
+        print(f'{r["se"]:14s} {r["elos"]:5d} {r["componentes"]:6d} '
               f'{r["mortas_antes"]:13,d} {r["mortas_depois"]:9,d} '
               f'{r["mortas_antes"]-r["mortas_depois"]:12,d}', flush=True)
+
+    # EM PARALELO, mesmo padrao do `energia.py`. Cada subestacao tem modelo
+    # proprio e nenhum estado compartilhado; o que impedia rodar junto era o
+    # `opendssdirect` guardar circuito e solucao em variaveis globais, e em
+    # PROCESSOS separados isso deixa de existir.
+    #
+    # Aqui importa mais que nos outros: a aceitacao dos elos e feita UM A UM,
+    # com um `Solve` por tentativa. E trabalho de motor, exatamente o que
+    # ganha com processo proprio.
+    #
+    # A ORDEM DO JSON NAO PODE DEPENDER DE QUEM TERMINOU PRIMEIRO: ele sai na
+    # ordem de `ses`, que e a da execucao serial.
+    por_se = {}
+    if a.jobs > 1 and len(ses) > 1:
+        import concurrent.futures as cf
+        print(f'{a.jobs} subestacoes em paralelo', flush=True)
+        with cf.ProcessPoolExecutor(max_workers=a.jobs) as ex:
+            fut = {ex.submit(uma, raiz, s_, a.min_cargas): s_ for s_ in ses}
+            for f_ in cf.as_completed(fut):
+                r = f_.result()
+                if r is not None:
+                    por_se[fut[f_]] = r
+                    _linha(r)
+    else:
+        for se in ses:
+            r = uma(raiz, se, a.min_cargas)
+            if r is not None:
+                por_se[se] = r
+                _linha(r)
+    saida = [por_se[s_] for s_ in ses if s_ in por_se]
 
     ok = [r for r in saida if not r.get('erro')]
     rec = sum(r['mortas_antes'] - r['mortas_depois'] for r in ok)
