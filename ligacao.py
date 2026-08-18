@@ -210,7 +210,40 @@ def uma(pasta, se, min_cargas):
         os.chdir(cwd)
 
 
+def _painel():
+    """Sem argumento, pergunta na janela — o `menu.py` conta com isso."""
+    import interativo
+    v = interativo.formulario('ligacao', 'Ligação à componente desenergizada', [
+        {'chave': 'pasta', 'tipo': 'pasta', 'rotulo': 'Pasta dos modelos',
+         'padrao': interativo.modelos_recentes(),
+         'dica': 'a pasta que contém uma subpasta por subestação'},
+        {'chave': 'min_cargas', 'tipo': 'inteiro',
+         'rotulo': 'Cargas mínimas para ligar', 'padrao': 20,
+         'dica': 'componente com menos cargas que isto é ruído, e ligá-la '
+                 'não muda resultado nenhum'},
+        {'chave': 'jobs', 'tipo': 'inteiro', 'rotulo': 'Subestações em paralelo',
+         'padrao': 8,
+         'dica': 'medido: o ganho satura perto de 8. Use 1 se for usar o '
+                 'computador junto'},
+        {'chave': 'se', 'tipo': 'texto', 'rotulo': 'Subestações', 'padrao': '',
+         'dica': 'vazio = todas'},
+    ], ajuda='PREMISSA DE MODELAGEM: liga a barra de MT da subestação à rede '
+             'que ficou sem tensão. INVENTA um elo que a BDGD não declara, e '
+             'por isso escreve tudo em _LIGACAO.dss, que dá para apagar. '
+             'Elo que faz o modelo divergir é recusado.')
+    if not v:
+        return False
+    sys.argv += [v['pasta'], '--min-cargas', str(v['min_cargas']),
+                 '--jobs', str(v['jobs'])]
+    if v['se'].strip():
+        sys.argv += ['--se'] + v['se'].split()
+    return True
+
+
 def main():
+    if len(sys.argv) == 1 and not _painel():
+        return
+
     ap = argparse.ArgumentParser(description=__doc__.split('\n')[2])
     ap.add_argument('pasta')
     ap.add_argument('--min-cargas', type=int, default=ligacao.MIN_CARGAS,

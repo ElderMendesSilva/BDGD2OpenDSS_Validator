@@ -114,7 +114,39 @@ def uma(pasta, se, margem):
         os.chdir(cwd)
 
 
+def _painel():
+    """Sem argumento, pergunta na janela — o `menu.py` conta com isso."""
+    import interativo
+    v = interativo.formulario('ampacidade', 'Substituição por ampacidade', [
+        {'chave': 'pasta', 'tipo': 'pasta', 'rotulo': 'Pasta dos modelos',
+         'padrao': interativo.modelos_recentes(),
+         'dica': 'a pasta que contém uma subpasta por subestação'},
+        {'chave': 'margem', 'tipo': 'texto', 'rotulo': 'Margem', 'padrao': '1.0',
+         'dica': 'quantas vezes a ampacidade a corrente precisa exceder para '
+                 'o condutor ser trocado'},
+        {'chave': 'jobs', 'tipo': 'inteiro', 'rotulo': 'Subestações em paralelo',
+         'padrao': 8,
+         'dica': 'medido: o ganho satura perto de 8. Use 1 se for usar o '
+                 'computador junto'},
+        {'chave': 'se', 'tipo': 'texto', 'rotulo': 'Subestações', 'padrao': '',
+         'dica': 'vazio = todas'},
+    ], ajuda='PREMISSA DE MODELAGEM: troca a resistência do trecho cuja '
+             'corrente calculada excede a ampacidade declarada, pelo condutor '
+             'mais fino do catálogo da própria base que a cobre. Escreve em '
+             '_AMPACIDADE.dss, que dá para apagar.')
+    if not v:
+        return False
+    sys.argv += [v['pasta'], '--margem', str(v['margem']),
+                 '--jobs', str(v['jobs'])]
+    if v['se'].strip():
+        sys.argv += ['--se'] + v['se'].split()
+    return True
+
+
 def main():
+    if len(sys.argv) == 1 and not _painel():
+        return
+
     ap = argparse.ArgumentParser(description=__doc__.split('\n')[2])
     ap.add_argument('pasta', help='pasta do modelo (MODELOS_*)')
     ap.add_argument('--margem', type=float, default=ampacidade.MARGEM,

@@ -245,7 +245,61 @@ def colher(tag, reg):
     return reg
 
 
+def _painel():
+    """Sem argumento, pergunta na janela — o `menu.py` conta com isso.
+
+    Este e o unico script que dispara HORAS de trabalho num clique, entao ele
+    pergunta antes: quais bases, com que sufixo e se as premissas entram.
+    """
+    import interativo
+    v = interativo.formulario('regerar', 'Ciclo completo das sete bases', [
+        {'chave': 'sufixo', 'tipo': 'texto', 'rotulo': 'Sufixo da rodada',
+         'padrao': 'V15',
+         'dica': 'as saidas vao para MODELOS_<BASE>_<SUFIXO> e os logs para '
+                 'logs/<sufixo>. Nunca por cima da rodada anterior'},
+        {'chave': 'so', 'tipo': 'texto', 'rotulo': 'Apenas estas bases',
+         'padrao': '',
+         'dica': 'vazio = as sete   •   ex.: RR ENCE   '
+                 '(RR ENCE EQPA SP LT CPFL CMIG)'},
+        {'chave': 'jobs', 'tipo': 'inteiro', 'rotulo': 'Subestacoes em paralelo',
+         'padrao': 8,
+         'dica': 'usado nos passos que resolvem rede. Medido: satura perto de '
+                 '8, porque o custo e ler o modelo do disco. Use 1 se for '
+                 'usar o computador junto'},
+        {'chave': 'max_ctmt', 'tipo': 'inteiro',
+         'rotulo': 'Alimentadores por leitura', 'padrao': 850,
+         'dica': 'a BDGD nao tem indice: cada leitura varre a tabela inteira. '
+                 'Maior = menos varreduras e mais memoria. O limite do '
+                 'formato e 900'},
+        {'chave': 'premissas', 'tipo': 'bool',
+         'rotulo': 'Aplicar as premissas de modelagem', 'padrao': True,
+         'dica': 'religar rede sem tensao e trocar condutor sobrecarregado. '
+                 'Desmarcado, o modelo reproduz SO o que a BDGD declara'},
+        {'chave': 'refazer', 'tipo': 'bool', 'rotulo': 'Refazer o que ja esta pronto',
+         'padrao': False,
+         'dica': 'por padrao ele pula a base que ja tem validacao_balanco.json '
+                 'e continua da proxima'},
+    ], ajuda='Roda o ciclo inteiro nas sete distribuidoras: converter, as duas '
+             'premissas, verificar, energia, validador e as duas validacoes. '
+             'Sao HORAS — deixe rodando. Retoma de onde parou.',
+       rodar='Rodar o ciclo')
+    if not v:
+        return False
+    sys.argv += ['--sufixo', v['sufixo'], '--jobs', str(v['jobs']),
+                 '--max-ctmt', str(v['max_ctmt'])]
+    if v['so'].strip():
+        sys.argv += ['--so'] + v['so'].split()
+    if not v['premissas']:
+        sys.argv.append('--sem-premissas')
+    if v['refazer']:
+        sys.argv.append('--refazer')
+    return True
+
+
 def main():
+    if len(sys.argv) == 1 and not _painel():
+        return
+
     global SUFIXO, LOGS
     ap = argparse.ArgumentParser(description=__doc__.split('\n')[2])
     ap.add_argument('--refazer', action='store_true',
@@ -260,6 +314,14 @@ def main():
     # ficam no disco. Sem elas nao ha com o que comparar, e comparar e o unico
     # jeito de saber se a mudanca melhorou ou piorou — foi assim que se
     # descobriu que o passo 5 nao moveu nenhum numero de energia (achado 23).
+    ap.add_argument('--jobs', type=int, default=8, metavar='N',
+                    help='subestacoes em paralelo nos passos que resolvem '
+                         'rede (padrao 8). Medido: o ganho satura perto de 8, '
+                         'porque o custo e ler o modelo do disco')
+    ap.add_argument('--max-ctmt', type=int, default=850, dest='max_ctmt',
+                    metavar='N',
+                    help='alimentadores por leitura da BDGD na conversao '
+                         '(padrao 850; o formato aceita 900)')
     ap.add_argument('--sufixo', default=SUFIXO, metavar='TAG',
                     help=f'sufixo das pastas de saida (padrao {SUFIXO}); '
                          f'MODELOS_<base>_<sufixo>')
@@ -319,7 +381,8 @@ def main():
         # prontas e foram aproveitadas. O pulo por base, acima, e o que evita
         # refazer o que ja terminou; aqui dentro, retomar e sempre melhor.
         ok, reg['min_converter'] = passo(
-            'converter', [PY, '-u', 'converter.py', gdb, '--saida', saida],
+            'converter', [PY, '-u', 'converter.py', gdb, '--saida', saida,
+                          '--max-ctmt', str(a.max_ctmt)],
             log, limite=8 * 3600)
         reg['converter_ok'] = ok
         if not ok:
@@ -346,17 +409,21 @@ def main():
         # numero, quanto do resultado depende de premissa nossa.
         if not a.sem_premissas:
             ok, reg['min_ligacao'] = passo(
-                'ligacao', [PY, '-u', 'ligacao.py', saida], log, 4 * 3600)
+                'ligacao', [PY, '-u', 'ligacao.py', saida,
+                            '--jobs', str(a.jobs)], log, 4 * 3600)
             reg['ligacao_ok'] = ok
             ok, reg['min_ampacidade'] = passo(
-                'ampacidade', [PY, '-u', 'ampacidade.py', saida], log, 4 * 3600)
+                'ampacidade', [PY, '-u', 'ampacidade.py', saida,
+                            '--jobs', str(a.jobs)], log, 4 * 3600)
             reg['ampacidade_ok'] = ok
 
-        ok, reg['min_verifica'] = passo('verifica', [PY, '-u', 'verifica.py',
-                                                     saida], log, 6 * 3600)
+        ok, reg['min_verifica'] = passo('verifica', [PY, '-u', 'verifica.py', saida,
+                                                     '--jobs', str(a.jobs)],
+                                        log, 6 * 3600)
         reg['verifica_ok'] = ok
-        ok, reg['min_energia'] = passo('energia', [PY, '-u', 'energia.py',
-                                                   saida], log, 8 * 3600)
+        ok, reg['min_energia'] = passo('energia', [PY, '-u', 'energia.py', saida,
+                                                   '--jobs', str(a.jobs)],
+                                       log, 8 * 3600)
         reg['energia_ok'] = ok
         # O validador entra na fila porque e ele que exercita a mudanca do
         # achado 3 — o limiar de REDE_EXTENSA vindo da propria base. Sem ele

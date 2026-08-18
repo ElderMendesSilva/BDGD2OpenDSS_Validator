@@ -315,11 +315,17 @@ def _painel():
          'valores': ['ambos', 'capi', 'com'],
          'dica': 'ambos é o que vale: o mesmo arquivo se comporta diferente '
                  'no C-API e no motor da EPRI'},
+        {'chave': 'jobs', 'tipo': 'inteiro', 'rotulo': 'Subestações em paralelo',
+         'padrao': 8,
+         'dica': 'medido: o ganho satura perto de 8, porque o custo é ler o '
+                 'modelo do disco e não calcular. Use 1 se for usar o '
+                 'computador junto'},
     ], ajuda='Compila e resolve cada subestação nos dois motores do OpenDSS e '
              'diz quais têm NaN, não convergem ou não compilam.')
     if not v:
         return False
-    sys.argv += [v['raiz'], '--motor', v['motor'], '--grafico']
+    sys.argv += [v['raiz'], '--motor', v['motor'], '--grafico',
+                 '--jobs', str(v['jobs'])]
     if v['se'].strip():
         sys.argv += ['--se'] + v['se'].split()
     return True

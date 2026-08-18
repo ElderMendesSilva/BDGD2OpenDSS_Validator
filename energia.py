@@ -323,12 +323,18 @@ def _painel():
         {'chave': 'curvas', 'tipo': 'bool', 'rotulo': 'Curvas de geração',
          'padrao': True,
          'dica': 'carga × GD ao longo do dia: uma por subestação, mais a geral'},
+        {'chave': 'jobs', 'tipo': 'inteiro', 'rotulo': 'Subestações em paralelo',
+         'padrao': 8,
+         'dica': 'medido: o ganho satura perto de 8, porque o custo é ler o '
+                 'modelo do disco e não calcular. Use 1 se for usar o '
+                 'computador junto'},
     ], ajuda='Roda o dia inteiro em instantâneos independentes e integra a '
              'energia entregue e as perdas de cada alimentador. É o número '
              'comparável com o PERD_* declarado na CTMT.')
     if not v:
         return False
     sys.argv += [v['raiz'], '--passos', str(v['passos']), '--grafico']
+    sys.argv += ['--jobs', str(v['jobs'])]
     if v['curvas']:
         sys.argv.append('--curvas')
     if v['se'].strip():

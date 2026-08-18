@@ -38,6 +38,16 @@ FERRAMENTAS = [
      'Lê o .gdb e gera os modelos OpenDSS — um MASTER por subestação mais o '
      'MASTER-GERAL com a alta tensão.',
      'a BDGD (.gdb). Leva ~50 min para a concessão inteira.'),
+    ('Religar a rede sem tensão  (premissa)', 'ligacao.py',
+     'PREMISSA DE MODELAGEM: liga a barra de MT da subestação à rede que '
+     'ficou desenergizada. INVENTA um elo que a BDGD não declara — escreve '
+     'em _LIGACAO.dss, que dá para apagar. Elo que faz divergir é recusado.',
+     'os modelos gerados. Rode ANTES da ampacidade: religar muda a corrente.'),
+    ('Trocar condutor sobrecarregado  (premissa)', 'ampacidade.py',
+     'PREMISSA DE MODELAGEM: troca a resistência do trecho cuja corrente '
+     'calculada excede a ampacidade declarada. Escreve em _AMPACIDADE.dss, '
+     'que dá para apagar.',
+     'os modelos gerados, e a ligação já rodada se for usá-la.'),
     ('Verificar as subestações', 'verifica.py',
      'Compila e resolve cada subestação nos DOIS motores do OpenDSS e aponta '
      'NaN, não convergência e falha de compilação.',
@@ -54,6 +64,11 @@ FERRAMENTAS = [
      'Cruza a perda do modelo com a declarada na CTMT (PERD_A4 + PERD_B + '
      'PERD_A4_B), alimentador a alimentador.',
      'o energia_dia.json (rode antes "Energia e perdas do dia") e a BDGD.'),
+    ('Validar o balanço de energia', 'valida_balanco.py',
+     'Confronta a perda técnica do modelo com a energia MEDIDA na BDGD — '
+     'injetada contra faturada — e separa o modelo impossível da medição '
+     'degenerada.',
+     'o energia_dia.json e a BDGD.'),
     ('Análise e gráficos (COM)', 'analise_com.py',
      'Resolve um MASTER pelo motor da EPRI e desenha o traçado geográfico, '
      'o perfil de tensão, o carregamento e as perdas.',
@@ -62,6 +77,11 @@ FERRAMENTAS = [
      'Janela com todas as subestações listadas: validar uma ou todas, ver as '
      'figuras e abrir o Plot nativo do OpenDSS.',
      'os modelos gerados.'),
+    ('CICLO COMPLETO das sete bases', 'regerar_v10.py',
+     'Roda tudo acima, na ordem, para as sete distribuidoras: converter, as '
+     'duas premissas, verificar, energia, validador e as duas validações. '
+     'Retoma de onde parou e grava o resumo por base.',
+     'as sete .gdb no disco. É o ciclo de horas — deixe rodando.'),
 ]
 
 

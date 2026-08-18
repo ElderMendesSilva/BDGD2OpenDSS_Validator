@@ -119,8 +119,136 @@ class App(tk.Tk):
                                                     sticky='w', padx=4, pady=(0, 8))
         f2.columnconfigure(1, weight=1)
 
+        # --- desempenho
+        #
+        # Estes dois numeros saíram de medição, não de palpite, e a explicação
+        # ao lado de cada um é o que evita que alguém os mexa no escuro.
+        f4 = ttk.LabelFrame(self, text='Desempenho')
+        f4.pack(fill='x', **pad)
+
+        ttk.Label(f4, text='Alimentadores por leitura:').grid(
+            row=0, column=0, sticky='w', padx=6, pady=6)
+        self.v_maxctmt = tk.IntVar(value=850)
+        ttk.Spinbox(f4, from_=50, to=900, increment=50, width=8,
+                    textvariable=self.v_maxctmt).grid(row=0, column=1,
+                                                      sticky='w', padx=4)
+        ttk.Label(f4, text='a BDGD não tem índice: cada leitura varre a tabela '
+                          'inteira, então lê-se muita coisa de uma vez. '
+                          'Maior = menos varreduras e mais memória. '
+                          'O limite do formato é 900',
+                  foreground='#666', wraplength=430, justify='left'
+                  ).grid(row=0, column=2, columnspan=3, sticky='w', padx=6)
+
+        ttk.Label(f4, text='Subestações em paralelo:').grid(
+            row=1, column=0, sticky='w', padx=6, pady=6)
+        self.v_jobs = tk.IntVar(value=8)
+        ttk.Spinbox(f4, from_=1, to=32, increment=1, width=8,
+                    textvariable=self.v_jobs).grid(row=1, column=1,
+                                                   sticky='w', padx=4)
+        ttk.Label(f4, text=f'usado na validação e nas premissas, não na '
+                           f'conversão. Esta máquina tem {os.cpu_count()} '
+                           f'núcleos; medido, o ganho satura perto de 8 '
+                           f'porque o custo é ler o modelo do disco, não '
+                           f'calcular. Use 1 se for usar o computador junto',
+                  foreground='#666', wraplength=430, justify='left'
+                  ).grid(row=1, column=2, columnspan=3, sticky='w', padx=6)
+
+        self.v_premissas = tk.BooleanVar(value=True)
+        ttk.Checkbutton(
+            f4, text='Aplicar as premissas de modelagem (religar rede sem '
+                     'tensão e trocar condutor sobrecarregado)',
+            variable=self.v_premissas).grid(row=2, column=0, columnspan=5,
+                                            sticky='w', padx=6, pady=(0, 2))
+        ttk.Label(f4, text='desmarcado, o modelo reproduz SÓ o que a BDGD '
+                           'declara. As duas premissas mudam o resultado e '
+                           'ficam escritas em arquivo separado, que dá para '
+                           'apagar depois',
+                  foreground='#666', wraplength=560, justify='left'
+                  ).grid(row=3, column=0, columnspan=5, sticky='w',
+                         padx=24, pady=(0, 8))
+        f4.columnconfigure(2, weight=1)
+
+        # --- avancado
+        #
+        # Fica RECOLHIDO. Sao quinze opcoes que quase ninguem toca, e deixa-las
+        # abertas empurraria o botao Converter para fora da tela. Mas elas
+        # existem na linha de comando, entao tem de existir aqui: opcao que so
+        # da para usar por comando nao existe para quem usa o painel.
+        self.v_avancado = tk.BooleanVar(value=False)
+        ttk.Checkbutton(self, text='Mostrar opções avançadas',
+                        variable=self.v_avancado,
+                        command=self._alterna_avancado).pack(anchor='w',
+                                                             padx=12)
+        self.f5 = ttk.LabelFrame(self, text='Avançado')
+
+        def _lin(r, rot, var, dica, largura=10):
+            ttk.Label(self.f5, text=rot).grid(row=r, column=0, sticky='w',
+                                              padx=6, pady=4)
+            ttk.Entry(self.f5, textvariable=var, width=largura).grid(
+                row=r, column=1, sticky='w', padx=4)
+            ttk.Label(self.f5, text=dica, foreground='#666', wraplength=430,
+                      justify='left').grid(row=r, column=2, sticky='w', padx=6)
+
+        self.v_kvmt = tk.StringVar(value='13.8')
+        self.v_kvat = tk.StringVar(value='88')
+        _lin(0, 'Tensão de MT (kV):', self.v_kvmt,
+             'usada só quando o código TEN_NOM da BDGD é desconhecido')
+        _lin(1, 'Tensão de AT (kV):', self.v_kvat, 'idem, para a alta tensão')
+
+        self.v_irrad = tk.StringVar(value='1.0')
+        _lin(2, 'Irradiância:', self.v_irrad,
+             '0 a 1. 1,0 = meio-dia de céu claro. Para ponta de carga, use 0')
+        self.v_gdfp = tk.StringVar(value='1.0')
+        _lin(3, 'Fator de potência da GD:', self.v_gdfp,
+             '1,0 é como o inversor opera em campo. 0,92 é a capacidade que o '
+             'Módulo 3 exige — só para estudo de reativo')
+
+        self.v_regv = tk.StringVar(value='122')
+        self.v_regb = tk.StringVar(value='2')
+        self.v_regk = tk.StringVar(value='5000')
+        _lin(4, 'Regulador — vreg (V):', self.v_regv,
+             'ajuste TÍPICO, não de campo: a BDGD não traz o ajuste real')
+        _lin(5, 'Regulador — banda (V):', self.v_regb, '')
+        _lin(6, 'Regulador — kVA:', self.v_regk, '')
+
+        self.v_excel = tk.StringVar()
+        _lin(7, 'Planilhas da ISA:', self.v_excel,
+             'pasta com os dados da transmissora. Sem ela, as subestações de '
+             'transmissão usam equivalente', largura=30)
+        self.v_clima = tk.StringVar()
+        _lin(8, 'Clima medido:', self.v_clima,
+             'pasta com Irradiancia_Interpolada/ e Temperatura_Interpolado/. '
+             'Sem ela, usa perfil sintético', largura=30)
+        self.v_climadist = tk.StringVar(value='390')
+        _lin(9, 'Distribuidora do clima:', self.v_climadist,
+             'código ANEEL de quem o dado de clima pertence')
+        self.v_climaforcar = tk.BooleanVar(value=False)
+        ttk.Checkbutton(self.f5, text='Usar o clima medido mesmo sendo de '
+                        'outra distribuidora (fica registrado na procedência)',
+                        variable=self.v_climaforcar).grid(
+                            row=10, column=0, columnspan=3, sticky='w', padx=6)
+
+        self.v_lote = tk.StringVar(value='200')
+        _lin(11, 'Subestações por lote:', self.v_lote,
+             'teto secundário: quem governa é "alimentadores por leitura", '
+             'acima')
+        self.v_memmax = tk.StringVar(value='0')
+        _lin(12, 'Limite de memória (GB):', self.v_memmax,
+             '0 = sem limite. Ao passar, o conversor para limpo e diz onde '
+             'retomar')
+        self.v_cache = tk.StringVar(value='_cache_ucbt.pkl')
+        _lin(13, 'Arquivo de cache:', self.v_cache,
+             'a agregação da UCBT é reaproveitada entre execuções', largura=24)
+        self.v_refazer = tk.BooleanVar(value=False)
+        ttk.Checkbutton(self.f5, text='Refazer as subestações já existentes '
+                        '(padrão: pula e continua de onde parou)',
+                        variable=self.v_refazer).grid(
+                            row=14, column=0, columnspan=3, sticky='w',
+                            padx=6, pady=(0, 8))
+        self.f5.columnconfigure(2, weight=1)
+
         # --- acoes
-        f3 = ttk.Frame(self)
+        f3 = self.f_acoes = ttk.Frame(self)
         f3.pack(fill='x', **pad)
         self.b_run = ttk.Button(f3, text='Converter', command=self._iniciar, width=16)
         self.b_run.pack(side='left')
@@ -145,6 +273,12 @@ class App(tk.Tk):
         self.status = tk.StringVar(value='Selecione a BDGD para começar.')
         ttk.Label(self, textvariable=self.status, relief='sunken', anchor='w'
                   ).pack(fill='x', side='bottom')
+
+    def _alterna_avancado(self):
+        if self.v_avancado.get():
+            self.f5.pack(fill='x', padx=12, pady=(0, 8), before=self.f_acoes)
+        else:
+            self.f5.pack_forget()
 
     # ------------------------------------------------------------------ selecao
     def _sel_gdb_pasta(self):
@@ -247,7 +381,26 @@ class App(tk.Tk):
                     '--mes', self.v_mes.get().split()[0],
                     '--dia', self.v_dia.get().split()[0],
                     '--fator-carga', str(self.v_fator.get()),
-                    '--bt', self.v_bt.get()]
+                    '--bt', self.v_bt.get(),
+                    '--max-ctmt', str(self.v_maxctmt.get()),
+                    '--kv-mt', self.v_kvmt.get(), '--kv-at', self.v_kvat.get(),
+                    '--irradiancia', self.v_irrad.get(),
+                    '--gd-fp', self.v_gdfp.get(),
+                    '--reg-vreg', self.v_regv.get(),
+                    '--reg-band', self.v_regb.get(),
+                    '--reg-kva', self.v_regk.get(),
+                    '--clima-dist', self.v_climadist.get(),
+                    '--lote', self.v_lote.get(),
+                    '--memoria-max', self.v_memmax.get(),
+                    '--cache', self.v_cache.get()]
+            if self.v_excel.get().strip():
+                argv += ['--excel', self.v_excel.get().strip()]
+            if self.v_clima.get().strip():
+                argv += ['--clima', self.v_clima.get().strip()]
+            if self.v_climaforcar.get():
+                argv.append('--clima-forcar')
+            if self.v_refazer.get():
+                argv.append('--refazer')
             if self.v_semat.get():
                 argv.append('--sem-at')
             ses = self.v_se.get().split()
