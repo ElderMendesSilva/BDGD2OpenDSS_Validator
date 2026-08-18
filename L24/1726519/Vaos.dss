@@ -1,0 +1,12 @@
+! ==========================================================
+! VAOS DE SAIDA — barra de MT da SE -> cabeceira do alimentador
+! Derivado de CTMT.BARR e CTMT.UNI_TR_AT: a BDGD nao modela o
+! arranjo interno da subestacao, so o vinculo logico.
+! Cada vao e o disjuntor de saida do alimentador.
+! ==========================================================
+New Line.VAO_ADOD05 phases=3 Bus1=5195977.1.2.3 Bus2=segm_2610138224.1.2.3 Switch=y r1=0.0001 r0=0.0001 x1=0 x0=0 c1=0 c0=0
+New Monitor.M_ADOD05 element=Line.VAO_ADOD05 terminal=1 mode=1 ppolar=no
+New Line.VAO_ADOD03 phases=3 Bus1=5195977.1.2.3 Bus2=segm_2610138196.1.2.3 Switch=y r1=0.0001 r0=0.0001 x1=0 x0=0 c1=0 c0=0
+New Monitor.M_ADOD03 element=Line.VAO_ADOD03 terminal=1 mode=1 ppolar=no
+New Line.VAO_ADOD06 phases=3 Bus1=5195977.1.2.3 Bus2=segm_2610138252.1.2.3 Switch=y r1=0.0001 r0=0.0001 x1=0 x0=0 c1=0 c0=0
+New Monitor.M_ADOD06 element=Line.VAO_ADOD06 terminal=1 mode=1 ppolar=no

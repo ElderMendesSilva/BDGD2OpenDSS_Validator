@@ -1,0 +1,89 @@
+! ==========================================================
+! LINECODES — gerados de SEGCON
+! R1/X1: dado da BDGD (ohm/km)
+! R0/X0: PREMISSA — R0=3.0 x R1, X0=3.5 x X1
+!        A BDGD nao traz sequencia zero. Ver README, secao "Limitacoes".
+! normamps = CNOM (capacidade nominal), emergamps = CMAX
+!
+! COERENCIA R1 x CNOM: 4 condutores tiveram a resistencia substituida
+! por estarem mais de 7.4x acima do previsto pelo ajuste calibrado nesta
+! propria base (R1 = 508.6 x CNOM^-1.279, n=3566). Cada um esta
+! marcado com "!! R1 CORRIGIDO" na sua linha. Ver README.
+! ==========================================================
+
+New LineCode.CND_1099_1F nphases=1 basefreq=60 units=km r1=0.97000 x1=0.52000 r0=2.91000 x0=1.82000 normamps=204.0 emergamps=265.2
+New LineCode.CND_155_3F nphases=3 basefreq=60 units=km r1=0.15000 x1=0.09000 r0=0.45000 x0=0.31500 normamps=250.0 emergamps=290.0
+New LineCode.CND_20_1F nphases=1 basefreq=60 units=km r1=0.81000 x1=0.27000 r0=2.43000 x0=0.94500 normamps=141.0 emergamps=183.3
+New LineCode.CND_20_3F nphases=3 basefreq=60 units=km r1=0.81000 x1=0.27000 r0=2.43000 x0=0.94500 normamps=141.0 emergamps=183.3
+New LineCode.CND_22_3F nphases=3 basefreq=60 units=km r1=0.97000 x1=0.52000 r0=2.91000 x0=1.82000 normamps=204.0 emergamps=265.2
+New LineCode.CND_23_3F nphases=3 basefreq=60 units=km r1=0.83000 x1=0.12000 r0=2.49000 x0=0.42000 normamps=95.0 emergamps=152.0
+New LineCode.CND_382_3F nphases=3 basefreq=60 units=km r1=0.97000 x1=0.52000 r0=2.91000 x0=1.82000 normamps=204.0 emergamps=265.2
+New LineCode.CND_4_3F nphases=3 basefreq=60 units=km r1=0.25000 x1=0.43000 r0=0.75000 x0=1.50500 normamps=456.0 emergamps=592.8
+New LineCode.CND_46_3F nphases=3 basefreq=60 units=km r1=0.33000 x1=0.59000 r0=0.99000 x0=2.06500 normamps=430.0 emergamps=559.0
+New LineCode.CND_461_3F nphases=3 basefreq=60 units=km r1=0.81000 x1=0.27000 r0=2.43000 x0=0.94500 normamps=141.0 emergamps=183.3
+New LineCode.CND_47_3F nphases=3 basefreq=60 units=km r1=0.15000 x1=0.09000 r0=0.45000 x0=0.31500 normamps=250.0 emergamps=290.0
+New LineCode.CND_60_3F nphases=3 basefreq=60 units=km r1=0.81000 x1=0.27000 r0=2.43000 x0=0.94500 normamps=141.0 emergamps=183.3
+New LineCode.CND_53_3F nphases=3 basefreq=60 units=km r1=1.55000 x1=0.52000 r0=4.65000 x0=1.82000 normamps=152.0 emergamps=197.6
+New LineCode.CND_77_3F nphases=3 basefreq=60 units=km r1=0.81000 x1=0.27000 r0=2.43000 x0=0.94500 normamps=141.0 emergamps=183.3
+New LineCode.CND_880_1F nphases=1 basefreq=60 units=km r1=0.51000 x1=0.25000 r0=1.53000 x0=0.87500 normamps=180.0 emergamps=234.0
+New LineCode.CND_910_1F nphases=1 basefreq=60 units=km r1=1.55000 x1=0.52000 r0=4.65000 x0=1.82000 normamps=152.0 emergamps=197.6
+New LineCode.CND_911_1F nphases=1 basefreq=60 units=km r1=0.81000 x1=0.27000 r0=2.43000 x0=0.94500 normamps=141.0 emergamps=183.3
+New LineCode.CND_913_1F nphases=1 basefreq=60 units=km r1=0.97000 x1=0.52000 r0=2.91000 x0=1.82000 normamps=204.0 emergamps=265.2
+New LineCode.CND_923_1F nphases=1 basefreq=60 units=km r1=0.97000 x1=0.52000 r0=2.91000 x0=1.82000 normamps=204.0 emergamps=265.2
+New LineCode.CND_965_1F nphases=1 basefreq=60 units=km r1=1.55000 x1=0.52000 r0=4.65000 x0=1.82000 normamps=152.0 emergamps=197.6
+New LineCode.CND_3_3F nphases=3 basefreq=60 units=km r1=0.25000 x1=0.43000 r0=0.75000 x0=1.50500 normamps=456.0 emergamps=592.8
+New LineCode.CND_6_3F nphases=3 basefreq=60 units=km r1=0.83000 x1=0.12000 r0=2.49000 x0=0.42000 normamps=95.0 emergamps=152.0
+New LineCode.CND_10_3F nphases=3 basefreq=60 units=km r1=0.81000 x1=0.27000 r0=2.43000 x0=0.94500 normamps=141.0 emergamps=183.3
+New LineCode.CND_11_1F nphases=1 basefreq=60 units=km r1=1.55000 x1=0.52000 r0=4.65000 x0=1.82000 normamps=152.0 emergamps=197.6
+New LineCode.CND_11_3F nphases=3 basefreq=60 units=km r1=1.55000 x1=0.52000 r0=4.65000 x0=1.82000 normamps=152.0 emergamps=197.6
+New LineCode.CND_13_3F nphases=3 basefreq=60 units=km r1=0.15000 x1=0.09000 r0=0.45000 x0=0.31500 normamps=250.0 emergamps=290.0
+New LineCode.CND_19_3F nphases=3 basefreq=60 units=km r1=0.97000 x1=0.52000 r0=2.91000 x0=1.82000 normamps=204.0 emergamps=265.2
+New LineCode.CND_28_3F nphases=3 basefreq=60 units=km r1=0.15000 x1=0.09000 r0=0.45000 x0=0.31500 normamps=250.0 emergamps=290.0
+New LineCode.CND_30_3F nphases=3 basefreq=60 units=km r1=0.33000 x1=0.59000 r0=0.99000 x0=2.06500 normamps=430.0 emergamps=559.0
+New LineCode.CND_34_3F nphases=3 basefreq=60 units=km r1=0.21000 x1=0.23000 r0=0.63000 x0=0.80500 normamps=375.0 emergamps=487.5
+New LineCode.CND_50_3F nphases=3 basefreq=60 units=km r1=1.55000 x1=0.52000 r0=4.65000 x0=1.82000 normamps=152.0 emergamps=197.6
+New LineCode.CND_51_3F nphases=3 basefreq=60 units=km r1=0.97000 x1=0.52000 r0=2.91000 x0=1.82000 normamps=204.0 emergamps=265.2
+New LineCode.CND_149_3F nphases=3 basefreq=60 units=km r1=0.81000 x1=0.27000 r0=2.43000 x0=0.94500 normamps=141.0 emergamps=183.3
+New LineCode.CND_258_3F nphases=3 basefreq=60 units=km r1=0.97000 x1=0.52000 r0=2.91000 x0=1.82000 normamps=204.0 emergamps=265.2
+New LineCode.CND_281_3F nphases=3 basefreq=60 units=km r1=0.97000 x1=0.52000 r0=2.91000 x0=1.82000 normamps=204.0 emergamps=265.2
+New LineCode.CND_307_3F nphases=3 basefreq=60 units=km r1=0.81000 x1=0.27000 r0=2.43000 x0=0.94500 normamps=141.0 emergamps=183.3
+New LineCode.CND_321_3F nphases=3 basefreq=60 units=km r1=0.15000 x1=0.09000 r0=0.45000 x0=0.31500 normamps=250.0 emergamps=290.0
+New LineCode.CND_405_3F nphases=3 basefreq=60 units=km r1=1.55000 x1=0.52000 r0=4.65000 x0=1.82000 normamps=152.0 emergamps=197.6
+New LineCode.CND_427_3F nphases=3 basefreq=60 units=km r1=0.15000 x1=0.09000 r0=0.45000 x0=0.31500 normamps=250.0 emergamps=290.0
+New LineCode.CND_430_3F nphases=3 basefreq=60 units=km r1=0.81000 x1=0.27000 r0=2.43000 x0=0.94500 normamps=141.0 emergamps=183.3
+New LineCode.CND_439_3F nphases=3 basefreq=60 units=km r1=0.15000 x1=0.22000 r0=0.45000 x0=0.77000 normamps=425.0 emergamps=552.5
+New LineCode.CND_456_3F nphases=3 basefreq=60 units=km r1=0.97000 x1=0.52000 r0=2.91000 x0=1.82000 normamps=204.0 emergamps=265.2
+New LineCode.CND_463_3F nphases=3 basefreq=60 units=km r1=0.97000 x1=0.52000 r0=2.91000 x0=1.82000 normamps=204.0 emergamps=265.2
+New LineCode.CND_471_3F nphases=3 basefreq=60 units=km r1=1.55000 x1=0.52000 r0=4.65000 x0=1.82000 normamps=152.0 emergamps=197.6
+New LineCode.CND_586_3F nphases=3 basefreq=60 units=km r1=0.97000 x1=0.52000 r0=2.91000 x0=1.82000 normamps=204.0 emergamps=265.2
+New LineCode.CND_881_1F nphases=1 basefreq=60 units=km r1=2.29000 x1=0.08000 r0=6.87000 x0=0.28000 normamps=95.0 emergamps=152.0
+New LineCode.CND_883_1F nphases=1 basefreq=60 units=km r1=0.97000 x1=0.52000 r0=2.91000 x0=1.82000 normamps=204.0 emergamps=265.2
+New LineCode.CND_902_1F nphases=1 basefreq=60 units=km r1=0.97000 x1=0.52000 r0=2.91000 x0=1.82000 normamps=204.0 emergamps=265.2
+New LineCode.CND_907_1F nphases=1 basefreq=60 units=km r1=1.55000 x1=0.52000 r0=4.65000 x0=1.82000 normamps=152.0 emergamps=197.6
+New LineCode.CND_909_1F nphases=1 basefreq=60 units=km r1=1.55000 x1=0.52000 r0=4.65000 x0=1.82000 normamps=152.0 emergamps=197.6
+New LineCode.CND_899_1F nphases=1 basefreq=60 units=km r1=0.15000 x1=0.09000 r0=0.45000 x0=0.31500 normamps=250.0 emergamps=290.0
+New LineCode.CND_912_1F nphases=1 basefreq=60 units=km r1=0.97000 x1=0.52000 r0=2.91000 x0=1.82000 normamps=204.0 emergamps=265.2
+New LineCode.CND_915_1F nphases=1 basefreq=60 units=km r1=0.81000 x1=0.27000 r0=2.43000 x0=0.94500 normamps=141.0 emergamps=183.3
+New LineCode.CND_926_1F nphases=1 basefreq=60 units=km r1=0.97000 x1=0.52000 r0=2.91000 x0=1.82000 normamps=204.0 emergamps=265.2
+New LineCode.CND_949_1F nphases=1 basefreq=60 units=km r1=0.15000 x1=0.09000 r0=0.45000 x0=0.31500 normamps=250.0 emergamps=290.0
+New LineCode.CND_957_1F nphases=1 basefreq=60 units=km r1=2.47000 x1=0.51000 r0=7.41000 x0=1.78500 normamps=113.0 emergamps=146.9
+New LineCode.CND_996_1F nphases=1 basefreq=60 units=km r1=1.55000 x1=0.52000 r0=4.65000 x0=1.82000 normamps=152.0 emergamps=197.6
+New LineCode.CND_1027_1F nphases=1 basefreq=60 units=km r1=0.15000 x1=0.09000 r0=0.45000 x0=0.31500 normamps=250.0 emergamps=290.0
+New LineCode.CND_1030_1F nphases=1 basefreq=60 units=km r1=0.97000 x1=0.52000 r0=2.91000 x0=1.82000 normamps=204.0 emergamps=265.2
+New LineCode.CND_1037_1F nphases=1 basefreq=60 units=km r1=0.97000 x1=0.52000 r0=2.91000 x0=1.82000 normamps=204.0 emergamps=265.2
+New LineCode.CND_1041_1F nphases=1 basefreq=60 units=km r1=0.81000 x1=0.27000 r0=2.43000 x0=0.94500 normamps=141.0 emergamps=183.3
+New LineCode.CND_1044_1F nphases=1 basefreq=60 units=km r1=0.81000 x1=0.27000 r0=2.43000 x0=0.94500 normamps=141.0 emergamps=183.3
+New LineCode.CND_1062_1F nphases=1 basefreq=60 units=km r1=1.55000 x1=0.52000 r0=4.65000 x0=1.82000 normamps=152.0 emergamps=197.6
+New LineCode.CND_1067_1F nphases=1 basefreq=60 units=km r1=0.93000 x1=0.26000 r0=2.79000 x0=0.91000 normamps=136.0 emergamps=176.8
+New LineCode.CND_1110_1F nphases=1 basefreq=60 units=km r1=0.81000 x1=0.27000 r0=2.43000 x0=0.94500 normamps=141.0 emergamps=183.3
+New LineCode.CND_1121_1F nphases=1 basefreq=60 units=km r1=0.81000 x1=0.27000 r0=2.43000 x0=0.94500 normamps=141.0 emergamps=183.3
+New LineCode.CND_1158_1F nphases=1 basefreq=60 units=km r1=1.04000 x1=0.08000 r0=3.12000 x0=0.28000 normamps=99.0 emergamps=128.7
+New LineCode.CND_1185_1F nphases=1 basefreq=60 units=km r1=0.77000 x1=0.35000 r0=2.31000 x0=1.22500 normamps=101.0 emergamps=131.3
+New LineCode.CND_1209_1F nphases=1 basefreq=60 units=km r1=0.51000 x1=0.25000 r0=1.53000 x0=0.87500 normamps=180.0 emergamps=234.0
+New LineCode.CND_1230_1F nphases=1 basefreq=60 units=km r1=0.51000 x1=0.25000 r0=1.53000 x0=0.87500 normamps=180.0 emergamps=234.0
+New LineCode.CND_1607_1F nphases=1 basefreq=60 units=km r1=0.81000 x1=0.27000 r0=2.43000 x0=0.94500 normamps=141.0 emergamps=183.3
+New LineCode.CND_2821_3F nphases=3 basefreq=60 units=km r1=0.21000 x1=0.18000 r0=0.63000 x0=0.63000 normamps=386.0 emergamps=501.8
+New LineCode.CND_2902_1F nphases=1 basefreq=60 units=km r1=0.97000 x1=0.52000 r0=2.91000 x0=1.82000 normamps=204.0 emergamps=265.2
+New LineCode.CND_3012_1F nphases=1 basefreq=60 units=km r1=1.55000 x1=0.52000 r0=4.65000 x0=1.82000 normamps=152.0 emergamps=197.6
+
+! condutor generico para trechos sem TIP_CND na base

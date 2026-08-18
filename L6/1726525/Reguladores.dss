@@ -1,0 +1,144 @@
+! REGULADORES — gerados de UNREMT
+! vreg = 122 V e band = 2 V — AJUSTES TIPICOS, nao de campo.
+! kVA = 5000 adotado; a BDGD nao traz a potencia do regulador.
+! O ptratio segue a tensao de cada alimentador (TP para 120 V).
+New Transformer.REG_350314445_1 phases=1 windings=2 XHL=0.04
+~ buses=[segm_350314494.1 segm_350314433.1] conns=[wye wye]
+~ kVs=[7.9674 7.9674] kVAs=[5000 5000] %Rs=[0.01 0.01]
+~ maxtap=1.10 mintap=0.90 numtaps=32
+New RegControl.RC_REG_350314445_1 transformer=REG_350314445_1 winding=2 vreg=122 band=2 ptratio=66.4 delay=15 maxtapchange=1
+New Transformer.REG_350314445_2 phases=1 windings=2 XHL=0.04
+~ buses=[segm_350314494.2 segm_350314433.2] conns=[wye wye]
+~ kVs=[7.9674 7.9674] kVAs=[5000 5000] %Rs=[0.01 0.01]
+~ maxtap=1.10 mintap=0.90 numtaps=32
+New RegControl.RC_REG_350314445_2 transformer=REG_350314445_2 winding=2 vreg=122 band=2 ptratio=66.4 delay=15 maxtapchange=1
+New Transformer.REG_350314445_3 phases=1 windings=2 XHL=0.04
+~ buses=[segm_350314494.3 segm_350314433.3] conns=[wye wye]
+~ kVs=[7.9674 7.9674] kVAs=[5000 5000] %Rs=[0.01 0.01]
+~ maxtap=1.10 mintap=0.90 numtaps=32
+New RegControl.RC_REG_350314445_3 transformer=REG_350314445_3 winding=2 vreg=122 band=2 ptratio=66.4 delay=15 maxtapchange=1
+New Transformer.REG_351916775_1 phases=1 windings=2 XHL=0.04
+~ buses=[segm_351916824.1 segm_351916763.1] conns=[wye wye]
+~ kVs=[7.9674 7.9674] kVAs=[5000 5000] %Rs=[0.01 0.01]
+~ maxtap=1.10 mintap=0.90 numtaps=32
+New RegControl.RC_REG_351916775_1 transformer=REG_351916775_1 winding=2 vreg=122 band=2 ptratio=66.4 delay=15 maxtapchange=1
+New Transformer.REG_351916775_2 phases=1 windings=2 XHL=0.04
+~ buses=[segm_351916824.2 segm_351916763.2] conns=[wye wye]
+~ kVs=[7.9674 7.9674] kVAs=[5000 5000] %Rs=[0.01 0.01]
+~ maxtap=1.10 mintap=0.90 numtaps=32
+New RegControl.RC_REG_351916775_2 transformer=REG_351916775_2 winding=2 vreg=122 band=2 ptratio=66.4 delay=15 maxtapchange=1
+New Transformer.REG_351916775_3 phases=1 windings=2 XHL=0.04
+~ buses=[segm_351916824.3 segm_351916763.3] conns=[wye wye]
+~ kVs=[7.9674 7.9674] kVAs=[5000 5000] %Rs=[0.01 0.01]
+~ maxtap=1.10 mintap=0.90 numtaps=32
+New RegControl.RC_REG_351916775_3 transformer=REG_351916775_3 winding=2 vreg=122 band=2 ptratio=66.4 delay=15 maxtapchange=1
+New Transformer.REG_351916849_1 phases=1 windings=2 XHL=0.04
+~ buses=[segm_351916898.1 segm_351916837.1] conns=[wye wye]
+~ kVs=[7.9674 7.9674] kVAs=[5000 5000] %Rs=[0.01 0.01]
+~ maxtap=1.10 mintap=0.90 numtaps=32
+New RegControl.RC_REG_351916849_1 transformer=REG_351916849_1 winding=2 vreg=122 band=2 ptratio=66.4 delay=15 maxtapchange=1
+New Transformer.REG_351916849_2 phases=1 windings=2 XHL=0.04
+~ buses=[segm_351916898.2 segm_351916837.2] conns=[wye wye]
+~ kVs=[7.9674 7.9674] kVAs=[5000 5000] %Rs=[0.01 0.01]
+~ maxtap=1.10 mintap=0.90 numtaps=32
+New RegControl.RC_REG_351916849_2 transformer=REG_351916849_2 winding=2 vreg=122 band=2 ptratio=66.4 delay=15 maxtapchange=1
+New Transformer.REG_351916849_3 phases=1 windings=2 XHL=0.04
+~ buses=[segm_351916898.3 segm_351916837.3] conns=[wye wye]
+~ kVs=[7.9674 7.9674] kVAs=[5000 5000] %Rs=[0.01 0.01]
+~ maxtap=1.10 mintap=0.90 numtaps=32
+New RegControl.RC_REG_351916849_3 transformer=REG_351916849_3 winding=2 vreg=122 band=2 ptratio=66.4 delay=15 maxtapchange=1
+New Transformer.REG_351916918_1 phases=1 windings=2 XHL=0.04
+~ buses=[segm_351916904.1 segm_351916943.1] conns=[wye wye]
+~ kVs=[7.9674 7.9674] kVAs=[5000 5000] %Rs=[0.01 0.01]
+~ maxtap=1.10 mintap=0.90 numtaps=32
+New RegControl.RC_REG_351916918_1 transformer=REG_351916918_1 winding=2 vreg=122 band=2 ptratio=66.4 delay=15 maxtapchange=1
+New Transformer.REG_351916971_1 phases=1 windings=2 XHL=0.04
+~ buses=[segm_351917020.1 segm_351916959.1] conns=[wye wye]
+~ kVs=[7.9674 7.9674] kVAs=[5000 5000] %Rs=[0.01 0.01]
+~ maxtap=1.10 mintap=0.90 numtaps=32
+New RegControl.RC_REG_351916971_1 transformer=REG_351916971_1 winding=2 vreg=122 band=2 ptratio=66.4 delay=15 maxtapchange=1
+New Transformer.REG_351916971_2 phases=1 windings=2 XHL=0.04
+~ buses=[segm_351917020.2 segm_351916959.2] conns=[wye wye]
+~ kVs=[7.9674 7.9674] kVAs=[5000 5000] %Rs=[0.01 0.01]
+~ maxtap=1.10 mintap=0.90 numtaps=32
+New RegControl.RC_REG_351916971_2 transformer=REG_351916971_2 winding=2 vreg=122 band=2 ptratio=66.4 delay=15 maxtapchange=1
+New Transformer.REG_351916971_3 phases=1 windings=2 XHL=0.04
+~ buses=[segm_351917020.3 segm_351916959.3] conns=[wye wye]
+~ kVs=[7.9674 7.9674] kVAs=[5000 5000] %Rs=[0.01 0.01]
+~ maxtap=1.10 mintap=0.90 numtaps=32
+New RegControl.RC_REG_351916971_3 transformer=REG_351916971_3 winding=2 vreg=122 band=2 ptratio=66.4 delay=15 maxtapchange=1
+New Transformer.REG_697753988_1 phases=1 windings=2 XHL=0.04
+~ buses=[segm_697754040.1 segm_697753995.1] conns=[wye wye]
+~ kVs=[7.9674 7.9674] kVAs=[5000 5000] %Rs=[0.01 0.01]
+~ maxtap=1.10 mintap=0.90 numtaps=32
+New RegControl.RC_REG_697753988_1 transformer=REG_697753988_1 winding=2 vreg=122 band=2 ptratio=66.4 delay=15 maxtapchange=1
+New Transformer.REG_697753988_2 phases=1 windings=2 XHL=0.04
+~ buses=[segm_697754040.2 segm_697753995.2] conns=[wye wye]
+~ kVs=[7.9674 7.9674] kVAs=[5000 5000] %Rs=[0.01 0.01]
+~ maxtap=1.10 mintap=0.90 numtaps=32
+New RegControl.RC_REG_697753988_2 transformer=REG_697753988_2 winding=2 vreg=122 band=2 ptratio=66.4 delay=15 maxtapchange=1
+New Transformer.REG_697753988_3 phases=1 windings=2 XHL=0.04
+~ buses=[segm_697754040.3 segm_697753995.3] conns=[wye wye]
+~ kVs=[7.9674 7.9674] kVAs=[5000 5000] %Rs=[0.01 0.01]
+~ maxtap=1.10 mintap=0.90 numtaps=32
+New RegControl.RC_REG_697753988_3 transformer=REG_697753988_3 winding=2 vreg=122 band=2 ptratio=66.4 delay=15 maxtapchange=1
+New Transformer.REG_730692964_1 phases=1 windings=2 XHL=0.04
+~ buses=[segm_730693016.1 segm_730692971.1] conns=[wye wye]
+~ kVs=[7.9674 7.9674] kVAs=[5000 5000] %Rs=[0.01 0.01]
+~ maxtap=1.10 mintap=0.90 numtaps=32
+New RegControl.RC_REG_730692964_1 transformer=REG_730692964_1 winding=2 vreg=122 band=2 ptratio=66.4 delay=15 maxtapchange=1
+New Transformer.REG_730692964_2 phases=1 windings=2 XHL=0.04
+~ buses=[segm_730693016.2 segm_730692971.2] conns=[wye wye]
+~ kVs=[7.9674 7.9674] kVAs=[5000 5000] %Rs=[0.01 0.01]
+~ maxtap=1.10 mintap=0.90 numtaps=32
+New RegControl.RC_REG_730692964_2 transformer=REG_730692964_2 winding=2 vreg=122 band=2 ptratio=66.4 delay=15 maxtapchange=1
+New Transformer.REG_730692964_3 phases=1 windings=2 XHL=0.04
+~ buses=[segm_730693016.3 segm_730692971.3] conns=[wye wye]
+~ kVs=[7.9674 7.9674] kVAs=[5000 5000] %Rs=[0.01 0.01]
+~ maxtap=1.10 mintap=0.90 numtaps=32
+New RegControl.RC_REG_730692964_3 transformer=REG_730692964_3 winding=2 vreg=122 band=2 ptratio=66.4 delay=15 maxtapchange=1
+New Transformer.REG_1428828895_1 phases=1 windings=2 XHL=0.04
+~ buses=[segm_1428828959.1 segm_1428828902.1] conns=[wye wye]
+~ kVs=[7.9674 7.9674] kVAs=[5000 5000] %Rs=[0.01 0.01]
+~ maxtap=1.10 mintap=0.90 numtaps=32
+New RegControl.RC_REG_1428828895_1 transformer=REG_1428828895_1 winding=2 vreg=122 band=2 ptratio=66.4 delay=15 maxtapchange=1
+New Transformer.REG_1428828895_2 phases=1 windings=2 XHL=0.04
+~ buses=[segm_1428828959.2 segm_1428828902.2] conns=[wye wye]
+~ kVs=[7.9674 7.9674] kVAs=[5000 5000] %Rs=[0.01 0.01]
+~ maxtap=1.10 mintap=0.90 numtaps=32
+New RegControl.RC_REG_1428828895_2 transformer=REG_1428828895_2 winding=2 vreg=122 band=2 ptratio=66.4 delay=15 maxtapchange=1
+New Transformer.REG_1428828895_3 phases=1 windings=2 XHL=0.04
+~ buses=[segm_1428828959.3 segm_1428828902.3] conns=[wye wye]
+~ kVs=[7.9674 7.9674] kVAs=[5000 5000] %Rs=[0.01 0.01]
+~ maxtap=1.10 mintap=0.90 numtaps=32
+New RegControl.RC_REG_1428828895_3 transformer=REG_1428828895_3 winding=2 vreg=122 band=2 ptratio=66.4 delay=15 maxtapchange=1
+New Transformer.REG_1684742414_1 phases=1 windings=2 XHL=0.04
+~ buses=[segm_1684742472.1 segm_1684742421.1] conns=[wye wye]
+~ kVs=[7.9674 7.9674] kVAs=[5000 5000] %Rs=[0.01 0.01]
+~ maxtap=1.10 mintap=0.90 numtaps=32
+New RegControl.RC_REG_1684742414_1 transformer=REG_1684742414_1 winding=2 vreg=122 band=2 ptratio=66.4 delay=15 maxtapchange=1
+New Transformer.REG_1684742414_2 phases=1 windings=2 XHL=0.04
+~ buses=[segm_1684742472.2 segm_1684742421.2] conns=[wye wye]
+~ kVs=[7.9674 7.9674] kVAs=[5000 5000] %Rs=[0.01 0.01]
+~ maxtap=1.10 mintap=0.90 numtaps=32
+New RegControl.RC_REG_1684742414_2 transformer=REG_1684742414_2 winding=2 vreg=122 band=2 ptratio=66.4 delay=15 maxtapchange=1
+New Transformer.REG_1684742414_3 phases=1 windings=2 XHL=0.04
+~ buses=[segm_1684742472.3 segm_1684742421.3] conns=[wye wye]
+~ kVs=[7.9674 7.9674] kVAs=[5000 5000] %Rs=[0.01 0.01]
+~ maxtap=1.10 mintap=0.90 numtaps=32
+New RegControl.RC_REG_1684742414_3 transformer=REG_1684742414_3 winding=2 vreg=122 band=2 ptratio=66.4 delay=15 maxtapchange=1
+New Transformer.REG_2708208886_1 phases=1 windings=2 XHL=0.04
+~ buses=[segm_2708208944.1 segm_2708208893.1] conns=[wye wye]
+~ kVs=[7.9674 7.9674] kVAs=[5000 5000] %Rs=[0.01 0.01]
+~ maxtap=1.10 mintap=0.90 numtaps=32
+New RegControl.RC_REG_2708208886_1 transformer=REG_2708208886_1 winding=2 vreg=122 band=2 ptratio=66.4 delay=15 maxtapchange=1
+New Transformer.REG_2708208886_2 phases=1 windings=2 XHL=0.04
+~ buses=[segm_2708208944.2 segm_2708208893.2] conns=[wye wye]
+~ kVs=[7.9674 7.9674] kVAs=[5000 5000] %Rs=[0.01 0.01]
+~ maxtap=1.10 mintap=0.90 numtaps=32
+New RegControl.RC_REG_2708208886_2 transformer=REG_2708208886_2 winding=2 vreg=122 band=2 ptratio=66.4 delay=15 maxtapchange=1
+New Transformer.REG_2708208886_3 phases=1 windings=2 XHL=0.04
+~ buses=[segm_2708208944.3 segm_2708208893.3] conns=[wye wye]
+~ kVs=[7.9674 7.9674] kVAs=[5000 5000] %Rs=[0.01 0.01]
+~ maxtap=1.10 mintap=0.90 numtaps=32
+New RegControl.RC_REG_2708208886_3 transformer=REG_2708208886_3 winding=2 vreg=122 band=2 ptratio=66.4 delay=15 maxtapchange=1

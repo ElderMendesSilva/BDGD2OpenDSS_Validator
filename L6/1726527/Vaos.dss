@@ -1,0 +1,13 @@
+! ==========================================================
+! VAOS DE SAIDA — barra de MT da SE -> cabeceira do alimentador
+! Derivado de CTMT.BARR e CTMT.UNI_TR_AT: a BDGD nao modela o
+! arranjo interno da subestacao, so o vinculo logico.
+! Cada vao e o disjuntor de saida do alimentador.
+! ==========================================================
+! Transformador de barra: a BDGD poe alimentadores de 13.8 kV no mesmo CTMT.BARR da barra de 34.5 kV.
+! Em campo ha um transformador entre as duas barras; a BDGD nao o declara. Potencia rateada da capacidade de AT da SE.
+New Transformer.TRB_2720471879_13p8kv phases=3 windings=2 Xhl=7.00
+~ wdg=1 bus=2720471879.1.2.3 conn=delta kV=34.5000 kVA=10000
+~ wdg=2 bus=2720471879_13p8kv.1.2.3.0 conn=wye kV=13.8000 kVA=10000
+New Line.VAO_BHA03 phases=3 Bus1=2720471879_13p8kv.1.2.3 Bus2=segm_2720471513.1.2.3 Switch=y r1=0.0001 r0=0.0001 x1=0 x0=0 c1=0 c0=0
+New Monitor.M_BHA03 element=Line.VAO_BHA03 terminal=1 mode=1 ppolar=no

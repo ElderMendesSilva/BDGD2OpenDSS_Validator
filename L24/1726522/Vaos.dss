@@ -1,0 +1,18 @@
+! ==========================================================
+! VAOS DE SAIDA — barra de MT da SE -> cabeceira do alimentador
+! Derivado de CTMT.BARR e CTMT.UNI_TR_AT: a BDGD nao modela o
+! arranjo interno da subestacao, so o vinculo logico.
+! Cada vao e o disjuntor de saida do alimentador.
+! ==========================================================
+New Line.VAO_BCAU06 phases=3 Bus1=11851801.1.2.3 Bus2=segm_2670799857.1.2.3 Switch=y r1=0.0001 r0=0.0001 x1=0 x0=0 c1=0 c0=0
+New Monitor.M_BCAU06 element=Line.VAO_BCAU06 terminal=1 mode=1 ppolar=no
+New Line.VAO_BCAU09 phases=3 Bus1=11851801.1.2.3 Bus2=segm_2670800088.1.2.3 Switch=y r1=0.0001 r0=0.0001 x1=0 x0=0 c1=0 c0=0
+New Monitor.M_BCAU09 element=Line.VAO_BCAU09 terminal=1 mode=1 ppolar=no
+New Line.VAO_BCAU05 phases=3 Bus1=11851801.1.2.3 Bus2=segm_2670799816.1.2.3 Switch=y r1=0.0001 r0=0.0001 x1=0 x0=0 c1=0 c0=0
+New Monitor.M_BCAU05 element=Line.VAO_BCAU05 terminal=1 mode=1 ppolar=no
+New Line.VAO_BCAU11 phases=3 Bus1=11851801.1.2.3 Bus2=segm_2670800191.1.2.3 Switch=y r1=0.0001 r0=0.0001 x1=0 x0=0 c1=0 c0=0
+New Monitor.M_BCAU11 element=Line.VAO_BCAU11 terminal=1 mode=1 ppolar=no
+New Line.VAO_BCAU10 phases=3 Bus1=11851801.1.2.3 Bus2=segm_2670800153.1.2.3 Switch=y r1=0.0001 r0=0.0001 x1=0 x0=0 c1=0 c0=0
+New Monitor.M_BCAU10 element=Line.VAO_BCAU10 terminal=1 mode=1 ppolar=no
+New Line.VAO_BCAU04 phases=3 Bus1=11851801.1.2.3 Bus2=segm_2670799777.1.2.3 Switch=y r1=0.0001 r0=0.0001 x1=0 x0=0 c1=0 c0=0
+New Monitor.M_BCAU04 element=Line.VAO_BCAU04 terminal=1 mode=1 ppolar=no

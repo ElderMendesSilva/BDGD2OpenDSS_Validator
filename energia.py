@@ -326,6 +326,8 @@ def main():
     ap.add_argument('--se', nargs='*')
     ap.add_argument('--passos', type=int, default=96,
                     help='passos no dia (96 = 15 min, o passo da CRVCRG)')
+    ap.add_argument('--refazer', action='store_true',
+                    help='ignora o que ja foi medido e recomeca do zero')
     ap.add_argument('--grafico', action='store_true',
                     help='mostra a distribuicao das perdas ao final')
     ap.add_argument('--curvas', action='store_true',
@@ -343,11 +345,44 @@ def main():
           f'{24*60//a.passos} min\n')
     print(f'{"SE":6s} {"passos":>8s} {"injetado kWh":>14s} {"perdas kWh":>12s} '
           f'{"perdas %":>9s} {"pico GD MW":>9s}')
+    # GRAVACAO INCREMENTAL E RETOMADA.
+    #
+    # A Cemig-D V13 rodou 8 h, chegou a 291 das 413 subestacoes, estourou o
+    # limite e foi morta. O `energia_dia.json` so era escrito no fim: as oito
+    # horas nao produziram arquivo nenhum, e as etapas seguintes ficaram sem
+    # o que ler. Perder trabalho por nao ter gravado e falha de robustez, e
+    # num ciclo de horas ela custa mais caro que qualquer lentidao.
+    #
+    # Agora cada subestacao vai para o disco assim que fecha, e uma execucao
+    # nova pula o que ja esta la — como o `converter.py` sempre fez. Retomar
+    # e sempre melhor do que recomecar.
+    alvo = os.path.join(raiz, 'energia_dia.json')
     saida = []
+    if os.path.exists(alvo) and not a.refazer:
+        try:
+            with open(alvo, encoding='utf-8') as fh:
+                saida = json.load(fh) or []
+        except Exception:
+            saida = []          # arquivo truncado nao pode travar a rodada
+    prontas = {x['se'] for x in saida if x.get('passos_ok')}
+    if prontas:
+        print(f'{len(prontas)} subestacoes ja medidas — retomando '
+              f'(use --refazer para ignorar)', flush=True)
+
+    def grava():
+        # arquivo temporario e troca atomica: uma queda no meio do dump
+        # deixaria um JSON truncado no lugar do bom
+        tmp = alvo + '.parcial'
+        with open(tmp, 'w', encoding='utf-8') as fh:
+            json.dump(saida, fh, indent=1, ensure_ascii=False)
+        os.replace(tmp, alvo)
+
     plt = None
     n_curvas = 0
     falharam = []
     for se, m in itens:
+        if se in prontas:
+            continue
         # Uma subestacao que nao compila nao pode levar as outras junto. O
         # `verifica.py` ja tratava; aqui a excecao subia e matava a varredura
         # inteira — medido na Equatorial PA, onde um erro de CalcYPrim na 36a
@@ -364,6 +399,7 @@ def main():
                           'kWh_perdas': 0.0, 'perdas_pct': None,
                           'passos_falhos': [], 'compilacoes': 0,
                           'alimentadores': {}})
+            grava()
             continue
         pct = 100 * perd / ent if ent > 1 else None
         gd = [x for x in serie['gd_kw'] if x]
@@ -387,6 +423,7 @@ def main():
                               'perdas_pct': (round(100 * v[1] / v[0], 3)
                                              if v[0] > 1 else None)}
                           for k, v in sorted(por_alim.items())}})
+        grava()
         if a.curvas:
             import interativo
             plt = plt or interativo.pyplot()
@@ -394,8 +431,7 @@ def main():
                          os.path.join(raiz, se, 'curva_gd.png'), plt):
                 n_curvas += 1
 
-    json.dump(saida, open(os.path.join(raiz, 'energia_dia.json'), 'w',
-                          encoding='utf-8'), indent=1, ensure_ascii=False)
+    grava()
     bons = [x for x in saida if x['passos_ok'] == a.passos]
     print(f'\n{len(bons)} de {len(saida)} com o dia inteiro resolvido')
     if falharam:

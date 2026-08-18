@@ -149,12 +149,46 @@ def uma(pasta, se, min_cargas):
         n_cargas = dss.Loads.Count()
         mortas_antes = sum(v for b, v in cargas.items() if b in mortas)
         comps = ligacao.componentes(adj, mortas)
-        lig, fora = ligacao.decidir(comps, adj, cargas, kvb, kvs, min_cargas)
-        ligacao.escrever('_LIGACAO.dss', lig,
-                         lambda kv: barra.get(round(kv, 4)) or
-                         (barra.get(min(barra, key=lambda k: abs(k - kv)))
-                          if barra else None), fora)
-        dss.Text.Command('Redirect _LIGACAO.dss')
+        cand, fora = ligacao.decidir(comps, adj, cargas, kvb, kvs, min_cargas)
+
+        def de_para(kv):
+            return (barra.get(round(kv, 4))
+                    or (barra.get(min(barra, key=lambda k: abs(k - kv)))
+                        if barra else None))
+
+        # CADA ELO E TESTADO NO PROPRIO MOTOR ANTES DE ENTRAR. Cria-se a Line
+        # em memoria, resolve, e se a solucao divergir o elo e desabilitado e
+        # recusado. Sai muito mais barato que reconstruir o circuito a cada
+        # tentativa: o `Redirect` do MASTER custa segundos, o `New Line` custa
+        # nada, e o que muda entre uma tentativa e outra e so um ramo.
+        ordem = [0]
+
+        def tenta(l):
+            de = de_para(l['kv'])
+            if not de:
+                return False
+            ordem[0] += 1
+            nome = f"VAO_EXTRA_{ordem[0]}"
+            dss.Text.Command(
+                f"New Line.{nome} phases=3 Bus1={de}.1.2.3 "
+                f"Bus2={l['barra']}.1.2.3 Switch=y r1=0.0001 r0=0.0001 "
+                f"x1=0 x0=0 c1=0 c0=0")
+            dss.Text.Command('Solve')
+            if dss.Solution.Converged():
+                return True
+            dss.Text.Command(f'Edit Line.{nome} enabled=no')
+            dss.Text.Command('Solve')
+            return False
+
+        lig, recusados = ligacao.aceitar(cand, tenta)
+        fora = list(fora) + [dict(r, motivo='quebrou a convergencia')
+                             for r in recusados]
+        ligacao.escrever('_LIGACAO.dss', lig, de_para, fora)
+
+        # o estado em memoria tem elos desabilitados no meio; recompila do
+        # arquivo para medir exatamente o que o usuario vai receber
+        dss.Text.Command('Clear')
+        dss.Text.Command(f'Redirect MASTER-{se}.dss')
         dss.Text.Command('Solve')
         m2 = 0
         i = dss.Loads.First()
@@ -166,6 +200,7 @@ def uma(pasta, se, min_cargas):
             i = dss.Loads.Next()
         p = dss.Circuit.TotalPower()
         return {'se': se, 'elos': len(lig), 'cargas': n_cargas,
+                'recusados': len(recusados),
                 'mortas_antes': mortas_antes, 'mortas_depois': m2,
                 'componentes': len(comps), 'descartadas': len(fora),
                 'carga_kW': round(-p[0], 1),
@@ -213,10 +248,14 @@ def main():
     print(f'\n{"="*70}')
     print(f'{sum(r["elos"] for r in ok):,} elos em {len(ok)} subestacoes, '
           f'{rec:,} cargas recuperadas ({time.time()-t0:.0f} s)')
+    rec = sum(r.get('recusados', 0) for r in ok)
+    if rec:
+        print(f'{rec:,} elos RECUSADOS por quebrarem a convergencia — a rede '
+              f'existe, mas premissa que piora o modelo nao entra')
     nc = [r['se'] for r in ok if not r['convergiu']]
     if nc:
-        print(f'ATENCAO: {len(nc)} deixaram de convergir depois do elo: '
-              f'{", ".join(nc[:5])}')
+        print(f'ATENCAO: {len(nc)} nao convergem NEM SEM elo — defeito '
+              f'anterior a esta premissa: {", ".join(nc[:5])}')
     with open(os.path.join(raiz, 'ligacao.json'), 'w', encoding='utf-8') as fh:
         json.dump({'min_cargas': a.min_cargas, 'subestacoes': saida}, fh,
                   indent=1, ensure_ascii=False)

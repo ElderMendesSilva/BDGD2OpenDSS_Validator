@@ -1,0 +1,597 @@
+clear
+set defaultbasefrequency=60
+
+! ==========================================================================
+!  ENEL SP — MODELO COMPLETO DA CONCESSAO
+!  gerado de Cemig-D_4950_2024-12-31_V11_20250929-1522.gdb
+!  por bdgd2dss
+! ==========================================================================
+!
+!  ABRANGENCIA
+!    subestacoes ......... 24
+!    alimentadores ....... 109
+!    trafos de potencia .. 44   (AT -> MT, reais da UNTRAT/EQTRAT)
+!    trechos de AT ....... 4,431  (1,697.9 km de subtransmissao)
+!    chaves de AT ........ 520
+!    vaos de saida ....... 109  (barra de MT -> cabeceira)
+!
+!  COMO ESTE MODELO E ALIMENTADO
+!    A malha de 88 kV da BDGD nao e conexa: sao 24 componentes
+!    separadas, e as subestacoes da transmissora nao possuem barra nesta
+!    exportacao. Cada patio de AT com transformador recebe portanto a sua
+!    propria fonte:
+!        0 em cabeceira de circuito de AT declarada (CTAT.PAC_INI)
+!        24 como equivalente no primario do transformador
+!    O nivel de curto vem da potencia instalada declarada pela ISA Energia
+!    onde a subestacao e uma ETT conhecida; nas demais usa-se o padrao
+!    documentado em bdgd2dss/transmissao.py.
+!
+!  ORDEM DE MONTAGEM
+!    1. fontes — o New Circuit tem de vir antes de qualquer elemento
+!    2. LineCodes e curvas (comuns a todos os niveis)
+!    3. subtransmissao: linhas, chaves, transformadores de potencia
+!    4. subestacoes da transmissora (as que nao tem trafo proprio)
+!    5. vaos de saida — e aqui que a AT encontra a MT
+!    6. uma subestacao por vez: MT, transformadores, cargas, GD
+!    7. estado das chaves normalmente abertas
+!
+!  LIMITES DECLARADOS — leia antes de publicar resultado
+!    R0/X0 sao premissa (3,0 e 3,5 vezes os de sequencia positiva), nao
+!      dado: a SEGCON so traz R1 e X1. Resultado de DESEQUILIBRIO nao tem
+!      validade neste modelo.
+!    Xhl dos trafos de potencia e adotado por faixa de potencia; a BDGD
+!      traz perdas, nao impedancia.
+!    A carga de BT esta agregada no secundario de cada trafo de
+!      distribuicao. Correto para carregamento de MT; NAO serve para tensao
+!      de atendimento ao consumidor (use --bt completo para isso).
+!    Fator de potencia 0,92 assumido, nao medido.
+!    Harmonicos fora de alcance: a BDGD nao traz espectro.
+! ==========================================================================
+
+
+! ---------------------------------------- 1. fontes
+redirect _AT/Fontes.dss
+
+! ---------------------------------------- 2. LineCodes e curvas
+redirect _global/LineCodes.dss
+redirect _global/Curvas.dss
+redirect _global/_XYCURVES.dss
+
+! ---------------------------------------- 3 a 5. alta tensao
+redirect _AT/Linhas_AT.dss
+redirect _AT/Chaves_AT.dss
+redirect _AT/Barras_AT.dss
+redirect _AT/Trafos_AT.dss
+redirect _AT/Cargas_AT.dss
+redirect _AT/GD_AT.dss
+redirect _AT/Capacitores_AT.dss
+
+! ---------------------------------------- 6. as 24 subestacoes
+redirect 1726516/REDE-1726516.dss
+redirect 1726518/REDE-1726518.dss
+redirect 1726519/REDE-1726519.dss
+redirect 1726520/REDE-1726520.dss
+redirect 1726521/REDE-1726521.dss
+redirect 1726522/REDE-1726522.dss
+redirect 1726523/REDE-1726523.dss
+redirect 1726524/REDE-1726524.dss
+redirect 1726525/REDE-1726525.dss
+redirect 1726526/REDE-1726526.dss
+redirect 1726527/REDE-1726527.dss
+redirect 1726528/REDE-1726528.dss
+redirect 1726529/REDE-1726529.dss
+redirect 1726530/REDE-1726530.dss
+redirect 1726531/REDE-1726531.dss
+redirect 1726532/REDE-1726532.dss
+redirect 1726533/REDE-1726533.dss
+redirect 1726534/REDE-1726534.dss
+redirect 1726535/REDE-1726535.dss
+redirect 1726536/REDE-1726536.dss
+redirect 1726537/REDE-1726537.dss
+redirect 1726538/REDE-1726538.dss
+redirect 1726539/REDE-1726539.dss
+redirect 1726540/REDE-1726540.dss
+
+! ------------------------------------------------------------------ medicao
+! EnergyMeter na entrada de cada alimentador (no vao de saida). E o que
+! permite apurar perdas, energia e sobrecarga POR ALIMENTADOR — o Monitor
+! sozinho registra grandeza, nao acumula perdas.
+!   Show Meters          resumo por alimentador
+!   Show Losses          perdas por elemento
+!   Export Meters        planilha com kWh, perdas e violacoes
+New EnergyMeter.EM_AAY13 element=Line.VAO_AAY13 terminal=1
+New EnergyMeter.EM_AAY17 element=Line.VAO_AAY17 terminal=1
+New EnergyMeter.EM_AAY16 element=Line.VAO_AAY16 terminal=1
+New EnergyMeter.EM_BCAD208 element=Line.VAO_BCAD208 terminal=1
+New EnergyMeter.EM_BCAD216 element=Line.VAO_BCAD216 terminal=1
+New EnergyMeter.EM_BCAD206 element=Line.VAO_BCAD206 terminal=1
+New EnergyMeter.EM_BCAD213 element=Line.VAO_BCAD213 terminal=1
+New EnergyMeter.EM_BCAD205 element=Line.VAO_BCAD205 terminal=1
+New EnergyMeter.EM_BCAD212 element=Line.VAO_BCAD212 terminal=1
+New EnergyMeter.EM_BCAD209 element=Line.VAO_BCAD209 terminal=1
+New EnergyMeter.EM_BCAD215 element=Line.VAO_BCAD215 terminal=1
+New EnergyMeter.EM_ADOD05 element=Line.VAO_ADOD05 terminal=1
+New EnergyMeter.EM_ADOD03 element=Line.VAO_ADOD03 terminal=1
+New EnergyMeter.EM_ADOD06 element=Line.VAO_ADOD06 terminal=1
+New EnergyMeter.EM_ACSU110 element=Line.VAO_ACSU110 terminal=1
+New EnergyMeter.EM_ACSU109 element=Line.VAO_ACSU109 terminal=1
+New EnergyMeter.EM_ACSU106 element=Line.VAO_ACSU106 terminal=1
+New EnergyMeter.EM_ACSU114 element=Line.VAO_ACSU114 terminal=1
+New EnergyMeter.EM_ACSU108 element=Line.VAO_ACSU108 terminal=1
+New EnergyMeter.EM_ACSU115 element=Line.VAO_ACSU115 terminal=1
+New EnergyMeter.EM_AOY06 element=Line.VAO_AOY06 terminal=1
+New EnergyMeter.EM_AOY03 element=Line.VAO_AOY03 terminal=1
+New EnergyMeter.EM_AOY02 element=Line.VAO_AOY02 terminal=1
+New EnergyMeter.EM_BCAU06 element=Line.VAO_BCAU06 terminal=1
+New EnergyMeter.EM_BCAU09 element=Line.VAO_BCAU09 terminal=1
+New EnergyMeter.EM_BCAU05 element=Line.VAO_BCAU05 terminal=1
+New EnergyMeter.EM_BCAU11 element=Line.VAO_BCAU11 terminal=1
+New EnergyMeter.EM_BCAU10 element=Line.VAO_BCAU10 terminal=1
+New EnergyMeter.EM_BCAU04 element=Line.VAO_BCAU04 terminal=1
+New EnergyMeter.EM_AYN13 element=Line.VAO_AYN13 terminal=1
+New EnergyMeter.EM_AYN11 element=Line.VAO_AYN11 terminal=1
+New EnergyMeter.EM_AYN10 element=Line.VAO_AYN10 terminal=1
+New EnergyMeter.EM_AFNU25 element=Line.VAO_AFNU25 terminal=1
+New EnergyMeter.EM_AFNU16 element=Line.VAO_AFNU16 terminal=1
+New EnergyMeter.EM_AFNU21 element=Line.VAO_AFNU21 terminal=1
+New EnergyMeter.EM_AFNU23 element=Line.VAO_AFNU23 terminal=1
+New EnergyMeter.EM_AFNU24 element=Line.VAO_AFNU24 terminal=1
+New EnergyMeter.EM_AFNU18 element=Line.VAO_AFNU18 terminal=1
+New EnergyMeter.EM_AFNU22 element=Line.VAO_AFNU22 terminal=1
+New EnergyMeter.EM_AFNU15 element=Line.VAO_AFNU15 terminal=1
+New EnergyMeter.EM_AFNU14 element=Line.VAO_AFNU14 terminal=1
+New EnergyMeter.EM_AFNU17 element=Line.VAO_AFNU17 terminal=1
+New EnergyMeter.EM_AETD14 element=Line.VAO_AETD14 terminal=1
+New EnergyMeter.EM_AETD15 element=Line.VAO_AETD15 terminal=1
+New EnergyMeter.EM_AETD16 element=Line.VAO_AETD16 terminal=1
+New EnergyMeter.EM_ARID204 element=Line.VAO_ARID204 terminal=1
+New EnergyMeter.EM_ARID212 element=Line.VAO_ARID212 terminal=1
+New EnergyMeter.EM_ARID202 element=Line.VAO_ARID202 terminal=1
+New EnergyMeter.EM_ARID201 element=Line.VAO_ARID201 terminal=1
+New EnergyMeter.EM_ARID205 element=Line.VAO_ARID205 terminal=1
+New EnergyMeter.EM_ARID210 element=Line.VAO_ARID210 terminal=1
+New EnergyMeter.EM_ARID214 element=Line.VAO_ARID214 terminal=1
+New EnergyMeter.EM_ARID211 element=Line.VAO_ARID211 terminal=1
+New EnergyMeter.EM_ARID209 element=Line.VAO_ARID209 terminal=1
+New EnergyMeter.EM_ARID203 element=Line.VAO_ARID203 terminal=1
+New EnergyMeter.EM_BHA03 element=Line.VAO_BHA03 terminal=1
+New EnergyMeter.EM_ANAD213 element=Line.VAO_ANAD213 terminal=1
+New EnergyMeter.EM_ANAD208 element=Line.VAO_ANAD208 terminal=1
+New EnergyMeter.EM_ANAD204 element=Line.VAO_ANAD204 terminal=1
+New EnergyMeter.EM_ANAD216 element=Line.VAO_ANAD216 terminal=1
+New EnergyMeter.EM_ANAD209 element=Line.VAO_ANAD209 terminal=1
+New EnergyMeter.EM_ANAD212 element=Line.VAO_ANAD212 terminal=1
+New EnergyMeter.EM_ANAD217 element=Line.VAO_ANAD217 terminal=1
+New EnergyMeter.EM_ANAD205 element=Line.VAO_ANAD205 terminal=1
+New EnergyMeter.EM_AGF11 element=Line.VAO_AGF11 terminal=1
+New EnergyMeter.EM_AGF08 element=Line.VAO_AGF08 terminal=1
+New EnergyMeter.EM_AGF10 element=Line.VAO_AGF10 terminal=1
+New EnergyMeter.EM_BMS15 element=Line.VAO_BMS15 terminal=1
+New EnergyMeter.EM_BMS14 element=Line.VAO_BMS14 terminal=1
+New EnergyMeter.EM_BMS12 element=Line.VAO_BMS12 terminal=1
+New EnergyMeter.EM_BFS06 element=Line.VAO_BFS06 terminal=1
+New EnergyMeter.EM_BFS07 element=Line.VAO_BFS07 terminal=1
+New EnergyMeter.EM_BDM08 element=Line.VAO_BDM08 terminal=1
+New EnergyMeter.EM_BDM05 element=Line.VAO_BDM05 terminal=1
+New EnergyMeter.EM_BDM06 element=Line.VAO_BDM06 terminal=1
+New EnergyMeter.EM_ALSD204 element=Line.VAO_ALSD204 terminal=1
+New EnergyMeter.EM_ALSD210 element=Line.VAO_ALSD210 terminal=1
+New EnergyMeter.EM_ALSD208 element=Line.VAO_ALSD208 terminal=1
+New EnergyMeter.EM_AVT07 element=Line.VAO_AVT07 terminal=1
+New EnergyMeter.EM_AVT06 element=Line.VAO_AVT06 terminal=1
+New EnergyMeter.EM_AVT08 element=Line.VAO_AVT08 terminal=1
+New EnergyMeter.EM_BNR07 element=Line.VAO_BNR07 terminal=1
+New EnergyMeter.EM_BNR05 element=Line.VAO_BNR05 terminal=1
+New EnergyMeter.EM_BNR06 element=Line.VAO_BNR06 terminal=1
+New EnergyMeter.EM_BNR04 element=Line.VAO_BNR04 terminal=1
+New EnergyMeter.EM_BIID207 element=Line.VAO_BIID207 terminal=1
+New EnergyMeter.EM_BIID203 element=Line.VAO_BIID203 terminal=1
+New EnergyMeter.EM_BIID205 element=Line.VAO_BIID205 terminal=1
+New EnergyMeter.EM_BHS08 element=Line.VAO_BHS08 terminal=1
+New EnergyMeter.EM_BHS06 element=Line.VAO_BHS06 terminal=1
+New EnergyMeter.EM_BHS05 element=Line.VAO_BHS05 terminal=1
+New EnergyMeter.EM_BHS16 element=Line.VAO_BHS16 terminal=1
+New EnergyMeter.EM_BHS13 element=Line.VAO_BHS13 terminal=1
+New EnergyMeter.EM_AMN08 element=Line.VAO_AMN08 terminal=1
+New EnergyMeter.EM_AMN07 element=Line.VAO_AMN07 terminal=1
+New EnergyMeter.EM_AMN06 element=Line.VAO_AMN06 terminal=1
+New EnergyMeter.EM_AXAU05 element=Line.VAO_AXAU05 terminal=1
+New EnergyMeter.EM_AXAU13 element=Line.VAO_AXAU13 terminal=1
+New EnergyMeter.EM_AXAU17 element=Line.VAO_AXAU17 terminal=1
+New EnergyMeter.EM_AXAU11 element=Line.VAO_AXAU11 terminal=1
+New EnergyMeter.EM_AXAU03 element=Line.VAO_AXAU03 terminal=1
+New EnergyMeter.EM_AXAU04 element=Line.VAO_AXAU04 terminal=1
+New EnergyMeter.EM_AXAU02 element=Line.VAO_AXAU02 terminal=1
+New EnergyMeter.EM_AXAU10 element=Line.VAO_AXAU10 terminal=1
+New EnergyMeter.EM_AXAU14 element=Line.VAO_AXAU14 terminal=1
+New EnergyMeter.EM_AXAU07 element=Line.VAO_AXAU07 terminal=1
+New EnergyMeter.EM_BSOT313 element=Line.VAO_BSOT313 terminal=1
+New EnergyMeter.EM_BSOT315 element=Line.VAO_BSOT315 terminal=1
+New EnergyMeter.EM_BSOT312 element=Line.VAO_BSOT312 terminal=1
+! Monitores de potencia nos transformadores de potencia (AT -> MT).
+New Monitor.MT_10164287 element=Transformer.AT_10164287 terminal=1 mode=1 ppolar=no
+New Monitor.MT_10370585 element=Transformer.AT_10370585 terminal=1 mode=1 ppolar=no
+New Monitor.MT_10370595 element=Transformer.AT_10370595 terminal=1 mode=1 ppolar=no
+New Monitor.MT_10370598 element=Transformer.AT_10370598 terminal=1 mode=1 ppolar=no
+New Monitor.MT_10825306 element=Transformer.AT_10825306 terminal=1 mode=1 ppolar=no
+New Monitor.MT_10825309 element=Transformer.AT_10825309 terminal=1 mode=1 ppolar=no
+New Monitor.MT_11770226 element=Transformer.AT_11770226 terminal=1 mode=1 ppolar=no
+New Monitor.MT_11770348 element=Transformer.AT_11770348 terminal=1 mode=1 ppolar=no
+New Monitor.MT_1519290221 element=Transformer.AT_1519290221 terminal=1 mode=1 ppolar=no
+New Monitor.MT_1686026456 element=Transformer.AT_1686026456 terminal=1 mode=1 ppolar=no
+New Monitor.MT_1686026459 element=Transformer.AT_1686026459 terminal=1 mode=1 ppolar=no
+New Monitor.MT_189564045 element=Transformer.AT_189564045 terminal=1 mode=1 ppolar=no
+New Monitor.MT_189564120 element=Transformer.AT_189564120 terminal=1 mode=1 ppolar=no
+New Monitor.MT_189564124 element=Transformer.AT_189564124 terminal=1 mode=1 ppolar=no
+New Monitor.MT_193655754 element=Transformer.AT_193655754 terminal=1 mode=1 ppolar=no
+New Monitor.MT_193655758 element=Transformer.AT_193655758 terminal=1 mode=1 ppolar=no
+New Monitor.MT_193655964 element=Transformer.AT_193655964 terminal=1 mode=1 ppolar=no
+New Monitor.MT_195239948 element=Transformer.AT_195239948 terminal=1 mode=1 ppolar=no
+New Monitor.MT_195291313 element=Transformer.AT_195291313 terminal=1 mode=1 ppolar=no
+New Monitor.MT_209036237 element=Transformer.AT_209036237 terminal=1 mode=1 ppolar=no
+New Monitor.MT_5088703 element=Transformer.AT_5088703 terminal=1 mode=1 ppolar=no
+New Monitor.MT_5140181 element=Transformer.AT_5140181 terminal=1 mode=1 ppolar=no
+New Monitor.MT_5144372 element=Transformer.AT_5144372 terminal=1 mode=1 ppolar=no
+New Monitor.MT_5195952 element=Transformer.AT_5195952 terminal=1 mode=1 ppolar=no
+New Monitor.MT_5388278 element=Transformer.AT_5388278 terminal=1 mode=1 ppolar=no
+New Monitor.MT_5388305 element=Transformer.AT_5388305 terminal=1 mode=1 ppolar=no
+New Monitor.MT_5388395 element=Transformer.AT_5388395 terminal=1 mode=1 ppolar=no
+New Monitor.MT_5388437 element=Transformer.AT_5388437 terminal=1 mode=1 ppolar=no
+New Monitor.MT_5388464 element=Transformer.AT_5388464 terminal=1 mode=1 ppolar=no
+New Monitor.MT_5388533 element=Transformer.AT_5388533 terminal=1 mode=1 ppolar=no
+New Monitor.MT_5388554 element=Transformer.AT_5388554 terminal=1 mode=1 ppolar=no
+New Monitor.MT_5388599 element=Transformer.AT_5388599 terminal=1 mode=1 ppolar=no
+New Monitor.MT_5388725 element=Transformer.AT_5388725 terminal=1 mode=1 ppolar=no
+New Monitor.MT_5388785 element=Transformer.AT_5388785 terminal=1 mode=1 ppolar=no
+New Monitor.MT_5389013 element=Transformer.AT_5389013 terminal=1 mode=1 ppolar=no
+New Monitor.MT_5389058 element=Transformer.AT_5389058 terminal=1 mode=1 ppolar=no
+New Monitor.MT_5389073 element=Transformer.AT_5389073 terminal=1 mode=1 ppolar=no
+New Monitor.MT_5389184 element=Transformer.AT_5389184 terminal=1 mode=1 ppolar=no
+New Monitor.MT_5389295 element=Transformer.AT_5389295 terminal=1 mode=1 ppolar=no
+New Monitor.MT_5389595 element=Transformer.AT_5389595 terminal=1 mode=1 ppolar=no
+New Monitor.MT_5389742 element=Transformer.AT_5389742 terminal=1 mode=1 ppolar=no
+New Monitor.MT_5389766 element=Transformer.AT_5389766 terminal=1 mode=1 ppolar=no
+New Monitor.MT_629071007 element=Transformer.AT_629071007 terminal=1 mode=1 ppolar=no
+New Monitor.MT_798130192 element=Transformer.AT_798130192 terminal=1 mode=1 ppolar=no
+! Monitores de corrente nos troncos de subtransmissao.
+New Monitor.ML_1031549867 element=Line.AT_1031549867 terminal=1 mode=0
+New Monitor.ML_1031549868 element=Line.AT_1031549868 terminal=1 mode=0
+New Monitor.ML_1031549869 element=Line.AT_1031549869 terminal=1 mode=0
+New Monitor.ML_1031549870 element=Line.AT_1031549870 terminal=1 mode=0
+New Monitor.ML_1031549871 element=Line.AT_1031549871 terminal=1 mode=0
+New Monitor.ML_1031549872 element=Line.AT_1031549872 terminal=1 mode=0
+New Monitor.ML_1031549873 element=Line.AT_1031549873 terminal=1 mode=0
+New Monitor.ML_1031549874 element=Line.AT_1031549874 terminal=1 mode=0
+New Monitor.ML_1031549875 element=Line.AT_1031549875 terminal=1 mode=0
+New Monitor.ML_1031549876 element=Line.AT_1031549876 terminal=1 mode=0
+New Monitor.ML_1031549877 element=Line.AT_1031549877 terminal=1 mode=0
+New Monitor.ML_1031549878 element=Line.AT_1031549878 terminal=1 mode=0
+New Monitor.ML_1031549879 element=Line.AT_1031549879 terminal=1 mode=0
+New Monitor.ML_1031549880 element=Line.AT_1031549880 terminal=1 mode=0
+New Monitor.ML_1031549881 element=Line.AT_1031549881 terminal=1 mode=0
+New Monitor.ML_1031549882 element=Line.AT_1031549882 terminal=1 mode=0
+New Monitor.ML_1031549883 element=Line.AT_1031549883 terminal=1 mode=0
+New Monitor.ML_1031549884 element=Line.AT_1031549884 terminal=1 mode=0
+New Monitor.ML_1031549885 element=Line.AT_1031549885 terminal=1 mode=0
+New Monitor.ML_1031549886 element=Line.AT_1031549886 terminal=1 mode=0
+New Monitor.ML_1031549887 element=Line.AT_1031549887 terminal=1 mode=0
+New Monitor.ML_1031549888 element=Line.AT_1031549888 terminal=1 mode=0
+New Monitor.ML_1031549889 element=Line.AT_1031549889 terminal=1 mode=0
+New Monitor.ML_1031549890 element=Line.AT_1031549890 terminal=1 mode=0
+New Monitor.ML_1031549891 element=Line.AT_1031549891 terminal=1 mode=0
+New Monitor.ML_1031549892 element=Line.AT_1031549892 terminal=1 mode=0
+New Monitor.ML_1031549893 element=Line.AT_1031549893 terminal=1 mode=0
+New Monitor.ML_1031549894 element=Line.AT_1031549894 terminal=1 mode=0
+New Monitor.ML_1031549895 element=Line.AT_1031549895 terminal=1 mode=0
+New Monitor.ML_1031549896 element=Line.AT_1031549896 terminal=1 mode=0
+New Monitor.ML_1031549897 element=Line.AT_1031549897 terminal=1 mode=0
+New Monitor.ML_1031549898 element=Line.AT_1031549898 terminal=1 mode=0
+New Monitor.ML_1031549899 element=Line.AT_1031549899 terminal=1 mode=0
+New Monitor.ML_1031549900 element=Line.AT_1031549900 terminal=1 mode=0
+New Monitor.ML_1031549901 element=Line.AT_1031549901 terminal=1 mode=0
+New Monitor.ML_1031549902 element=Line.AT_1031549902 terminal=1 mode=0
+New Monitor.ML_1031549903 element=Line.AT_1031549903 terminal=1 mode=0
+New Monitor.ML_1031549904 element=Line.AT_1031549904 terminal=1 mode=0
+New Monitor.ML_1031549905 element=Line.AT_1031549905 terminal=1 mode=0
+New Monitor.ML_1031549906 element=Line.AT_1031549906 terminal=1 mode=0
+New Monitor.ML_1031549907 element=Line.AT_1031549907 terminal=1 mode=0
+New Monitor.ML_1031549908 element=Line.AT_1031549908 terminal=1 mode=0
+New Monitor.ML_1031549909 element=Line.AT_1031549909 terminal=1 mode=0
+New Monitor.ML_1031549910 element=Line.AT_1031549910 terminal=1 mode=0
+New Monitor.ML_1031549911 element=Line.AT_1031549911 terminal=1 mode=0
+New Monitor.ML_1031549912 element=Line.AT_1031549912 terminal=1 mode=0
+New Monitor.ML_1031549913 element=Line.AT_1031549913 terminal=1 mode=0
+New Monitor.ML_1031549914 element=Line.AT_1031549914 terminal=1 mode=0
+New Monitor.ML_1031549915 element=Line.AT_1031549915 terminal=1 mode=0
+New Monitor.ML_1031549916 element=Line.AT_1031549916 terminal=1 mode=0
+New Monitor.ML_1031549917 element=Line.AT_1031549917 terminal=1 mode=0
+New Monitor.ML_1031549918 element=Line.AT_1031549918 terminal=1 mode=0
+New Monitor.ML_1031549919 element=Line.AT_1031549919 terminal=1 mode=0
+New Monitor.ML_1031549920 element=Line.AT_1031549920 terminal=1 mode=0
+New Monitor.ML_1031549921 element=Line.AT_1031549921 terminal=1 mode=0
+New Monitor.ML_1031549922 element=Line.AT_1031549922 terminal=1 mode=0
+New Monitor.ML_1031549923 element=Line.AT_1031549923 terminal=1 mode=0
+New Monitor.ML_1031549924 element=Line.AT_1031549924 terminal=1 mode=0
+New Monitor.ML_1031549925 element=Line.AT_1031549925 terminal=1 mode=0
+New Monitor.ML_1031549926 element=Line.AT_1031549926 terminal=1 mode=0
+New Monitor.ML_1031549927 element=Line.AT_1031549927 terminal=1 mode=0
+New Monitor.ML_1031549928 element=Line.AT_1031549928 terminal=1 mode=0
+New Monitor.ML_1031549929 element=Line.AT_1031549929 terminal=1 mode=0
+New Monitor.ML_1031549930 element=Line.AT_1031549930 terminal=1 mode=0
+New Monitor.ML_1031549931 element=Line.AT_1031549931 terminal=1 mode=0
+New Monitor.ML_1031549932 element=Line.AT_1031549932 terminal=1 mode=0
+New Monitor.ML_1031549933 element=Line.AT_1031549933 terminal=1 mode=0
+New Monitor.ML_1031549934 element=Line.AT_1031549934 terminal=1 mode=0
+New Monitor.ML_1031549935 element=Line.AT_1031549935 terminal=1 mode=0
+New Monitor.ML_1031549936 element=Line.AT_1031549936 terminal=1 mode=0
+New Monitor.ML_1031549937 element=Line.AT_1031549937 terminal=1 mode=0
+New Monitor.ML_1031549938 element=Line.AT_1031549938 terminal=1 mode=0
+New Monitor.ML_1031549939 element=Line.AT_1031549939 terminal=1 mode=0
+New Monitor.ML_1031549940 element=Line.AT_1031549940 terminal=1 mode=0
+New Monitor.ML_1031549941 element=Line.AT_1031549941 terminal=1 mode=0
+New Monitor.ML_1031549942 element=Line.AT_1031549942 terminal=1 mode=0
+New Monitor.ML_1031549943 element=Line.AT_1031549943 terminal=1 mode=0
+New Monitor.ML_1031549944 element=Line.AT_1031549944 terminal=1 mode=0
+New Monitor.ML_1031549945 element=Line.AT_1031549945 terminal=1 mode=0
+New Monitor.ML_1031549946 element=Line.AT_1031549946 terminal=1 mode=0
+New Monitor.ML_1031549947 element=Line.AT_1031549947 terminal=1 mode=0
+New Monitor.ML_1031549948 element=Line.AT_1031549948 terminal=1 mode=0
+New Monitor.ML_1031549949 element=Line.AT_1031549949 terminal=1 mode=0
+New Monitor.ML_1031550044 element=Line.AT_1031550044 terminal=1 mode=0
+New Monitor.ML_1031550045 element=Line.AT_1031550045 terminal=1 mode=0
+New Monitor.ML_1031550046 element=Line.AT_1031550046 terminal=1 mode=0
+New Monitor.ML_1031550047 element=Line.AT_1031550047 terminal=1 mode=0
+New Monitor.ML_1031550048 element=Line.AT_1031550048 terminal=1 mode=0
+New Monitor.ML_1031550049 element=Line.AT_1031550049 terminal=1 mode=0
+New Monitor.ML_1031550050 element=Line.AT_1031550050 terminal=1 mode=0
+New Monitor.ML_1031550051 element=Line.AT_1031550051 terminal=1 mode=0
+New Monitor.ML_1031550052 element=Line.AT_1031550052 terminal=1 mode=0
+New Monitor.ML_1031550053 element=Line.AT_1031550053 terminal=1 mode=0
+New Monitor.ML_1031550054 element=Line.AT_1031550054 terminal=1 mode=0
+New Monitor.ML_1031550055 element=Line.AT_1031550055 terminal=1 mode=0
+New Monitor.ML_1031550056 element=Line.AT_1031550056 terminal=1 mode=0
+New Monitor.ML_1031550057 element=Line.AT_1031550057 terminal=1 mode=0
+New Monitor.ML_1031550058 element=Line.AT_1031550058 terminal=1 mode=0
+New Monitor.ML_1031550059 element=Line.AT_1031550059 terminal=1 mode=0
+New Monitor.ML_1031550060 element=Line.AT_1031550060 terminal=1 mode=0
+New Monitor.ML_1031550061 element=Line.AT_1031550061 terminal=1 mode=0
+New Monitor.ML_1031550062 element=Line.AT_1031550062 terminal=1 mode=0
+New Monitor.ML_1031550063 element=Line.AT_1031550063 terminal=1 mode=0
+New Monitor.ML_1031550064 element=Line.AT_1031550064 terminal=1 mode=0
+New Monitor.ML_1031550065 element=Line.AT_1031550065 terminal=1 mode=0
+New Monitor.ML_1031550066 element=Line.AT_1031550066 terminal=1 mode=0
+New Monitor.ML_1031550067 element=Line.AT_1031550067 terminal=1 mode=0
+New Monitor.ML_1031550068 element=Line.AT_1031550068 terminal=1 mode=0
+New Monitor.ML_1031550069 element=Line.AT_1031550069 terminal=1 mode=0
+New Monitor.ML_1031550070 element=Line.AT_1031550070 terminal=1 mode=0
+New Monitor.ML_1031550071 element=Line.AT_1031550071 terminal=1 mode=0
+New Monitor.ML_1031550072 element=Line.AT_1031550072 terminal=1 mode=0
+New Monitor.ML_1031550073 element=Line.AT_1031550073 terminal=1 mode=0
+New Monitor.ML_1031550074 element=Line.AT_1031550074 terminal=1 mode=0
+New Monitor.ML_1031550075 element=Line.AT_1031550075 terminal=1 mode=0
+New Monitor.ML_1031550076 element=Line.AT_1031550076 terminal=1 mode=0
+New Monitor.ML_1031550077 element=Line.AT_1031550077 terminal=1 mode=0
+New Monitor.ML_1031550078 element=Line.AT_1031550078 terminal=1 mode=0
+New Monitor.ML_1031550079 element=Line.AT_1031550079 terminal=1 mode=0
+New Monitor.ML_1031550080 element=Line.AT_1031550080 terminal=1 mode=0
+New Monitor.ML_1031550081 element=Line.AT_1031550081 terminal=1 mode=0
+New Monitor.ML_1031550082 element=Line.AT_1031550082 terminal=1 mode=0
+New Monitor.ML_1031550083 element=Line.AT_1031550083 terminal=1 mode=0
+New Monitor.ML_1031550084 element=Line.AT_1031550084 terminal=1 mode=0
+New Monitor.ML_1031550085 element=Line.AT_1031550085 terminal=1 mode=0
+New Monitor.ML_1031550086 element=Line.AT_1031550086 terminal=1 mode=0
+New Monitor.ML_1031550087 element=Line.AT_1031550087 terminal=1 mode=0
+New Monitor.ML_1031550088 element=Line.AT_1031550088 terminal=1 mode=0
+New Monitor.ML_1031550089 element=Line.AT_1031550089 terminal=1 mode=0
+New Monitor.ML_1031550090 element=Line.AT_1031550090 terminal=1 mode=0
+New Monitor.ML_1031550091 element=Line.AT_1031550091 terminal=1 mode=0
+New Monitor.ML_1031550092 element=Line.AT_1031550092 terminal=1 mode=0
+New Monitor.ML_1031550093 element=Line.AT_1031550093 terminal=1 mode=0
+New Monitor.ML_1031550094 element=Line.AT_1031550094 terminal=1 mode=0
+New Monitor.ML_1031550095 element=Line.AT_1031550095 terminal=1 mode=0
+New Monitor.ML_1031550096 element=Line.AT_1031550096 terminal=1 mode=0
+New Monitor.ML_1031550097 element=Line.AT_1031550097 terminal=1 mode=0
+New Monitor.ML_1031550098 element=Line.AT_1031550098 terminal=1 mode=0
+New Monitor.ML_1031550099 element=Line.AT_1031550099 terminal=1 mode=0
+New Monitor.ML_1031550100 element=Line.AT_1031550100 terminal=1 mode=0
+New Monitor.ML_1031550101 element=Line.AT_1031550101 terminal=1 mode=0
+New Monitor.ML_1031550102 element=Line.AT_1031550102 terminal=1 mode=0
+New Monitor.ML_1031550103 element=Line.AT_1031550103 terminal=1 mode=0
+New Monitor.ML_1031550104 element=Line.AT_1031550104 terminal=1 mode=0
+New Monitor.ML_1032226207 element=Line.AT_1032226207 terminal=1 mode=0
+New Monitor.ML_1032226208 element=Line.AT_1032226208 terminal=1 mode=0
+New Monitor.ML_1032226209 element=Line.AT_1032226209 terminal=1 mode=0
+New Monitor.ML_1032226210 element=Line.AT_1032226210 terminal=1 mode=0
+New Monitor.ML_1032226211 element=Line.AT_1032226211 terminal=1 mode=0
+New Monitor.ML_1032226212 element=Line.AT_1032226212 terminal=1 mode=0
+New Monitor.ML_1032226213 element=Line.AT_1032226213 terminal=1 mode=0
+New Monitor.ML_1032226214 element=Line.AT_1032226214 terminal=1 mode=0
+New Monitor.ML_1032226215 element=Line.AT_1032226215 terminal=1 mode=0
+New Monitor.ML_1032226216 element=Line.AT_1032226216 terminal=1 mode=0
+New Monitor.ML_1032226217 element=Line.AT_1032226217 terminal=1 mode=0
+New Monitor.ML_1032226218 element=Line.AT_1032226218 terminal=1 mode=0
+New Monitor.ML_1032226219 element=Line.AT_1032226219 terminal=1 mode=0
+New Monitor.ML_1032226220 element=Line.AT_1032226220 terminal=1 mode=0
+New Monitor.ML_1032226221 element=Line.AT_1032226221 terminal=1 mode=0
+New Monitor.ML_1032226222 element=Line.AT_1032226222 terminal=1 mode=0
+New Monitor.ML_1032226223 element=Line.AT_1032226223 terminal=1 mode=0
+New Monitor.ML_1032226224 element=Line.AT_1032226224 terminal=1 mode=0
+New Monitor.ML_1032226225 element=Line.AT_1032226225 terminal=1 mode=0
+New Monitor.ML_1032226226 element=Line.AT_1032226226 terminal=1 mode=0
+New Monitor.ML_1032226227 element=Line.AT_1032226227 terminal=1 mode=0
+New Monitor.ML_1032226228 element=Line.AT_1032226228 terminal=1 mode=0
+New Monitor.ML_1032226229 element=Line.AT_1032226229 terminal=1 mode=0
+New Monitor.ML_1032226230 element=Line.AT_1032226230 terminal=1 mode=0
+New Monitor.ML_1032226231 element=Line.AT_1032226231 terminal=1 mode=0
+New Monitor.ML_1032226232 element=Line.AT_1032226232 terminal=1 mode=0
+New Monitor.ML_1032226233 element=Line.AT_1032226233 terminal=1 mode=0
+New Monitor.ML_1032226234 element=Line.AT_1032226234 terminal=1 mode=0
+New Monitor.ML_1032226235 element=Line.AT_1032226235 terminal=1 mode=0
+New Monitor.ML_1032226236 element=Line.AT_1032226236 terminal=1 mode=0
+New Monitor.ML_1032226238 element=Line.AT_1032226238 terminal=1 mode=0
+New Monitor.ML_1032226239 element=Line.AT_1032226239 terminal=1 mode=0
+New Monitor.ML_1032226240 element=Line.AT_1032226240 terminal=1 mode=0
+New Monitor.ML_1032226241 element=Line.AT_1032226241 terminal=1 mode=0
+New Monitor.ML_1032226242 element=Line.AT_1032226242 terminal=1 mode=0
+New Monitor.ML_1032226243 element=Line.AT_1032226243 terminal=1 mode=0
+New Monitor.ML_1032226244 element=Line.AT_1032226244 terminal=1 mode=0
+New Monitor.ML_1032226245 element=Line.AT_1032226245 terminal=1 mode=0
+New Monitor.ML_1032226246 element=Line.AT_1032226246 terminal=1 mode=0
+New Monitor.ML_1032226247 element=Line.AT_1032226247 terminal=1 mode=0
+New Monitor.ML_1032226248 element=Line.AT_1032226248 terminal=1 mode=0
+New Monitor.ML_1032226249 element=Line.AT_1032226249 terminal=1 mode=0
+New Monitor.ML_1032226250 element=Line.AT_1032226250 terminal=1 mode=0
+New Monitor.ML_1032226251 element=Line.AT_1032226251 terminal=1 mode=0
+New Monitor.ML_1032226252 element=Line.AT_1032226252 terminal=1 mode=0
+New Monitor.ML_1032226253 element=Line.AT_1032226253 terminal=1 mode=0
+New Monitor.ML_1032226254 element=Line.AT_1032226254 terminal=1 mode=0
+New Monitor.ML_1032226255 element=Line.AT_1032226255 terminal=1 mode=0
+New Monitor.ML_1032226256 element=Line.AT_1032226256 terminal=1 mode=0
+New Monitor.ML_1032226257 element=Line.AT_1032226257 terminal=1 mode=0
+New Monitor.ML_1032226258 element=Line.AT_1032226258 terminal=1 mode=0
+New Monitor.ML_1032226259 element=Line.AT_1032226259 terminal=1 mode=0
+New Monitor.ML_1032226260 element=Line.AT_1032226260 terminal=1 mode=0
+New Monitor.ML_1032226261 element=Line.AT_1032226261 terminal=1 mode=0
+New Monitor.ML_1032226262 element=Line.AT_1032226262 terminal=1 mode=0
+New Monitor.ML_1032226263 element=Line.AT_1032226263 terminal=1 mode=0
+! 4231 trechos de AT sem monitor (limite 200) — use Export Currents para o restante
+
+
+! ---------------------------------------- 7. chaves abertas
+
+! ------------------------------------------------------------------ solucao
+Set Voltagebases=[138 88 34.5 13.8 0.44 0.38 0.24 0.23 0.22 0.208]
+CalcVoltagebases
+
+Set maxcontroliter=200
+Set maxiterations=100
+Set controlmode=static
+Set tolerance=0.0001
+
+! estado das chaves normalmente abertas, fixado depois da montagem
+redirect _AT/_CHAVES_ABERTAS_AT.dss
+redirect 1726516/_CHAVES_ABERTAS.dss
+redirect 1726518/_CHAVES_ABERTAS.dss
+redirect 1726519/_CHAVES_ABERTAS.dss
+redirect 1726520/_CHAVES_ABERTAS.dss
+redirect 1726521/_CHAVES_ABERTAS.dss
+redirect 1726522/_CHAVES_ABERTAS.dss
+redirect 1726523/_CHAVES_ABERTAS.dss
+redirect 1726524/_CHAVES_ABERTAS.dss
+redirect 1726525/_CHAVES_ABERTAS.dss
+redirect 1726526/_CHAVES_ABERTAS.dss
+redirect 1726527/_CHAVES_ABERTAS.dss
+redirect 1726528/_CHAVES_ABERTAS.dss
+redirect 1726529/_CHAVES_ABERTAS.dss
+redirect 1726530/_CHAVES_ABERTAS.dss
+redirect 1726531/_CHAVES_ABERTAS.dss
+redirect 1726532/_CHAVES_ABERTAS.dss
+redirect 1726533/_CHAVES_ABERTAS.dss
+redirect 1726534/_CHAVES_ABERTAS.dss
+redirect 1726535/_CHAVES_ABERTAS.dss
+redirect 1726536/_CHAVES_ABERTAS.dss
+redirect 1726537/_CHAVES_ABERTAS.dss
+redirect 1726538/_CHAVES_ABERTAS.dss
+redirect 1726539/_CHAVES_ABERTAS.dss
+redirect 1726540/_CHAVES_ABERTAS.dss
+redirect 1726516/_AMPACIDADE.dss
+redirect 1726518/_AMPACIDADE.dss
+redirect 1726519/_AMPACIDADE.dss
+redirect 1726520/_AMPACIDADE.dss
+redirect 1726521/_AMPACIDADE.dss
+redirect 1726522/_AMPACIDADE.dss
+redirect 1726523/_AMPACIDADE.dss
+redirect 1726524/_AMPACIDADE.dss
+redirect 1726525/_AMPACIDADE.dss
+redirect 1726526/_AMPACIDADE.dss
+redirect 1726527/_AMPACIDADE.dss
+redirect 1726528/_AMPACIDADE.dss
+redirect 1726529/_AMPACIDADE.dss
+redirect 1726530/_AMPACIDADE.dss
+redirect 1726531/_AMPACIDADE.dss
+redirect 1726532/_AMPACIDADE.dss
+redirect 1726533/_AMPACIDADE.dss
+redirect 1726534/_AMPACIDADE.dss
+redirect 1726535/_AMPACIDADE.dss
+redirect 1726536/_AMPACIDADE.dss
+redirect 1726537/_AMPACIDADE.dss
+redirect 1726538/_AMPACIDADE.dss
+redirect 1726539/_AMPACIDADE.dss
+redirect 1726540/_AMPACIDADE.dss
+redirect 1726516/_LIGACAO.dss
+redirect 1726518/_LIGACAO.dss
+redirect 1726519/_LIGACAO.dss
+redirect 1726520/_LIGACAO.dss
+redirect 1726521/_LIGACAO.dss
+redirect 1726522/_LIGACAO.dss
+redirect 1726523/_LIGACAO.dss
+redirect 1726524/_LIGACAO.dss
+redirect 1726525/_LIGACAO.dss
+redirect 1726526/_LIGACAO.dss
+redirect 1726527/_LIGACAO.dss
+redirect 1726528/_LIGACAO.dss
+redirect 1726529/_LIGACAO.dss
+redirect 1726530/_LIGACAO.dss
+redirect 1726531/_LIGACAO.dss
+redirect 1726532/_LIGACAO.dss
+redirect 1726533/_LIGACAO.dss
+redirect 1726534/_LIGACAO.dss
+redirect 1726535/_LIGACAO.dss
+redirect 1726536/_LIGACAO.dss
+redirect 1726537/_LIGACAO.dss
+redirect 1726538/_LIGACAO.dss
+redirect 1726539/_LIGACAO.dss
+redirect 1726540/_LIGACAO.dss
+
+! solucao inicial, recalculo das bases e solucao definitiva
+Set mode=snap
+Solve
+CalcVoltagebases
+Solve
+
+! --------------------------------------------------- coordenadas geograficas
+! DEPOIS do Solve de proposito: a lista de barras do OpenDSS so existe apos a
+! montagem, e um Buscoords emitido antes nao encontra barra alguma para casar.
+! Extraidas da geometria da BDGD (SIRGAS 2000). Habilitam:
+!   Plot Circuit Power max=2000 dots=n labels=n C1=Blue
+!   Plot Circuit Voltage
+!   Plot profile phases=all
+Buscoords _AT/BusCoords_AT.dat
+Buscoords 1726516/BusCoords.dat
+Buscoords 1726518/BusCoords.dat
+Buscoords 1726519/BusCoords.dat
+Buscoords 1726520/BusCoords.dat
+Buscoords 1726521/BusCoords.dat
+Buscoords 1726522/BusCoords.dat
+Buscoords 1726523/BusCoords.dat
+Buscoords 1726524/BusCoords.dat
+Buscoords 1726525/BusCoords.dat
+Buscoords 1726526/BusCoords.dat
+Buscoords 1726527/BusCoords.dat
+Buscoords 1726528/BusCoords.dat
+Buscoords 1726529/BusCoords.dat
+Buscoords 1726530/BusCoords.dat
+Buscoords 1726531/BusCoords.dat
+Buscoords 1726532/BusCoords.dat
+Buscoords 1726533/BusCoords.dat
+Buscoords 1726534/BusCoords.dat
+Buscoords 1726535/BusCoords.dat
+Buscoords 1726536/BusCoords.dat
+Buscoords 1726537/BusCoords.dat
+Buscoords 1726538/BusCoords.dat
+Buscoords 1726539/BusCoords.dat
+Buscoords 1726540/BusCoords.dat
+
+! ------------------------------------------------------------------ conferencia
+! Descomente para o regime diario de 24 h em passos de 15 min:
+!   Set mode=daily
+!   Set stepsize=15m
+!   Set number=96
+!   Solve
+!
+! Depois de resolver:
+!   Show Convergence          quem nao convergiu
+!   Show Isolated             o que ficou sem fonte
+!   Show Voltages LN Nodes    tensoes por no
+!   Show Overloads            elementos acima da nominal
+!   Show Losses               perdas por elemento

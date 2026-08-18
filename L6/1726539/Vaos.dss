@@ -1,0 +1,26 @@
+! ==========================================================
+! VAOS DE SAIDA — barra de MT da SE -> cabeceira do alimentador
+! Derivado de CTMT.BARR e CTMT.UNI_TR_AT: a BDGD nao modela o
+! arranjo interno da subestacao, so o vinculo logico.
+! Cada vao e o disjuntor de saida do alimentador.
+! ==========================================================
+New Line.VAO_AXAU05 phases=3 Bus1=10164267.1.2.3 Bus2=segm_10165728.1.2.3 Switch=y r1=0.0001 r0=0.0001 x1=0 x0=0 c1=0 c0=0
+New Monitor.M_AXAU05 element=Line.VAO_AXAU05 terminal=1 mode=1 ppolar=no
+New Line.VAO_AXAU13 phases=3 Bus1=10164267.1.2.3 Bus2=segm_10165245.1.2.3 Switch=y r1=0.0001 r0=0.0001 x1=0 x0=0 c1=0 c0=0
+New Monitor.M_AXAU13 element=Line.VAO_AXAU13 terminal=1 mode=1 ppolar=no
+New Line.VAO_AXAU17 phases=3 Bus1=10164267.1.2.3 Bus2=segm_1430121210.1.2.3 Switch=y r1=0.0001 r0=0.0001 x1=0 x0=0 c1=0 c0=0
+New Monitor.M_AXAU17 element=Line.VAO_AXAU17 terminal=1 mode=1 ppolar=no
+New Line.VAO_AXAU11 phases=3 Bus1=10164267.1.2.3 Bus2=segm_10165361.1.2.3 Switch=y r1=0.0001 r0=0.0001 x1=0 x0=0 c1=0 c0=0
+New Monitor.M_AXAU11 element=Line.VAO_AXAU11 terminal=1 mode=1 ppolar=no
+New Line.VAO_AXAU03 phases=3 Bus1=10164267.1.2.3 Bus2=segm_10165832.1.2.3 Switch=y r1=0.0001 r0=0.0001 x1=0 x0=0 c1=0 c0=0
+New Monitor.M_AXAU03 element=Line.VAO_AXAU03 terminal=1 mode=1 ppolar=no
+New Line.VAO_AXAU04 phases=3 Bus1=10164267.1.2.3 Bus2=segm_10165780.1.2.3 Switch=y r1=0.0001 r0=0.0001 x1=0 x0=0 c1=0 c0=0
+New Monitor.M_AXAU04 element=Line.VAO_AXAU04 terminal=1 mode=1 ppolar=no
+New Line.VAO_AXAU02 phases=3 Bus1=10164267.1.2.3 Bus2=segm_1430121130.1.2.3 Switch=y r1=0.0001 r0=0.0001 x1=0 x0=0 c1=0 c0=0
+New Monitor.M_AXAU02 element=Line.VAO_AXAU02 terminal=1 mode=1 ppolar=no
+New Line.VAO_AXAU10 phases=3 Bus1=10164267.1.2.3 Bus2=segm_10165419.1.2.3 Switch=y r1=0.0001 r0=0.0001 x1=0 x0=0 c1=0 c0=0
+New Monitor.M_AXAU10 element=Line.VAO_AXAU10 terminal=1 mode=1 ppolar=no
+New Line.VAO_AXAU14 phases=3 Bus1=10164267.1.2.3 Bus2=segm_10165297.1.2.3 Switch=y r1=0.0001 r0=0.0001 x1=0 x0=0 c1=0 c0=0
+New Monitor.M_AXAU14 element=Line.VAO_AXAU14 terminal=1 mode=1 ppolar=no
+New Line.VAO_AXAU07 phases=3 Bus1=10164267.1.2.3 Bus2=segm_10165560.1.2.3 Switch=y r1=0.0001 r0=0.0001 x1=0 x0=0 c1=0 c0=0
+New Monitor.M_AXAU07 element=Line.VAO_AXAU07 terminal=1 mode=1 ppolar=no

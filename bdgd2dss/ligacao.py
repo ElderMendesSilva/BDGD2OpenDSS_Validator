@@ -130,6 +130,37 @@ def decidir(comps, adjacencia, cargas_por_barra, kv_por_barra, kvs_de_vao,
     return lig, fora
 
 
+def aceitar(candidatos, tenta):
+    """Adiciona os elos UM A UM e mantem so o que nao quebra a solucao.
+
+    POR QUE ISTO EXISTE. A primeira versao escrevia todos os elos de uma vez,
+    resolvia, e — se o modelo divergisse — registrava `convergiu: False` e
+    mantinha os elos assim mesmo. Medido na Equatorial PA V13: tres
+    subestacoes de 119 pararam de convergir, com tensao em 7,8e+23, 56.029 e
+    10,28 pu. Eram exatamente as tres em que houve elo. A V11 tinha 119/119.
+
+    Premissa que PIORA o modelo nao se sustenta. Nao e questao de engenharia,
+    e de defesa: um revisor que veja "religamos a rede desenergizada" e
+    encontre tres modelos divergentes pergunta, com razao, o que mais a
+    premissa quebrou sem que ninguem tenha olhado.
+
+    A ordem e do maior para o menor em carga: se algum elo tiver de cair, que
+    caia o que menos entrega. `tenta(elo)` devolve True se o modelo continua
+    convergindo com ele dentro — quem chama e que sabe resolver o fluxo.
+
+    Devolve (mantidos, recusados). Recusado nao some: vai escrito no arquivo,
+    porque elo que a gente tentou e desistiu e informacao sobre a rede.
+    """
+    mantidos, recusados = [], []
+    for c in sorted(candidatos, key=lambda x: (-x.get('cargas', 0),
+                                               str(x.get('barra')))):
+        if tenta(c):
+            mantidos.append(c)
+        else:
+            recusados.append(c)
+    return mantidos, recusados
+
+
 CABECALHO = """! ==========================================================================
 !  LIGACAO A COMPONENTE DESENERGIZADA — achado 33, forma B
 ! ==========================================================================
@@ -171,7 +202,14 @@ def escrever(caminho, ligacoes, barra_por_kv, descartadas=()):
         out.append('! nenhuma componente desenergizada relevante nesta '
                    'subestacao.')
     for d in descartadas:
-        out.append(f"! descartada: {d['barras']:,} barras, {d['cargas']:,} "
-                   f"cargas — {d['motivo']}")
+        if d.get('motivo') == 'quebrou a convergencia':
+            # este merece destaque: a rede existe, o elo foi tentado, e o
+            # modelo divergiu com ele dentro. E informacao sobre a REDE
+            out.append(f"! RECUSADO: {d['barras']:,} barras, {d['cargas']:,} "
+                       f"cargas — o elo fez o modelo divergir, e premissa "
+                       f"que piora o modelo nao entra")
+        else:
+            out.append(f"! descartada: {d['barras']:,} barras, "
+                       f"{d['cargas']:,} cargas — {d['motivo']}")
     open(caminho, 'w', encoding='utf-8').write('\n'.join(out) + '\n')
     return len(ligacoes)
