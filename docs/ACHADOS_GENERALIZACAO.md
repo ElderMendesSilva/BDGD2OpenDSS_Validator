@@ -3175,3 +3175,57 @@ A curva mais grossa perde os picos, e perda e I²R: 24 passos enviesam a perda
 E o que mais importa: **nenhuma dessas mudancas alterou um numero**. Todas
 foram provadas por comparacao byte a byte, e a invariancia esta travada em
 teste para que a proxima nao possa quebra-la em silencio.
+
+---
+
+## Achado 37 — energia declarada sem consumidor: o teto da cobertura
+
+A Roraima fecha a V14 com **cobertura de 89,9%** — 9 dos 89 alimentadores sem
+perda medida. A pergunta era se dava para subir isso depurando. **Não dá**, e a
+medição diz por quê.
+
+Os nove têm **energia zero no medidor**. Olhando a zona de cada um no modelo:
+
+```
+medidor        zona  elementos  cargas kW   vao I (A)
+ce_al2-03         1          0        0,0        0,00
+ce_al2-11        66          0        0,0        0,02
+ce_lt2-01         1          0        0,0        0,00
+```
+
+E na BDGD:
+
+| CTMT | UCBT | UCMT | SSDMT | energia declarada/ano |
+|---|---|---|---|---|
+| CE_AL2-03 | 0 | 0 | 0 | 0 |
+| CT_AL2-03 | 0 | 0 | 7 | 0 |
+| UGBT_RR | 0 | 0 | 0 | 0 |
+| **CE_AL2-11** | **0** | **0** | 63 | **5.252.704 kWh** |
+| **CE_LT2-01** | **0** | **0** | 0 | **4.472.622 kWh** |
+
+**Nenhum dos nove tem consumidor declarado.** Três são vazios de verdade — sem
+rede, sem consumidor, sem energia. Mas dois declaram **9,7 GWh/ano somados com
+zero unidades consumidoras**: o `CE_AL2-11` tem 63 trechos de rede e nenhuma
+carga pendurada neles; o `CE_LT2-01` não tem nem rede.
+
+### Por que isso e um teto, e nao um defeito
+
+Não há o que modelar. O consumidor não existe na `UCBT_tab` nem na `UCMT_tab`,
+e a energia mora só no campo `ENE_*` da CTMT. Subir de 89,9% exigiria
+**inventar carga** para casar com uma energia declarada — que é precisamente o
+que a fidelidade à BDGD proíbe.
+
+É o espelho do que a Cemig-D mostra pelo outro lado: lá havia rede com energia
+zero no medidor; aqui há energia declarada sem rede nem consumidor. Os dois
+casos dizem a mesma coisa sobre o cadastro — **a CTMT e as tabelas de unidade
+consumidora não fecham entre si**, e qualquer cobertura abaixo de 100% tem de
+ser lida contra isso antes de ser atribuída ao conversor.
+
+### O que fica aberto na Roraima, e nao e a cobertura
+
+1. **A razão de 2,63×**, a segunda pior das sete. O achado 35 mostrou que
+   metade era o `%R` dobrado, já corrigido; o resto está nas duas subestações
+   rurais de 465 e 1.730 km com Vmin de 0,063 pu. Só era mensurável depois de
+   regerar — e a V14 regerou.
+2. **Os ~5% de rede inalcançável** que o achado 32 não explica: a Roraima vai
+   de 69,6% para 94,8% somando os reguladores, e o resíduo tem causa própria.
