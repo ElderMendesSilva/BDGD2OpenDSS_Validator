@@ -1,0 +1,8 @@
+! GERACAO EM ALTA TENSAO — UGAT_tab
+New Generator.GAT_a4b456b321d0d59fa18f86caa56b5846665e32f0bee2f1c19662662adcabcb72 phases=3 bus1=node_1329320062.1.2.3 kV=138.0000 kW=30000.00 pf=0.95 model=1 Vminpu=0.9 Vmaxpu=1.1
+New Generator.GAT_cd86274a72f825b3d729c05d83de266723092e96a9b5a498731bfe79e6715d99 phases=3 bus1=node_1329320062.1.2.3 kV=138.0000 kW=20000.00 pf=0.95 model=1 Vminpu=0.9 Vmaxpu=1.1
+New Generator.GAT_761e19678f1ffa9447f2c8c56be24556f497ab0951415830f7b4040d283a7390 phases=3 bus1=node_1328462276.1.2.3 kV=88.0000 kW=82000.00 pf=0.95 model=1 Vminpu=0.9 Vmaxpu=1.1
+New Generator.GAT_fd765939f7cbe87d72c96cf5cf0e654b37614948ac9e7466967b2bf904610c38 phases=3 bus1=node_1328461396.1.2.3 kV=88.0000 kW=9.89 pf=0.95 model=1 Vminpu=0.9 Vmaxpu=1.1
+New Generator.GAT_8277476e940ae1b0d603c674f3f531062e26aa58edc058cc6ec819f47c853972 phases=3 bus1=node_1316549172.1.2.3 kV=138.0000 kW=2.92 pf=0.95 model=1 Vminpu=0.9 Vmaxpu=1.1
+New Generator.GAT_5d46e46785c59dbc4decbe70d39eb2ec56d40fb6ed9bd47fdca6041f2897150d phases=3 bus1=100_2723239751.1.2.3 kV=138.0000 kW=30000.00 pf=0.95 model=1 Vminpu=0.9 Vmaxpu=1.1
+New Generator.GAT_01e263d6a1d6e5e012a2d636e8dac0fb17baf4681bf57a2c4fc589444b1810bb phases=3 bus1=node_1362374768.1.2.3 kV=88.0000 kW=23000.00 pf=0.95 model=1 Vminpu=0.9 Vmaxpu=1.1

@@ -3119,9 +3119,59 @@ lote não muda uma linha do que sai — inclusive que o superconjunto lido **nã
 vaza** para o modelo. Fidelidade à BDGD é o argumento do artigo; verificar uma
 vez não sustenta, a suíte impedir sustenta.
 
+### O numero em escala
+
+Vinte e quatro subestacoes da Cemig-D, mesmas em ambos, com o cache de UCBT
+pronto para nao medir a agregacao junto:
+
+| | tempo | por subestacao |
+|---|---|---|
+| como rodou na V13 (lote 10 fixo) | 1.508 s | 62,8 s |
+| com as duas correcoes | **448 s** | **18,7 s** |
+| | **3,4×** | |
+
+**480 arquivos comparados, 480 identicos, zero diferentes** — `.dss`,
+`BusCoords.dat` e `resumo.json` de todas as 24. As 24 couberam num unico lote
+de leitura, contra tres antes.
+
+Projetando para a base inteira: a conversao da Cemig-D sai de **7h17 para
+~2h10**.
+
 ### E o `energia` parou de perder trabalho
 
 Oito horas sem gravar nada é falha de robustez, não de desempenho, e num ciclo
 de horas custa mais caro que qualquer lentidão. Agora ele grava a cada
 subestação, por arquivo temporário e troca atômica, e retoma o que já mediu.
 Provado: morto aos 45 s tinha 7 de 20 gravadas; ao retomar, fechou as 20.
+
+### O `energia` tambem passou a rodar em paralelo
+
+Cada subestacao e independente. O que impedia era o `opendssdirect` guardar
+circuito e solucao em variaveis globais — em PROCESSOS separados isso deixa de
+existir. Medido na Roraima: **245 s em serie contra 120 s com 6 trabalhadores,
+com o `energia_dia.json` identico byte a byte**.
+
+A alternativa obvia foi medida e **descartada**: cortar passos resolve o
+relogio e estraga o resultado.
+
+| passos | tempo | perda mediana | erro mediano | erro p90 |
+|---|---|---|---|---|
+| 96 | 191 s | 3,383% | — | — |
+| 48 | 101 s | 3,154% | 3,07% | 9,48% |
+| 24 | 74 s | 3,001% | 6,50% | 18,96% |
+
+A curva mais grossa perde os picos, e perda e I²R: 24 passos enviesam a perda
+**11,3% para baixo**. A discussao do artigo esta entre razoes de 0,83× e
+1,20× — nao da para pagar o relogio com a grandeza que se quer defender.
+
+### O ciclo, antes e depois
+
+| | V13 | esperado |
+|---|---|---|
+| conversao da Cemig-D | 7h17 | ~2h10 |
+| `energia` da Cemig-D | 8 h, morto sem gravar | ~1h30 a 2 h, com retomada |
+| ciclo das sete | 24,7 h | 8 a 10 h |
+
+E o que mais importa: **nenhuma dessas mudancas alterou um numero**. Todas
+foram provadas por comparacao byte a byte, e a invariancia esta travada em
+teste para que a proxima nao possa quebra-la em silencio.

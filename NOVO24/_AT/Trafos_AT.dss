@@ -1,0 +1,186 @@
+! ==========================================================
+! TRANSFORMADORES DE POTENCIA — UNTRAT + EQTRAT
+! Primario: PAC_1 (malha de 88 kV, vinda de SSDAT).
+! Secundario: a BARRA de MT (BARR_2), compartilhada pelos
+! alimentadores da subestacao.
+! Xhl NAO vem da BDGD — adotado por faixa de potencia (ver
+! XHL_POR_MVA). %loadloss = PER_TOT - PER_FER, %noloadloss =
+! PER_FER, ambos da BDGD.
+! O tap do secundario reproduz CTMT.TEN_OPE.
+! ==========================================================
+New Transformer.AT_209036237 phases=3 windings=2 Xhl=9.00
+~ %loadloss=0.521 %noloadloss=0.111
+~ wdg=1 bus=segm_2739174221.1.2.3 conn=delta kV=138.0000 kVA=25000
+~ wdg=2 bus=209036233.1.2.3.0 conn=wye kV=13.8000 kVA=25000 tap=1.0400
+New Transformer.AT_10370585 phases=3 windings=2 Xhl=9.00
+~ %loadloss=0.459 %noloadloss=0.090
+~ wdg=1 bus=segm_2710294473.1.2.3.0 conn=wye kV=138.0000 kVA=14000
+~ wdg=2 bus=2710294495.1.2.3 conn=delta kV=13.8000 kVA=14000 tap=1.0400
+New Transformer.AT_10370595 phases=3 windings=2 Xhl=9.00
+~ %loadloss=0.545 %noloadloss=0.088
+~ wdg=1 bus=segm_2710294466.1.2.3.0 conn=wye kV=138.0000 kVA=14000
+~ wdg=2 bus=2710294488.1.2.3 conn=delta kV=13.8000 kVA=14000 tap=1.0400
+New Transformer.AT_10370598 phases=3 windings=2 Xhl=9.00
+~ %loadloss=0.523 %noloadloss=0.076
+~ wdg=1 bus=segm_2710294459.1.2.3.0 conn=wye kV=138.0000 kVA=14000
+~ wdg=2 bus=2710294481.1.2.3 conn=delta kV=13.8000 kVA=14000 tap=1.0400
+New Transformer.AT_1686026456 phases=3 windings=2 Xhl=10.50
+~ %loadloss=0.530 %noloadloss=0.080
+~ wdg=1 bus=segm_2577981635.1.2.3.0 conn=wye kV=138.0000 kVA=33000
+~ wdg=2 bus=2577981664.1.2.3 conn=delta kV=13.8000 kVA=33000 tap=1.0400
+New Transformer.AT_1686026459 phases=3 windings=2 Xhl=10.50
+~ %loadloss=0.530 %noloadloss=0.080
+~ wdg=1 bus=segm_2577981642.1.2.3.0 conn=wye kV=138.0000 kVA=33000
+~ wdg=2 bus=2577981657.1.2.3 conn=delta kV=13.8000 kVA=33000 tap=1.0400
+New Transformer.AT_11770226 phases=3 windings=2 Xhl=7.00
+~ %loadloss=0.306 %noloadloss=0.118
+~ wdg=1 bus=segm_2720471725.1.2.3.0 conn=wye kV=88.0000 kVA=5000
+~ wdg=2 bus=2720471872.1.2.3 conn=delta kV=34.5000 kVA=5000 tap=1.0400
+New Transformer.AT_11770348 phases=3 windings=2 Xhl=7.00
+~ %loadloss=0.306 %noloadloss=0.118
+~ wdg=1 bus=segm_11769950.1.2.3.0 conn=wye kV=88.0000 kVA=5000
+~ wdg=2 bus=2720471879.1.2.3 conn=delta kV=34.5000 kVA=5000 tap=1.0400
+New Transformer.AT_189564120 phases=3 windings=2 Xhl=7.00
+~ %loadloss=0.337 %noloadloss=0.124
+~ wdg=1 bus=barra_at_1726533.1.2.3.0 conn=wye kV=88.0000 kVA=5000
+~ wdg=2 bus=189564893.1.2.3 conn=delta kV=34.5000 kVA=5000 tap=1.0400
+New Transformer.AT_189564124 phases=3 windings=2 Xhl=7.00
+~ %loadloss=0.310 %noloadloss=0.118
+~ wdg=1 bus=segm_189563950.1.2.3.0 conn=wye kV=88.0000 kVA=5000
+~ wdg=2 bus=881936133.1.2.3 conn=delta kV=34.5000 kVA=5000 tap=1.0400
+New Transformer.AT_193655758 phases=3 windings=2 Xhl=9.00
+~ %loadloss=0.519 %noloadloss=0.096
+~ wdg=1 bus=barra_at_1726520.1.2.3.0 conn=wye kV=138.0000 kVA=15000
+~ wdg=2 bus=193655878.1.2.3 conn=delta kV=13.8000 kVA=15000 tap=1.0400
+New Transformer.AT_193655754 phases=3 windings=2 Xhl=9.00
+~ %loadloss=0.221 %noloadloss=0.107
+~ wdg=1 bus=barra_at_1726520.1.2.3.0 conn=wye kV=138.0000 kVA=15000
+~ wdg=2 bus=193655763.1.2.3 conn=delta kV=13.8000 kVA=15000 tap=1.0400
+New Transformer.AT_10164287 phases=3 windings=2 Xhl=9.00
+~ %loadloss=0.525 %noloadloss=0.076
+~ wdg=1 bus=segm_10164273.1.2.3 conn=delta kV=138.0000 kVA=25000
+~ wdg=2 bus=10164389.1.2.3.0 conn=wye kV=13.8000 kVA=25000 tap=1.0400
+New Transformer.AT_10825306 phases=3 windings=2 Xhl=9.00
+~ %loadloss=0.525 %noloadloss=0.093
+~ wdg=1 bus=segm_10825292.1.2.3 conn=delta kV=138.0000 kVA=25000
+~ wdg=2 bus=2662023309.1.2.3.0 conn=wye kV=13.8000 kVA=25000 tap=1.0400
+New Transformer.AT_10825309 phases=3 windings=2 Xhl=9.00
+~ %loadloss=0.414 %noloadloss=0.089
+~ wdg=1 bus=segm_2662023387.1.2.3 conn=delta kV=138.0000 kVA=25000
+~ wdg=2 bus=10825334.1.2.3.0 conn=wye kV=13.8000 kVA=25000 tap=1.0400
+New Transformer.AT_1519290221 phases=3 windings=2 Xhl=7.00
+~ %loadloss=0.846 %noloadloss=0.188
+~ wdg=1 bus=segm_198160236.1.2.3 conn=delta kV=88.0000 kVA=5000
+~ wdg=2 bus=198160087.1.2.3.0 conn=wye kV=13.8000 kVA=5000 tap=1.0400
+New Transformer.AT_189564045 phases=3 windings=2 Xhl=9.00
+~ %loadloss=0.483 %noloadloss=0.083
+~ wdg=1 bus=segm_189564025.1.2.3 conn=delta kV=88.0000 kVA=12500
+~ wdg=2 bus=2758714662.1.2.3.0 conn=wye kV=13.8000 kVA=12500 tap=1.0400
+New Transformer.AT_193655964 phases=3 windings=2 Xhl=9.00
+~ %loadloss=0.620 %noloadloss=0.121
+~ wdg=1 bus=segm_2543303636.1.2.3 conn=delta kV=138.0000 kVA=15000
+~ wdg=2 bus=193656012.1.2.3.0 conn=wye kV=13.8000 kVA=15000 tap=1.0400
+New Transformer.AT_195239948 phases=3 windings=2 Xhl=9.00
+~ %loadloss=0.600 %noloadloss=0.140
+~ wdg=1 bus=segm_195239669.1.2.3 conn=delta kV=88.0000 kVA=12500
+~ wdg=2 bus=195239683.1.2.3.0 conn=wye kV=13.8000 kVA=12500 tap=1.0400
+New Transformer.AT_195291313 phases=3 windings=2 Xhl=9.00
+~ %loadloss=0.546 %noloadloss=0.097
+~ wdg=1 bus=barra_at_1726516.1.2.3 conn=delta kV=88.0000 kVA=12500
+~ wdg=2 bus=195291197.1.2.3.0 conn=wye kV=13.8000 kVA=12500 tap=1.0400
+New Transformer.AT_5088703 phases=3 windings=2 Xhl=9.00
+~ %loadloss=0.703 %noloadloss=0.107
+~ wdg=1 bus=segm_5088637.1.2.3 conn=delta kV=138.0000 kVA=15000
+~ wdg=2 bus=5088714.1.2.3.0 conn=wye kV=13.8000 kVA=15000 tap=1.0400
+New Transformer.AT_5140181 phases=3 windings=2 Xhl=9.00
+~ %loadloss=0.588 %noloadloss=0.127
+~ wdg=1 bus=segm_629071088.1.2.3 conn=delta kV=138.0000 kVA=15000
+~ wdg=2 bus=629071038.1.2.3.0 conn=wye kV=13.8000 kVA=15000 tap=1.0400
+New Transformer.AT_5144372 phases=3 windings=2 Xhl=9.00
+~ %loadloss=0.615 %noloadloss=0.130
+~ wdg=1 bus=segm_5144348.1.2.3 conn=delta kV=138.0000 kVA=15000
+~ wdg=2 bus=5144376.1.2.3.0 conn=wye kV=13.8000 kVA=15000 tap=1.0400
+New Transformer.AT_5195952 phases=3 windings=2 Xhl=9.00
+~ %loadloss=0.868 %noloadloss=0.088
+~ wdg=1 bus=segm_5195945.1.2.3 conn=delta kV=88.0000 kVA=12500
+~ wdg=2 bus=5195977.1.2.3.0 conn=wye kV=13.8000 kVA=12500 tap=1.0400
+New Transformer.AT_5388278 phases=3 windings=2 Xhl=9.00
+~ %loadloss=0.687 %noloadloss=0.104
+~ wdg=1 bus=segm_2577981628.1.2.3 conn=delta kV=138.0000 kVA=25000
+~ wdg=2 bus=11413607.1.2.3.0 conn=wye kV=13.8000 kVA=25000 tap=1.0400
+New Transformer.AT_5388305 phases=3 windings=2 Xhl=9.00
+~ %loadloss=0.636 %noloadloss=0.106
+~ wdg=1 bus=segm_10164259.1.2.3 conn=delta kV=138.0000 kVA=25000
+~ wdg=2 bus=10164267.1.2.3.0 conn=wye kV=13.8000 kVA=25000 tap=1.0400
+New Transformer.AT_5388395 phases=3 windings=2 Xhl=9.00
+~ %loadloss=0.509 %noloadloss=0.091
+~ wdg=1 bus=segm_11851464.1.2.3 conn=delta kV=138.0000 kVA=25000
+~ wdg=2 bus=11851801.1.2.3.0 conn=wye kV=13.8000 kVA=25000 tap=1.0400
+New Transformer.AT_5388437 phases=3 windings=2 Xhl=9.00
+~ %loadloss=0.489 %noloadloss=0.088
+~ wdg=1 bus=segm_2751219485.1.2.3 conn=delta kV=88.0000 kVA=12500
+~ wdg=2 bus=695739671.1.2.3.0 conn=wye kV=13.8000 kVA=12500 tap=1.0400
+New Transformer.AT_5388464 phases=3 windings=2 Xhl=7.00
+~ %loadloss=0.920 %noloadloss=0.240
+~ wdg=1 bus=segm_12126290.1.2.3 conn=delta kV=88.0000 kVA=2500
+~ wdg=2 bus=2634380465.1.2.3.0 conn=wye kV=13.8000 kVA=2500 tap=1.0400
+New Transformer.AT_5388533 phases=3 windings=2 Xhl=7.00
+~ %loadloss=0.650 %noloadloss=0.240
+~ wdg=1 bus=segm_10808216.1.2.3 conn=delta kV=88.0000 kVA=5000
+~ wdg=2 bus=2563944024.1.2.3.0 conn=wye kV=13.8000 kVA=5000 tap=1.0400
+New Transformer.AT_5388554 phases=3 windings=2 Xhl=7.00
+~ %loadloss=0.640 %noloadloss=0.240
+~ wdg=1 bus=segm_10808196.1.2.3 conn=delta kV=88.0000 kVA=5000
+~ wdg=2 bus=2563944038.1.2.3.0 conn=wye kV=13.8000 kVA=5000 tap=1.0400
+New Transformer.AT_5388599 phases=3 windings=2 Xhl=9.00
+~ %loadloss=0.456 %noloadloss=0.079
+~ wdg=1 bus=segm_192976773.1.2.3 conn=delta kV=88.0000 kVA=12500
+~ wdg=2 bus=192976850.1.2.3.0 conn=wye kV=13.8000 kVA=12500 tap=1.0400
+New Transformer.AT_5388725 phases=3 windings=2 Xhl=9.00
+~ %loadloss=0.617 %noloadloss=0.108
+~ wdg=1 bus=segm_2577981621.1.2.3 conn=delta kV=138.0000 kVA=25000
+~ wdg=2 bus=11413474.1.2.3.0 conn=wye kV=13.8000 kVA=25000 tap=1.0400
+New Transformer.AT_5388785 phases=3 windings=2 Xhl=9.00
+~ %loadloss=0.545 %noloadloss=0.103
+~ wdg=1 bus=segm_2670800267.1.2.3 conn=delta kV=138.0000 kVA=25000
+~ wdg=2 bus=197749120.1.2.3.0 conn=wye kV=13.8000 kVA=25000 tap=1.0400
+New Transformer.AT_5389013 phases=3 windings=2 Xhl=9.00
+~ %loadloss=0.614 %noloadloss=0.093
+~ wdg=1 bus=segm_11993466.1.2.3 conn=delta kV=138.0000 kVA=25000
+~ wdg=2 bus=11993164.1.2.3.0 conn=wye kV=34.5000 kVA=25000 tap=1.0400
+New Transformer.AT_5389058 phases=3 windings=2 Xhl=7.00
+~ %loadloss=0.877 %noloadloss=0.188
+~ wdg=1 bus=segm_198160196.1.2.3 conn=delta kV=88.0000 kVA=2500
+~ wdg=2 bus=198160099.1.2.3.0 conn=wye kV=13.8000 kVA=2500 tap=1.0400
+New Transformer.AT_5389073 phases=3 windings=2 Xhl=7.00
+~ %loadloss=0.664 %noloadloss=0.288
+~ wdg=1 bus=segm_12126283.1.2.3 conn=delta kV=88.0000 kVA=2500
+~ wdg=2 bus=2634380458.1.2.3.0 conn=wye kV=13.8000 kVA=2500 tap=1.0400
+New Transformer.AT_5389184 phases=3 windings=2 Xhl=9.00
+~ %loadloss=0.622 %noloadloss=0.106
+~ wdg=1 bus=segm_2543303643.1.2.3 conn=delta kV=138.0000 kVA=15000
+~ wdg=2 bus=2543303595.1.2.3.0 conn=wye kV=13.8000 kVA=15000 tap=1.0400
+New Transformer.AT_5389295 phases=3 windings=2 Xhl=9.00
+~ %loadloss=0.598 %noloadloss=0.133
+~ wdg=1 bus=segm_11384572.1.2.3 conn=delta kV=138.0000 kVA=15000
+~ wdg=2 bus=11384593.1.2.3.0 conn=wye kV=13.8000 kVA=15000 tap=1.0400
+New Transformer.AT_5389595 phases=3 windings=2 Xhl=9.00
+~ %loadloss=0.501 %noloadloss=0.133
+~ wdg=1 bus=segm_11384586.1.2.3 conn=delta kV=138.0000 kVA=15000
+~ wdg=2 bus=11384649.1.2.3.0 conn=wye kV=13.8000 kVA=15000 tap=1.0400
+New Transformer.AT_5389742 phases=3 windings=2 Xhl=9.00
+~ %loadloss=0.599 %noloadloss=0.141
+~ wdg=1 bus=segm_2662482536.1.2.3 conn=delta kV=88.0000 kVA=12500
+~ wdg=2 bus=11078770.1.2.3.0 conn=wye kV=13.8000 kVA=12500 tap=1.0400
+New Transformer.AT_5389766 phases=3 windings=2 Xhl=7.00
+~ %loadloss=0.611 %noloadloss=0.195
+~ wdg=1 bus=segm_193900170.1.2.3 conn=delta kV=88.0000 kVA=7500
+~ wdg=2 bus=193900302.1.2.3.0 conn=wye kV=13.8000 kVA=7500 tap=1.0400
+New Transformer.AT_629071007 phases=3 windings=2 Xhl=9.00
+~ %loadloss=0.510 %noloadloss=0.128
+~ wdg=1 bus=segm_629071025.1.2.3 conn=delta kV=138.0000 kVA=15000
+~ wdg=2 bus=629071056.1.2.3.0 conn=wye kV=13.8000 kVA=15000 tap=1.0400
+New Transformer.AT_798130192 phases=3 windings=2 Xhl=9.00
+~ %loadloss=0.521 %noloadloss=0.111
+~ wdg=1 bus=segm_2739174024.1.2.3 conn=delta kV=138.0000 kVA=25000
+~ wdg=2 bus=2739174213.1.2.3.0 conn=wye kV=13.8000 kVA=25000 tap=1.0400

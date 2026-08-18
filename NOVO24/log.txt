@@ -1,0 +1,84 @@
+    AVISO: codigo de tensao '61' desconhecido em CTMT.TEN_NOM — adotando 13.8 kV. Preencha em bdgd2dss/tensoes.py se souber o valor.
+BDGD com 413 subestacoes e 2456 alimentadores; gerando 24.
+LineCodes (SEGCON)...
+  3700 condutores
+  4 com R1 incoerente com a ampacidade — resistencia substituida pelo ajuste da propria base (ver LineCodes.dss)
+  distribuidora declarada na BASE: 4950
+  tensoes de BT desta base: 0.24 (77.8%), 0.22 (22.2%), 0.38 (0.0%)
+  clima: o dado medido e da distribuidora 390 e esta base e a 4950. RECUSADO — usando o perfil sintetico, que ao menos se declara sintetico. Use --clima-forcar se a regiao for a mesma.
+  fator de capacidade da curva solar: 0.2860 (pmpp = 3.50x a potencia media)
+  667 curvas de carga (DU)
+Alta tensao (subtransmissao)...
+  malha de AT: 2711 componentes conexas, 758 cabeceiras de circuito
+  de-para: 86 mnemonicos | ancoras: 567 nos
+    AVISO: codigo de tensao '82' desconhecido em EQTRAT.TEN_SEC — adotando 13.8 kV. Preencha em bdgd2dss/tensoes.py se souber o valor.
+  4 de 44 trafos ancorados pela barra de AT da subestacao (PAC_1 fora da malha) — achado 7
+  44 transformadores de potencia
+  malha de AT: 24 barras, 175 ligacoes -> 175 ilhas viraram 24
+  24 patios de AT energizados, 5,065 nos
+  4,431 trechos de AT (1,697.9 km)
+  520 chaves de AT (85 normalmente abertas)
+    fontes de AT: 0 em cabeceira real, 24 equivalentes
+    niveis das fontes: 138 kV x12, 88 kV x12
+  1726527: barra derivada de 13.8 kV para 1 alimentadores (10 MVA)
+  109 vaos de saida (0 alimentadores sem vao)
+  0 barras de AT com coordenada
+  0 cargas de AT (0 kW), 7 geradores, 5 capacitores
+Agregando carga de BT de 109 alimentadores (11,348,393 UCs)...
+  cache reaproveitado: 863,942 transformadores
+1 lotes de leitura para 24 subestacoes (teto de 850 alimentadores por lote)
+[1/24] 1726516 — 3 alimentadores
+   9,699 linhas MT | 1,543 trafos | 2,240 cargas | 4,178 kW
+[2/24] 1726518 — 8 alimentadores
+   45,698 linhas MT | 10,155 trafos | 15,979 cargas | 14,113 kW
+[3/24] 1726519 — 3 alimentadores
+   14,295 linhas MT | 3,516 trafos | 5,897 cargas | 5,331 kW
+[4/24] 1726520 — 6 alimentadores
+   10,977 linhas MT | 1,992 trafos | 3,991 cargas | 18,099 kW
+[5/24] 1726521 — 3 alimentadores
+   5,660 linhas MT | 706 trafos | 1,301 cargas | 2,727 kW
+[6/24] 1726522 — 6 alimentadores
+   7,912 linhas MT | 1,206 trafos | 3,193 cargas | 14,812 kW
+[7/24] 1726523 — 3 alimentadores
+   19,956 linhas MT | 2,844 trafos | 4,541 cargas | 3,414 kW
+[8/24] 1726524 — 10 alimentadores
+   19,715 linhas MT | 3,381 trafos | 6,843 cargas | 18,398 kW
+[9/24] 1726525 — 3 alimentadores
+   16,157 linhas MT | 2,320 trafos | 3,879 cargas | 4,539 kW
+[10/24] 1726526 — 10 alimentadores
+   30,963 linhas MT | 4,053 trafos | 8,586 cargas | 29,678 kW
+[11/24] 1726527 — 1 alimentadores
+   5,172 linhas MT | 1,249 trafos | 1,984 cargas | 1,223 kW
+[12/24] 1726528 — 8 alimentadores
+   11,681 linhas MT | 2,240 trafos | 4,706 cargas | 10,994 kW
+[13/24] 1726529 — 3 alimentadores
+   23,424 linhas MT | 4,427 trafos | 6,826 cargas | 5,731 kW
+[14/24] 1726530 — 3 alimentadores
+   10,170 linhas MT | 1,810 trafos | 3,011 cargas | 2,712 kW
+[15/24] 1726531 — 2 alimentadores
+   13,694 linhas MT | 1,757 trafos | 2,619 cargas | 1,446 kW
+[16/24] 1726532 — 3 alimentadores
+   15,703 linhas MT | 3,750 trafos | 6,453 cargas | 5,160 kW
+[17/24] 1726533 — 3 alimentadores
+   12,122 linhas MT | 2,596 trafos | 4,797 cargas | 4,887 kW
+[18/24] 1726534 — 3 alimentadores
+   13,211 linhas MT | 1,756 trafos | 2,913 cargas | 5,612 kW
+[19/24] 1726535 — 4 alimentadores
+   2,953 linhas MT | 432 trafos | 707 cargas | 4,329 kW
+[20/24] 1726536 — 3 alimentadores
+   15,584 linhas MT | 1,357 trafos | 2,169 cargas | 2,583 kW
+[21/24] 1726537 — 5 alimentadores
+   14,978 linhas MT | 3,649 trafos | 6,250 cargas | 5,048 kW
+[22/24] 1726538 — 3 alimentadores
+   18,035 linhas MT | 3,159 trafos | 5,187 cargas | 6,536 kW
+[23/24] 1726539 — 10 alimentadores
+   39,448 linhas MT | 5,311 trafos | 9,976 cargas | 26,856 kW
+[24/24] 1726540 — 3 alimentadores
+   11,380 linhas MT | 2,238 trafos | 3,800 cargas | 7,032 kW
+
+MASTER-GERAL.dss escrito com 24 subestacoes.
+MASTER-AT.dss escrito: 24 subestacoes como carga equivalente, 205 MW.
+
+Codigos de tensao sem valor definido: 61, 82 — usaram o padrao. Preencha em bdgd2dss/tensoes.py se souber os valores.
+
+FIM — 24 subestacoes em 7.4 min
