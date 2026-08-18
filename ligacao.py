@@ -216,8 +216,8 @@ def main():
     ap.add_argument('--min-cargas', type=int, default=ligacao.MIN_CARGAS,
                     help='componente com menos cargas que isto e ruido '
                          f'(padrao {ligacao.MIN_CARGAS})')
-    ap.add_argument('--jobs', type=int, default=4,
-                    help='subestacoes em paralelo (padrao 4); cada uma custa '
+    ap.add_argument('--jobs', type=int, default=8,
+                    help='subestacoes em paralelo (padrao 8); cada uma custa '
                          'um processo com a sua instancia do OpenDSS')
     ap.add_argument('--se', nargs='+')
     a = ap.parse_args()

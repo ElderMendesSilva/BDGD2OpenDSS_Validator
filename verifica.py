@@ -333,8 +333,8 @@ def main():
     ap.add_argument('raiz', nargs='?', default='MODELOS_V8')
     ap.add_argument('--se', nargs='*', help='so estas subestacoes')
     ap.add_argument('--motor', choices=['ambos', 'capi', 'com'], default='ambos')
-    ap.add_argument('--jobs', type=int, default=4,
-                    help='subestacoes em paralelo (padrao 4); cada uma custa '
+    ap.add_argument('--jobs', type=int, default=8,
+                    help='subestacoes em paralelo (padrao 8); cada uma custa '
                          'um processo com as suas instancias de motor')
     ap.add_argument('--grafico', action='store_true',
                     help='mostra o resumo da rodada em grafico ao final')

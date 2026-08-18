@@ -120,8 +120,8 @@ def main():
     ap.add_argument('--margem', type=float, default=ampacidade.MARGEM,
                     help='quantas vezes a ampacidade a corrente precisa '
                          f'exceder (padrao {ampacidade.MARGEM:g})')
-    ap.add_argument('--jobs', type=int, default=4,
-                    help='subestacoes em paralelo (padrao 4); cada uma custa '
+    ap.add_argument('--jobs', type=int, default=8,
+                    help='subestacoes em paralelo (padrao 8); cada uma custa '
                          'um processo com a sua instancia do OpenDSS')
     ap.add_argument('--se', nargs='+', help='apenas estas subestacoes')
     a = ap.parse_args()

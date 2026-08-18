@@ -345,8 +345,8 @@ def main():
     ap.add_argument('--se', nargs='*')
     ap.add_argument('--passos', type=int, default=96,
                     help='passos no dia (96 = 15 min, o passo da CRVCRG)')
-    ap.add_argument('--jobs', type=int, default=4,
-                    help='subestacoes em paralelo (padrao 4). Cada uma custa '
+    ap.add_argument('--jobs', type=int, default=8,
+                    help='subestacoes em paralelo (padrao 8). Cada uma custa '
                          'um processo com a sua instancia do OpenDSS, entao '
                          'mais trabalhadores gastam mais memoria; use 1 para '
                          'rodar em serie')
