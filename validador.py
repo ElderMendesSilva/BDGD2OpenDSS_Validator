@@ -18,7 +18,7 @@ Checa, nesta ordem:
 import argparse
 import os, sys, math, json, glob, statistics
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from bdgd2dss import diagnostico
+from bdgd2dss import diagnostico, lote
 
 try:
     import opendssdirect as dss
@@ -369,7 +369,8 @@ def main():
         import concurrent.futures as cf
         print(f'{a.jobs} modelos em paralelo', flush=True)
         with cf.ProcessPoolExecutor(max_workers=a.jobs) as ex:
-            fut = {ex.submit(_uma, (p, ref)): p for p in pastas}
+            fila = lote.maior_primeiro(pastas, lambda p: p)
+            fut = {ex.submit(_uma, (p, ref)): p for p in fila}
             for f_ in cf.as_completed(fut):
                 r = f_.result()
                 if r:

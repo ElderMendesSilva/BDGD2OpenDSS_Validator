@@ -44,6 +44,9 @@ import math
 import os
 import sys
 
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from bdgd2dss import lote                            # noqa: E402
+
 CWD = os.getcwd()
 
 
@@ -460,7 +463,9 @@ def main():
         import concurrent.futures as cf
         print(f'{a.jobs} subestacoes em paralelo', flush=True)
         with cf.ProcessPoolExecutor(max_workers=a.jobs) as ex:
-            futuros = {ex.submit(_um_processo, t): t[0] for t in pendentes}
+            fila = lote.maior_primeiro(
+                pendentes, lambda t: os.path.dirname(t[1]))
+            futuros = {ex.submit(_um_processo, t): t[0] for t in fila}
             for fut in cf.as_completed(futuros):
                 se, r, erro = fut.result()
                 if erro:

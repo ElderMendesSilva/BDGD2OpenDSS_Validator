@@ -32,6 +32,9 @@ import math
 import os
 import sys
 
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from bdgd2dss import lote                            # noqa: E402
+
 CWD = os.getcwd()
 
 
@@ -373,7 +376,9 @@ def main():
         import concurrent.futures as cf
         print(f'{a.jobs} subestacoes em paralelo', flush=True)
         with cf.ProcessPoolExecutor(max_workers=a.jobs) as ex:
-            fut = [ex.submit(_uma, (se, m, a.motor)) for se, m in itens]
+            fila = lote.maior_primeiro(
+                itens, lambda t: os.path.dirname(t[1]))
+            fut = [ex.submit(_uma, (se, m, a.motor)) for se, m in fila]
             for f_ in cf.as_completed(fut):
                 se, cap, com = f_.result()
                 k += 1
