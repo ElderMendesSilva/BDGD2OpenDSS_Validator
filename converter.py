@@ -467,7 +467,9 @@ def main():
             break
         if (k - 1) % a.lote == 0:
             grupo = alvo[k - 1:k - 1 + a.lote]
-            b.abrir_lote([c for s in grupo for c in ses.get(s, [])])
+            ctmts_lote = [c for s in grupo for c in ses.get(s, [])]
+            b.abrir_lote(ctmts_lote)
+            co_cache = {}          # a geometria do lote, lida sob demanda
         ctmts = ses.get(se, [])
         if not ctmts:
             continue
@@ -596,10 +598,11 @@ def main():
             '! Sem isso o modelo reproduz a topologia que a BDGD declara.\n')
 
         # coordenadas geograficas desta subestacao
-        co = coordenadas.coletar(b, 'SSDMT', ctmts)
-        if a.bt == 'completo':
-            coordenadas.coletar(b, 'SSDBT', ctmts, co)
-            coordenadas.coletar(b, 'RAMLIG', ctmts, co)
+        # a geometria e lida UMA VEZ POR LOTE e filtrada pelas barras desta
+        # subestacao — era 85% do tempo de conversao. Ver `coordenadas.do_lote`
+        cams = (['SSDMT', 'SSDBT', 'RAMLIG'] if a.bt == 'completo'
+                else ['SSDMT'])
+        co = coordenadas.do_lote(co_cache, b, cams, ctmts_lote, ctmts)
         n_co_se = coordenadas.escrever(co, os.path.join(d, 'BusCoords.dat'))
 
         master.rede_se(se, arqs, os.path.join(d, f'REDE-{se}.dss'))

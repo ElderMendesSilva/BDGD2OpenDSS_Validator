@@ -1,6 +1,0 @@
-! CAPACITORES DE AT — UNCRAT (banco fixo; a BDGD nao traz o controle)
-New Capacitor.CAT_11415665 Bus1=segm_2577981607.1.2.3 Phases=3 Conn=wye kV=88.0000 kvar=31.0
-New Capacitor.CAT_10164926 Bus1=segm_10164730.1.2.3 Phases=3 Conn=wye kV=88.0000 kvar=28.0
-New Capacitor.CAT_10165017 Bus1=segm_10164999.1.2.3 Phases=3 Conn=wye kV=88.0000 kvar=28.0
-New Capacitor.CAT_526461873 Bus1=segm_526461879.1.2.3 Phases=3 Conn=wye kV=88.0000 kvar=28.0
-New Capacitor.CAT_641274734 Bus1=segm_641274722.1.2.3 Phases=3 Conn=wye kV=88.0000 kvar=28.0
