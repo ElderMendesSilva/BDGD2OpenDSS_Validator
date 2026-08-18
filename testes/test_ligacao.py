@@ -153,3 +153,55 @@ class Arquivo(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+
+
+class AceitaUmAUm(unittest.TestCase):
+    """Elo que quebra a solucao nao entra — a regressao da EQPA V13.
+
+    A primeira versao escrevia todos os elos de uma vez e mantinha mesmo
+    divergindo: tres subestacoes de 119 pararam de convergir, com tensao em
+    7,8e+23, 56.029 e 10,28 pu. A V11 tinha 119/119.
+    """
+
+    def _c(self, nome, cargas):
+        return {'barra': nome, 'kv': 13.8, 'cargas': cargas, 'barras': cargas,
+                'grau': 3}
+
+    def test_mantem_o_que_passa_e_recusa_o_que_quebra(self):
+        cand = [self._c('bom', 100), self._c('mau', 90)]
+        m, r = ligacao.aceitar(cand, lambda l: l['barra'] != 'mau')
+        self.assertEqual([x['barra'] for x in m], ['bom'])
+        self.assertEqual([x['barra'] for x in r], ['mau'])
+
+    def test_vai_do_maior_para_o_menor(self):
+        """Se algum elo tiver de cair, que caia o que menos entrega."""
+        vistos = []
+        cand = [self._c('a', 10), self._c('b', 900), self._c('c', 50)]
+        ligacao.aceitar(cand, lambda l: vistos.append(l['barra']) or True)
+        self.assertEqual(vistos, ['b', 'c', 'a'])
+
+    def test_a_ordem_e_deterministica_no_empate(self):
+        vistos = []
+        cand = [self._c('z', 10), self._c('a', 10)]
+        ligacao.aceitar(cand, lambda l: vistos.append(l['barra']) or True)
+        self.assertEqual(vistos, ['a', 'z'])
+
+    def test_todos_recusados_devolve_lista_vazia_e_nao_quebra(self):
+        m, r = ligacao.aceitar([self._c('x', 5)], lambda l: False)
+        self.assertEqual((m, len(r)), ([], 1))
+
+    def test_sem_candidato_nao_chama_o_motor(self):
+        chamou = []
+        m, r = ligacao.aceitar([], lambda l: chamou.append(1))
+        self.assertEqual((m, r, chamou), ([], [], []))
+
+    def test_o_recusado_fica_escrito_com_o_motivo_certo(self):
+        import tempfile as _t
+        alvo = os.path.join(_t.mkdtemp(), '_LIGACAO.dss')
+        ligacao.escrever(alvo, [], lambda kv: 'se',
+                         [{'barras': 8453, 'cargas': 1354,
+                           'motivo': 'quebrou a convergencia'}])
+        t = open(alvo, encoding='utf-8').read()
+        self.assertIn('RECUSADO', t)
+        self.assertIn('8,453', t)
+        self.assertIn('premissa que piora o modelo nao entra', t)

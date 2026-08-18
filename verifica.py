@@ -35,6 +35,25 @@ import sys
 CWD = os.getcwd()
 
 
+def _uma(tarefa):
+    """Uma subestacao, nos dois motores, num processo proprio.
+
+    RISCO ESPECIFICO DESTE PASSO. Os outros scripts usam so o `opendssdirect`,
+    que e uma DLL carregada dentro do processo — processo novo, motor novo. O
+    `verifica` tambem usa o OpenDSS COM da EPRI, que e um servidor registrado
+    no Windows: se ele fosse de instancia unica, os processos compartilhariam
+    UM motor e os resultados se misturariam em silencio.
+
+    Nao da para decidir isso por leitura. A prova e comparar `verificacao.json`
+    serial contra paralelo — se sair identico byte a byte nas duas execucoes,
+    cada processo tem o seu.
+    """
+    se, master, motor = tarefa
+    cap = _capi(master) if motor in ('ambos', 'capi') else None
+    com = _com(master) if motor in ('ambos', 'com') else None
+    return se, cap, com
+
+
 def _masters(raiz, alvo=None):
     fora = {'_AT', '_global'}
     saida = []
@@ -314,6 +333,9 @@ def main():
     ap.add_argument('raiz', nargs='?', default='MODELOS_V8')
     ap.add_argument('--se', nargs='*', help='so estas subestacoes')
     ap.add_argument('--motor', choices=['ambos', 'capi', 'com'], default='ambos')
+    ap.add_argument('--jobs', type=int, default=8,
+                    help='subestacoes em paralelo (padrao 8); cada uma custa '
+                         'um processo com as suas instancias de motor')
     ap.add_argument('--grafico', action='store_true',
                     help='mostra o resumo da rodada em grafico ao final')
     a = ap.parse_args()
@@ -325,6 +347,41 @@ def main():
     print(f'{len(itens)} subestacoes em {raiz}   motor={a.motor}\n')
 
     saida, contagem = [], {}
+    por_se, k = {}, 0
+
+    def registra(se, cap, com, k):
+        vd = veredicto(cap, com)
+        contagem[vd.split('[')[0]] = contagem.get(vd.split('[')[0], 0) + 1
+        ref = com or cap
+        print(f'[{k:3d}/{len(itens)}] {se:6s} '
+              f'capi(nan={_c(cap, "nan_nos")} conv={_c(cap, "convergiu")} '
+              f'it={_c(cap, "iteracoes")}) '
+              f'com(nan={_c(com, "nan_nos")} conv={_c(com, "convergiu")} '
+              f'it={_c(com, "iteracoes")}) '
+              f'carga={_c(ref, "P_carga_kW")} gd={_c(ref, "P_gd_kW")} '
+              f'perdas={_c(ref, "perdas_pct")}% V={_c(ref, "V_media")} '
+              f'| {vd}', flush=True)
+        return {'se': se, 'veredicto': vd, 'capi': cap, 'com': com}
+
+    if a.jobs > 1 and len(itens) > 1:
+        import concurrent.futures as cf
+        print(f'{a.jobs} subestacoes em paralelo', flush=True)
+        with cf.ProcessPoolExecutor(max_workers=a.jobs) as ex:
+            fut = [ex.submit(_uma, (se, m, a.motor)) for se, m in itens]
+            for f_ in cf.as_completed(fut):
+                se, cap, com = f_.result()
+                k += 1
+                por_se[se] = registra(se, cap, com, k)
+        # a ordem do arquivo e a de `itens`, nao a de quem terminou primeiro
+        saida = [por_se[se] for se, _ in itens if se in por_se]
+        json.dump(saida, open(os.path.join(raiz, 'verificacao.json'), 'w',
+                              encoding='utf-8'), indent=1, ensure_ascii=False)
+        print('\n' + '-' * 60)
+        for k_, n in sorted(contagem.items(), key=lambda x: -x[1]):
+            print(f'  {k_:22s} {n:4d}')
+        _rodape(saida, raiz, a)
+        return
+
     for k, (se, m) in enumerate(itens, 1):
         cap = _capi(m) if a.motor in ('ambos', 'capi') else None
         com = _com(m) if a.motor in ('ambos', 'com') else None
@@ -347,6 +404,16 @@ def main():
     for k, n in sorted(contagem.items(), key=lambda x: -x[1]):
         print(f'  {k:22s} {n:4d}')
     print(f'\n{contagem.get("OK", 0)} de {len(itens)} subestacoes sadias nos dois motores.')
+    print(f'detalhe em {os.path.join(raiz, "verificacao.json")}')
+    if a.grafico:
+        grafico(saida, raiz)
+
+
+def _rodape(saida, raiz, a):
+    """O fecho, usado pelo caminho serial e pelo paralelo — dois lugares
+    divergiriam na primeira linha nova."""
+    ok = sum(1 for x in saida if x['veredicto'] == 'OK')
+    print(f'\n{ok} de {len(saida)} subestacoes sadias nos dois motores.')
     print(f'detalhe em {os.path.join(raiz, "verificacao.json")}')
     if a.grafico:
         grafico(saida, raiz)

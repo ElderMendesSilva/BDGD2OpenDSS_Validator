@@ -111,3 +111,71 @@ def centroide(coords, nos):
     if not p:
         return None
     return (sum(x for x, _ in p) / len(p), sum(y for _, y in p) / len(p))
+
+
+def linhas_do_lote(bdgd, camada, ctmts):
+    """As pontas de cada trecho, EM ORDEM DE ARQUIVO, com o CTMT de cada uma.
+
+    E a materia-prima para reconstruir, por subestacao, exatamente o que a
+    leitura por subestacao devolvia — sem revarrer a camada.
+    """
+    import pyogrio
+    cols = ['COD_ID', 'PAC_1', 'PAC_2', 'CTMT']
+    where = None
+    lista = ','.join("'" + str(v).replace("'", "''") + "'" for v in ctmts if v)
+    if lista:
+        where = f'CTMT IN ({lista})'
+    try:
+        meta, _, geom, data = pyogrio.raw.read(
+            bdgd.gdb, layer=camada, columns=cols, read_geometry=True,
+            where=where)
+    except Exception:
+        return []
+    cs = list(meta['fields'])
+    col = {c: data[cs.index(c)] for c in cs}
+    if geom is None:
+        return []
+    out = []
+    for i in range(len(geom)):
+        pt = _pontas_wkb(geom[i])
+        if not pt:
+            continue
+        out.append((txt(col['CTMT'][i]),
+                    txt(col['PAC_1'][i]).strip().lower(),
+                    txt(col['PAC_2'][i]).strip().lower(), pt))
+    return out
+
+
+def do_lote(cache, bdgd, camadas, ctmts_lote, ctmts_se):
+    """Coordenadas da subestacao, lendo a geometria UMA VEZ por lote.
+
+    O GARGALO DO CONVERSOR ESTAVA AQUI. O `coletar` faz a propria leitura,
+    com `read_geometry=True` e clausula WHERE, e era chamado UMA VEZ POR
+    SUBESTACAO — por fora do lote, que existe justamente para nao revarrer a
+    camada. O `OpenFileGDB` nao tem indice em `CTMT`, entao cada chamada
+    varria as 5,6 milhoes de linhas da SSDMT com geometria.
+
+    Medido na Cemig-D: uma subestacao de QUATRO alimentadores custava 51,6 s
+    so de coordenada, e uma de 175 custava 73,0 s — o preco e da varredura,
+    nao do dado. As tres primeiras custavam 175,8 s separadas e 83,4 s
+    juntas. Em 413 subestacoes, ~358 min dos 437 da conversao: **85%**.
+
+    A SAIDA SAI IDENTICA, e o criterio de filtragem e o mesmo de antes: o
+    CTMT da LINHA, percorrida na ordem do arquivo. Filtrar por conjunto de
+    barras NAO serve — a primeira tentativa fez isso e o `BusCoords.dat`
+    mudou nas seis subestacoes de teste, porque a leitura por subestacao
+    tambem trazia barra que nao esta na rede modelada.
+    """
+    alvo = set(ctmts_se)
+    co = {}
+    for cam in camadas:
+        if (cam,) not in cache:
+            cache[(cam,)] = linhas_do_lote(bdgd, cam, ctmts_lote)
+        for ctmt, b1, b2, pt in cache[(cam,)]:
+            if ctmt not in alvo:
+                continue
+            if b1 and b1 not in co:
+                co[b1] = (pt[0], pt[1])
+            if b2 and b2 not in co:
+                co[b2] = (pt[2], pt[3])
+    return co

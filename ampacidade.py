@@ -120,6 +120,9 @@ def main():
     ap.add_argument('--margem', type=float, default=ampacidade.MARGEM,
                     help='quantas vezes a ampacidade a corrente precisa '
                          f'exceder (padrao {ampacidade.MARGEM:g})')
+    ap.add_argument('--jobs', type=int, default=8,
+                    help='subestacoes em paralelo (padrao 8); cada uma custa '
+                         'um processo com a sua instancia do OpenDSS')
     ap.add_argument('--se', nargs='+', help='apenas estas subestacoes')
     a = ap.parse_args()
 
@@ -135,18 +138,42 @@ def main():
     print(f'{"SE":14s} {"trocados":>9s} {"km":>9s} {"%km":>7s} '
           f'{"perdas antes":>13s} {"depois":>9s}', flush=True)
     t0 = time.time()
-    saida = []
-    for se in ses:
-        r = uma(raiz, se, a.margem)
-        if r is None:
-            continue
-        saida.append(r)
+
+    def _linha(r):
         if r.get('erro'):
-            print(f'{se:14s} {r["erro"]}', flush=True)
-            continue
-        print(f'{se:14s} {r["trocados"]:9,d} {r["km_trocado"]:9,.1f} '
+            print(f'{r["se"]:14s} {r["erro"]}', flush=True)
+            return
+        print(f'{r["se"]:14s} {r["trocados"]:9,d} {r["km_trocado"]:9,.1f} '
               f'{r["pct_km"]:6.1f}% {r["perdas_pct_antes"]:12.2f}% '
               f'{r["perdas_pct_depois"]:8.2f}%', flush=True)
+
+    # EM PARALELO, mesmo padrao do `energia.py`. Cada subestacao tem modelo
+    # proprio e nenhum estado compartilhado; o que impedia rodar junto era o
+    # `opendssdirect` guardar circuito e solucao em variaveis globais, e em
+    # PROCESSOS separados isso deixa de existir. Cada trabalhador faz
+    # exatamente o mesmo trabalho que faria em serie.
+    #
+    # A ORDEM DO JSON NAO PODE DEPENDER DE QUEM TERMINOU PRIMEIRO: ele sai na
+    # ordem de `ses`, que e a da execucao serial. Sem isso o arquivo mudaria a
+    # cada rodada sem nenhum numero ter mudado.
+    por_se = {}
+    if a.jobs > 1 and len(ses) > 1:
+        import concurrent.futures as cf
+        print(f'{a.jobs} subestacoes em paralelo', flush=True)
+        with cf.ProcessPoolExecutor(max_workers=a.jobs) as ex:
+            fut = {ex.submit(uma, raiz, s_, a.margem): s_ for s_ in ses}
+            for f_ in cf.as_completed(fut):
+                r = f_.result()
+                if r is not None:
+                    por_se[fut[f_]] = r
+                    _linha(r)
+    else:
+        for se in ses:
+            r = uma(raiz, se, a.margem)
+            if r is not None:
+                por_se[se] = r
+                _linha(r)
+    saida = [por_se[s_] for s_ in ses if s_ in por_se]
 
     ok = [r for r in saida if not r.get('erro')]
     tr = sum(r['trocados'] for r in ok)

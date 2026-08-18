@@ -149,12 +149,46 @@ def uma(pasta, se, min_cargas):
         n_cargas = dss.Loads.Count()
         mortas_antes = sum(v for b, v in cargas.items() if b in mortas)
         comps = ligacao.componentes(adj, mortas)
-        lig, fora = ligacao.decidir(comps, adj, cargas, kvb, kvs, min_cargas)
-        ligacao.escrever('_LIGACAO.dss', lig,
-                         lambda kv: barra.get(round(kv, 4)) or
-                         (barra.get(min(barra, key=lambda k: abs(k - kv)))
-                          if barra else None), fora)
-        dss.Text.Command('Redirect _LIGACAO.dss')
+        cand, fora = ligacao.decidir(comps, adj, cargas, kvb, kvs, min_cargas)
+
+        def de_para(kv):
+            return (barra.get(round(kv, 4))
+                    or (barra.get(min(barra, key=lambda k: abs(k - kv)))
+                        if barra else None))
+
+        # CADA ELO E TESTADO NO PROPRIO MOTOR ANTES DE ENTRAR. Cria-se a Line
+        # em memoria, resolve, e se a solucao divergir o elo e desabilitado e
+        # recusado. Sai muito mais barato que reconstruir o circuito a cada
+        # tentativa: o `Redirect` do MASTER custa segundos, o `New Line` custa
+        # nada, e o que muda entre uma tentativa e outra e so um ramo.
+        ordem = [0]
+
+        def tenta(l):
+            de = de_para(l['kv'])
+            if not de:
+                return False
+            ordem[0] += 1
+            nome = f"VAO_EXTRA_{ordem[0]}"
+            dss.Text.Command(
+                f"New Line.{nome} phases=3 Bus1={de}.1.2.3 "
+                f"Bus2={l['barra']}.1.2.3 Switch=y r1=0.0001 r0=0.0001 "
+                f"x1=0 x0=0 c1=0 c0=0")
+            dss.Text.Command('Solve')
+            if dss.Solution.Converged():
+                return True
+            dss.Text.Command(f'Edit Line.{nome} enabled=no')
+            dss.Text.Command('Solve')
+            return False
+
+        lig, recusados = ligacao.aceitar(cand, tenta)
+        fora = list(fora) + [dict(r, motivo='quebrou a convergencia')
+                             for r in recusados]
+        ligacao.escrever('_LIGACAO.dss', lig, de_para, fora)
+
+        # o estado em memoria tem elos desabilitados no meio; recompila do
+        # arquivo para medir exatamente o que o usuario vai receber
+        dss.Text.Command('Clear')
+        dss.Text.Command(f'Redirect MASTER-{se}.dss')
         dss.Text.Command('Solve')
         m2 = 0
         i = dss.Loads.First()
@@ -166,6 +200,7 @@ def uma(pasta, se, min_cargas):
             i = dss.Loads.Next()
         p = dss.Circuit.TotalPower()
         return {'se': se, 'elos': len(lig), 'cargas': n_cargas,
+                'recusados': len(recusados),
                 'mortas_antes': mortas_antes, 'mortas_depois': m2,
                 'componentes': len(comps), 'descartadas': len(fora),
                 'carga_kW': round(-p[0], 1),
@@ -181,6 +216,9 @@ def main():
     ap.add_argument('--min-cargas', type=int, default=ligacao.MIN_CARGAS,
                     help='componente com menos cargas que isto e ruido '
                          f'(padrao {ligacao.MIN_CARGAS})')
+    ap.add_argument('--jobs', type=int, default=8,
+                    help='subestacoes em paralelo (padrao 8); cada uma custa '
+                         'um processo com a sua instancia do OpenDSS')
     ap.add_argument('--se', nargs='+')
     a = ap.parse_args()
 
@@ -195,28 +233,59 @@ def main():
           f'{a.min_cargas} cargas e ruido\n', flush=True)
     print(f'{"SE":14s} {"elos":>5s} {"comps":>6s} {"mortas antes":>13s} '
           f'{"depois":>9s} {"recuperadas":>12s}', flush=True)
-    t0, saida = time.time(), []
-    for se in ses:
-        r = uma(raiz, se, a.min_cargas)
-        if r is None:
-            continue
-        saida.append(r)
+    t0 = time.time()
+
+    def _linha(r):
         if r.get('erro'):
-            print(f'{se:14s} {r["erro"]}', flush=True)
-            continue
-        print(f'{se:14s} {r["elos"]:5d} {r["componentes"]:6d} '
+            print(f'{r["se"]:14s} {r["erro"]}', flush=True)
+            return
+        print(f'{r["se"]:14s} {r["elos"]:5d} {r["componentes"]:6d} '
               f'{r["mortas_antes"]:13,d} {r["mortas_depois"]:9,d} '
               f'{r["mortas_antes"]-r["mortas_depois"]:12,d}', flush=True)
+
+    # EM PARALELO, mesmo padrao do `energia.py`. Cada subestacao tem modelo
+    # proprio e nenhum estado compartilhado; o que impedia rodar junto era o
+    # `opendssdirect` guardar circuito e solucao em variaveis globais, e em
+    # PROCESSOS separados isso deixa de existir.
+    #
+    # Aqui importa mais que nos outros: a aceitacao dos elos e feita UM A UM,
+    # com um `Solve` por tentativa. E trabalho de motor, exatamente o que
+    # ganha com processo proprio.
+    #
+    # A ORDEM DO JSON NAO PODE DEPENDER DE QUEM TERMINOU PRIMEIRO: ele sai na
+    # ordem de `ses`, que e a da execucao serial.
+    por_se = {}
+    if a.jobs > 1 and len(ses) > 1:
+        import concurrent.futures as cf
+        print(f'{a.jobs} subestacoes em paralelo', flush=True)
+        with cf.ProcessPoolExecutor(max_workers=a.jobs) as ex:
+            fut = {ex.submit(uma, raiz, s_, a.min_cargas): s_ for s_ in ses}
+            for f_ in cf.as_completed(fut):
+                r = f_.result()
+                if r is not None:
+                    por_se[fut[f_]] = r
+                    _linha(r)
+    else:
+        for se in ses:
+            r = uma(raiz, se, a.min_cargas)
+            if r is not None:
+                por_se[se] = r
+                _linha(r)
+    saida = [por_se[s_] for s_ in ses if s_ in por_se]
 
     ok = [r for r in saida if not r.get('erro')]
     rec = sum(r['mortas_antes'] - r['mortas_depois'] for r in ok)
     print(f'\n{"="*70}')
     print(f'{sum(r["elos"] for r in ok):,} elos em {len(ok)} subestacoes, '
           f'{rec:,} cargas recuperadas ({time.time()-t0:.0f} s)')
+    rec = sum(r.get('recusados', 0) for r in ok)
+    if rec:
+        print(f'{rec:,} elos RECUSADOS por quebrarem a convergencia — a rede '
+              f'existe, mas premissa que piora o modelo nao entra')
     nc = [r['se'] for r in ok if not r['convergiu']]
     if nc:
-        print(f'ATENCAO: {len(nc)} deixaram de convergir depois do elo: '
-              f'{", ".join(nc[:5])}')
+        print(f'ATENCAO: {len(nc)} nao convergem NEM SEM elo — defeito '
+              f'anterior a esta premissa: {", ".join(nc[:5])}')
     with open(os.path.join(raiz, 'ligacao.json'), 'w', encoding='utf-8') as fh:
         json.dump({'min_cargas': a.min_cargas, 'subestacoes': saida}, fh,
                   indent=1, ensure_ascii=False)
