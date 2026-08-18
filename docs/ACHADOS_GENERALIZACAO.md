@@ -3164,6 +3164,41 @@ A curva mais grossa perde os picos, e perda e I²R: 24 passos enviesam a perda
 **11,3% para baixo**. A discussao do artigo esta entre razoes de 0,83× e
 1,20× — nao da para pagar o relogio com a grandeza que se quer defender.
 
+### E o `validador`, que era a ultima etapa em serie
+
+Com `converter`, `ligacao`, `ampacidade`, `verifica` e `energia` acelerados, o
+`validador` passou a ser a **segunda etapa mais cara** de uma base: na Enel CE
+da V14 ele levou 4,0 min contra 2,1 do `verifica` e 1,0 da `ampacidade`. Nao
+por ter ficado mais lento — por ter ficado parado enquanto tudo em volta caiu.
+
+Cada modelo e independente: compila, resolve, e e descartado. Vale o mesmo
+argumento do `energia`, e o mesmo remedio.
+
+Medido na Enel CE, 129 subestacoes, **`validacao.json` identico byte a byte**
+(102.146 bytes, mesmo MD5). A medida do relogio foi tomada com a EQPA
+convertendo ao lado e com apenas 4 trabalhadores, entao ela e um **piso**, e
+nao o ganho da maquina livre: 240 s em serie contra 162 s.
+
+Duas coisas ficam travadas em teste, porque sao as duas maneiras de esta
+mudanca estragar o resultado em silencio:
+
+**A ordem do arquivo nao pode ser a de quem terminou primeiro.** `validacao`
+sai na ordem das pastas, que e a da execucao serial. Sem isso o arquivo mudaria
+a cada rodada sem nenhum numero ter mudado — e a comparacao entre duas geracoes,
+que e como se prova que uma alteracao nao mexeu no resultado, deixaria de
+valer. O teste monta cinco modelos em que o primeiro da ordem e de longe o mais
+pesado, justamente para que ele termine por ultimo.
+
+**A referencia da base e calculada uma vez so, antes do leque.** O limiar de
+REDE_EXTENSA sai da propria concessao (achado 3). Se cada trabalhador
+calculasse o seu, o limiar dependeria do lote, e a mesma subestacao seria
+classificada de um jeito sozinha e de outro no meio das demais.
+
+Na mesma mudanca o `validador` passou a ler os argumentos por `argparse`, como
+os demais executaveis. Antes ele fatiava o `sys.argv` na mao e nao tinha
+`--help` — o que fazia o teste que cobre "toda opcao tem caminho pelo painel"
+passar por vacuidade, porque nao havia opcao declarada para conferir.
+
 ### O ciclo, antes e depois
 
 | | V13 | esperado |

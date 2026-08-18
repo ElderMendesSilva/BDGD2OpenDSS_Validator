@@ -430,7 +430,9 @@ def main():
         # a correcao seria regerada sem nunca ser executada.
         ok, reg['min_validador'] = passo('validador', [PY, '-u',
                                                        'validador.py', saida,
-                                                       '--ses'], log, 4 * 3600)
+                                                       '--ses',
+                                                       '--jobs', str(a.jobs)],
+                                         log, 4 * 3600)
         reg['validador_ok'] = ok
         ok, _ = passo('valida_perdas', [PY, '-u', 'valida_perdas.py', saida,
                                         gdb], log, 2 * 3600)
