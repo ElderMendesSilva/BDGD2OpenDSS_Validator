@@ -57,6 +57,43 @@ pela metade é confundida com pronta.
 **Tempo esperado.** A agregação da UCBT (8,26 M registros) leva ~1,5 min e roda
 uma única vez; cada subestação leva de 10 s a 2 min.
 
+## O ciclo completo, e as duas premissas
+
+O `converter.py` sozinho produz a rede que a BDGD **declara**. O ciclo completo
+acrescenta duas etapas de MODELAGEM e depois mede:
+
+```bash
+python converter.py "...gdb" --saida MODELOS   # a rede como a BDGD declara
+python ligacao.py    MODELOS                   # premissa 1 — achado 33, forma B
+python ampacidade.py MODELOS                   # premissa 2 — achado 34
+python verifica.py   MODELOS                   # NaN, convergência, dois motores
+python energia.py    MODELOS                   # o dia em 96 passos, por alimentador
+python validador.py  MODELOS --ses             # tensão, sobrecarga, carga sem tensão
+python valida_perdas.py  MODELOS "...gdb"      # contra o PERD_A4 declarado
+python valida_balanco.py MODELOS "...gdb"      # contra a energia medida
+
+python regerar_v10.py --sufixo V13             # tudo isso, nas sete bases
+python regerar_v10.py --sufixo V13 --sem-premissas   # sem as duas de modelagem
+```
+
+**A ordem importa.** A `ligacao` energiza rede que estava no escuro; a
+`ampacidade` decide pela corrente que passa depois disso. E as duas vêm antes
+de medir, porque o que se mede tem de ser o modelo que o usuário recebe.
+
+**As duas são premissa, não conversão, e as duas se desligam.** Cada uma
+escreve um `_*.dss` que o MASTER redireciona e que diz no cabeçalho o que fez
+e como desfazer; apagar o `redirect` devolve o modelo ao cadastro. É esse
+caminho que permite dizer, com número, quanto do resultado depende delas.
+
+| premissa | o que faz | onde pesou |
+|---|---|---|
+| `ligacao.py` | liga a barra de MT da SE à componente que ficou sem tensão, na barra de maior grau. **Inventa um elo que a BDGD não declara** | Cemig-D: 697 elos, 269.673 cargas religadas |
+| `ampacidade.py` | troca R1/R0 do trecho cuja corrente calculada excede a ampacidade declarada, pelo condutor mais fino do catálogo da própria base que a cobre | Enel SP: 88.354 trechos, 1.592 km, perda de 11,53% para 3,56% na DALV |
+
+Cada elo é testado no próprio motor antes de entrar: se a solução divergir com
+ele, o elo é recusado e isso fica escrito. Premissa que piora o modelo não
+entra.
+
 ## O que sai
 
 ```
@@ -217,6 +254,41 @@ desloca a mediana ~3,4% (0,964 → 0,930) porque agora modela a impedância real
 transformador e da fonte, que o modelo anterior ignorava. É comportamento
 esperado, não regressão — mas o mínimo profundo merece investigação à parte.
 
+**Quase metade da base não tem referência utilizável para validar perda.** Na
+Cemig-D, **43,9%** dos alimentadores faturam mais energia do que recebem e
+**49,0%** declaram perda total abaixo de 2%. Contra esses não há como aferir
+modelo nenhum — não é limitação do conversor, é limite do dado, e qualquer
+resultado tem de dizer sobre que fração da base ele fala. A cobertura efetiva
+da comparação vai de 53% (Enel SP) a 73% (Cemig-D).
+
+**A perda do modelo não é a perda da rede.** Medido nas sete bases contra o
+`PERD_A4` declarado, depois de corrigidos os achados 26 e 32 e aplicadas as
+duas premissas:
+
+| base | razão modelo/declarado |
+|---|---|
+| Equatorial PA | 0,55× |
+| Light | 0,74× |
+| Enel CE | 0,83× |
+| CPFL Paulista | 0,88× |
+| Roraima | 2,63× |
+| Enel SP | 3,19× |
+
+Quatro pousam entre 0,74× e 0,88×, que é a faixa esperada de um modelo com MT
+e transformadores e **sem rede secundária**. As duas fora têm causa conhecida e
+não tratada: a Enel SP declara 1,12%, o mais baixo das sete, e a Roraima tem
+duas subestações rurais com cauda de tensão colapsada. Enquanto não houver
+validação contra referência **externa** à BDGD — a perda publicada no Módulo 7,
+por exemplo —, o que se afirma é concordância com o cadastro, não com a rede.
+
+**Parte da rede declarada não é alcançável a partir da cabeceira.** Refazendo a
+conectividade na BDGD crua, sem OpenDSS, o alcance a partir do `PAC_INI` vai de
+99,8% (Enel SP) a 81,8% (Equatorial PA). O que sobra são três formas: cabeceira
+que não existe entre os PACs do próprio alimentador, rede inteira numa
+componente com a cabeceira numa ilha ao lado, e rede estilhaçada em milhares de
+componentes. A segunda é tratada pelo `ligacao.py`, como premissa; as outras
+duas ficam como limitação declarada.
+
 ## Sobre o NSGA-II
 
 Com `--fator-carga 1.0`, **71% dos alimentadores operam abaixo de 50%** da
@@ -335,6 +407,20 @@ Duas ressalvas honestas: a correção só age **para baixo** (condutor com R mui
 **ela não resolve a subtensão** — medido na DREG, o efeito foi nulo, porque os
 condutores afetados são 13% dos km e estão em ramais. É melhoria de qualidade de
 dado, não a explicação da queda de tensão.
+
+**E há um segundo mecanismo, que este não pega.** O ajuste acima confere `R1`
+contra `CNOM` *dentro do registro*. O condutor 593 da Enel SP — 31 A com
+8,232 Ω/km — é internamente coerente: fio fino tem mesmo essa resistência. O
+defeito dele está no **uso**: ele cobre 2.990 km, 13,5% da rede, servindo de
+tronco. Na Enel SP inteira, 16,1% da quilometragem carrega **73,6%** da
+resistência ponderada.
+
+Isso é o achado 34, e quem trata é o `ampacidade.py`, com critério de uso e
+não de registro: só o trecho cuja corrente **calculada** excede a ampacidade
+**declarada**. Nas outras cinco bases ele quase não age — Enel CE, que tem
+perfil de condutor parecido, teve 46 trechos trocados de 99.832 km, porque lá
+os fios finos estão em ramais de pouca corrente. É premissa de modelagem e se
+desliga; o ajuste desta seção, não — ele é qualidade de dado.
 
 ## Fechamento da malha de 88 kV
 
