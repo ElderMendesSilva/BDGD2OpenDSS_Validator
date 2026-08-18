@@ -49,6 +49,9 @@ import subprocess
 import sys
 import time
 
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from bdgd2dss import pausa                           # noqa: E402
+
 AQUI = os.path.dirname(os.path.abspath(__file__))
 BDGDS = r'D:\Elder\Elder\BDGDs'
 CRIT = os.path.dirname(AQUI)
@@ -162,24 +165,43 @@ def _gravador(destino):
 
 
 def passo(rot, cmd, log, limite):
-    """Roda um comando, despeja a saida no log, devolve (ok, minutos)."""
+    """Roda um comando, despeja a saida no log, devolve (ok, minutos).
+
+    O TEMPO EM PAUSA NAO CONTA. Nem para o limite — pausar tres horas nao pode
+    fazer a etapa "estourar o tempo limite" quando for retomada — nem para os
+    minutos gravados no resumo, que sao de trabalho e servem para comparar uma
+    geracao com a outra.
+
+    Quem de fato para sao os trabalhadores dentro da etapa, cada um olhando o
+    mesmo arquivo. Aqui so se MEDE quanto durou a pausa, e se espera antes de
+    comecar uma etapa nova.
+    """
+    pausa.espera(rot, avisa=lambda t: print(f'   {t}', flush=True))
     t0 = time.time()
+    parado = 0.0
     with open(log, 'a', encoding='utf-8') as fh:
         fh.write(f'\n{"="*72}\n== {rot}  [{time.strftime("%d/%m %H:%M:%S")}]\n'
                  f'== {" ".join(cmd)}\n{"="*72}\n')
         fh.flush()
         try:
-            r = subprocess.run(cmd, cwd=AQUI, stdout=fh,
-                               stderr=subprocess.STDOUT, timeout=limite)
-            ok = r.returncode == 0
-        except subprocess.TimeoutExpired:
-            fh.write('\n*** ESTOUROU O TEMPO LIMITE ***\n')
-            ok = False
+            p = subprocess.Popen(cmd, cwd=AQUI, stdout=fh,
+                                 stderr=subprocess.STDOUT)
+            while p.poll() is None:
+                time.sleep(1)
+                if pausa.pausado():
+                    parado += 1
+                elif time.time() - t0 - parado > limite:
+                    p.kill()
+                    p.wait()
+                    fh.write('\n*** ESTOUROU O TEMPO LIMITE ***\n')
+                    break
+            ok = p.returncode == 0
         except Exception as e:
             fh.write(f'\n*** {type(e).__name__}: {e} ***\n')
             ok = False
-    m = (time.time() - t0) / 60.0
-    print(f'   {rot:16s} {"ok    " if ok else "FALHOU"} {m:7.1f} min',
+    m = (time.time() - t0 - parado) / 60.0
+    print(f'   {rot:16s} {"ok    " if ok else "FALHOU"} {m:7.1f} min'
+          + (f'   (+{parado/60:.0f} min em pausa)' if parado > 60 else ''),
           flush=True)
     return ok, round(m, 1)
 

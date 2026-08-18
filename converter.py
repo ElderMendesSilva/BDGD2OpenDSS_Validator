@@ -37,7 +37,7 @@ CANCELAR = None   # a interface grafica injeta um threading.Event aqui
 
 from bdgd2dss import (linecodes, linhas, chaves, transformadores, cargas,
                       complementos, master, subtransmissao, transmissao,
-                      tensoes, malha_at, coordenadas)
+                      tensoes, malha_at, coordenadas, pausa)
 
 
 def ja_gerada(pasta, se):
@@ -498,6 +498,9 @@ def main():
         if CANCELAR is not None and CANCELAR.is_set():
             print('Cancelado pelo usuario.', flush=True)
             break
+        # PAUSA entre subestacoes: e o unico ponto do conversor em que
+        # nao ha arquivo meio escrito nem lote meio lido.
+        pausa.espera()
         if de_qual_lote.get(se) != lote_atual:
             lote_atual = de_qual_lote.get(se)
             grupo = lotes[lote_atual]

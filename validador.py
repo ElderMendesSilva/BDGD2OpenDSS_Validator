@@ -18,7 +18,7 @@ Checa, nesta ordem:
 import argparse
 import os, sys, math, json, glob, statistics
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from bdgd2dss import diagnostico, lote
+from bdgd2dss import diagnostico, lote, pausa
 
 try:
     import opendssdirect as dss
@@ -252,6 +252,9 @@ def _uma(tarefa):
     o `ProcessPoolExecutor` cria o filho por spawn, que importa este arquivo de
     novo e procura a funcao pelo nome.
     """
+    # PAUSA: sempre antes de comecar, nunca no meio. Assim o que espera
+    # segura poucos MB em vez do circuito inteiro.
+    pausa.espera()
     pasta, ref = tarefa
     return valida(pasta, ref)
 
@@ -378,6 +381,7 @@ def main():
                     _linha(r)
     else:
         for p in pastas:
+            pausa.espera()   # mesmo ponto de parada do paralelo
             r = valida(p, ref)
             if r:
                 por_pasta[p] = r

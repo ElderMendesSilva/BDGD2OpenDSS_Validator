@@ -30,7 +30,7 @@ import time
 
 AQUI = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, AQUI)
-from bdgd2dss import ampacidade, lote                        # noqa: E402
+from bdgd2dss import ampacidade, lote, pausa                        # noqa: E402
 
 try:
     import opendssdirect as dss
@@ -74,6 +74,9 @@ def trechos_resolvidos():
 
 
 def uma(pasta, se, margem):
+    # PAUSA: sempre antes de comecar, nunca no meio. Assim o que espera
+    # segura poucos MB em vez do circuito inteiro.
+    pausa.espera()
     d = os.path.join(pasta, se)
     master = os.path.join(d, f'MASTER-{se}.dss')
     if not os.path.exists(master):

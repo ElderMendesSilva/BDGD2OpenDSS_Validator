@@ -45,7 +45,7 @@ import os
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from bdgd2dss import lote                            # noqa: E402
+from bdgd2dss import lote, pausa                            # noqa: E402
 
 CWD = os.getcwd()
 
@@ -60,6 +60,9 @@ def _um_processo(tarefa):
     processos separados nao ha o que compartilhar, e cada trabalhador resolve
     os MESMOS 96 passos do MESMO modelo. O numero nao muda; muda quem executa.
     """
+    # PAUSA: sempre antes de comecar, nunca no meio. Assim o que espera
+    # segura poucos MB em vez do circuito inteiro.
+    pausa.espera()
     se, master, passos = tarefa
     import opendssdirect as dss
     try:
@@ -484,6 +487,7 @@ def main():
     for se, m in itens:
         if se in prontas or se in por_se:
             continue
+        pausa.espera()   # o mesmo ponto de parada do caminho paralelo
         # Uma subestacao que nao compila nao pode levar as outras junto. O
         # `verifica.py` ja tratava; aqui a excecao subia e matava a varredura
         # inteira — medido na Equatorial PA, onde um erro de CalcYPrim na 36a

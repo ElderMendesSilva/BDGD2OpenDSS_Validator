@@ -33,7 +33,7 @@ import os
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from bdgd2dss import lote                            # noqa: E402
+from bdgd2dss import lote, pausa                            # noqa: E402
 
 CWD = os.getcwd()
 
@@ -51,6 +51,9 @@ def _uma(tarefa):
     serial contra paralelo — se sair identico byte a byte nas duas execucoes,
     cada processo tem o seu.
     """
+    # PAUSA: sempre antes de comecar, nunca no meio. Assim o que espera
+    # segura poucos MB em vez do circuito inteiro.
+    pausa.espera()
     se, master, motor = tarefa
     cap = _capi(master) if motor in ('ambos', 'capi') else None
     com = _com(master) if motor in ('ambos', 'com') else None
@@ -394,6 +397,7 @@ def main():
         return
 
     for k, (se, m) in enumerate(itens, 1):
+        pausa.espera()   # o mesmo ponto de parada do caminho paralelo
         cap = _capi(m) if a.motor in ('ambos', 'capi') else None
         com = _com(m) if a.motor in ('ambos', 'com') else None
         vd = veredicto(cap, com)

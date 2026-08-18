@@ -27,7 +27,7 @@ import time
 
 AQUI = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, AQUI)
-from bdgd2dss import ligacao, lote                          # noqa: E402
+from bdgd2dss import ligacao, lote, pausa                          # noqa: E402
 
 try:
     import opendssdirect as dss
@@ -132,6 +132,9 @@ def radiografia():
 
 
 def uma(pasta, se, min_cargas):
+    # PAUSA: sempre antes de comecar, nunca no meio. Assim o que espera
+    # segura poucos MB em vez do circuito inteiro.
+    pausa.espera()
     d = os.path.join(pasta, se)
     if not os.path.exists(os.path.join(d, f'MASTER-{se}.dss')):
         return None
