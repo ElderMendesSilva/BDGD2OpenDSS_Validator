@@ -47,6 +47,25 @@ import sys
 CWD = os.getcwd()
 
 
+def _um_processo(tarefa):
+    """Roda UMA subestacao num processo proprio. Nivel de modulo de proposito:
+    no Windows o `multiprocessing` usa `spawn` e precisa importar a funcao.
+
+    Cada processo tem a SUA instancia do OpenDSS. E por isso que paralelizar
+    aqui e seguro: o `opendssdirect` guarda estado global — um circuito ativo,
+    uma solucao — e dois circuitos no mesmo processo se atropelariam. Em
+    processos separados nao ha o que compartilhar, e cada trabalhador resolve
+    os MESMOS 96 passos do MESMO modelo. O numero nao muda; muda quem executa.
+    """
+    se, master, passos = tarefa
+    import opendssdirect as dss
+    try:
+        ent, perd, ok, falhos, n_comp, por_alim, serie = dia(dss, master, passos)
+    except Exception as e:
+        return se, None, f'{type(e).__name__}: {e}'
+    return se, (ent, perd, ok, falhos, n_comp, por_alim, serie), None
+
+
 def _masters(raiz, alvo=None):
     fora = {'_AT', '_global'}
     saida = []
@@ -326,6 +345,11 @@ def main():
     ap.add_argument('--se', nargs='*')
     ap.add_argument('--passos', type=int, default=96,
                     help='passos no dia (96 = 15 min, o passo da CRVCRG)')
+    ap.add_argument('--jobs', type=int, default=4,
+                    help='subestacoes em paralelo (padrao 4). Cada uma custa '
+                         'um processo com a sua instancia do OpenDSS, entao '
+                         'mais trabalhadores gastam mais memoria; use 1 para '
+                         'rodar em serie')
     ap.add_argument('--refazer', action='store_true',
                     help='ignora o que ja foi medido e recomeca do zero')
     ap.add_argument('--grafico', action='store_true',
@@ -369,19 +393,85 @@ def main():
         print(f'{len(prontas)} subestacoes ja medidas — retomando '
               f'(use --refazer para ignorar)', flush=True)
 
+    # A ORDEM DO ARQUIVO NAO PODE DEPENDER DE QUEM TERMINOU PRIMEIRO. Em
+    # paralelo as subestacoes fecham fora de ordem; o JSON continua saindo na
+    # ordem de `itens`, que e a mesma da execucao em serie.
+    ordem = [se for se, _ in itens]
+    por_se = {x['se']: x for x in saida if x.get('se')}
+
     def grava():
         # arquivo temporario e troca atomica: uma queda no meio do dump
         # deixaria um JSON truncado no lugar do bom
+        lista = [por_se[k] for k in ordem if k in por_se]
         tmp = alvo + '.parcial'
         with open(tmp, 'w', encoding='utf-8') as fh:
-            json.dump(saida, fh, indent=1, ensure_ascii=False)
+            json.dump(lista, fh, indent=1, ensure_ascii=False)
         os.replace(tmp, alvo)
 
     plt = None
     n_curvas = 0
     falharam = []
+    pendentes = [(se, m, a.passos) for se, m in itens if se not in prontas]
+
+    def registra(se, r):
+        """Monta o registro de uma subestacao a partir do que o `dia` devolveu.
+        Um so lugar, usado pelo caminho serial e pelo paralelo — dois lugares
+        divergiriam no primeiro campo novo."""
+        ent, perd, ok, falhos, n_comp, por_alim, serie = r
+        pct = 100 * perd / ent if ent > 1 else None
+        gd = [x for x in serie['gd_kw'] if x]
+        print(f'{se:14s} {ok:4d}/{a.passos:<3d} {ent:14,.0f} {perd:12,.0f} '
+              f'{"—" if pct is None else f"{pct:.2f}":>9} '
+              f'{(max(gd)/1000 if gd else 0):9,.1f} '
+              f'{"" if not falhos else f"falham {len(falhos)}"}', flush=True)
+        return {'se': se, 'passos_ok': ok, 'passos': a.passos,
+                'kWh_injetado': round(ent, 1), 'kWh_perdas': round(perd, 1),
+                'perdas_pct': None if pct is None else round(pct, 3),
+                'passos_falhos': falhos, 'compilacoes': n_comp,
+                'kWh_gd': round(sum(gd) * 24.0 / a.passos, 1),
+                'pico_gd_kW': round(max(gd), 1) if gd else 0.0,
+                'serie': serie,
+                'alimentadores': {
+                    k: {'kWh': round(v[0], 1),
+                        'kWh_perdas': round(v[1], 1),
+                        'perdas_pct': (round(100 * v[1] / v[0], 3)
+                                       if v[0] > 1 else None)}
+                    for k, v in sorted(por_alim.items())}}
+
+    # --- EM PARALELO. Cada subestacao e independente: modelo proprio, nenhum
+    # estado compartilhado. O que impedia rodar junto era o `opendssdirect`,
+    # que guarda circuito e solucao em variaveis globais — em PROCESSOS
+    # separados isso deixa de ser problema, e cada trabalhador resolve os
+    # mesmos 96 passos do mesmo modelo. O numero nao muda; muda quem executa.
+    #
+    # A Cemig-D V13 gastou 8 h aqui e foi morta no limite sem gravar nada.
+    # Cortar passos resolveria o relogio e estragaria o resultado: medido na
+    # Roraima, 48 passos enviesam a perda em 6,8% para baixo e 24 passos em
+    # 11,3%, com erro p90 de 19% por alimentador. A discussao do artigo esta
+    # entre razoes de 0,83x e 1,20x — nao da para pagar o relogio com a
+    # grandeza que se quer defender.
+    if a.jobs > 1 and len(pendentes) > 1 and not a.curvas:
+        import concurrent.futures as cf
+        print(f'{a.jobs} subestacoes em paralelo', flush=True)
+        with cf.ProcessPoolExecutor(max_workers=a.jobs) as ex:
+            futuros = {ex.submit(_um_processo, t): t[0] for t in pendentes}
+            for fut in cf.as_completed(futuros):
+                se, r, erro = fut.result()
+                if erro:
+                    falharam.append({'se': se, 'erro': erro[:300]})
+                    print(f'{se:14s} ERRO: {erro[:90]}', flush=True)
+                    por_se[se] = {'se': se, 'passos_ok': 0, 'passos': a.passos,
+                                  'erro': erro[:300], 'kWh_injetado': 0.0,
+                                  'kWh_perdas': 0.0, 'perdas_pct': None,
+                                  'passos_falhos': [], 'compilacoes': 0,
+                                  'alimentadores': {}}
+                else:
+                    por_se[se] = registra(se, r)
+                grava()
+        pendentes = []
+
     for se, m in itens:
-        if se in prontas:
+        if se in prontas or se in por_se:
             continue
         # Uma subestacao que nao compila nao pode levar as outras junto. O
         # `verifica.py` ja tratava; aqui a excecao subia e matava a varredura
@@ -394,7 +484,7 @@ def main():
             falharam.append({'se': se, 'erro': str(e)[:300]})
             print(f'{se:14s} {"":>8} {"":>14} {"":>12} {"—":>9} {"—":>9} '
                   f'ERRO: {str(e)[:90]}', flush=True)
-            saida.append({'se': se, 'passos_ok': 0, 'passos': a.passos,
+            por_se[se] = ({'se': se, 'passos_ok': 0, 'passos': a.passos,
                           'erro': str(e)[:300], 'kWh_injetado': 0.0,
                           'kWh_perdas': 0.0, 'perdas_pct': None,
                           'passos_falhos': [], 'compilacoes': 0,
@@ -410,7 +500,7 @@ def main():
               f'{"—" if pct is None else f"{pct:.2f}":>9} '
               f'{(max(gd)/1000 if gd else 0):9,.1f} '
               f'{"" if not falhos else f"falham {len(falhos)}"}', flush=True)
-        saida.append({'se': se, 'passos_ok': ok, 'passos': a.passos,
+        por_se[se] = ({'se': se, 'passos_ok': ok, 'passos': a.passos,
                       'kWh_injetado': round(ent, 1), 'kWh_perdas': round(perd, 1),
                       'perdas_pct': None if pct is None else round(pct, 3),
                       'passos_falhos': falhos, 'compilacoes': n_comp,
@@ -432,6 +522,7 @@ def main():
                 n_curvas += 1
 
     grava()
+    saida = [por_se[k] for k in ordem if k in por_se]
     bons = [x for x in saida if x['passos_ok'] == a.passos]
     print(f'\n{len(bons)} de {len(saida)} com o dia inteiro resolvido')
     if falharam:
