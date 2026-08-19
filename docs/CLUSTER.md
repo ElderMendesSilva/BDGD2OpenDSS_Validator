@@ -54,7 +54,7 @@ projeto depende do COM: ele é auditoria, não produção.
 pasta junto:
 
 ```bash
-pip download -r requisitos.txt -d cluster/rodas     --platform manylinux2014_x86_64 --python-version 312 --only-binary=:all:
+pip download -r requisitos.txt -d cluster/rodas \n  --platform manylinux2014_x86_64 --python-version 312 --only-binary=:all:
 ```
 
 ```bash
