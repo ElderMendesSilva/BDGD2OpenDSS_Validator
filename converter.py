@@ -619,7 +619,7 @@ def main():
                     help='nao gerar a camada de alta tensao nem o MASTER-GERAL')
     ap.add_argument('--reg-vreg', type=float, default=122.0,
                     help='tensao de referencia dos reguladores, em V no TP')
-    ap.add_argument('--max-ctmt', type=int, default=850,
+    ap.add_argument('--max-ctmt', type=int, default=0,
                     dest='max_ctmt',
                     help='teto de alimentadores por varredura da BDGD '
                          '(padrao 850; a clausula IN do OpenFileGDB aceita '
@@ -787,6 +787,29 @@ def main():
     # subestacao sozinha maior que o teto vira um lote so dela — o WHERE
     # entao nao cabe e a leitura cai na varredura, que e o comportamento
     # correto e ja existia.
+    # `--max-ctmt 0`: escolhe o teto para que o lote seja tambem a unidade de
+    # PARALELISMO. Medido na Enel CE, 728 alimentadores, mesma maquina, mesmos
+    # arquivos de saida byte a byte:
+    #
+    #     1 lote,  1 processo   421 s
+    #     5 lotes, 4 processos  222 s     1,90x
+    #     9 lotes, 8 processos  219 s     1,92x
+    #
+    # Quatro lotes ja entregam o ganho inteiro, e nove nao entregam mais. A
+    # razao e que cada lote paga uma varredura da camada: mais lotes e mais
+    # TRABALHO, feito em paralelo. O ganho para de crescer quando o trabalho
+    # extra alcanca o que o paralelismo economiza — e isso acontece cedo.
+    #
+    # Por isso o alvo e QUATRO, e nao o numero de processos disponiveis. Num no
+    # de cluster com 32 nucleos a conta e a mesma: o gargalo e ler o arquivo,
+    # e ele nao melhora com mais nucleos.
+    LOTES_ALVO = 4
+    if not a.max_ctmt:
+        total_ctmt = sum(len(ses.get(s_, [])) for s_ in alvo)
+        a.max_ctmt = max(1, min(850, -(-total_ctmt // LOTES_ALVO)))
+        print(f'teto por lote escolhido sozinho: {a.max_ctmt} alimentadores '
+              f'(alvo de {LOTES_ALVO} lotes para {total_ctmt} alimentadores)',
+              flush=True)
     lotes, atual, n_ctmt = [], [], 0
     for se in alvo:
         q = len(ses.get(se, []))

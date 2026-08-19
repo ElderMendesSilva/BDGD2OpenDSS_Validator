@@ -364,7 +364,7 @@ def main():
                          'rede. 0 = decide pelo modo: no pessoal deixa '
                          'nucleos livres, com teto de 8, porque medido o ganho '
                          'satura ai; no cluster usa a maquina')
-    ap.add_argument('--max-ctmt', type=int, default=850, dest='max_ctmt',
+    ap.add_argument('--max-ctmt', type=int, default=0, dest='max_ctmt',
                     metavar='N',
                     help='alimentadores por leitura da BDGD na conversao '
                          '(padrao 850; o formato aceita 900)')
