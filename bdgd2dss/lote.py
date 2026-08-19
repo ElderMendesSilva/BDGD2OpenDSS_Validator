@@ -7,17 +7,24 @@ que e a alfabetica. As subestacoes sao MUITO desiguais — na EQPA a maior custa
 grande cai perto do fim da fila, os outros trabalhadores terminam e ficam
 parados esperando so por ela.
 
-Despachar a maior primeiro e a regra classica para isso (LPT). Medido com o
-custo real das 119 subestacoes da EQPA, simulando o despacho:
+Despachar a maior primeiro e a regra classica para isso (LPT).
 
-| ordem | 4 jobs | 8 jobs | 12 jobs |
-|---|---|---|---|
-| alfabetica | 172 s | 118 s | 101 s |
-| maior primeiro | 171 s | **85 s** | **72 s** |
-| otimo teorico (soma/k) | 171 s | 85 s | 57 s |
+MEDIDO DE PONTA A PONTA, o `validador` sobre as 119 subestacoes da EQPA, com 8
+trabalhadores, a maquina livre e as ordens alternadas para nao premiar o cache:
 
-Com 8 trabalhadores — o padrao — sao **27,4%**, e o resultado bate o otimo
-teorico exatamente.
+| ordem | 1a | 2a |
+|---|---|---|
+| maior primeiro | **154 s** | **159 s** |
+| alfabetica | 181 s | 181 s |
+
+**13,5%**, e os quatro `validacao.json` com o mesmo MD5.
+
+A SIMULACAO PROMETIA 27,4%, E ERA OTIMISTA. Ela usava o custo de COMPILAR como
+proxy do custo da tarefa, e a tarefa real e compilar mais as verificacoes — que
+sao bem mais parecidas entre subestacoes do que a compilacao. Menos
+desigualdade, menos ganho. Fica registrado porque a diferenca entre o simulado
+e o medido e a informacao, nao o erro: 13,5% de graca continua valendo, e o
+numero honesto e o do relogio.
 
 NAO E PRECISO MEDIR O CUSTO PARA ORDENAR. Os bytes da pasta em disco sao proxy
 suficiente: correlacao de 0,938 com o tempo de compilacao, e a simulacao com o

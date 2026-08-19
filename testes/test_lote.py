@@ -1,10 +1,10 @@
 # -*- coding: utf-8 -*-
 """Ordem de despacho: a maior subestacao primeiro.
 
-Medido nas 119 subestacoes da EQPA: com 8 trabalhadores, despachar em ordem
-alfabetica leva 118 s e despachar a maior primeiro leva 85 s — 27,4%, e bate o
-otimo teorico. A regra so vale se duas coisas continuarem verdadeiras, e sao
-elas que estes testes trancam:
+Medido nas 119 subestacoes da EQPA, com 8 trabalhadores e a maquina livre: a
+ordem alfabetica leva 181 s e a maior-primeiro leva 154 s — 13,5%, com o
+arquivo de saida identico byte a byte nos dois. A regra so vale se duas coisas
+continuarem verdadeiras, e sao elas que estes testes trancam:
 
 1. a ordem de DESPACHO muda;
 2. a ordem da SAIDA nao muda.
