@@ -43,6 +43,12 @@ FOLGA_PESSOAL = 2
 # No cluster o teto nao se aplica — cada no tem o seu disco e a sua memoria.
 TETO_PESSOAL = 8
 
+# Quanta memoria reservar por processo. Medido: as subestacoes maiores das sete
+# bases — REN na Equatorial PA, 108 mil barras — seguram cerca de 3 GB entre o
+# circuito compilado e a solucao. E teto, nao media: a media e bem menor, mas e
+# o maior que derruba a maquina.
+GB_POR_PROCESSO = 3.0
+
 _forcado = None
 
 
@@ -86,12 +92,57 @@ def no_cluster():
     return modo() == CLUSTER
 
 
+def memoria_livre_gb():
+    """GB de memoria disponivel, ou None se nao der para saber."""
+    try:
+        with open('/proc/meminfo') as fh:              # Linux
+            for l in fh:
+                if l.startswith('MemAvailable:'):
+                    return int(l.split()[1]) / 1024 / 1024
+    except OSError:
+        pass
+    try:                                               # Windows
+        import ctypes
+
+        class _M(ctypes.Structure):
+            _fields_ = [('dwLength', ctypes.c_ulong),
+                        ('dwMemoryLoad', ctypes.c_ulong),
+                        ('ullTotalPhys', ctypes.c_ulonglong),
+                        ('ullAvailPhys', ctypes.c_ulonglong),
+                        ('ullTotalPageFile', ctypes.c_ulonglong),
+                        ('ullAvailPageFile', ctypes.c_ulonglong),
+                        ('ullTotalVirtual', ctypes.c_ulonglong),
+                        ('ullAvailVirtual', ctypes.c_ulonglong),
+                        ('ullAvailExtendedVirtual', ctypes.c_ulonglong)]
+        m = _M()
+        m.dwLength = ctypes.sizeof(_M)
+        ctypes.windll.kernel32.GlobalMemoryStatusEx(ctypes.byref(m))
+        return m.ullAvailPhys / 2 ** 30
+    except Exception:
+        return None
+
+
 def nucleos():
-    """Quantos processos usar por padrao."""
+    """Quantos processos usar por padrao.
+
+    NO CLUSTER O LIMITE E MEMORIA, NAO NUCLEO. Um no com 128 nucleos e 256 GB
+    parece pedir 128 processos, mas as subestacoes maiores seguram ~3 GB cada:
+    128 x 3 = 384 GB, acima da maquina. Ela comecaria a paginar e ficaria mais
+    lenta do que com metade dos processos. Quem manda e o menor dos dois.
+
+    E respeita a fatia do gerenciador de fila: `SLURM_CPUS_PER_TASK` e quantos
+    nucleos a tarefa REALMENTE recebeu, que raramente e a maquina inteira.
+    """
     n = os.cpu_count() or 4
-    if no_cluster():
-        return max(1, n)
-    return max(1, min(TETO_PESSOAL, n - FOLGA_PESSOAL))
+    fatia = os.environ.get('SLURM_CPUS_PER_TASK') or os.environ.get('NCPUS')
+    if fatia and fatia.isdigit():
+        n = min(n, int(fatia))
+    if not no_cluster():
+        return max(1, min(TETO_PESSOAL, n - FOLGA_PESSOAL))
+    gb = memoria_livre_gb()
+    if gb:
+        n = min(n, max(1, int(gb // GB_POR_PROCESSO)))
+    return max(1, n)
 
 
 def tem_tela():

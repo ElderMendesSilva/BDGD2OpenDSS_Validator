@@ -465,6 +465,11 @@ def main():
     # grandeza que se quer defender.
     if a.jobs > 1 and len(pendentes) > 1 and not a.curvas:
         import concurrent.futures as cf
+        # `spawn` nos dois sistemas. No Linux o padrao e `fork`, e o
+        # filho nasceria com uma COPIA da DLL do OpenDSS ja carregada,
+        # com circuito e solucao dentro — o estado compartilhado que os
+        # processos separados existem para evitar.
+        plataforma.prepara_processos()
         print(f'{a.jobs} subestacoes em paralelo', flush=True)
         with cf.ProcessPoolExecutor(max_workers=a.jobs) as ex:
             fila = lote.maior_primeiro(

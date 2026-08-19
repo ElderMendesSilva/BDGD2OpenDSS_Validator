@@ -115,14 +115,41 @@ class OModo(unittest.TestCase):
         plataforma.fixar('cluster')
         self.assertEqual(os.environ.get('BDGD2DSS_MODO'), 'cluster')
 
-    def test_no_cluster_usa_todos_os_nucleos_e_no_pessoal_deixa_folga(self):
-        plataforma.fixar('cluster')
-        todos = plataforma.nucleos()
+    def test_no_pessoal_deixa_folga_e_respeita_o_teto(self):
         plataforma.fixar('pessoal')
-        sobra = plataforma.nucleos()
-        self.assertGreaterEqual(todos, sobra)
-        self.assertLessEqual(sobra, plataforma.TETO_PESSOAL)
-        self.assertGreaterEqual(sobra, 1)
+        n = plataforma.nucleos()
+        self.assertLessEqual(n, plataforma.TETO_PESSOAL)
+        self.assertGreaterEqual(n, 1)
+        self.assertLessEqual(n, max(1, (os.cpu_count() or 4)
+                                    - plataforma.FOLGA_PESSOAL))
+
+    def test_no_cluster_o_limite_e_o_menor_entre_nucleo_e_memoria(self):
+        """Nao e "usa tudo". Um no de 128 nucleos e 256 GB comporta ~85
+        processos de 3 GB, e pedir 128 faz a maquina paginar — fica mais lenta
+        do que com metade."""
+        plataforma.fixar('cluster')
+        n = plataforma.nucleos()
+        self.assertGreaterEqual(n, 1)
+        self.assertLessEqual(n, os.cpu_count() or 4)
+        gb = plataforma.memoria_livre_gb()
+        if gb:
+            self.assertLessEqual(
+                n, max(1, int(gb // plataforma.GB_POR_PROCESSO)),
+                'passou do que a memoria comporta')
+
+    def test_a_fatia_da_fila_manda_mais_que_a_maquina(self):
+        """`SLURM_CPUS_PER_TASK` e quantos nucleos a tarefa RECEBEU, que
+        raramente e o no inteiro. Ignorar isso e disputar com o vizinho."""
+        plataforma.fixar('cluster')
+        antes = os.environ.get('SLURM_CPUS_PER_TASK')
+        try:
+            os.environ['SLURM_CPUS_PER_TASK'] = '2'
+            self.assertLessEqual(plataforma.nucleos(), 2)
+        finally:
+            if antes is None:
+                os.environ.pop('SLURM_CPUS_PER_TASK', None)
+            else:
+                os.environ['SLURM_CPUS_PER_TASK'] = antes
 
     def test_no_cluster_nao_ha_tela(self):
         plataforma.fixar('cluster')

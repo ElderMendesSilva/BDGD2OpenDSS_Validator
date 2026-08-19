@@ -1,0 +1,23 @@
+# Dependencias do BDGD2OpenDSS.
+#
+#     pip install -r requisitos.txt
+#
+# As tres primeiras sao obrigatorias: sem elas nada roda. As demais sao para
+# figura e relatorio, e a ferramenta funciona sem elas — o `doutor.py` avisa
+# em vez de quebrar.
+#
+# NAO HA `pywin32` AQUI. O motor COM da EPRI so existe registrado no Windows,
+# e o `verifica` cai sozinho para o `opendssdirect` quando ele falta, dizendo
+# no rodape que comparou um motor so. Em Linux: `pip install pywin32` falha, e
+# nao e para instalar.
+#
+# `pyogrio` traz o GDAL embutido nas wheels oficiais — nao e preciso instalar
+# GDAL do sistema. Se a wheel nao existir para a arquitetura do no, ai sim:
+# `conda install -c conda-forge pyogrio` resolve sem compilar nada.
+
+numpy>=1.24
+pyogrio>=0.7
+opendssdirect.py>=0.9
+
+matplotlib>=3.6
+reportlab>=4.0

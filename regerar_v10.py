@@ -52,12 +52,26 @@ import time
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from bdgd2dss import pausa                           # noqa: E402
 from bdgd2dss import escrita
+from bdgd2dss import plataforma      # noqa: E402
 
 AQUI = os.path.dirname(os.path.abspath(__file__))
-BDGDS = r'D:\Elder\Elder\BDGDs'
+# ONDE ESTAO AS .gdb. O caminho do Windows desta maquina era o padrao fixo, e
+# num no de cluster ele simplesmente nao existe — a rodada morreria na primeira
+# base, depois de agendada. `BDGD2DSS_BASES` resolve sem editar codigo, que e o
+# que se quer de quem so vai submeter a tarefa.
+BDGDS = os.environ.get('BDGD2DSS_BASES') or r'D:\Elder\Elder\BDGDs'
 CRIT = os.path.dirname(AQUI)
 LOGS = os.path.join(AQUI, 'logs', 'v10')      # ver PASTAS, no CLAUDE.md
 PY = sys.executable
+
+def _acha(nome, *alternativas):
+    """O caminho da base: onde ela estiver, nesta maquina ou na outra."""
+    for raiz in (BDGDS,) + alternativas:
+        cam = os.path.join(raiz, nome)
+        if os.path.exists(cam):
+            return cam
+    return os.path.join(BDGDS, nome)          # inexistente: reportado na hora
+
 
 # (tag, caminho da .gdb, minutos de conversao medidos na rodada anterior)
 # A ordem E o projeto: canario primeiro, depois por tamanho crescente.
@@ -65,7 +79,10 @@ BASES = [
     ('RR', os.path.join(BDGDS, 'Roraima_Energia_370_2024-12-31_V11_20250924-1424.gdb'), 1.9),
     ('ENCE', os.path.join(BDGDS, 'Enel_CE_39_2024-12-31_V11_20250822-1151.gdb'), 21.6),
     ('EQPA', os.path.join(BDGDS, 'Equatorial_PA_371_2024-12-31_V11_20250911-0946.gdb'), 40.1),
-    ('SP', os.path.join(CRIT, 'Enel_SP_390_2024-12-31_V11_20250702-2009.gdb'), 48.2),
+    # A Enel SP mora fora da pasta das bases nesta maquina. Se nao
+    # estiver la, procura junto com as outras — que e como vai estar
+    # em qualquer lugar que nao seja este computador.
+    ('SP', _acha('Enel_SP_390_2024-12-31_V11_20250702-2009.gdb', CRIT), 48.2),
     ('LT', os.path.join(BDGDS, 'Light_382_2024-12-31_V11_20250925-1811.gdb'), 52.9),
     ('CPFL', os.path.join(BDGDS, 'CPFL_Paulista_63_2024-12-31_V11_20250731-1036.gdb'), 85.3),
     ('CMIG', os.path.join(BDGDS, 'Cemig-D_4950_2024-12-31_V11_20250929-1522.gdb'), 148.4),
@@ -337,10 +354,16 @@ def main():
     # ficam no disco. Sem elas nao ha com o que comparar, e comparar e o unico
     # jeito de saber se a mudanca melhorou ou piorou — foi assim que se
     # descobriu que o passo 5 nao moveu nenhum numero de energia (achado 23).
-    ap.add_argument('--jobs', type=int, default=8, metavar='N',
+    ap.add_argument('--modo', choices=['pessoal', 'cluster'],
+                    help='pessoal deixa nucleos livres e abre formulario; '
+                         'cluster usa a maquina toda e nunca abre janela. '
+                         'Sem isto e detectado: fila do Slurm, ou Linux sem '
+                         'tela, valem cluster')
+    ap.add_argument('--jobs', type=int, default=0, metavar='N',
                     help='subestacoes em paralelo nos passos que resolvem '
-                         'rede (padrao 8). Medido: o ganho satura perto de 8, '
-                         'porque o custo e ler o modelo do disco')
+                         'rede. 0 = decide pelo modo: no pessoal deixa '
+                         'nucleos livres, com teto de 8, porque medido o ganho '
+                         'satura ai; no cluster usa a maquina')
     ap.add_argument('--max-ctmt', type=int, default=850, dest='max_ctmt',
                     metavar='N',
                     help='alimentadores por leitura da BDGD na conversao '
@@ -349,6 +372,11 @@ def main():
                     help=f'sufixo das pastas de saida (padrao {SUFIXO}); '
                          f'MODELOS_<base>_<sufixo>')
     a = ap.parse_args()
+    # O modo antes de tudo: ele decide quantos processos usar, se ha
+    # formulario, e viaja no ambiente para as etapas, que sao processos novos.
+    plataforma.fixar(a.modo)
+    if not a.jobs:
+        a.jobs = plataforma.nucleos()
 
     SUFIXO = a.sufixo
     LOGS = os.path.join(AQUI, 'logs', SUFIXO.lower())
