@@ -205,3 +205,54 @@ class AceitaUmAUm(unittest.TestCase):
         self.assertIn('RECUSADO', t)
         self.assertIn('8,453', t)
         self.assertIn('premissa que piora o modelo nao entra', t)
+
+
+class ChaveAbertaNaoEAresta(unittest.TestCase):
+    """A distincao que separa modelar de sobrescrever o dado.
+
+    Medido na Equatorial PA: 174.578 cargas sem tensao, 55,2% da base. Metade
+    delas esta atras de uma chave que a BDGD declara ABERTA — o trecho existe,
+    o caminho existe, e quem alimentaria e outro alimentador. A outra metade
+    e ilha de verdade, e e para ela que a premissa existe.
+
+    Ate a V14 o grafo da premissa ligava as duas barras de TODA linha,
+    inclusive as abertas: a rede morta virava uma componente gigante, ligava-se
+    uma ancora so, e o resto continuava escuro.
+    """
+
+    def test_componente_atras_de_chave_aberta_fica_de_fora(self):
+        comp = {'a', 'b'}
+        aberto = {'a': {'viva'}}
+        self.assertTrue(ligacao.alcancavel_por_chave(comp, aberto,
+                                                     mortas={'a', 'b'}))
+
+    def test_ilha_de_verdade_nao_e_alcancavel(self):
+        """Sem elemento nenhum entre ela e a rede viva."""
+        self.assertFalse(ligacao.alcancavel_por_chave({'a', 'b'}, {}, {'a'}))
+
+    def test_chave_aberta_para_outra_barra_morta_nao_conta(self):
+        """Duas ilhas ligadas entre si por chave aberta continuam ilhas: o que
+        importa e alcancar a rede VIVA."""
+        aberto = {'a': {'c'}}
+        self.assertFalse(ligacao.alcancavel_por_chave(
+            {'a', 'b'}, aberto, mortas={'a', 'b', 'c'}))
+
+    def test_decidir_recusa_e_diz_o_motivo(self):
+        comps = [{'x', 'y'}]
+        cargas = {'x': 50}
+        kvb = {'x': 13.8, 'y': 13.8}
+        lig, fora = ligacao.decidir(comps, {'x': {'y'}, 'y': {'x'}}, cargas,
+                                    kvb, [13.8], min_cargas=20,
+                                    aberto={'x': {'viva'}}, mortas={'x', 'y'})
+        self.assertEqual(lig, [])
+        self.assertEqual(len(fora), 1)
+        self.assertIn('chave aberta', fora[0]['motivo'])
+
+    def test_sem_o_grafo_aberto_o_comportamento_e_o_de_antes(self):
+        """Quem chamar sem `aberto` continua ligando tudo — os testes antigos
+        e qualquer uso externo nao mudam de resposta."""
+        comps = [{'x', 'y'}]
+        lig, fora = ligacao.decidir(comps, {'x': {'y'}, 'y': {'x'}},
+                                    {'x': 50}, {'x': 13.8, 'y': 13.8},
+                                    [13.8], min_cargas=20)
+        self.assertEqual(len(lig), 1)

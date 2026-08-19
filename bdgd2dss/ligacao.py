@@ -94,12 +94,32 @@ def ancora(comp, adjacencia, grau_min=1):
     return min(b for gg, b in cand if gg == g)
 
 
+def alcancavel_por_chave(comp, aberto, mortas):
+    """A componente toca a rede VIVA por um elemento que nao conduz?
+
+    Se toca, ela esta escura porque a BDGD declara aquela chave aberta — o
+    trecho existe, o caminho existe, e quem alimentaria seria outro
+    alimentador. Inventar um elo ali nao e modelar o que falta: e apagar o
+    que o dado diz.
+
+    Sem esta checagem a premissa ligava tudo que estivesse escuro, e metade
+    do que ela ligaria na Equatorial PA cai nesta categoria.
+    """
+    if not aberto:
+        return False
+    return any(v not in mortas
+               for b in comp for v in aberto.get(b, ()))
+
+
 def decidir(comps, adjacencia, cargas_por_barra, kv_por_barra, kvs_de_vao,
-            min_cargas=MIN_CARGAS, tol_kv=0.05):
+            min_cargas=MIN_CARGAS, tol_kv=0.05, aberto=None, mortas=frozenset()):
     """Escolhe quais componentes ligar, e a que tensao.
 
     `kvs_de_vao` sao as tensoes de base das barras de onde os vaos partem —
     e so nelas que se pode pendurar o elo novo.
+
+    `aberto` e a adjacencia do que existe e NAO conduz. Componente que
+    alcanca a rede viva por ali fica de fora — ver `alcancavel_por_chave`.
 
     Devolve (ligacoes, descartadas). Cada ligacao:
 
@@ -111,6 +131,11 @@ def decidir(comps, adjacencia, cargas_por_barra, kv_por_barra, kvs_de_vao,
         if n_cargas < min_cargas:
             fora.append({'barras': len(comp), 'cargas': n_cargas,
                          'motivo': 'poucas cargas'})
+            continue
+        if alcancavel_por_chave(comp, aberto, mortas):
+            fora.append({'barras': len(comp), 'cargas': n_cargas,
+                         'motivo': 'chave aberta declarada — outro '
+                                   'alimentador e quem alimenta'})
             continue
         # so barras cuja tensao de base case com a de algum vao
         elegiveis = [b for b in comp

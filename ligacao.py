@@ -45,17 +45,45 @@ def _bus(x):
 def radiografia():
     """Adjacencia, barras mortas, cargas por barra, kV por barra, vaos.
 
-    Sao DOIS grafos. `adj` inclui os transformadores e serve para agrupar a
+    Sao TRES grafos. `adj` inclui os transformadores e serve para agrupar a
     rede desenergizada e contar a carga que ela carrega. `adj_mt` e so de
     linhas, e e a camada de media: e nela que a tensao declarada no primario
-    do trafo se propaga, e e dela que sai a ancora.
+    do trafo se propaga, e e dela que sai a ancora. `aberto` e o que existe
+    mas NAO conduz.
+
+    CHAVE ABERTA NAO E ARESTA — e isto era um defeito, medido.
+
+    Ate a V14 os dois primeiros grafos ligavam as duas barras de TODA linha,
+    inclusive as chaves que o `_CHAVES_ABERTAS.dss` deixa abertas. O efeito:
+    a rede morta aparecia como UMA componente gigante onde a eletricidade ve
+    varias, a premissa ligava uma ancora so, e tudo alem das chaves abertas
+    continuava no escuro.
+
+    Medido na CSO da Equatorial PA: a premissa registrou 21 componentes
+    mortas — uma gigante e vinte de 1 barra e 0 cargas —, ligou a gigante, e
+    sobraram 3 regioes mortas de 162 a 462 cargas separadas por 23 chaves
+    abertas. Na base inteira eram 174.578 cargas sem tensao, 55,2% da EQPA.
+
+    O terceiro grafo serve para a distincao que decide o que fazer, e ela e a
+    diferenca entre modelar e sobrescrever o dado:
+
+      componente que toca a rede viva SO por chave aberta — ela esta escura
+      porque a BDGD declara aquela chave aberta, e o trecho seria alimentado
+      por outro alimentador. Inventar elo ali e apagar o que o dado diz.
+
+      componente que nao toca a rede viva por elemento nenhum — ilha de
+      verdade, e e para ela que esta premissa existe.
     """
-    adj, adj_mt = {}, {}
+    adj, adj_mt, aberto = {}, {}, {}
 
     def liga(a, b, onde=None):
         for g in ((adj,) if onde is None else (adj, onde)):
             g.setdefault(a, set()).add(b)
             g.setdefault(b, set()).add(a)
+
+    def liga_aberto(a, b):
+        aberto.setdefault(a, set()).add(b)
+        aberto.setdefault(b, set()).add(a)
 
     kvs_vao, barra_de_vao = set(), {}
     for nome in dss.Lines.AllNames():
@@ -63,7 +91,10 @@ def radiografia():
         dss.Circuit.SetActiveElement('Line.' + nome)
         b = [_bus(x) for x in dss.CktElement.BusNames()]
         if len(b) >= 2:
-            liga(b[0], b[1], adj_mt)
+            if any(dss.CktElement.IsOpen(t, 0) for t in (1, 2)):
+                liga_aberto(b[0], b[1])
+            else:
+                liga(b[0], b[1], adj_mt)
         if nome.lower().startswith('vao_'):
             dss.Circuit.SetActiveBus(b[0])
             kv = dss.Bus.kVBase()
@@ -73,8 +104,13 @@ def radiografia():
     while i:
         dss.Circuit.SetActiveElement('Transformer.' + dss.Transformers.Name())
         b = [_bus(x) for x in dss.CktElement.BusNames()]
+        fechado = not any(dss.CktElement.IsOpen(t, 0)
+                          for t in range(1, len(b) + 1))
         for j in range(len(b) - 1):
-            liga(b[0], b[j + 1])          # so no grafo completo
+            if fechado:
+                liga(b[0], b[j + 1])      # so no grafo completo
+            else:
+                liga_aberto(b[0], b[j + 1])
         i = dss.Transformers.Next()
 
     mortas = set()
@@ -129,7 +165,8 @@ def radiografia():
             # deixa-las desligadas
             if b not in secundarias and b not in com_carga:
                 kv_por_barra[b] = kv
-    return adj, mortas, cargas, kv_por_barra, sorted(kvs_vao), barra_de_vao
+    return (adj, mortas, cargas, kv_por_barra, sorted(kvs_vao),
+            barra_de_vao, aberto)
 
 
 def uma(pasta, se, min_cargas):
@@ -149,11 +186,13 @@ def uma(pasta, se, min_cargas):
         dss.Text.Command(f'Redirect MASTER-{se}.dss')
         if not dss.Solution.Converged():
             return {'se': se, 'erro': 'nao convergiu'}
-        adj, mortas, cargas, kvb, kvs, barra = radiografia()
+        adj, mortas, cargas, kvb, kvs, barra, aberto = radiografia()
         n_cargas = dss.Loads.Count()
         mortas_antes = sum(v for b, v in cargas.items() if b in mortas)
         comps = ligacao.componentes(adj, mortas)
-        cand, fora = ligacao.decidir(comps, adj, cargas, kvb, kvs, min_cargas)
+        cand, fora = ligacao.decidir(comps, adj, cargas, kvb, kvs,
+                                     min_cargas, aberto=aberto,
+                                     mortas=mortas)
 
         def de_para(kv):
             return (barra.get(round(kv, 4))
