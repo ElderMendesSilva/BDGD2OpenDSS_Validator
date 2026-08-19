@@ -122,6 +122,34 @@ def memoria_livre_gb():
         return None
 
 
+def _fatia_da_fila():
+    """Quantos nucleos o gerenciador de fila REALMENTE deu a esta tarefa.
+
+    Nao e o que a maquina tem: `os.cpu_count()` num no de 128 nucleos devolve
+    128 mesmo quando o PBS reservou 32, e usar os 128 e disputar com o vizinho
+    de fila — que e a forma mais rapida de irritar quem administra o cluster.
+
+    PBS/Torque (o Ubiratan): `PBS_NP` e o total de processadores do job, e o
+    `PBS_NODEFILE` lista uma linha por nucleo alocado — vale como reserva
+    quando `PBS_NP` nao vem. Slurm fica junto porque custa uma linha e o
+    proximo cluster pode ser outro.
+    """
+    for var in ('PBS_NP', 'PBS_NUM_PPN', 'NCPUS', 'SLURM_CPUS_PER_TASK'):
+        v = (os.environ.get(var) or '').strip()
+        if v.isdigit() and int(v) > 0:
+            return int(v)
+    arq = os.environ.get('PBS_NODEFILE')
+    if arq and os.path.exists(arq):
+        try:
+            with open(arq) as fh:
+                n = sum(1 for l in fh if l.strip())
+            if n:
+                return n
+        except OSError:
+            pass
+    return None
+
+
 def nucleos():
     """Quantos processos usar por padrao.
 
@@ -130,13 +158,10 @@ def nucleos():
     128 x 3 = 384 GB, acima da maquina. Ela comecaria a paginar e ficaria mais
     lenta do que com metade dos processos. Quem manda e o menor dos dois.
 
-    E respeita a fatia do gerenciador de fila: `SLURM_CPUS_PER_TASK` e quantos
-    nucleos a tarefa REALMENTE recebeu, que raramente e a maquina inteira.
+    E respeita a fatia do gerenciador de fila — ver `_fatia_da_fila`.
     """
     n = os.cpu_count() or 4
-    fatia = os.environ.get('SLURM_CPUS_PER_TASK') or os.environ.get('NCPUS')
-    if fatia and fatia.isdigit():
-        n = min(n, int(fatia))
+    n = min(n, _fatia_da_fila() or n)
     if not no_cluster():
         return max(1, min(TETO_PESSOAL, n - FOLGA_PESSOAL))
     gb = memoria_livre_gb()

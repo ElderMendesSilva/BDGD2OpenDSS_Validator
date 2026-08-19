@@ -1,0 +1,54 @@
+#!/bin/bash
+# Uma distribuidora por job, no Ubiratan (PBS/Torque).
+#
+#     qsub -v TAG=RR   cluster/uma_base.pbs        # so a Roraima, canario
+#     bash cluster/submeter_todas.sh               # as sete, uma por job
+#
+# UM NO SO, e de proposito. `nodes=2` nao ajudaria: o trabalho e independente
+# por subestacao e nao ha troca nenhuma entre processos — nao usamos MPI, e um
+# segundo no ficaria parado. O que aproveitamos e `ppn`, os nucleos DAQUELE no.
+#
+#PBS -N bdgd2dss
+#PBS -l nodes=1:ppn=32
+#PBS -l walltime=12:00:00
+#PBS -q BIRA_Q3
+#PBS -j oe
+#PBS -o logs/cluster/
+#
+# Para receber e-mail ao terminar ou abortar, descomente e ponha o endereco:
+##PBS -m ae
+##PBS -M seu@email
+
+set -euo pipefail
+
+# --- o que muda de instalacao para instalacao -------------------------------
+TAG="${TAG:-RR}"                                   # qsub -v TAG=CMIG
+SUFIXO="${SUFIXO:-V15}"
+PROJETO="${PROJETO:-$HOME/elder/BDGD2OpenDSS_Validator}"
+export BDGD2DSS_BASES="${BDGD2DSS_BASES:-$HOME/elder/bdgds}"
+
+# `cluster` tambem seria detectado sozinho pelo PBS_JOBID; explicito e melhor
+# num script que alguem vai ler daqui a um ano.
+export BDGD2DSS_MODO=cluster
+
+# O PBS comeca no $HOME, e nao na pasta de onde o job foi submetido.
+cd "${PBS_O_WORKDIR:-$PROJETO}"
+mkdir -p logs/cluster
+
+# O ambiente montado por cluster/instalar.sh.
+source .venv/bin/activate
+
+echo "## $TAG em $(hostname -s), $(date '+%d-%m-%Y as %T')"
+echo "## job ${PBS_JOBID:-interativo}"
+echo "## nucleos: ${PBS_NP:-?}   memoria livre: $(free -g 2>/dev/null | awk '/^Mem:/{print $7}') GB"
+
+# O autoteste custa segundos e evita a falha classica do cluster: o job espera
+# na fila, comeca de madrugada, e morre no minuto 2 por falta de biblioteca.
+python doutor.py --bases "$BDGD2DSS_BASES" || exit 1
+
+# --jobs 0 deixa o codigo decidir: o menor entre os nucleos que o PBS deu e a
+# memoria livre dividida por processo. Passar numero na mao aqui e a forma mais
+# facil de fazer o no paginar e ficar mais lento do que com metade.
+python -u regerar_v10.py --sufixo "$SUFIXO" --so "$TAG" --jobs 0
+
+echo "## $TAG terminou em $(date '+%d-%m-%Y as %T')"

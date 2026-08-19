@@ -137,19 +137,53 @@ class OModo(unittest.TestCase):
                 n, max(1, int(gb // plataforma.GB_POR_PROCESSO)),
                 'passou do que a memoria comporta')
 
+    def _com_ambiente(self, **vars):
+        import contextlib
+
+        @contextlib.contextmanager
+        def ctx():
+            antes = {k: os.environ.get(k) for k in vars}
+            os.environ.update({k: str(v) for k, v in vars.items()})
+            try:
+                yield
+            finally:
+                for k, v in antes.items():
+                    if v is None:
+                        os.environ.pop(k, None)
+                    else:
+                        os.environ[k] = v
+        return ctx()
+
     def test_a_fatia_da_fila_manda_mais_que_a_maquina(self):
-        """`SLURM_CPUS_PER_TASK` e quantos nucleos a tarefa RECEBEU, que
-        raramente e o no inteiro. Ignorar isso e disputar com o vizinho."""
+        """O que o PBS deu, e nao o que a maquina tem.
+
+        `os.cpu_count()` num no de 128 nucleos devolve 128 mesmo quando o PBS
+        reservou 32 — usar os 128 e disputar com o vizinho de fila.
+        """
         plataforma.fixar('cluster')
-        antes = os.environ.get('SLURM_CPUS_PER_TASK')
-        try:
-            os.environ['SLURM_CPUS_PER_TASK'] = '2'
+        with self._com_ambiente(PBS_NP=2):
             self.assertLessEqual(plataforma.nucleos(), 2)
-        finally:
-            if antes is None:
-                os.environ.pop('SLURM_CPUS_PER_TASK', None)
-            else:
-                os.environ['SLURM_CPUS_PER_TASK'] = antes
+        with self._com_ambiente(SLURM_CPUS_PER_TASK=2):
+            self.assertLessEqual(plataforma.nucleos(), 2)
+
+    def test_o_nodefile_serve_de_reserva(self):
+        """Quando `PBS_NP` nao vem, o `PBS_NODEFILE` tem uma linha por nucleo
+        alocado."""
+        import tempfile
+        d = tempfile.mkdtemp()
+        arq = os.path.join(d, 'nodes')
+        with open(arq, 'w', encoding='utf-8') as fh:
+            fh.write('no01\nno01\nno01\n')
+        plataforma.fixar('cluster')
+        with self._com_ambiente(PBS_NODEFILE=arq):
+            self.assertLessEqual(plataforma.nucleos(), 3)
+
+    def test_o_pbs_sozinho_ja_indica_cluster(self):
+        """Um job do Ubiratan nao tem tela nem alguem na frente."""
+        plataforma._forcado = None
+        with self._com_ambiente(PBS_JOBID='123.bira'):
+            os.environ.pop('BDGD2DSS_MODO', None)
+            self.assertEqual(plataforma.modo(), plataforma.CLUSTER)
 
     def test_no_cluster_nao_ha_tela(self):
         plataforma.fixar('cluster')

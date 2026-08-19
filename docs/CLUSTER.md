@@ -1,7 +1,18 @@
-# Rodar no cluster
+# Rodar no cluster Ubiratan (UFPA/CEAMAZON)
 
 Do zero até as sete bases regeradas. Escrito para ser seguido sem consultar
 mais nada.
+
+O gerenciador de filas é **PBS/Torque**, não Slurm — `qsub`, `qstat`, e
+diretivas `#PBS` no cabeçalho do script.
+
+## 0. Acesso
+
+```bash
+ssh <usuario>@10.107.1.23
+```
+
+Só de dentro da rede da UFPA/CEAMAZON, ou por VPN.
 
 ## 1. Instalar
 
@@ -95,21 +106,64 @@ qualquer uma — o que muda nas outras é o tamanho, não o caminho de código.
 
 ## 5. Submeter
 
+Antes de tudo, veja os nomes reais das filas — eles mudam e o script traz um
+padrão que pode não ser o seu:
+
 ```bash
-sbatch --array=0-6 cluster/uma_base.sbatch      # as sete
-sbatch --array=0   cluster/uma_base.sbatch      # só a Roraima
+qstat -q
 ```
 
-Uma base por tarefa. As sete são independentes: **não trocam nada entre si**,
-então não há MPI e a InfiniBand não é usada. É um vetor de tarefas comum.
+**O canário primeiro.** Roraima converte em menos de um minuto:
 
-Índices: `0 RR · 1 ENCE · 2 EQPA · 3 SP · 4 LT · 5 CPFL · 6 CMIG`.
+```bash
+qsub -q BIRA_Q3 -v TAG=RR cluster/uma_base.pbs
+```
+
+Deu certo? As sete, uma por job:
+
+```bash
+bash cluster/submeter_todas.sh
+```
+
+Uma por job, e não um job só com as sete: elas são independentes, então os
+sete entram na fila em paralelo e cada um termina quando terminar. Num job
+único a Cemig-D seguraria as outras seis até o fim.
+
+Acompanhar e cancelar:
+
+```bash
+qstat -an -u $USER
+qdel <id_do_job>
+```
+
+A saída de cada job fica em `logs/cluster/`.
+
+### Um nó só, de propósito
+
+O `uma_base.pbs` pede `nodes=1:ppn=32`. **Pedir dois nós não ajudaria**: o
+trabalho é independente por subestação e não há troca nenhuma entre processos
+— não usamos MPI, e o segundo nó ficaria parado. O que aproveitamos é `ppn`,
+os núcleos daquele nó.
+
+Foi por isso também que a InfiniBand não entra na conta: ela serve para
+processos que conversam entre si, e os nossos não conversam.
+
+### Modo interativo, para depurar
+
+```bash
+qsub -q BIRA_Q4 -I
+```
+
+Cai num nó com terminal. Serve para instalar, rodar o `doutor.py` e converter
+a Roraima na mão antes de confiar na fila. Roda em um nó só, o que para o
+nosso caso não é limitação nenhuma.
 
 ## O modo, e o que ele não faz
 
 `BDGD2DSS_MODO=cluster` (ou `--modo cluster`) muda três coisas: quantos
 processos usar, nunca abrir formulário, e desenhar em arquivo em vez de na
-tela. É detectado sozinho por `SLURM_JOB_ID` ou por Linux sem `DISPLAY`.
+tela. É detectado sozinho por `PBS_JOBID` (ou `SLURM_JOB_ID`) e por Linux sem
+`DISPLAY`.
 
 **O modo não muda nada que seja calculado.** Nem a ordem das contas, nem os
 arquivos gerados, nem os passos do dia. Um modelo gerado no cluster tem de sair
@@ -147,14 +201,14 @@ de produção. Em lote, seja explícito:
 BDGD2DSS_MODO=cluster python regerar_v10.py --sufixo V15 --so CMIG --jobs 0
 ```
 
-O `cluster/uma_base.sbatch` já faz isso, e dentro do Slurm o `SLURM_JOB_ID`
-decide de qualquer forma.
+O `cluster/uma_base.pbs` já faz isso, e dentro da fila o `PBS_JOBID` decide de
+qualquer forma.
 
 ## Quantos processos pedir
 
 `--jobs 0`, que é o padrão, deixa o código decidir: **o menor** entre os
-núcleos que a fila deu (`SLURM_CPUS_PER_TASK`) e a memória livre dividida por
-3 GB.
+núcleos que a fila deu (`PBS_NP`, ou a contagem de linhas do `PBS_NODEFILE`) e
+a memória livre dividida por 3 GB.
 
 Os 3 GB não são chute: é o que as subestações maiores das sete bases seguram
 entre circuito compilado e solução — REN, na Equatorial PA, tem 108 mil barras.
@@ -175,8 +229,9 @@ Num nó de 128 núcleos e 256 GB, cabem ~85 processos, não 128.
 Paralelizá-lo por lotes de subestações é o trabalho que derruba esse piso para
 uns 30 min — e é o único motivo para pedir uma fatia maior.
 
-Por isso o `sbatch` pede **32 núcleos e 96 GB**: é o que a ferramenta sabe
-aproveitar hoje, e é um pedido fácil de justificar.
+Por isso o `uma_base.pbs` pede `ppn=32`: é o que a ferramenta aproveita com
+folga, e é um pedido fácil de justificar. A conta da memória é 32 × 3 GB =
+96 GB.
 
 ## Se algo falhar
 
