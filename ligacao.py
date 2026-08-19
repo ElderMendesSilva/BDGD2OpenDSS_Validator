@@ -27,7 +27,7 @@ import time
 
 AQUI = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, AQUI)
-from bdgd2dss import ligacao                          # noqa: E402
+from bdgd2dss import ligacao, lote, pausa                          # noqa: E402
 
 try:
     import opendssdirect as dss
@@ -132,6 +132,9 @@ def radiografia():
 
 
 def uma(pasta, se, min_cargas):
+    # PAUSA: sempre antes de comecar, nunca no meio. Assim o que espera
+    # segura poucos MB em vez do circuito inteiro.
+    pausa.espera()
     d = os.path.join(pasta, se)
     if not os.path.exists(os.path.join(d, f'MASTER-{se}.dss')):
         return None
@@ -292,7 +295,9 @@ def main():
         import concurrent.futures as cf
         print(f'{a.jobs} subestacoes em paralelo', flush=True)
         with cf.ProcessPoolExecutor(max_workers=a.jobs) as ex:
-            fut = {ex.submit(uma, raiz, s_, a.min_cargas): s_ for s_ in ses}
+            fila = lote.maior_primeiro(
+                ses, lambda s_: os.path.join(raiz, s_))
+            fut = {ex.submit(uma, raiz, s_, a.min_cargas): s_ for s_ in fila}
             for f_ in cf.as_completed(fut):
                 r = f_.result()
                 if r is not None:

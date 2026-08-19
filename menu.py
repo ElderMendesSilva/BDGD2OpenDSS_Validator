@@ -77,6 +77,11 @@ FERRAMENTAS = [
      'Janela com todas as subestações listadas: validar uma ou todas, ver as '
      'figuras e abrir o Plot nativo do OpenDSS.',
      'os modelos gerados.'),
+    ('Pausar / retomar o ciclo', 'pausa.py',
+     'Segura um ciclo em andamento sem cancelar nada: as subestações em '
+     'andamento terminam, nenhuma nova começa, e retomar continua de onde '
+     'parou. Serve para quando a máquina for necessária para outra coisa.',
+     'um ciclo rodando — ou nada, se for só para ver o estado.'),
     ('CICLO COMPLETO das sete bases', 'regerar_v10.py',
      'Roda tudo acima, na ordem, para as sete distribuidoras: converter, as '
      'duas premissas, verificar, energia, validador e as duas validações. '

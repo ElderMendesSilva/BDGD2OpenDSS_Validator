@@ -7,6 +7,7 @@ VALIDADOR — roda um modelo gerado e verifica o que costuma quebrar.
     python validador.py MODELOS            o MASTER-GERAL e todas as subestacoes
     python validador.py MODELOS --geral    so o modelo completo da concessao
     python validador.py MODELOS --ses      so os modelos por subestacao
+    python validador.py MODELOS --jobs 1   em serie, um modelo de cada vez
 
 Checa, nesta ordem:
   1. compila                     5. tensoes em p.u. por nivel
@@ -14,9 +15,10 @@ Checa, nesta ordem:
   3. cargas eletricamente isoladas   7. perdas em % da injecao
   4. ramos isolados              8. barras fora da faixa do PRODIST M8
 """
+import argparse
 import os, sys, math, json, glob, statistics
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from bdgd2dss import diagnostico
+from bdgd2dss import diagnostico, lote, pausa
 
 try:
     import opendssdirect as dss
@@ -26,6 +28,12 @@ except ImportError:
 # PRODIST Modulo 8 — faixas para tensao nominal > 1 kV
 ADEQ = (0.95, 1.05)
 PREC = (0.93, 1.07)
+
+# Quantos modelos validar ao mesmo tempo. Oito e o mesmo padrao do `energia`,
+# do `verifica` e do `ampacidade`: medido, o ganho satura por volta de quatro
+# porque o custo dominante e compilar o modelo a partir do disco, e acima disso
+# so se paga memoria. `--jobs 1` volta a serie, que e a referencia.
+JOBS = 8
 
 
 def valida(pasta, referencia=None):
@@ -237,6 +245,30 @@ def grafico(out, alvo):
     interativo.mostra(plt, os.path.join(alvo, 'validacao.png'))
 
 
+def _uma(tarefa):
+    """Um modelo, num processo so dele. Trabalhador do modo paralelo.
+
+    Precisa ser funcao de modulo, e nao um `lambda` ou uma closure: no Windows
+    o `ProcessPoolExecutor` cria o filho por spawn, que importa este arquivo de
+    novo e procura a funcao pelo nome.
+    """
+    # PAUSA: sempre antes de comecar, nunca no meio. Assim o que espera
+    # segura poucos MB em vez do circuito inteiro.
+    pausa.espera()
+    pasta, ref = tarefa
+    return valida(pasta, ref)
+
+
+def _linha(r):
+    print(f"{r['modelo']:10s} compila={r['compila']} resolve={r.get('resolve')} "
+          f"conv={r.get('converge')} iter={r.get('iteracoes')} "
+          f"fontes={r.get('n_fontes','—')} vaos={r.get('n_vaos','—')} "
+          f"mortas={r.get('cargas_sem_tensao','—')} nan={r.get('nos_nan','—')} "
+          f"perdas={r.get('perdas_pct','—')}% Vmed={r.get('V_MT_mediana','—')} "
+          f"sobrecarga={r.get('linhas_acima_ampacidade','—')} "
+          f"| {r.get('causa','?'):18s} {r.get('causa_detalhe','')[:52]}", flush=True)
+
+
 def _painel():
     import interativo
     v = interativo.formulario('validador', 'Validador dos modelos', [
@@ -245,12 +277,16 @@ def _painel():
          'dica': 'a raiz dos modelos, ou a pasta de uma subestação só'},
         {'chave': 'escopo', 'tipo': 'opcao', 'rotulo': 'Validar', 'padrao': 'tudo',
          'valores': ['tudo', 'só o MASTER-GERAL', 'só as subestações']},
+        {'chave': 'jobs', 'tipo': 'inteiro', 'rotulo': 'Modelos em paralelo',
+         'padrao': JOBS, 'minimo': 1, 'maximo': 32,
+         'dica': 'cada um custa um processo com a sua cópia do OpenDSS; '
+                 'com 1 valida em série'},
     ], ajuda='Compila e resolve cada modelo e classifica a causa raiz do que '
              'estiver fora do esperado — separando defeito do conversor de '
              'característica da rede.')
     if not v:
         return False
-    sys.argv += [v['alvo'], '--grafico']
+    sys.argv += [v['alvo'], '--grafico', '--jobs', str(v['jobs'])]
     if v['escopo'].startswith('só o'):
         sys.argv.append('--geral')
     elif v['escopo'].startswith('só as'):
@@ -262,9 +298,22 @@ def main():
     if len(sys.argv) == 1 and not _painel():
         return
 
-    args = [x for x in sys.argv[1:] if not x.startswith('--')]
-    flags = {x for x in sys.argv[1:] if x.startswith('--')}
-    alvo = os.path.abspath(args[0] if args else 'MODELOS')
+    ap = argparse.ArgumentParser(
+        description=__doc__.split('\n')[1],
+        formatter_class=argparse.RawDescriptionHelpFormatter)
+    ap.add_argument('alvo', nargs='?', default='MODELOS',
+                    help='pasta dos modelos, ou de uma subestacao so')
+    ap.add_argument('--geral', action='store_true',
+                    help='so o modelo completo da concessao')
+    ap.add_argument('--ses', action='store_true',
+                    help='so os modelos por subestacao')
+    ap.add_argument('--grafico', action='store_true',
+                    help='desenha a causa raiz e a tensao mediana ao fim')
+    ap.add_argument('--jobs', type=int, default=JOBS, metavar='N',
+                    help=f'modelos em paralelo (padrao {JOBS}); com 1 valida '
+                         f'em serie')
+    a = ap.parse_args()
+    alvo = os.path.abspath(a.alvo)
 
     # A pasta de saida agora tem MASTER-GERAL.dss na raiz E um MASTER por
     # subestacao nas subpastas. Sem tratar os dois casos, a presenca do geral
@@ -274,9 +323,9 @@ def main():
                   if os.path.isdir(d) and glob.glob(os.path.join(d, 'MASTER-*.dss')))
     if raiz and not subs:
         pastas = [alvo]                       # apontaram direto para uma SE
-    elif '--geral' in flags:
+    elif a.geral:
         pastas = [alvo] if raiz else []
-    elif '--ses' in flags:
+    elif a.ses:
         pastas = subs
     else:
         pastas = ([alvo] if raiz else []) + subs
@@ -285,6 +334,11 @@ def main():
     # alimentadores tem 288 a 424 km — classificavam 4 de 20 subestacoes
     # citando uma mediana que nao era daquela concessao. Os resumo.json ja
     # estao no disco, entao o censo custa uma varredura de arquivos pequenos.
+    #
+    # ELE E DE TODA A BASE, e por isso fica AQUI, antes de qualquer paralelismo:
+    # se cada trabalhador calculasse o seu, o limiar mudaria conforme o lote e
+    # a mesma subestacao seria classificada de um jeito sozinha e de outro no
+    # meio das demais.
     resumos = []
     for p in pastas:
         fr = os.path.join(p, 'resumo.json')
@@ -301,19 +355,39 @@ def main():
               f'{ref["n"]} subestacoes; REDE_EXTENSA acima de '
               f'{ref["km_alim_alto"]:.0f} km\n')
 
-    out = []
-    for p in pastas:
-        r = valida(p, ref)
-        if not r:
-            continue
-        out.append(r)
-        print(f"{r['modelo']:10s} compila={r['compila']} resolve={r.get('resolve')} "
-              f"conv={r.get('converge')} iter={r.get('iteracoes')} "
-              f"fontes={r.get('n_fontes','—')} vaos={r.get('n_vaos','—')} "
-              f"mortas={r.get('cargas_sem_tensao','—')} nan={r.get('nos_nan','—')} "
-              f"perdas={r.get('perdas_pct','—')}% Vmed={r.get('V_MT_mediana','—')} "
-              f"sobrecarga={r.get('linhas_acima_ampacidade','—')} "
-              f"| {r.get('causa','?'):18s} {r.get('causa_detalhe','')[:52]}", flush=True)
+    # EM PARALELO, mesmo padrao do `energia.py`, do `verifica.py` e do
+    # `ampacidade.py`. Cada modelo e independente: compila, resolve e e
+    # descartado. O que impedia rodar junto era o `opendssdirect` guardar
+    # circuito e solucao em variaveis globais do processo — em PROCESSOS
+    # separados isso deixa de existir, e cada trabalhador faz exatamente o
+    # mesmo trabalho que faria em serie.
+    #
+    # A ORDEM DO JSON NAO PODE DEPENDER DE QUEM TERMINOU PRIMEIRO: `validacao`
+    # sai na ordem de `pastas`, que e a da execucao serial. Sem isso o arquivo
+    # mudaria a cada rodada sem nenhum numero ter mudado, e a comparacao entre
+    # duas geracoes — que e como se prova que uma mudanca nao mexeu no
+    # resultado — deixaria de valer.
+    por_pasta = {}
+    if a.jobs > 1 and len(pastas) > 1:
+        import concurrent.futures as cf
+        print(f'{a.jobs} modelos em paralelo', flush=True)
+        with cf.ProcessPoolExecutor(max_workers=a.jobs) as ex:
+            fila = lote.maior_primeiro(pastas, lambda p: p)
+            fut = {ex.submit(_uma, (p, ref)): p for p in fila}
+            for f_ in cf.as_completed(fut):
+                r = f_.result()
+                if r:
+                    por_pasta[fut[f_]] = r
+                    _linha(r)
+    else:
+        for p in pastas:
+            pausa.espera()   # mesmo ponto de parada do paralelo
+            r = valida(p, ref)
+            if r:
+                por_pasta[p] = r
+                _linha(r)
+    out = [por_pasta[p] for p in pastas if p in por_pasta]
+
     if out:
         # encoding explicito: com ensure_ascii=False o JSON leva acento, e sem
         # dizer utf-8 o Python grava na codificacao do sistema (cp1252 aqui).
@@ -322,7 +396,7 @@ def main():
                             encoding='utf-8'), indent=1, ensure_ascii=False)
         ok = sum(1 for r in out if r.get('diagnostico') == ['ok'])
         print(f'\n{ok} de {len(out)} modelos sem ressalva.')
-        if '--grafico' in flags:
+        if a.grafico:
             grafico(out, alvo)
 
 
