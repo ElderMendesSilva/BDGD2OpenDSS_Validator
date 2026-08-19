@@ -486,3 +486,84 @@ class AncoraPelaSubestacao(unittest.TestCase):
         ctmt = {'F1': _ctmt('F1', 'SE1', '', 'P1', 13.8, tr='0')}
         _, sem_vao, _ = st.vaos(ctmt, info, set())
         self.assertEqual(sem_vao, ['F1'])
+
+
+class DoisNiveisNaMesmaBarra(unittest.TestCase):
+    """Achado 39 — `BARR_2` nomeia o patio, nao a barra.
+
+    Na Equatorial PA, 18 das 112 barras de secundario aparecem com DUAS
+    tensoes. Na subestacao RIM os dois transformadores de AT declaram
+    `BARR_2=RIM01B1` com secundarios de 13,8 e 34,5 kV. Escritos na mesma
+    barra, os dois enrolamentos disputam: o de 13,8 kV e 12,5 MVA vencia o de
+    34,5 kV e 6,3 MVA, e os tres alimentadores de 34,5 kV pendurados ali
+    ficavam com 40% da tensao. Medido na RIM: perdas de 78,26%, Vmin 0,658.
+    Corrigido: 0,44% e 0,987.
+    """
+
+    def _info(self, barras, kvs, por_sub):
+        bt = {tr: st._no(b) for tr, b in barras.items()}
+        return {'barra_do_trafo': bt,
+                'kv_da_barra': {st._no(b): kv for b, kv in kvs.items()},
+                'mva_por_sub': {s: 100.0 for s in por_sub},
+                'por_sub': por_sub}
+
+    def test_um_nivel_so_nao_muda_nada(self):
+        """A regra e cirurgica: fora da subestacao multi-nivel ela nao opina,
+        e as preferencias de sempre decidem."""
+        info = self._info({'T1': 'B1', 'T2': 'B2'},
+                          {'B1': 13.8, 'B2': 13.8}, {'SE1': ['T1', 'T2']})
+        c = _ctmt('F1', 'SE1', 'B1', 'P1', 13.8)
+        self.assertIsNone(st._barra_no_nivel(c, info, 13.8, None))
+
+    def test_com_dois_niveis_a_tensao_manda(self):
+        info = self._info({'T1': 'B138', 'T2': 'B345'},
+                          {'B138': 13.8, 'B345': 34.5}, {'SE1': ['T1', 'T2']})
+        c = _ctmt('F1', 'SE1', 'B138', 'P1', 34.5)   # BARR aponta para a errada
+        self.assertEqual(st._barra_no_nivel(c, info, 13.8, None),
+                         st._no('B345'))
+
+    def test_a_barra_declarada_perde_para_a_tensao(self):
+        """O caso da RIM: o CTMT.BARR dos alimentadores de 34,5 kV aponta para
+        `RIM09B1`, que nenhum transformador declara. Seguir a BARR levava
+        todos para a barra de 13,8."""
+        info = self._info({'T1': 'RIM01B1', 'T2': 'RIM01B1_34p5kv'},
+                          {'RIM01B1': 13.8, 'RIM01B1_34p5kv': 34.5},
+                          {'RIM': ['T1', 'T2']})
+        c = _ctmt('RIM09W1', 'RIM', 'RIM09B1', 'P1', 34.5)
+        ligados, sem_vao, _ = st.vaos({'RIM09W1': c}, info, set())
+        self.assertEqual(sem_vao, [])
+        self.assertEqual(ligados['RIM09W1']['barra'],
+                         st._no('RIM01B1_34p5kv'))
+        self.assertFalse(ligados['RIM09W1']['derivada'],
+                         'ancorou na tensao certa e ainda assim derivou')
+
+    def test_sem_trafo_na_tensao_do_alimentador_devolve_nada(self):
+        info = self._info({'T1': 'B138', 'T2': 'B345'},
+                          {'B138': 13.8, 'B345': 34.5}, {'SE1': ['T1', 'T2']})
+        c = _ctmt('F1', 'SE1', 'B138', 'P1', 69.0)
+        self.assertIsNone(st._barra_no_nivel(c, info, 13.8, None))
+
+
+class UmaBarraPorNivelDeSecundario(unittest.TestCase):
+    """O nome da barra tem de ser estavel entre rodadas."""
+
+    def _tabela(self, linhas):
+        import numpy as np
+        cols = {k: np.array([l[i] for l in linhas], dtype=object)
+                for i, k in enumerate(('COD_ID', 'SUB', 'BARR_2', 'PAC_2',
+                                       'SIT_ATIV'))}
+        return cols
+
+    def test_barra_com_duas_tensoes_e_reconhecida(self):
+        u = self._tabela([('T1', 'RIM', 'RIM01B1', 'P95', 'AT'),
+                          ('T2', 'RIM', 'RIM01B1', 'P96', 'AT')])
+        eq = {'T1': {'ten_sec': '49'}, 'T2': {'ten_sec': '72'}}
+        n = st._niveis_por_barra(u, eq, 2, 13.8, None)
+        self.assertEqual(n[st._no('RIM01B1')], {13.8, 34.5})
+
+    def test_desativado_nao_conta(self):
+        u = self._tabela([('T1', 'RIM', 'RIM01B1', 'P95', 'AT'),
+                          ('T2', 'RIM', 'RIM01B1', 'P96', 'DS')])
+        eq = {'T1': {'ten_sec': '49'}, 'T2': {'ten_sec': '72'}}
+        n = st._niveis_por_barra(u, eq, 2, 13.8, None)
+        self.assertEqual(n[st._no('RIM01B1')], {13.8})
