@@ -159,6 +159,38 @@ Critério de saída: alcance acima de 95% nas sete, ou limitação declarada com
 número por base. **A segunda metade do critério é a que se tornou possível**:
 o resíduo agora tem nome e conta.
 
+#### O que a Equatorial PA deixa em aberto
+
+Ela é a base que puxa todos os resíduos, e o que sobra dela tem de continuar
+visível depois que a Fase 2 fechar. Quatro fios, com o número de cada um:
+
+1. **As 10.057 cargas atrás de chave aberta declarada** (na amostra de 8
+   subestações; 86% do resíduo restante). **Não é para corrigir** — ligar ali
+   apagaria o que a BDGD diz. É para *declarar*, com número por base, e é
+   exatamente a segunda metade do critério de saída da Fase 2. Falta a contagem
+   base a base, que sai da V15.
+
+2. **As 1.526 sem nenhuma barra na tensão de um vão.** Sobraram dos 6.662 do
+   achado 38 depois do achado 39 explicar 77% deles. Não sei o que são. É o
+   menor dos quatro e o menos entendido.
+
+3. **O balde `-FC` do achado 33** — 20 alimentadores, 218.471 barras, 11% de
+   toda a MT da EQPA, com `PAC_INI` na própria barra da subestação e grau 1.
+   A investigação de 19/08 mostrou que **não era ele** o resíduo de alcance,
+   e isso não é o mesmo que explicá-lo: o que `-FC` significa continua sem
+   estabelecer. Vale medir de novo depois da V15, com a rede já energizada —
+   pode ser que ele desapareça sozinho, e pode ser que não.
+
+4. **A razão de 0,55×**, a mais baixa das sete. O modelo prevê metade da perda
+   que a medição declara. Com 45% da carga sem tensão isso era esperado; com a
+   rede energizada, a razão vai mudar, e **em que direção é o resultado que
+   interessa**. Se subir para perto de 1, é evidência de que o alcance era a
+   causa; se não subir, sobra causa própria e ela entra na Fase 4.
+
+Os quatro só ficam mensuráveis depois de regerar a base inteira. Nenhum deles
+justifica segurar a V15 — todos justificam olhar para a EQPA primeiro quando
+ela sair.
+
 ### Fase 3 — quantificar o que falta e ler o que não lemos
 **Custo: uma semana. Ganho: 70% → 82%.**
 
