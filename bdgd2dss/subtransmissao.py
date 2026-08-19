@@ -373,6 +373,44 @@ def componentes(dados):
 
 
 # ====================================================================== vaos
+def _barra_de_at_da_sub(c, info_trafos, kv_mt_padrao, log):
+    """A barra de MT de um transformador de AT da PROPRIA subestacao.
+
+    Ultima preferencia do `vaos()`, e a razao dela e o achado 31: quando
+    `CTMT.BARR` vem em branco E `CTMT.UNI_TR_AT` aponta para um trafo que nao
+    existe na UNTRAT, os tres caminhos anteriores morrem e o alimentador fica
+    sem vao. Sem vao nao ha EnergyMeter, e sem medidor a subestacao inteira
+    sai da medicao — na Cemig-D isso valia a SUB 1726751 por completo: 7.803
+    cargas, 25.974 barras e 1.782 km de MT que compilam, resolvem, e nao
+    entram em nenhum numero de perda.
+
+    O dado para resolver sempre esteve la: a UNTRAT declara 2 transformadores
+    de AT naquela subestacao. O que faltava era o elo — o `vaos()` so sabia
+    chegar aos trafos pelo `UNI_TR_AT` do alimentador, e era justamente ele
+    que apontava para o vazio.
+
+    ESCOLHA DETERMINISTICA, e por tensao antes de tudo: entre os trafos da
+    subestacao, prefere-se o que ja esta na tensao do alimentador, para nao
+    criar barra derivada e transformador de barra onde nao precisa. Havendo
+    empate, ou nenhum na tensao certa, vale a ordem do COD_ID — que nao
+    depende da ordem de leitura da BDGD, e portanto nao muda entre rodadas.
+    """
+    cods = sorted(info_trafos.get('por_sub', {}).get(c['sub'], []))
+    bt = info_trafos['barra_do_trafo']
+    candidatas = [bt[t] for t in cods if t in bt]
+    if not candidatas:
+        return None
+    kvb = info_trafos['kv_da_barra']
+    kv_alim = c.get('kv') or tensoes.kv(c['ten_nom'], kv_mt_padrao, log,
+                                        'CTMT.TEN_NOM')
+    if kv_alim:
+        iguais = [b for b in candidatas
+                  if kvb.get(b) and abs(kvb[b] - kv_alim) <= 0.1]
+        if iguais:
+            return iguais[0]
+    return candidatas[0]
+
+
 def vaos(ctmt_info, info_trafos, barras, kv_mt_padrao=13.8, log=None):
     """Liga a barra de MT da subestacao a cabeceira de cada alimentador.
 
@@ -406,6 +444,7 @@ def vaos(ctmt_info, info_trafos, barras, kv_mt_padrao=13.8, log=None):
     por_se = collections.defaultdict(list)
     ligados = {}
     sem_vao = []
+    por_trafo_da_sub = []       # achado 31: salvos pela quarta preferencia
     derivadas = {}                  # (sub, barra_orig, kv) -> barra derivada
     alim_por_sub = collections.Counter()
     alim_por_grupo = collections.Counter()
@@ -420,6 +459,12 @@ def vaos(ctmt_info, info_trafos, barras, kv_mt_padrao=13.8, log=None):
             alvo = bt[tr]
         elif barr:
             alvo = barr
+        else:
+            # achado 31 — sem BARR e sem UNI_TR_AT valido, resta a propria
+            # subestacao. Ver `_barra_de_at_da_sub`.
+            alvo = _barra_de_at_da_sub(c, info_trafos, kv_mt_padrao, log)
+            if alvo:
+                por_trafo_da_sub.append(cod)
         pac = _no(c['pac_ini'])
         if not alvo or not pac or pac == alvo:
             sem_vao.append(cod)
@@ -480,6 +525,10 @@ def vaos(ctmt_info, info_trafos, barras, kv_mt_padrao=13.8, log=None):
             log(f'  {sub}: barra derivada de {kv_alim:g} kV para '
                 f'{alim_por_grupo[(sub, orig, kv_alim)]} alimentadores '
                 f'({mva:.0f} MVA)')
+    if log and por_trafo_da_sub:
+        log(f'  {len(por_trafo_da_sub)} alimentadores ancorados por um trafo '
+            f'de AT da propria subestacao (BARR em branco e UNI_TR_AT sem '
+            f'par) — achado 31')
     return ligados, sem_vao, dict(por_se)
 
 

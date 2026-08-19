@@ -390,3 +390,99 @@ class BarraDaSubestacaoNoGrupo(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+
+
+def _info_com_sub(barras, kv_por_barra, por_sub, mva=100.0):
+    """Como `_info`, mas com `por_sub` — o elo que a quarta preferencia usa.
+
+    `por_sub` mapeia a subestacao para os COD_ID dos transformadores de AT
+    dela, que e exatamente o que a UNTRAT declara e o `vaos` ate hoje so
+    alcancava pelo `UNI_TR_AT` do alimentador.
+    """
+    bt = {tr: st._no(b) for tr, b in barras.items()}
+    return {'barra_do_trafo': bt,
+            'kv_da_barra': {st._no(b): kv for b, kv in kv_por_barra.items()},
+            'mva_por_sub': {s: mva for s in por_sub},
+            'por_sub': por_sub}
+
+
+class AncoraPelaSubestacao(unittest.TestCase):
+    """Achado 31 — sem BARR e sem UNI_TR_AT valido, resta a propria SE.
+
+    Na Cemig-D isso valia a subestacao 1726751 inteira: cinco alimentadores
+    sem vao, logo sem EnergyMeter, logo 7.803 cargas fora de toda medicao de
+    perda. Os dois transformadores de AT dela sempre estiveram na UNTRAT.
+    """
+
+    def setUp(self):
+        self.info = _info_com_sub({'T1': 'BMT1'}, {'BMT1': 13.8},
+                                  {'SE1': ['T1']})
+
+    def test_sem_barr_e_sem_trafo_valido_usa_o_trafo_da_sub(self):
+        # o caso da Cemig-D: BARR com um espaco, UNI_TR_AT que nao existe
+        ctmt = {'F1': _ctmt('F1', 'SE1', ' ', 'P1', 13.8, tr='0')}
+        ligados, sem_vao, _ = st.vaos(ctmt, self.info, set())
+        self.assertEqual(sem_vao, [], 'o alimentador continuou sem vao')
+        self.assertEqual(ligados['F1']['barra'], st._no('BMT1'))
+
+    def test_sai_o_vao_e_o_monitor(self):
+        """Sem a Line.VAO nao ha onde pendurar o EnergyMeter, que e o ponto
+        inteiro do achado."""
+        ctmt = {'F1': _ctmt('F1', 'SE1', '', 'P1', 13.8, tr='0')}
+        _, _, por_se = st.vaos(ctmt, self.info, set())
+        texto = '\n'.join(por_se['SE1'])
+        self.assertIn('New Line.VAO_F1', texto)
+        self.assertIn('New Monitor.M_F1', texto)
+
+    def test_nao_atropela_as_preferencias_anteriores(self):
+        """BARR valida continua mandando: a nova regra e ULTIMA."""
+        info = _info_com_sub({'T1': 'BMT1', 'T2': 'BMT2'},
+                             {'BMT1': 13.8, 'BMT2': 13.8},
+                             {'SE1': ['T1', 'T2']})
+        ctmt = {'F1': _ctmt('F1', 'SE1', 'BMT2', 'P1', 13.8, tr='T1')}
+        ligados, _, _ = st.vaos(ctmt, info, set())
+        self.assertEqual(ligados['F1']['barra'], st._no('BMT2'))
+
+    def test_prefere_o_trafo_que_ja_esta_na_tensao_do_alimentador(self):
+        """Escolher pela tensao evita criar barra derivada onde nao precisa."""
+        info = _info_com_sub({'T1': 'B138', 'T2': 'B345'},
+                             {'B138': 13.8, 'B345': 34.5},
+                             {'SE1': ['T1', 'T2']})
+        ctmt = {'F1': _ctmt('F1', 'SE1', '', 'P1', 34.5, tr='0')}
+        ligados, _, por_se = st.vaos(ctmt, info, set())
+        self.assertEqual(ligados['F1']['barra'], st._no('B345'))
+        self.assertFalse(ligados['F1']['derivada'])
+        self.assertEqual(_nomes_de_trafo(por_se), [],
+                         'escolheu a barra certa e ainda assim derivou')
+
+    def test_sem_trafo_na_tensao_certa_deriva_como_sempre(self):
+        info = _info_com_sub({'T1': 'B138'}, {'B138': 13.8}, {'SE1': ['T1']})
+        ctmt = {'F1': _ctmt('F1', 'SE1', '', 'P1', 34.5, tr='0')}
+        ligados, _, por_se = st.vaos(ctmt, info, set())
+        self.assertTrue(ligados['F1']['derivada'])
+        self.assertEqual(len(_nomes_de_trafo(por_se)), 1)
+
+    def test_a_escolha_nao_depende_da_ordem_de_leitura(self):
+        """Duas rodadas com a lista de trafos embaralhada dao o mesmo vao —
+        senao o modelo mudaria sem ninguem ter mexido em nada."""
+        a = _info_com_sub({'T2': 'BX', 'T1': 'BY'}, {'BX': 13.8, 'BY': 13.8},
+                          {'SE1': ['T2', 'T1']})
+        b = _info_com_sub({'T1': 'BY', 'T2': 'BX'}, {'BY': 13.8, 'BX': 13.8},
+                          {'SE1': ['T1', 'T2']})
+        ctmt = {'F1': _ctmt('F1', 'SE1', '', 'P1', 13.8, tr='0')}
+        self.assertEqual(st.vaos(ctmt, a, set())[0]['F1']['barra'],
+                         st.vaos(ctmt, b, set())[0]['F1']['barra'])
+
+    def test_subestacao_sem_trafo_nenhum_continua_sem_vao(self):
+        """A regra nao inventa barra: sem trafo de AT declarado, nao ha ancora
+        e o alimentador segue reportado."""
+        info = _info_com_sub({}, {}, {'SE9': []})
+        ctmt = {'F1': _ctmt('F1', 'SE1', '', 'P1', 13.8, tr='0')}
+        _, sem_vao, _ = st.vaos(ctmt, info, set())
+        self.assertEqual(sem_vao, ['F1'])
+
+    def test_o_pac_igual_a_ancora_nao_vira_vao_de_comprimento_zero(self):
+        info = _info_com_sub({'T1': 'P1'}, {'P1': 13.8}, {'SE1': ['T1']})
+        ctmt = {'F1': _ctmt('F1', 'SE1', '', 'P1', 13.8, tr='0')}
+        _, sem_vao, _ = st.vaos(ctmt, info, set())
+        self.assertEqual(sem_vao, ['F1'])
