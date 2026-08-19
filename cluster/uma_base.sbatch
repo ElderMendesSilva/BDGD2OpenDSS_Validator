@@ -31,6 +31,10 @@ export BDGD2DSS_MODO=cluster
 cd "$PROJETO"
 mkdir -p logs/cluster
 
+# O ambiente montado por cluster/instalar.sh. Se a tarefa cair aqui
+# dizendo que nao existe, rode o instalador no no de login primeiro.
+source .venv/bin/activate
+
 TAGS=(RR ENCE EQPA SP LT CPFL CMIG)
 TAG="${TAGS[${SLURM_ARRAY_TASK_ID:-0}]}"
 

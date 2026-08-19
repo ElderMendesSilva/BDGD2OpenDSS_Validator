@@ -5,19 +5,61 @@ mais nada.
 
 ## 1. Instalar
 
+Um comando, sem root:
+
 ```bash
-git clone <repo> ~/BDGD2OpenDSS && cd ~/BDGD2OpenDSS
-python -m venv .venv && source .venv/bin/activate
-pip install -r requisitos.txt
+git clone https://github.com/ElderMendesSilva/BDGD2OpenDSS_Validator.git
+cd BDGD2OpenDSS_Validator
+bash cluster/instalar.sh
 ```
 
-`pyogrio` traz o GDAL embutido — não é preciso instalar GDAL do sistema. Se a
-wheel não existir para a arquitetura do nó, `conda install -c conda-forge
-pyogrio` resolve sem compilar nada.
+O script resolve **tudo**, nesta ordem de preferência:
 
-**Não instale `pywin32`.** O motor COM da EPRI só existe registrado no Windows.
-O `verifica` cai sozinho para o `opendssdirect` e **diz no rodapé que comparou
-um motor só**, em vez de fingir que houve confronto entre dois.
+1. **Python.** Usa o do `PATH` se for 3.9+. Se não for, tenta `module load`
+   (num cluster o Python bom quase sempre está atrás de um módulo, e usar o que
+   o laboratório mantém é o caminho certo). Se ainda assim não houver, **baixa
+   um Python próprio** com micromamba — um binário de ~5 MB, na pasta do
+   usuário, sem root e sem depender de nada do sistema.
+2. **O ambiente** em `.venv`.
+3. **As bibliotecas** do `requisitos.txt`.
+4. **Confere o motor elétrico de verdade** — compila e resolve um circuito. Um
+   `pip install` que termina sem erro não garante motor que funciona: a wheel
+   pode não trazer a `.so` da arquitetura do nó, e é melhor descobrir agora do
+   que às 3 h da manhã.
+5. **Roda o `doutor.py`.**
+
+### O OpenDSS não precisa de instalação separada
+
+`opendssdirect.py` **já traz o motor dentro da wheel** (`libdss_capi.so`). Não
+há nada para compilar, registrar ou baixar à parte. `pyogrio` faz o mesmo com o
+GDAL — não é preciso GDAL do sistema.
+
+### O motor COM da EPRI não existe em Linux, e isso não é esquecimento
+
+Ele é um **servidor COM registrado no Windows**. Não há versão, porte nem
+equivalente para Linux, e `pip install pywin32` falha — não é para tentar.
+
+**Isso não deixa a ferramenta sem motor.** A DSS C-API que vem no
+`opendssdirect` é o mesmo OpenDSS compilado como biblioteca, e é ela que faz
+todas as contas do projeto.
+
+O que se perde é a **conferência cruzada entre dois motores independentes**,
+que o `verifica` faz no Windows. No cluster ele roda com um motor só e **diz
+isso no rodapé**, em vez de fingir que houve confronto. Nenhum resultado do
+projeto depende do COM: ele é auditoria, não produção.
+
+### Se o nó não tiver internet
+
+É o normal em cluster. Baixe as wheels antes, numa máquina que tenha, e leve a
+pasta junto:
+
+```bash
+pip download -r requisitos.txt -d cluster/rodas     --platform manylinux2014_x86_64 --python-version 312 --only-binary=:all:
+```
+
+```bash
+bash cluster/instalar.sh --offline
+```
 
 ## 2. Copiar as bases
 
