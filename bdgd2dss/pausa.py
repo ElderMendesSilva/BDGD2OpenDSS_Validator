@@ -33,6 +33,7 @@ senao a comparacao de desempenho entre duas geracoes viraria ficcao.
 """
 import os
 import time
+from . import escrita
 
 RAIZ = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 ARQUIVO = os.path.join(RAIZ, 'PAUSA')
@@ -49,7 +50,7 @@ def pausado():
 
 def pedir(motivo=''):
     """Cria o arquivo. Devolve o caminho, para quem quiser mostrar."""
-    with open(ARQUIVO, 'w', encoding='utf-8') as fh:
+    with open(ARQUIVO, 'w', encoding='utf-8', newline=escrita.FIM_DE_LINHA) as fh:
         fh.write(f'{motivo or "pausado"}\n{time.strftime("%d/%m %H:%M:%S")}\n')
     return ARQUIVO
 

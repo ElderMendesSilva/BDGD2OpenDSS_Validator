@@ -390,3 +390,180 @@ class BarraDaSubestacaoNoGrupo(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+
+
+def _info_com_sub(barras, kv_por_barra, por_sub, mva=100.0):
+    """Como `_info`, mas com `por_sub` — o elo que a quarta preferencia usa.
+
+    `por_sub` mapeia a subestacao para os COD_ID dos transformadores de AT
+    dela, que e exatamente o que a UNTRAT declara e o `vaos` ate hoje so
+    alcancava pelo `UNI_TR_AT` do alimentador.
+    """
+    bt = {tr: st._no(b) for tr, b in barras.items()}
+    return {'barra_do_trafo': bt,
+            'kv_da_barra': {st._no(b): kv for b, kv in kv_por_barra.items()},
+            'mva_por_sub': {s: mva for s in por_sub},
+            'por_sub': por_sub}
+
+
+class AncoraPelaSubestacao(unittest.TestCase):
+    """Achado 31 — sem BARR e sem UNI_TR_AT valido, resta a propria SE.
+
+    Na Cemig-D isso valia a subestacao 1726751 inteira: cinco alimentadores
+    sem vao, logo sem EnergyMeter, logo 7.803 cargas fora de toda medicao de
+    perda. Os dois transformadores de AT dela sempre estiveram na UNTRAT.
+    """
+
+    def setUp(self):
+        self.info = _info_com_sub({'T1': 'BMT1'}, {'BMT1': 13.8},
+                                  {'SE1': ['T1']})
+
+    def test_sem_barr_e_sem_trafo_valido_usa_o_trafo_da_sub(self):
+        # o caso da Cemig-D: BARR com um espaco, UNI_TR_AT que nao existe
+        ctmt = {'F1': _ctmt('F1', 'SE1', ' ', 'P1', 13.8, tr='0')}
+        ligados, sem_vao, _ = st.vaos(ctmt, self.info, set())
+        self.assertEqual(sem_vao, [], 'o alimentador continuou sem vao')
+        self.assertEqual(ligados['F1']['barra'], st._no('BMT1'))
+
+    def test_sai_o_vao_e_o_monitor(self):
+        """Sem a Line.VAO nao ha onde pendurar o EnergyMeter, que e o ponto
+        inteiro do achado."""
+        ctmt = {'F1': _ctmt('F1', 'SE1', '', 'P1', 13.8, tr='0')}
+        _, _, por_se = st.vaos(ctmt, self.info, set())
+        texto = '\n'.join(por_se['SE1'])
+        self.assertIn('New Line.VAO_F1', texto)
+        self.assertIn('New Monitor.M_F1', texto)
+
+    def test_nao_atropela_as_preferencias_anteriores(self):
+        """BARR valida continua mandando: a nova regra e ULTIMA."""
+        info = _info_com_sub({'T1': 'BMT1', 'T2': 'BMT2'},
+                             {'BMT1': 13.8, 'BMT2': 13.8},
+                             {'SE1': ['T1', 'T2']})
+        ctmt = {'F1': _ctmt('F1', 'SE1', 'BMT2', 'P1', 13.8, tr='T1')}
+        ligados, _, _ = st.vaos(ctmt, info, set())
+        self.assertEqual(ligados['F1']['barra'], st._no('BMT2'))
+
+    def test_prefere_o_trafo_que_ja_esta_na_tensao_do_alimentador(self):
+        """Escolher pela tensao evita criar barra derivada onde nao precisa."""
+        info = _info_com_sub({'T1': 'B138', 'T2': 'B345'},
+                             {'B138': 13.8, 'B345': 34.5},
+                             {'SE1': ['T1', 'T2']})
+        ctmt = {'F1': _ctmt('F1', 'SE1', '', 'P1', 34.5, tr='0')}
+        ligados, _, por_se = st.vaos(ctmt, info, set())
+        self.assertEqual(ligados['F1']['barra'], st._no('B345'))
+        self.assertFalse(ligados['F1']['derivada'])
+        self.assertEqual(_nomes_de_trafo(por_se), [],
+                         'escolheu a barra certa e ainda assim derivou')
+
+    def test_sem_trafo_na_tensao_certa_deriva_como_sempre(self):
+        info = _info_com_sub({'T1': 'B138'}, {'B138': 13.8}, {'SE1': ['T1']})
+        ctmt = {'F1': _ctmt('F1', 'SE1', '', 'P1', 34.5, tr='0')}
+        ligados, _, por_se = st.vaos(ctmt, info, set())
+        self.assertTrue(ligados['F1']['derivada'])
+        self.assertEqual(len(_nomes_de_trafo(por_se)), 1)
+
+    def test_a_escolha_nao_depende_da_ordem_de_leitura(self):
+        """Duas rodadas com a lista de trafos embaralhada dao o mesmo vao —
+        senao o modelo mudaria sem ninguem ter mexido em nada."""
+        a = _info_com_sub({'T2': 'BX', 'T1': 'BY'}, {'BX': 13.8, 'BY': 13.8},
+                          {'SE1': ['T2', 'T1']})
+        b = _info_com_sub({'T1': 'BY', 'T2': 'BX'}, {'BY': 13.8, 'BX': 13.8},
+                          {'SE1': ['T1', 'T2']})
+        ctmt = {'F1': _ctmt('F1', 'SE1', '', 'P1', 13.8, tr='0')}
+        self.assertEqual(st.vaos(ctmt, a, set())[0]['F1']['barra'],
+                         st.vaos(ctmt, b, set())[0]['F1']['barra'])
+
+    def test_subestacao_sem_trafo_nenhum_continua_sem_vao(self):
+        """A regra nao inventa barra: sem trafo de AT declarado, nao ha ancora
+        e o alimentador segue reportado."""
+        info = _info_com_sub({}, {}, {'SE9': []})
+        ctmt = {'F1': _ctmt('F1', 'SE1', '', 'P1', 13.8, tr='0')}
+        _, sem_vao, _ = st.vaos(ctmt, info, set())
+        self.assertEqual(sem_vao, ['F1'])
+
+    def test_o_pac_igual_a_ancora_nao_vira_vao_de_comprimento_zero(self):
+        info = _info_com_sub({'T1': 'P1'}, {'P1': 13.8}, {'SE1': ['T1']})
+        ctmt = {'F1': _ctmt('F1', 'SE1', '', 'P1', 13.8, tr='0')}
+        _, sem_vao, _ = st.vaos(ctmt, info, set())
+        self.assertEqual(sem_vao, ['F1'])
+
+
+class DoisNiveisNaMesmaBarra(unittest.TestCase):
+    """Achado 39 — `BARR_2` nomeia o patio, nao a barra.
+
+    Na Equatorial PA, 18 das 112 barras de secundario aparecem com DUAS
+    tensoes. Na subestacao RIM os dois transformadores de AT declaram
+    `BARR_2=RIM01B1` com secundarios de 13,8 e 34,5 kV. Escritos na mesma
+    barra, os dois enrolamentos disputam: o de 13,8 kV e 12,5 MVA vencia o de
+    34,5 kV e 6,3 MVA, e os tres alimentadores de 34,5 kV pendurados ali
+    ficavam com 40% da tensao. Medido na RIM: perdas de 78,26%, Vmin 0,658.
+    Corrigido: 0,44% e 0,987.
+    """
+
+    def _info(self, barras, kvs, por_sub):
+        bt = {tr: st._no(b) for tr, b in barras.items()}
+        return {'barra_do_trafo': bt,
+                'kv_da_barra': {st._no(b): kv for b, kv in kvs.items()},
+                'mva_por_sub': {s: 100.0 for s in por_sub},
+                'por_sub': por_sub}
+
+    def test_um_nivel_so_nao_muda_nada(self):
+        """A regra e cirurgica: fora da subestacao multi-nivel ela nao opina,
+        e as preferencias de sempre decidem."""
+        info = self._info({'T1': 'B1', 'T2': 'B2'},
+                          {'B1': 13.8, 'B2': 13.8}, {'SE1': ['T1', 'T2']})
+        c = _ctmt('F1', 'SE1', 'B1', 'P1', 13.8)
+        self.assertIsNone(st._barra_no_nivel(c, info, 13.8, None))
+
+    def test_com_dois_niveis_a_tensao_manda(self):
+        info = self._info({'T1': 'B138', 'T2': 'B345'},
+                          {'B138': 13.8, 'B345': 34.5}, {'SE1': ['T1', 'T2']})
+        c = _ctmt('F1', 'SE1', 'B138', 'P1', 34.5)   # BARR aponta para a errada
+        self.assertEqual(st._barra_no_nivel(c, info, 13.8, None),
+                         st._no('B345'))
+
+    def test_a_barra_declarada_perde_para_a_tensao(self):
+        """O caso da RIM: o CTMT.BARR dos alimentadores de 34,5 kV aponta para
+        `RIM09B1`, que nenhum transformador declara. Seguir a BARR levava
+        todos para a barra de 13,8."""
+        info = self._info({'T1': 'RIM01B1', 'T2': 'RIM01B1_34p5kv'},
+                          {'RIM01B1': 13.8, 'RIM01B1_34p5kv': 34.5},
+                          {'RIM': ['T1', 'T2']})
+        c = _ctmt('RIM09W1', 'RIM', 'RIM09B1', 'P1', 34.5)
+        ligados, sem_vao, _ = st.vaos({'RIM09W1': c}, info, set())
+        self.assertEqual(sem_vao, [])
+        self.assertEqual(ligados['RIM09W1']['barra'],
+                         st._no('RIM01B1_34p5kv'))
+        self.assertFalse(ligados['RIM09W1']['derivada'],
+                         'ancorou na tensao certa e ainda assim derivou')
+
+    def test_sem_trafo_na_tensao_do_alimentador_devolve_nada(self):
+        info = self._info({'T1': 'B138', 'T2': 'B345'},
+                          {'B138': 13.8, 'B345': 34.5}, {'SE1': ['T1', 'T2']})
+        c = _ctmt('F1', 'SE1', 'B138', 'P1', 69.0)
+        self.assertIsNone(st._barra_no_nivel(c, info, 13.8, None))
+
+
+class UmaBarraPorNivelDeSecundario(unittest.TestCase):
+    """O nome da barra tem de ser estavel entre rodadas."""
+
+    def _tabela(self, linhas):
+        import numpy as np
+        cols = {k: np.array([l[i] for l in linhas], dtype=object)
+                for i, k in enumerate(('COD_ID', 'SUB', 'BARR_2', 'PAC_2',
+                                       'SIT_ATIV'))}
+        return cols
+
+    def test_barra_com_duas_tensoes_e_reconhecida(self):
+        u = self._tabela([('T1', 'RIM', 'RIM01B1', 'P95', 'AT'),
+                          ('T2', 'RIM', 'RIM01B1', 'P96', 'AT')])
+        eq = {'T1': {'ten_sec': '49'}, 'T2': {'ten_sec': '72'}}
+        n = st._niveis_por_barra(u, eq, 2, 13.8, None)
+        self.assertEqual(n[st._no('RIM01B1')], {13.8, 34.5})
+
+    def test_desativado_nao_conta(self):
+        u = self._tabela([('T1', 'RIM', 'RIM01B1', 'P95', 'AT'),
+                          ('T2', 'RIM', 'RIM01B1', 'P96', 'DS')])
+        eq = {'T1': {'ten_sec': '49'}, 'T2': {'ten_sec': '72'}}
+        n = st._niveis_por_barra(u, eq, 2, 13.8, None)
+        self.assertEqual(n[st._no('RIM01B1')], {13.8})

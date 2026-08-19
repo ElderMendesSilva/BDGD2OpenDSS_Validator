@@ -4,6 +4,31 @@ Conversor que recebe uma BDGD (`.gdb`) e gera a rede da concessão em OpenDSS:
 subtransmissão, média e baixa tensão. Sai um modelo único da concessão inteira
 e também um modelo por subestação.
 
+Depois ele **usa** o modelo: resolve o fluxo, roda as 24 h em passos de 15 min,
+integra a perda por alimentador e confronta com a perda que a distribuidora
+declara na própria BDGD. Quando não bate, classifica a causa — separando
+defeito do conversor de limitação do cadastro.
+
+**Estado:** sete distribuidoras — Roraima, Enel CE, Equatorial PA, Enel SP,
+Light, CPFL Paulista e Cemig-D —, **1.608 subestações** e cerca de 6.000
+alimentadores. O ciclo completo, do zero, leva ~9 h numa máquina de 8 núcleos.
+
+| base | subestações | cobertura da medição | razão modelo/declarado |
+|---|---|---|---|
+| Roraima | 20 | 89,9% | 2,63× |
+| Enel CE | 129 | 94,2% | 0,83× |
+| Equatorial PA | 119 | 91,0% | 0,55× |
+| Enel SP | 155 | 87,2% | 3,19× |
+| Light | 94 | 93,9% | 0,74× |
+| CPFL Paulista | 265 | 94,6% | 0,88× |
+| Cemig-D | 413 | *medindo* | *medindo* |
+
+*Cobertura* é quantos alimentadores podem sequer ser comparados com o
+declarado; o resto não tem par ou não declara perda. *Razão* é a perda técnica
+do modelo sobre a perda total medida — abaixo de 1 é o esperado fisicamente, e
+acima pede explicação. As duas colunas são resultado, não meta: os casos fora
+da faixa estão medidos e documentados em `docs/ACHADOS_GENERALIZACAO.md`.
+
 ## Sem decorar nada
 
 ```bash
@@ -20,10 +45,42 @@ parâmetros em vez de imprimir `error: the following arguments are required`.
 Sem tela — servidor, SSH, ou `BDGD_SEM_JANELA=1` — o mesmo formulário é
 perguntado no terminal. Nada depende de haver janela.
 
+## Windows e Linux
+
+Roda nos dois. O motor elétrico (`opendssdirect`) e o leitor de `.gdb`
+(`pyogrio`) trazem as bibliotecas nativas dentro das próprias wheels — não há
+OpenDSS nem GDAL para instalar à parte.
+
+**Uma diferença, e ela é declarada:** o `verifica` confronta *dois* motores
+independentes, o `opendssdirect` e o `OpenDSSEngine.DSS` (COM) da EPRI. O COM é
+um servidor registrado no Windows e **não existe em Linux**. Lá o `verifica`
+roda com um motor só e diz isso no rodapé, em vez de fingir que houve
+confronto. Nenhum resultado do projeto depende do COM — ele é auditoria, e a
+auditoria pode ser rodada depois, no Windows, sobre os mesmos arquivos.
+
+**Modo de execução.** `--modo pessoal` deixa núcleos livres e abre formulário;
+`--modo cluster` usa a máquina toda e nunca abre janela. É detectado sozinho
+(`SLURM_JOB_ID`, ou Linux sem `DISPLAY`) e a variável `BDGD2DSS_MODO` manda
+mais que a detecção. **O modo não muda nada que seja calculado**: um modelo
+gerado no cluster sai byte a byte igual ao gerado no laptop, e há teste
+travando isso.
+
+Para rodar em cluster, um comando instala tudo — inclusive o Python, se
+preciso:
+
+```bash
+bash cluster/instalar.sh
+python doutor.py                       # autoteste da máquina
+sbatch --array=0-6 cluster/uma_base.sbatch
+```
+
+Passo a passo em [docs/CLUSTER.md](docs/CLUSTER.md).
+
 ## Uso
 
 ```bash
-pip install pyogrio numpy opendssdirect.py openpyxl matplotlib pywin32
+pip install -r requisitos.txt          # numpy, pyogrio, opendssdirect, matplotlib
+pip install pywin32                    # opcional, SO no Windows (ver abaixo)
 
 # a concessão inteira
 python converter.py "Enel_SP_390_2024-12-31_V11.gdb" --saida MODELOS
@@ -333,7 +390,7 @@ complica o objeto COM, que é *apartment-threaded*. O gargalo real não é o
 widget e sim desenhar 30 mil segmentos — por isso o gráfico é renderizado em
 PNG numa thread e a exploração interativa fica com o próprio OpenDSS.
 
-## Análise e gráficos (interface COM)
+## Análise e gráficos (interface COM — só Windows)
 
 ```bash
 python analise_com.py MODELOS_V2/MASTER-GERAL.dss

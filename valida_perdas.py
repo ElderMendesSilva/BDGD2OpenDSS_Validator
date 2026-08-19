@@ -39,6 +39,7 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from bdgd2dss.leitor import BDGD, num, txt          # noqa: E402
+from bdgd2dss import escrita
 
 # As parcelas eletricas da CTMT. PERD_MED (medicao) e PERD_A3a
 # (subtransmissao) ficam de fora — a primeira nao e eletrica, a segunda esta
@@ -392,7 +393,7 @@ def main():
                 'razao': (m / d) if d else None, 'parcelas': parc}
                for s, c, m, d, _, _ in pares],
               open(os.path.join(raiz, 'validacao_perdas.json'), 'w',
-                   encoding='utf-8'), indent=1, ensure_ascii=False)
+                   encoding='utf-8', newline=escrita.FIM_DE_LINHA), indent=1, ensure_ascii=False)
     print(f'\ndetalhe em {os.path.join(raiz, "validacao_perdas.json")}')
     if a.grafico:
         grafico(pares, raiz, FAIXAS, parc)

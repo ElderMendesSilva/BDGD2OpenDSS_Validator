@@ -22,6 +22,7 @@ ponto de cada geometria.
 import struct
 
 from .leitor import txt
+from . import escrita
 
 
 def _pontas_wkb(b):
@@ -100,7 +101,7 @@ def escrever(coords, caminho, extras=None):
     for b, (x, y) in (extras or {}).items():
         if b not in coords:
             linhas.append(f'{b}, {x:.8f}, {y:.8f}')
-    open(caminho, 'w', encoding='utf-8').write('\n'.join(linhas) + '\n')
+    open(caminho, 'w', encoding='utf-8', newline=escrita.FIM_DE_LINHA).write('\n'.join(linhas) + '\n')
     return len(linhas)
 
 

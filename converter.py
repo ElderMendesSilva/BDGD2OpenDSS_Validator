@@ -37,7 +37,8 @@ CANCELAR = None   # a interface grafica injeta um threading.Event aqui
 
 from bdgd2dss import (linecodes, linhas, chaves, transformadores, cargas,
                       complementos, master, subtransmissao, transmissao,
-                      tensoes, malha_at, coordenadas, pausa)
+                      tensoes, malha_at, coordenadas, pausa, escrita,
+                      plataforma)
 
 
 def ja_gerada(pasta, se):
@@ -286,6 +287,303 @@ def gerar_at(bdgd, a, ctmt_info, mapa_cnd, log, subs_alvo=None):
     return arquivos, est, info_tr, ligados, est_fontes
 
 
+
+# ===================================================== uma subestacao, um lote
+# Nivel de modulo, e nao aninhado no `main`: no Windows o ProcessPoolExecutor
+# cria o filho por spawn, que importa este arquivo e procura a funcao pelo
+# nome. Closure nao sobrevive a isso.
+
+
+def _uma_se(C, se, k):
+    """Converte UMA subestacao. Devolve (registro, parar_por_memoria).
+
+    O corpo e o mesmo que rodava dentro do laco do `main`, recortado sem
+    reescrita: o que era fechamento virou ligacao explicita a partir de `C`.
+    Nao ha decisao nova aqui — se houvesse, a comparacao byte a byte com a
+    geracao anterior acusaria, que e exatamente para isso que ela existe.
+    """
+    a = C['a']
+    agregado = C['agregado']
+    alvo = C['alvo']
+    b = C['b']
+    bt_da_base = C['bt_da_base']
+    co_cache = C['co_cache']
+    ctmt_info = C['ctmt_info']
+    ctmts_lote = C['ctmts_lote']
+    est_at = C['est_at']
+    fc_gd = C['fc_gd']
+    info_tr = C['info_tr']
+    kv_por_ctmt = C['kv_por_ctmt']
+    mapa_cnd = C['mapa_cnd']
+    nomes_curva = C['nomes_curva']
+    ses = C['ses']
+    tmp = C['tmp']
+    vaos_lig = C['vaos_lig']
+    ctmts = ses.get(se, [])
+    if not ctmts:
+        return None, False
+    d = os.path.join(a.saida, se)
+    os.makedirs(d, exist_ok=True)
+    print(f'[{k}/{len(alvo)}] {se} — {len(ctmts)} alimentadores', flush=True)
+
+    for f in ('Curvas.dss', '_XYCURVES.dss'):
+        open(os.path.join(d, f), 'w', encoding='utf-8', newline=escrita.FIM_DE_LINHA).write(
+            open(os.path.join(tmp, f), encoding='utf-8').read())
+    # LineCodes fica para o fim do bloco: so os que esta SE referencia.
+
+    col_mt = b.ler_filtrado('SSDMT', 'CTMT', ctmts,
+                            ['COD_ID', 'PAC_1', 'PAC_2', 'CTMT', 'FAS_CON',
+                             'TIP_CND', 'COMP'])
+    n_ln, km, barras = linhas.gerar(b, mapa_cnd, ctmts, os.path.join(d, 'Linhas.dss'),
+                                    'SSDMT', col=col_mt)
+    # `barras` vem da rede de MT acima: chave cujos dois PACs estao fora
+    # dela cria ilha flutuante, e o NaN dela contamina a perda da
+    # subestacao inteira (achado 28)
+    n_ch, abertas, ch_ilhadas, barras_chave = chaves.gerar(
+        b, ctmts, os.path.join(d, 'Chaves.dss'),
+        os.path.join(d, 'Controles.dss'), barras=barras)
+    n_tr, sec = transformadores.gerar(b, ctmts, os.path.join(d, 'Trafos.dss'),
+                                      os.path.join(d, '_ATERRAMENTO.dss'),
+                                      a.kv_mt, kv_por_ctmt)
+    # Conjunto de pontos de conexao que a rede realmente tem. Um shunt
+    # (carga, banco, PVSystem) num PAC ausente daqui cria a barra sozinho,
+    # a ilha fica sem fonte e a solucao devolve NaN — foi o que travava a
+    # DBSI em 100 iteracoes.
+    # ACHADO 32. `barras_chave` entra aqui. O regulador da BDGD nao se
+    # liga a SSDMT: ele fica ENTRE DUAS CHAVES, e os dois PACs dele sao
+    # nomes `segm_*` que so existem na UNSEMT. Com a rede definida apenas
+    # pela SSDMT, os dois lados caiam fora e o regulador era descartado
+    # inteiro — cortando o tronco logo depois da cabeceira. Medido na
+    # Cemig-D: 62% das barras de MT ficavam inalcancaveis.
+    barras_rede = set(barras) | set(sec) | set(barras_chave)
+    barras_bt = set()          # so o --bt completo a preenche
+
+    n_cp = complementos.capacitores(b, ctmts, os.path.join(d, 'Capacitores.dss'),
+                                    a.kv_mt, kv_por_ctmt, barras=barras_rede)
+    n_rg = complementos.reguladores(b, ctmts, os.path.join(d, 'Reguladores.dss'),
+                                    a.kv_mt, kv_por_ctmt,
+                                    a.reg_vreg, a.reg_band, a.reg_kva,
+                                    barras=barras_rede)
+    if a.bt == 'completo':
+        info = cargas.gerar(b, ctmts, sec, os.path.join(d, 'Cargas.dss'), a.mes,
+                            nomes_curva, a.fator_carga,
+                            agregado_bt=collections.defaultdict(
+                                lambda: {'ene': 0.0, 'cur': collections.Counter(), 'n': 0}),
+                            kv_por_ctmt=kv_por_ctmt, kv_mt_padrao=a.kv_mt,
+                            barras=barras_rede)
+        ibt = cargas.gerar_bt_completa(b, ctmts, sec,
+                                       os.path.join(d, 'CargasBT.dss'), a.mes,
+                                       nomes_curva, a.fator_carga)
+        info['n_cargas'] += ibt['n_cargas_bt']
+        info['kW_BT'] = ibt['kW_BT']
+        # A cadeia real e trafo -> SSDBT -> RAMLIG -> UC. Sem o ramal de
+        # ligacao, 97% das unidades consumidoras ficam soltas: o PAC da
+        # UCBT e a ponta do RAMLIG, nao um no da rede secundaria.
+        n_bt, km_bt, bb_bt = linhas.gerar_bt(b, mapa_cnd, ctmts,
+                                             os.path.join(d, 'LinhasBT.dss'), 'SSDBT')
+        n_rm, km_rm, bb_rm = linhas.gerar_bt(b, mapa_cnd, ctmts,
+                                             os.path.join(d, 'Ramais.dss'), 'RAMLIG')
+        info['linhas_BT'] = n_bt + n_rm
+        info['km_BT'] = round(km_bt + km_rm, 2)
+        # guardadas em separado: a GD de BT precisa saber o que e barra DE
+        # BT, e nao apenas o que e barra (achado 30)
+        barras_bt = set(bb_bt) | set(bb_rm)
+        barras_rede |= barras_bt
+    else:
+        info = cargas.gerar(b, ctmts, sec, os.path.join(d, 'Cargas.dss'), a.mes,
+                            nomes_curva, a.fator_carga, agregado,
+                            kv_por_ctmt, a.kv_mt, barras=barras_rede)
+
+    # a GD vem depois da rede de BT: com --bt completo o PAC da UGBT so
+    # existe depois que SSDBT e RAMLIG foram escritos
+    (n_gd, gd_nulos, gd_realoc, gd_fora, gd_lim, gd_kw_cortado,
+     gd_por_ceg) = complementos.geracao(
+        b, ctmts, sec, os.path.join(d, 'GD.dss'), a.kv_mt,
+        barras=barras_rede, barras_bt=barras_bt,
+        irradiancia=a.irradiancia, fp=a.gd_fp,
+        mes=a.mes, fc=fc_gd)
+
+    # vaos desta subestacao: ligam a barra de MT as cabeceiras
+    vaos_se = (est_at.get('vaos_por_se') or {}).get(se, [])
+    if vaos_se:
+        subtransmissao.escrever_vaos(os.path.join(d, 'Vaos.dss'), vaos_se)
+
+    # LineCodes: so os referenciados por esta subestacao. O arquivo global
+    # tem 10.500 definicoes e cada SE usa mediana de 152 — copia-lo
+    # inteiro gerava 215 MB de conteudo identico nas 155 pastas.
+    n_lc_se = linecodes.escrever_usados(os.path.join(tmp, 'LineCodes.dss'),
+                                        os.path.join(d, 'LineCodes.dss'), d)
+
+    # --- arquivos da subestacao, na ordem de montagem
+    arqs = ['_XYCURVES.dss', 'LineCodes.dss', 'Curvas.dss', 'Linhas.dss']
+    if a.bt == 'completo':
+        arqs += ['LinhasBT.dss', 'Ramais.dss']
+    arqs += ['Chaves.dss', 'Controles.dss', 'Trafos.dss', '_ATERRAMENTO.dss',
+             'Reguladores.dss', 'Capacitores.dss', 'Vaos.dss', 'Cargas.dss']
+    if a.bt == 'completo':
+        arqs.append('CargasBT.dss')
+    arqs.append('GD.dss')
+    arqs = [x for x in arqs if os.path.exists(os.path.join(d, x))]
+
+    ab = ['! Chaves normalmente abertas — estado fixado apos a montagem.']
+    ab += [f'Open Line.{n} 1' for n in abertas]
+    open(os.path.join(d, '_CHAVES_ABERTAS.dss'), 'w',
+         encoding='utf-8', newline=escrita.FIM_DE_LINHA).write('\n'.join(ab) + '\n')
+
+    # O MASTER redireciona `_AMPACIDADE.dss` SEMPRE, e `Redirect` de
+    # arquivo ausente derruba a compilacao da subestacao inteira. Quem
+    # preenche e o `ampacidade.py`, que roda depois porque precisa do
+    # fluxo resolvido; ate la o arquivo existe e nao faz nada.
+    open(os.path.join(d, '_AMPACIDADE.dss'), 'w', encoding='utf-8', newline=escrita.FIM_DE_LINHA).write(
+        '! Substituicao por ampacidade insuficiente — achado 34.\n'
+        '! Vazio: rode `python ampacidade.py <pasta>` para preencher.\n'
+        '! Sem isso o modelo reproduz a BDGD como ela e, que e o padrao.\n')
+
+    # Mesma razao do `_AMPACIDADE.dss`: o MASTER redireciona sempre, e
+    # `Redirect` de arquivo ausente derruba a subestacao inteira.
+    open(os.path.join(d, '_LIGACAO.dss'), 'w', encoding='utf-8', newline=escrita.FIM_DE_LINHA).write(
+        '! Ligacao a componente desenergizada — achado 33, forma B.\n'
+        '! Vazio: rode `python ligacao.py <pasta>` para preencher.\n'
+        '! Sem isso o modelo reproduz a topologia que a BDGD declara.\n')
+
+    # coordenadas geograficas desta subestacao
+    # a geometria e lida UMA VEZ POR LOTE e filtrada pelas barras desta
+    # subestacao — era 85% do tempo de conversao. Ver `coordenadas.do_lote`
+    cams = (['SSDMT', 'SSDBT', 'RAMLIG'] if a.bt == 'completo'
+            else ['SSDMT'])
+    co = coordenadas.do_lote(co_cache, b, cams, ctmts_lote, ctmts)
+    n_co_se = coordenadas.escrever(co, os.path.join(d, 'BusCoords.dat'))
+
+    master.rede_se(se, arqs, os.path.join(d, f'REDE-{se}.dss'))
+
+    # MASTER isolado: fonte na barra de MT desta subestacao
+    kvs = {ctmt_info[c]['kv'] for c in ctmts}
+    kv_se = max(kvs) if kvs else a.kv_mt
+    # Uma fonte por BARRA de MT: a subestacao pode ter mais de um nivel
+    # de tensao (a TBAN tem 20 kV e 34,5 kV em barras distintas).
+    # Barra derivada (alimentador cuja tensao difere da barra da SE) fica
+    # de fora: quem a energiza e o transformador de barra escrito no
+    # Vaos.dss, nao uma fonte propria. Duas fontes na mesma barra com
+    # tensoes diferentes foi o que matou 2.238 cargas da TBAN.
+    # A TENSAO DE CABECEIRA TEM DE SER A MESMA NOS DOIS MODELOS.
+    #
+    # No modelo GERAL quem sustenta a barra de MT e o transformador de AT,
+    # com `tap` = mediana de CTMT.TEN_OPE dos alimentadores da subestacao.
+    # No modelo ISOLADO nao ha esse transformador: a fonte o substitui, e
+    # portanto tem de reproduzir o mesmo pu.
+    #
+    # Nao reproduzia. O pu saia daqui por dois caminhos diferentes — o
+    # `setdefault` abaixo, que faz vencer o PRIMEIRO alimentador da
+    # iteracao, e o `1.0` embutido no ramo de fallback. Medido: 5 das 150
+    # subestacoes com trafo de AT ficavam com pu diferente do tap, e a
+    # diferenca era sempre 0,09 pu — que e exatamente a distancia entre
+    # operar a 1,09 e operar a 1,00.
+    #
+    # A DALP e uma delas, e foi por isso que uma equipe externa relatou
+    # subtensao generalizada nela: abriram o modelo isolado, que dizia
+    # 1,00, enquanto o geral dizia 1,09. Nove pontos percentuais de
+    # tensao de cabeceira separando dois arquivos da mesma subestacao.
+    tap_se = (est_at.get('tap_por_se') or {}).get(se)
+    barras_se = {}
+    for c in ctmts:
+        if c in vaos_lig and not vaos_lig[c].get('derivada'):
+            b_ = vaos_lig[c]['barra']
+            barras_se.setdefault(b_, (vaos_lig[c]['kv'],
+                                      tap_se or ctmt_info[c]['ten_ope']))
+    if not barras_se:
+        barras_se = {subtransmissao._no(ctmt_info[ctmts[0]]['pac_ini']):
+                     (kv_se, tap_se or 1.0)}
+    itens = sorted(barras_se.items(), key=lambda x: -x[1][0])
+    barra_se, (kv_se, pu_se) = itens[0]
+    extras = [(b_, kv_, pu_) for b_, (kv_, pu_) in itens[1:]]
+    mvasc = (est_at.get('mvasc_por_se') or {}).get(se) or transmissao.MVASC_PADRAO
+    master.gerar_se(se, os.path.join(d, f'MASTER-{se}.dss'), barra_se, kv_se,
+                    len(ctmts), len(barras), mvasc,
+                    ['LineCodes.dss', 'Curvas.dss', '_XYCURVES.dss'],
+                    list(kvs) + [a.kv_at],
+                    pu=pu_se, barras_extra=extras, bt=bt_da_base,
+                    buscoords='Buscoords BusCoords.dat',
+                    bloco_medicao=master.medicao(
+                        [c for c in ctmts if c in vaos_lig], [], []))
+
+    r = {'SE': se, 'alimentadores': len(ctmts),
+         'com_vao': sum(1 for c in ctmts if c in vaos_lig),
+         'kv_mt': kv_se, 'barra_mt': barra_se,
+         'barras_mt': len(barras_se),
+         'linhas': n_ln, 'km_MT': km, 'barras': len(barras), 'chaves': n_ch,
+         'chaves_abertas': len(abertas),
+         'chaves_ilhadas': len(ch_ilhadas), 'trafos': n_tr,
+         'capacitores': n_cp,
+         'reguladores': n_rg, 'GD': n_gd, 'GD_nulos': gd_nulos,
+         'GD_realocada': gd_realoc, 'GD_fora_da_rede': gd_fora,
+         'GD_barras_limitadas': gd_lim, 'GD_kW_cortado': gd_kw_cortado,
+         'GD_MT_por_CEG_GD': gd_por_ceg,
+         'mes': a.mes, 'dia': a.dia, 'fator_carga': a.fator_carga,
+         'bt': a.bt, 'coords': n_co_se,
+         # capacidade instalada de AT: o classificador de causa usa isso
+         # para separar "rede carregada" de "modelo com defeito"
+         'mva_at': round((info_tr or {}).get('mva_por_sub', {}).get(se, 0), 1)
+         if info_tr else 0,
+         **info}
+    json.dump(r, open(os.path.join(d, 'resumo.json'), 'w', encoding='utf-8', newline=escrita.FIM_DE_LINHA),
+              indent=1, ensure_ascii=False)
+
+    del col_mt, sec, barras
+    gc.collect()
+    mem = memoria_gb()
+    if a.memoria_max and mem > a.memoria_max:
+        print(f'\nMemoria em {mem:.2f} GB, acima do limite de {a.memoria_max:.2f} GB. '
+              f'Parando de forma limpa.', flush=True)
+        print(f'O que ja foi convertido esta salvo. '
+              f'Rode o mesmo comando de novo — ele retoma da proxima.', flush=True)
+        return r, True
+    # `n_ln` e so a MT. Com `--bt completo` o modelo ganha LinhasBT e
+    # Ramais — medido na 5003525 de Roraima, 6.277 -> 24.267 linhas —, e
+    # imprimir so a MT fazia os dois modos parecerem identicos no log.
+    _lbt = info.get('linhas_BT') or 0
+    print(f'   {n_ln:,} linhas MT'
+          f'{f" + {_lbt:,} BT" if _lbt else ""} | {n_tr:,} trafos | '
+          f'{info["n_cargas"]:,} cargas | '
+          f'{info["kW_BT"]+info["kW_MT"]:,.0f} kW', flush=True)
+    return r, False
+
+
+def _um_lote(tarefa):
+    """Um LOTE de subestacoes, num processo proprio.
+
+    POR QUE O LOTE, E NAO A SUBESTACAO. O `OpenFileGDB` nao tem indice: toda
+    leitura filtrada varre a camada inteira. O `abrir_lote` existe para pagar
+    essa varredura UMA vez para um grupo de subestacoes — trazer 49 linhas do
+    SSDMT custa o mesmo que trazer 6.927. Um processo por subestacao pagaria a
+    varredura por subestacao, e o conversor ficaria MAIS LENTO com mais
+    nucleos. Um processo por lote mantem a economia intacta.
+
+    Cada trabalhador abre o SEU leitor da BDGD. E leitura, nao escrita: nada e
+    compartilhado, e o arquivo aberta N vezes e o caso normal do formato.
+    """
+    C, i_lote = tarefa
+    from bdgd2dss.leitor import BDGD
+    a, ses, lotes = C['a'], C['ses'], C['lotes']
+    grupo = lotes[i_lote]
+    b = BDGD(a.gdb, verbose=False)
+    C = dict(C, b=b, co_cache={},
+             ctmts_lote=[c for s in grupo for c in ses.get(s, [])])
+    b.abrir_lote(C['ctmts_lote'])
+    feitos, parou = [], False
+    try:
+        for se in grupo:
+            pausa.espera()
+            r, parar = _uma_se(C, se, C['ordem'].get(se, 0))
+            if r is not None:
+                feitos.append(r)
+            if parar:
+                parou = True
+                break
+    finally:
+        b.fechar_lote()
+    return feitos, parou
+
+
 def main():
     # Sem argumento nenhum, abrir a interface e mais util do que imprimir o
     # usage: a conversao tem 20 opcoes e ninguem as decora. O app.py preenche
@@ -321,7 +619,7 @@ def main():
                     help='nao gerar a camada de alta tensao nem o MASTER-GERAL')
     ap.add_argument('--reg-vreg', type=float, default=122.0,
                     help='tensao de referencia dos reguladores, em V no TP')
-    ap.add_argument('--max-ctmt', type=int, default=850,
+    ap.add_argument('--max-ctmt', type=int, default=0,
                     dest='max_ctmt',
                     help='teto de alimentadores por varredura da BDGD '
                          '(padrao 850; a clausula IN do OpenFileGDB aceita '
@@ -364,6 +662,12 @@ def main():
                     help='arquivo de cache da agregacao da UCBT (reuso entre execucoes)')
     ap.add_argument('--refazer', action='store_true',
                     help='regera as subestacoes ja existentes (padrao: pula e continua)')
+    ap.add_argument('--jobs', type=int, default=1, metavar='N',
+                    help='lotes de subestacoes em paralelo (padrao 1). '
+                         'O paralelismo e por LOTE e nao por subestacao: '
+                         'o abrir_lote paga a varredura da camada uma vez '
+                         'por grupo, e quebrar isso deixaria o conversor '
+                         'mais lento com mais nucleos')
     ap.add_argument('--memoria-max', type=float, default=0,
                     help='limite de memoria em GB. Ao ultrapassar, o conversor para '
                          'de forma limpa e informa onde retomar. 0 = sem limite')
@@ -455,8 +759,13 @@ def main():
             agregado = pickle.load(open(cache, 'rb'))
             print(f'  cache reaproveitado: {len(agregado):,} transformadores', flush=True)
         else:
-            agregado = cargas._agrega_bt(b, todos_ctmt, a.mes)
-            pickle.dump(dict(agregado), open(cache, 'wb'))
+            # `dict(...)` e nao o defaultdict cru: o `_agrega_bt` devolve um
+            # defaultdict cuja fabrica e um lambda local, que nao atravessa
+            # `pickle` — e o contexto dos trabalhadores atravessa. O caminho de
+            # cache JA entregava um dict comum, entao isto so faz a primeira
+            # execucao dar o mesmo objeto que a segunda.
+            agregado = dict(cargas._agrega_bt(b, todos_ctmt, a.mes))
+            pickle.dump(agregado, open(cache, 'wb'))
             print(f'  {len(agregado):,} transformadores com carga (cache salvo)', flush=True)
 
     resumo = []
@@ -478,6 +787,29 @@ def main():
     # subestacao sozinha maior que o teto vira um lote so dela — o WHERE
     # entao nao cabe e a leitura cai na varredura, que e o comportamento
     # correto e ja existia.
+    # `--max-ctmt 0`: escolhe o teto para que o lote seja tambem a unidade de
+    # PARALELISMO. Medido na Enel CE, 728 alimentadores, mesma maquina, mesmos
+    # arquivos de saida byte a byte:
+    #
+    #     1 lote,  1 processo   421 s
+    #     5 lotes, 4 processos  222 s     1,90x
+    #     9 lotes, 8 processos  219 s     1,92x
+    #
+    # Quatro lotes ja entregam o ganho inteiro, e nove nao entregam mais. A
+    # razao e que cada lote paga uma varredura da camada: mais lotes e mais
+    # TRABALHO, feito em paralelo. O ganho para de crescer quando o trabalho
+    # extra alcanca o que o paralelismo economiza — e isso acontece cedo.
+    #
+    # Por isso o alvo e QUATRO, e nao o numero de processos disponiveis. Num no
+    # de cluster com 32 nucleos a conta e a mesma: o gargalo e ler o arquivo,
+    # e ele nao melhora com mais nucleos.
+    LOTES_ALVO = 4
+    if not a.max_ctmt:
+        total_ctmt = sum(len(ses.get(s_, [])) for s_ in alvo)
+        a.max_ctmt = max(1, min(850, -(-total_ctmt // LOTES_ALVO)))
+        print(f'teto por lote escolhido sozinho: {a.max_ctmt} alimentadores '
+              f'(alvo de {LOTES_ALVO} lotes para {total_ctmt} alimentadores)',
+              flush=True)
     lotes, atual, n_ctmt = [], [], 0
     for se in alvo:
         q = len(ses.get(se, []))
@@ -492,251 +824,43 @@ def main():
     print(f'{len(lotes)} lotes de leitura para {len(alvo)} subestacoes '
           f'(teto de {a.max_ctmt} alimentadores por lote)', flush=True)
 
-    feitas = []
-    lote_atual = None
-    for k, se in enumerate(alvo, 1):
-        if CANCELAR is not None and CANCELAR.is_set():
-            print('Cancelado pelo usuario.', flush=True)
-            break
-        # PAUSA entre subestacoes: e o unico ponto do conversor em que
-        # nao ha arquivo meio escrito nem lote meio lido.
-        pausa.espera()
-        if de_qual_lote.get(se) != lote_atual:
-            lote_atual = de_qual_lote.get(se)
-            grupo = lotes[lote_atual]
-            ctmts_lote = [c for s in grupo for c in ses.get(s, [])]
-            b.abrir_lote(ctmts_lote)
-            co_cache = {}          # a geometria do lote, lida sob demanda
-        ctmts = ses.get(se, [])
-        if not ctmts:
-            continue
-        d = os.path.join(a.saida, se)
-        os.makedirs(d, exist_ok=True)
-        print(f'[{k}/{len(alvo)}] {se} — {len(ctmts)} alimentadores', flush=True)
+    # CONTEXTO. Tudo que o laco usava por fechamento, agora explicito. E o
+    # preco de poder rodar o laco noutro processo — e tambem o que torna a
+    # dependencia visivel: antes bastava acrescentar uma variavel no `main`
+    # para o laco passar a depender dela sem ninguem notar.
+    C = {'a': a, 'agregado': agregado, 'alvo': alvo, 'bt_da_base': bt_da_base,
+         'ctmt_info': ctmt_info, 'est_at': est_at, 'fc_gd': fc_gd,
+         'info_tr': info_tr, 'kv_por_ctmt': kv_por_ctmt, 'mapa_cnd': mapa_cnd,
+         'nomes_curva': nomes_curva, 'ses': ses, 'tmp': tmp,
+         'vaos_lig': vaos_lig, 'lotes': lotes,
+         'ordem': {s_: i for i, s_ in enumerate(alvo, 1)},
+         'b': None, 'co_cache': None, 'ctmts_lote': None}
 
-        for f in ('Curvas.dss', '_XYCURVES.dss'):
-            open(os.path.join(d, f), 'w', encoding='utf-8').write(
-                open(os.path.join(tmp, f), encoding='utf-8').read())
-        # LineCodes fica para o fim do bloco: so os que esta SE referencia.
+    # A ORDEM DA SAIDA E A DE `alvo`, e nao a de quem terminou primeiro. O
+    # `resumo_geral.json` e comparado entre geracoes para provar que uma
+    # mudanca nao mexeu no resultado; se a ordem virasse a de chegada, o
+    # arquivo mudaria a cada rodada sem nenhum numero ter mudado.
+    por_se = {}
+    tarefas = list(range(len(lotes)))
+    if a.jobs > 1 and len(tarefas) > 1:
+        import concurrent.futures as cf
+        plataforma.prepara_processos()
+        print(f'{a.jobs} lotes em paralelo', flush=True)
+        with cf.ProcessPoolExecutor(max_workers=a.jobs) as ex:
+            fut = [ex.submit(_um_lote, (C, i)) for i in tarefas]
+            for f_ in cf.as_completed(fut):
+                feitos, _ = f_.result()
+                for r in feitos:
+                    por_se[r['SE']] = r
+    else:
+        for i in tarefas:
+            feitos, parou = _um_lote((C, i))
+            for r in feitos:
+                por_se[r['SE']] = r
+            if parou:
+                break
+    resumo = [por_se[s_] for s_ in alvo if s_ in por_se]
 
-        col_mt = b.ler_filtrado('SSDMT', 'CTMT', ctmts,
-                                ['COD_ID', 'PAC_1', 'PAC_2', 'CTMT', 'FAS_CON',
-                                 'TIP_CND', 'COMP'])
-        n_ln, km, barras = linhas.gerar(b, mapa_cnd, ctmts, os.path.join(d, 'Linhas.dss'),
-                                        'SSDMT', col=col_mt)
-        # `barras` vem da rede de MT acima: chave cujos dois PACs estao fora
-        # dela cria ilha flutuante, e o NaN dela contamina a perda da
-        # subestacao inteira (achado 28)
-        n_ch, abertas, ch_ilhadas, barras_chave = chaves.gerar(
-            b, ctmts, os.path.join(d, 'Chaves.dss'),
-            os.path.join(d, 'Controles.dss'), barras=barras)
-        n_tr, sec = transformadores.gerar(b, ctmts, os.path.join(d, 'Trafos.dss'),
-                                          os.path.join(d, '_ATERRAMENTO.dss'),
-                                          a.kv_mt, kv_por_ctmt)
-        # Conjunto de pontos de conexao que a rede realmente tem. Um shunt
-        # (carga, banco, PVSystem) num PAC ausente daqui cria a barra sozinho,
-        # a ilha fica sem fonte e a solucao devolve NaN — foi o que travava a
-        # DBSI em 100 iteracoes.
-        # ACHADO 32. `barras_chave` entra aqui. O regulador da BDGD nao se
-        # liga a SSDMT: ele fica ENTRE DUAS CHAVES, e os dois PACs dele sao
-        # nomes `segm_*` que so existem na UNSEMT. Com a rede definida apenas
-        # pela SSDMT, os dois lados caiam fora e o regulador era descartado
-        # inteiro — cortando o tronco logo depois da cabeceira. Medido na
-        # Cemig-D: 62% das barras de MT ficavam inalcancaveis.
-        barras_rede = set(barras) | set(sec) | set(barras_chave)
-        barras_bt = set()          # so o --bt completo a preenche
-
-        n_cp = complementos.capacitores(b, ctmts, os.path.join(d, 'Capacitores.dss'),
-                                        a.kv_mt, kv_por_ctmt, barras=barras_rede)
-        n_rg = complementos.reguladores(b, ctmts, os.path.join(d, 'Reguladores.dss'),
-                                        a.kv_mt, kv_por_ctmt,
-                                        a.reg_vreg, a.reg_band, a.reg_kva,
-                                        barras=barras_rede)
-        if a.bt == 'completo':
-            info = cargas.gerar(b, ctmts, sec, os.path.join(d, 'Cargas.dss'), a.mes,
-                                nomes_curva, a.fator_carga,
-                                agregado_bt=collections.defaultdict(
-                                    lambda: {'ene': 0.0, 'cur': collections.Counter(), 'n': 0}),
-                                kv_por_ctmt=kv_por_ctmt, kv_mt_padrao=a.kv_mt,
-                                barras=barras_rede)
-            ibt = cargas.gerar_bt_completa(b, ctmts, sec,
-                                           os.path.join(d, 'CargasBT.dss'), a.mes,
-                                           nomes_curva, a.fator_carga)
-            info['n_cargas'] += ibt['n_cargas_bt']
-            info['kW_BT'] = ibt['kW_BT']
-            # A cadeia real e trafo -> SSDBT -> RAMLIG -> UC. Sem o ramal de
-            # ligacao, 97% das unidades consumidoras ficam soltas: o PAC da
-            # UCBT e a ponta do RAMLIG, nao um no da rede secundaria.
-            n_bt, km_bt, bb_bt = linhas.gerar_bt(b, mapa_cnd, ctmts,
-                                                 os.path.join(d, 'LinhasBT.dss'), 'SSDBT')
-            n_rm, km_rm, bb_rm = linhas.gerar_bt(b, mapa_cnd, ctmts,
-                                                 os.path.join(d, 'Ramais.dss'), 'RAMLIG')
-            info['linhas_BT'] = n_bt + n_rm
-            info['km_BT'] = round(km_bt + km_rm, 2)
-            # guardadas em separado: a GD de BT precisa saber o que e barra DE
-            # BT, e nao apenas o que e barra (achado 30)
-            barras_bt = set(bb_bt) | set(bb_rm)
-            barras_rede |= barras_bt
-        else:
-            info = cargas.gerar(b, ctmts, sec, os.path.join(d, 'Cargas.dss'), a.mes,
-                                nomes_curva, a.fator_carga, agregado,
-                                kv_por_ctmt, a.kv_mt, barras=barras_rede)
-
-        # a GD vem depois da rede de BT: com --bt completo o PAC da UGBT so
-        # existe depois que SSDBT e RAMLIG foram escritos
-        (n_gd, gd_nulos, gd_realoc, gd_fora, gd_lim, gd_kw_cortado,
-         gd_por_ceg) = complementos.geracao(
-            b, ctmts, sec, os.path.join(d, 'GD.dss'), a.kv_mt,
-            barras=barras_rede, barras_bt=barras_bt,
-            irradiancia=a.irradiancia, fp=a.gd_fp,
-            mes=a.mes, fc=fc_gd)
-
-        # vaos desta subestacao: ligam a barra de MT as cabeceiras
-        vaos_se = (est_at.get('vaos_por_se') or {}).get(se, [])
-        if vaos_se:
-            subtransmissao.escrever_vaos(os.path.join(d, 'Vaos.dss'), vaos_se)
-
-        # LineCodes: so os referenciados por esta subestacao. O arquivo global
-        # tem 10.500 definicoes e cada SE usa mediana de 152 — copia-lo
-        # inteiro gerava 215 MB de conteudo identico nas 155 pastas.
-        n_lc_se = linecodes.escrever_usados(os.path.join(tmp, 'LineCodes.dss'),
-                                            os.path.join(d, 'LineCodes.dss'), d)
-
-        # --- arquivos da subestacao, na ordem de montagem
-        arqs = ['_XYCURVES.dss', 'LineCodes.dss', 'Curvas.dss', 'Linhas.dss']
-        if a.bt == 'completo':
-            arqs += ['LinhasBT.dss', 'Ramais.dss']
-        arqs += ['Chaves.dss', 'Controles.dss', 'Trafos.dss', '_ATERRAMENTO.dss',
-                 'Reguladores.dss', 'Capacitores.dss', 'Vaos.dss', 'Cargas.dss']
-        if a.bt == 'completo':
-            arqs.append('CargasBT.dss')
-        arqs.append('GD.dss')
-        arqs = [x for x in arqs if os.path.exists(os.path.join(d, x))]
-
-        ab = ['! Chaves normalmente abertas — estado fixado apos a montagem.']
-        ab += [f'Open Line.{n} 1' for n in abertas]
-        open(os.path.join(d, '_CHAVES_ABERTAS.dss'), 'w',
-             encoding='utf-8').write('\n'.join(ab) + '\n')
-
-        # O MASTER redireciona `_AMPACIDADE.dss` SEMPRE, e `Redirect` de
-        # arquivo ausente derruba a compilacao da subestacao inteira. Quem
-        # preenche e o `ampacidade.py`, que roda depois porque precisa do
-        # fluxo resolvido; ate la o arquivo existe e nao faz nada.
-        open(os.path.join(d, '_AMPACIDADE.dss'), 'w', encoding='utf-8').write(
-            '! Substituicao por ampacidade insuficiente — achado 34.\n'
-            '! Vazio: rode `python ampacidade.py <pasta>` para preencher.\n'
-            '! Sem isso o modelo reproduz a BDGD como ela e, que e o padrao.\n')
-
-        # Mesma razao do `_AMPACIDADE.dss`: o MASTER redireciona sempre, e
-        # `Redirect` de arquivo ausente derruba a subestacao inteira.
-        open(os.path.join(d, '_LIGACAO.dss'), 'w', encoding='utf-8').write(
-            '! Ligacao a componente desenergizada — achado 33, forma B.\n'
-            '! Vazio: rode `python ligacao.py <pasta>` para preencher.\n'
-            '! Sem isso o modelo reproduz a topologia que a BDGD declara.\n')
-
-        # coordenadas geograficas desta subestacao
-        # a geometria e lida UMA VEZ POR LOTE e filtrada pelas barras desta
-        # subestacao — era 85% do tempo de conversao. Ver `coordenadas.do_lote`
-        cams = (['SSDMT', 'SSDBT', 'RAMLIG'] if a.bt == 'completo'
-                else ['SSDMT'])
-        co = coordenadas.do_lote(co_cache, b, cams, ctmts_lote, ctmts)
-        n_co_se = coordenadas.escrever(co, os.path.join(d, 'BusCoords.dat'))
-
-        master.rede_se(se, arqs, os.path.join(d, f'REDE-{se}.dss'))
-
-        # MASTER isolado: fonte na barra de MT desta subestacao
-        kvs = {ctmt_info[c]['kv'] for c in ctmts}
-        kv_se = max(kvs) if kvs else a.kv_mt
-        # Uma fonte por BARRA de MT: a subestacao pode ter mais de um nivel
-        # de tensao (a TBAN tem 20 kV e 34,5 kV em barras distintas).
-        # Barra derivada (alimentador cuja tensao difere da barra da SE) fica
-        # de fora: quem a energiza e o transformador de barra escrito no
-        # Vaos.dss, nao uma fonte propria. Duas fontes na mesma barra com
-        # tensoes diferentes foi o que matou 2.238 cargas da TBAN.
-        # A TENSAO DE CABECEIRA TEM DE SER A MESMA NOS DOIS MODELOS.
-        #
-        # No modelo GERAL quem sustenta a barra de MT e o transformador de AT,
-        # com `tap` = mediana de CTMT.TEN_OPE dos alimentadores da subestacao.
-        # No modelo ISOLADO nao ha esse transformador: a fonte o substitui, e
-        # portanto tem de reproduzir o mesmo pu.
-        #
-        # Nao reproduzia. O pu saia daqui por dois caminhos diferentes — o
-        # `setdefault` abaixo, que faz vencer o PRIMEIRO alimentador da
-        # iteracao, e o `1.0` embutido no ramo de fallback. Medido: 5 das 150
-        # subestacoes com trafo de AT ficavam com pu diferente do tap, e a
-        # diferenca era sempre 0,09 pu — que e exatamente a distancia entre
-        # operar a 1,09 e operar a 1,00.
-        #
-        # A DALP e uma delas, e foi por isso que uma equipe externa relatou
-        # subtensao generalizada nela: abriram o modelo isolado, que dizia
-        # 1,00, enquanto o geral dizia 1,09. Nove pontos percentuais de
-        # tensao de cabeceira separando dois arquivos da mesma subestacao.
-        tap_se = (est_at.get('tap_por_se') or {}).get(se)
-        barras_se = {}
-        for c in ctmts:
-            if c in vaos_lig and not vaos_lig[c].get('derivada'):
-                b_ = vaos_lig[c]['barra']
-                barras_se.setdefault(b_, (vaos_lig[c]['kv'],
-                                          tap_se or ctmt_info[c]['ten_ope']))
-        if not barras_se:
-            barras_se = {subtransmissao._no(ctmt_info[ctmts[0]]['pac_ini']):
-                         (kv_se, tap_se or 1.0)}
-        itens = sorted(barras_se.items(), key=lambda x: -x[1][0])
-        barra_se, (kv_se, pu_se) = itens[0]
-        extras = [(b_, kv_, pu_) for b_, (kv_, pu_) in itens[1:]]
-        mvasc = (est_at.get('mvasc_por_se') or {}).get(se) or transmissao.MVASC_PADRAO
-        master.gerar_se(se, os.path.join(d, f'MASTER-{se}.dss'), barra_se, kv_se,
-                        len(ctmts), len(barras), mvasc,
-                        ['LineCodes.dss', 'Curvas.dss', '_XYCURVES.dss'],
-                        list(kvs) + [a.kv_at],
-                        pu=pu_se, barras_extra=extras, bt=bt_da_base,
-                        buscoords='Buscoords BusCoords.dat',
-                        bloco_medicao=master.medicao(
-                            [c for c in ctmts if c in vaos_lig], [], []))
-
-        r = {'SE': se, 'alimentadores': len(ctmts),
-             'com_vao': sum(1 for c in ctmts if c in vaos_lig),
-             'kv_mt': kv_se, 'barra_mt': barra_se,
-             'barras_mt': len(barras_se),
-             'linhas': n_ln, 'km_MT': km, 'barras': len(barras), 'chaves': n_ch,
-             'chaves_abertas': len(abertas),
-             'chaves_ilhadas': len(ch_ilhadas), 'trafos': n_tr,
-             'capacitores': n_cp,
-             'reguladores': n_rg, 'GD': n_gd, 'GD_nulos': gd_nulos,
-             'GD_realocada': gd_realoc, 'GD_fora_da_rede': gd_fora,
-             'GD_barras_limitadas': gd_lim, 'GD_kW_cortado': gd_kw_cortado,
-             'GD_MT_por_CEG_GD': gd_por_ceg,
-             'mes': a.mes, 'dia': a.dia, 'fator_carga': a.fator_carga,
-             'bt': a.bt, 'coords': n_co_se,
-             # capacidade instalada de AT: o classificador de causa usa isso
-             # para separar "rede carregada" de "modelo com defeito"
-             'mva_at': round((info_tr or {}).get('mva_por_sub', {}).get(se, 0), 1)
-             if info_tr else 0,
-             **info}
-        json.dump(r, open(os.path.join(d, 'resumo.json'), 'w', encoding='utf-8'),
-                  indent=1, ensure_ascii=False)
-        resumo.append(r)
-        feitas.append(se)
-
-        del col_mt, sec, barras
-        gc.collect()
-        mem = memoria_gb()
-        if a.memoria_max and mem > a.memoria_max:
-            print(f'\nMemoria em {mem:.2f} GB, acima do limite de {a.memoria_max:.2f} GB. '
-                  f'Parando de forma limpa.', flush=True)
-            print(f'As {len(resumo)} subestacoes concluidas estao salvas. '
-                  f'Rode o mesmo comando de novo — ele retoma da proxima.', flush=True)
-            break
-        # `n_ln` e so a MT. Com `--bt completo` o modelo ganha LinhasBT e
-        # Ramais — medido na 5003525 de Roraima, 6.277 -> 24.267 linhas —, e
-        # imprimir so a MT fazia os dois modos parecerem identicos no log.
-        _lbt = info.get('linhas_BT') or 0
-        print(f'   {n_ln:,} linhas MT'
-              f'{f" + {_lbt:,} BT" if _lbt else ""} | {n_tr:,} trafos | '
-              f'{info["n_cargas"]:,} cargas | '
-              f'{info["kW_BT"]+info["kW_MT"]:,.0f} kW', flush=True)
-
-    b.fechar_lote()
 
     # --- MASTER geral, com tudo que existe na pasta
     if not a.sem_at:
@@ -815,9 +939,9 @@ def main():
            'alta_tensao': est_at,
            'subestacoes': resumo}
     json.dump(rel, open(os.path.join(a.saida, 'relatorio_rede.json'), 'w',
-                        encoding='utf-8'), indent=1, ensure_ascii=False)
+                        encoding='utf-8', newline=escrita.FIM_DE_LINHA), indent=1, ensure_ascii=False)
     json.dump(resumo, open(os.path.join(a.saida, 'resumo_geral.json'), 'w',
-                           encoding='utf-8'), indent=1, ensure_ascii=False)
+                           encoding='utf-8', newline=escrita.FIM_DE_LINHA), indent=1, ensure_ascii=False)
 
     if tensoes.desconhecidos():
         print(f'\nCodigos de tensao sem valor definido: '

@@ -125,18 +125,71 @@ ordem: a ligação energiza rede que estava no escuro, e a ampacidade decide
 pela corrente que passa depois disso.
 
 ### Fase 2 — fechar o resíduo de alcance
-**Custo: dias. Ganho: 60% → 70%.**
+**Custo: dias. Ganho: 60% → 70%. Código pronto em 19/08/2026; a nota espera
+a V15.**
 
-Sobram duas frentes, agora que a forma B está tratada:
+As duas frentes previstas eram o achado 31 e a forma C / balde `-FC`. A
+primeira estava certa. A segunda estava **olhando para o lugar errado**: medido
+o alcance na V14, o resíduo não era a forma C nem os 20 alimentadores `-FC` —
+era uma base inteira fora da curva, a Equatorial PA com **55,2% de carga
+energizada** contra 99,5% a 100% das outras seis, e em **103 das 119
+subestações**.
 
-1. **O achado 31** — cabeceira alcançada pela `SUB` quando `UNI_TR_AT` aponta
-   para o vazio. Vale a subestação 1726751 inteira, 7.803 cargas.
-2. **A forma C e o balde `-FC`** — rede estilhaçada em 1.922 componentes, e os
-   20 alimentadores da EQPA que somam 11% da MT daquela base. É o menos
-   entendido dos três.
+Foram dois defeitos, os dois corrigidos e medidos:
+
+1. **O achado 31** — âncora pelo trafo da própria `SUB` quando `BARR` está em
+   branco e `UNI_TR_AT` aponta para o vazio. Provado: `sem_vao: []` nas duas
+   subestações afetadas da Cemig-D, 7.803 cargas de volta à medição.
+2. **O achado 38** — o grafo da premissa de ligação tratava chave aberta como
+   aresta. Corrigido, e com ele a distinção entre o que é ilha (liga) e o que
+   está atrás de chave que a BDGD declara aberta (não liga, e passa a ser
+   resultado em vez de resíduo).
+3. **O achado 39** — `BARR_2` nomeia o pátio, não a barra: dois níveis de
+   secundário escritos na mesma barra faziam a rede do nível perdedor receber
+   40% da tensão. Na RIM, perdas de **78,26% → 0,44%**.
+
+Medido em 8 subestações da EQPA: **28.677 cargas sem tensão caem para 11.635**,
+59,4% recuperadas. O que resta é **86% um motivo só** — chave aberta declarada.
+
+**A NOTA NÃO SOBE AINDA.** A regra deste documento é que critério só muda com o
+número que o justifica, e o número que vale é o da base inteira, não o da
+amostra. Sobe quando a V15 medir.
 
 Critério de saída: alcance acima de 95% nas sete, ou limitação declarada com
-número por base.
+número por base. **A segunda metade do critério é a que se tornou possível**:
+o resíduo agora tem nome e conta.
+
+#### O que a Equatorial PA deixa em aberto
+
+Ela é a base que puxa todos os resíduos, e o que sobra dela tem de continuar
+visível depois que a Fase 2 fechar. Quatro fios, com o número de cada um:
+
+1. **As 10.057 cargas atrás de chave aberta declarada** (na amostra de 8
+   subestações; 86% do resíduo restante). **Não é para corrigir** — ligar ali
+   apagaria o que a BDGD diz. É para *declarar*, com número por base, e é
+   exatamente a segunda metade do critério de saída da Fase 2. Falta a contagem
+   base a base, que sai da V15.
+
+2. **As 1.526 sem nenhuma barra na tensão de um vão.** Sobraram dos 6.662 do
+   achado 38 depois do achado 39 explicar 77% deles. Não sei o que são. É o
+   menor dos quatro e o menos entendido.
+
+3. **O balde `-FC` do achado 33** — 20 alimentadores, 218.471 barras, 11% de
+   toda a MT da EQPA, com `PAC_INI` na própria barra da subestação e grau 1.
+   A investigação de 19/08 mostrou que **não era ele** o resíduo de alcance,
+   e isso não é o mesmo que explicá-lo: o que `-FC` significa continua sem
+   estabelecer. Vale medir de novo depois da V15, com a rede já energizada —
+   pode ser que ele desapareça sozinho, e pode ser que não.
+
+4. **A razão de 0,55×**, a mais baixa das sete. O modelo prevê metade da perda
+   que a medição declara. Com 45% da carga sem tensão isso era esperado; com a
+   rede energizada, a razão vai mudar, e **em que direção é o resultado que
+   interessa**. Se subir para perto de 1, é evidência de que o alcance era a
+   causa; se não subir, sobra causa própria e ela entra na Fase 4.
+
+Os quatro só ficam mensuráveis depois de regerar a base inteira. Nenhum deles
+justifica segurar a V15 — todos justificam olhar para a EQPA primeiro quando
+ela sair.
 
 ### Fase 3 — quantificar o que falta e ler o que não lemos
 **Custo: uma semana. Ganho: 70% → 82%.**

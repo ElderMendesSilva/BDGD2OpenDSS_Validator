@@ -36,6 +36,7 @@ import math
 from .leitor import num, txt, no as _no
 from . import tensoes
 from .linhas import comprimento
+from . import escrita
 
 FASES = {'A': '1', 'B': '2', 'C': '3'}
 
@@ -119,6 +120,29 @@ def barras_mt(dados):
     return out
 
 
+def _niveis_por_barra(u, eq, n, kv_mt_padrao, subs_alvo):
+    """Quais tensoes de secundario cada barra declarada carrega.
+
+    Uma passada antes de escrever nada, porque a decisao depende do CONJUNTO:
+    saber se `RIM01B1` tem uma tensao ou duas exige ter visto os dois trafos.
+    Fazer isso durante a escrita faria o nome da barra depender de quem foi
+    lido primeiro.
+    """
+    por_barra = {}
+    for i in range(n):
+        if txt(u['SIT_ATIV'][i]) not in ('AT', ''):
+            continue
+        if subs_alvo is not None and txt(u['SUB'][i]).strip() not in subs_alvo:
+            continue
+        barra = _no(u['BARR_2'][i]) or _no(u['PAC_2'][i])
+        if not barra:
+            continue
+        kv = tensoes.kv((eq.get(txt(u['COD_ID'][i])) or {}).get('ten_sec'),
+                        kv_mt_padrao, None, 'EQTRAT.TEN_SEC')
+        por_barra.setdefault(barra, set()).add(round(kv, 2))
+    return por_barra
+
+
 # ================================================================== trafos AT
 def trafos(dados, caminho, kv_at_padrao=88.0, kv_mt_padrao=13.8, log=None,
            subs_alvo=None, tap_por_sub=None, nos_malha=None,
@@ -185,6 +209,8 @@ def trafos(dados, caminho, kv_at_padrao=88.0, kv_mt_padrao=13.8, log=None,
     mva_por_sub = collections.Counter()
     ativos = 0
     por_barra_sub = 0
+    niveis_da_barra = _niveis_por_barra(u, eq, n, kv_mt_padrao, subs_alvo)
+    barras_por_nivel = 0
     for i in range(n):
         cod = txt(u['COD_ID'][i])
         if txt(u['SIT_ATIV'][i]) not in ('AT', ''):
@@ -215,6 +241,25 @@ def trafos(dados, caminho, kv_at_padrao=88.0, kv_mt_padrao=13.8, log=None,
         e = eq.get(cod, {})
         kv1 = tensoes.kv(e.get('ten_pri'), kv_at_padrao, log, 'EQTRAT.TEN_PRI')
         kv2 = tensoes.kv(e.get('ten_sec'), kv_mt_padrao, log, 'EQTRAT.TEN_SEC')
+        # UMA BARRA POR NIVEL DE SECUNDARIO. A BDGD usa `BARR_2` como nome do
+        # patio, e nao da barra: na Equatorial PA, 18 das 112 barras de
+        # secundario aparecem com DUAS tensoes. Na RIM, os dois trafos de AT
+        # declaram BARR_2=RIM01B1 com secundarios de 13,8 e 34,5 kV.
+        #
+        # Escritos na mesma barra, os dois enrolamentos disputam: o de 13,8 kV
+        # e 12,5 MVA venceu o de 34,5 kV e 6,3 MVA, a barra ficou em classe
+        # 13,8, e os tres alimentadores de 34,5 kV pendurados nela ficaram com
+        # 40% da tensao — a rede deles inteira lida como morta. Eram 70.290
+        # cargas sem tensao nas 23 subestacoes multi-nivel da EQPA, 40% de
+        # toda a carga morta da base.
+        #
+        # A barra do nivel MAIS BAIXO fica com o nome declarado, e os demais
+        # ganham sufixo. Escolher pelo mais baixo, e nao pela ordem de leitura,
+        # e o que torna o nome estavel entre rodadas.
+        outros = niveis_da_barra.get(no_mt)
+        if outros and len(outros) > 1 and round(kv2, 2) != min(outros):
+            no_mt = f'{no_mt}_{kv2:g}kv'.replace('.', 'p')
+            barras_por_nivel += 1
         mva = _pot_mva(u['POT_NOM'][i]) or 20.0
         per_tot = e.get('per_tot', 0.8)
         per_fer = e.get('per_fer', 0.3)
@@ -242,10 +287,13 @@ def trafos(dados, caminho, kv_at_padrao=88.0, kv_mt_padrao=13.8, log=None,
         por_sub[sub].append(cod)
         mva_por_sub[sub] += mva
         ativos += 1
-    open(caminho, 'w', encoding='utf-8').write('\n'.join(out) + '\n')
+    open(caminho, 'w', encoding='utf-8', newline=escrita.FIM_DE_LINHA).write('\n'.join(out) + '\n')
     if log and por_barra_sub:
         log(f'  {por_barra_sub} de {ativos} trafos ancorados pela barra de AT '
             f'da subestacao (PAC_1 fora da malha) — achado 7')
+    if log and barras_por_nivel:
+        log(f'  {barras_por_nivel} secundarios foram para barra propria: a '
+            f'BARR_2 declarada ja tinha outro nivel de tensao — achado 39')
     return {'n': ativos, 'barra_do_trafo': barra_do_trafo,
             'kv_da_barra': kv_da_barra, 'pac_at': pac_at,
             'kv_at_do_trafo': kv_at_do_trafo,
@@ -287,7 +335,7 @@ def linhas(dados, mapa_cnd, caminho, log=None, nos_alvo=None):
         nomes.append(cod)
         km += comp / 1000.0
         n += 1
-    open(caminho, 'w', encoding='utf-8').write('\n'.join(out) + '\n')
+    open(caminho, 'w', encoding='utf-8', newline=escrita.FIM_DE_LINHA).write('\n'.join(out) + '\n')
     return n, round(km, 2), barras, nomes
 
 
@@ -320,10 +368,10 @@ def chaves(dados, caminho, caminho_abertas, nos_alvo=None):
         if txt(s['P_N_OPE'][i]).upper().startswith('A'):
             abertas.append(nome)
         n += 1
-    open(caminho, 'w', encoding='utf-8').write('\n'.join(out) + '\n')
+    open(caminho, 'w', encoding='utf-8', newline=escrita.FIM_DE_LINHA).write('\n'.join(out) + '\n')
     ab = ['! Chaves de AT normalmente abertas — estado fixado apos a montagem.']
     ab += [f'Open Line.{x} 1' for x in abertas]
-    open(caminho_abertas, 'w', encoding='utf-8').write('\n'.join(ab) + '\n')
+    open(caminho_abertas, 'w', encoding='utf-8', newline=escrita.FIM_DE_LINHA).write('\n'.join(ab) + '\n')
     return n, abertas
 
 
@@ -372,6 +420,77 @@ def componentes(dados):
 
 
 # ====================================================================== vaos
+def _barra_no_nivel(c, info_trafos, kv_mt_padrao, log):
+    """A barra do trafo de AT que ja esta NA TENSAO deste alimentador.
+
+    So responde quando a subestacao tem MAIS DE UM nivel de secundario. Fora
+    disso devolve None e as preferencias de sempre decidem — o que mantem
+    intocado o comportamento das 84% de subestacoes de nivel unico, e faz
+    desta regra uma correcao cirurgica em vez de uma troca de criterio.
+
+    Por que ela precisa vir ANTES do `CTMT.BARR`: a BDGD usa `BARR_2` como
+    nome do patio, e nao da barra. Na RIM da Equatorial PA os dois trafos de
+    AT declaram `BARR_2=RIM01B1` com secundarios de 13,8 e 34,5 kV, e o
+    `CTMT.BARR` dos alimentadores de 34,5 kV aponta para `RIM09B1`, que nenhum
+    trafo declara. Seguir a BARR ali leva os alimentadores de 34,5 kV para a
+    barra de 13,8 — e o que decide certo e a tensao, que os dois lados
+    declaram.
+    """
+    sub = c['sub']
+    por_sub = info_trafos.get('por_sub') or {}
+    bt = info_trafos['barra_do_trafo']
+    kvb = info_trafos['kv_da_barra']
+    barras = [bt[t] for t in sorted(por_sub.get(sub, [])) if t in bt]
+    niveis = {round(kvb[b], 2) for b in barras if b in kvb}
+    if len(niveis) < 2:
+        return None
+    kv_alim = c.get('kv') or tensoes.kv(c['ten_nom'], kv_mt_padrao, log,
+                                        'CTMT.TEN_NOM')
+    if not kv_alim:
+        return None
+    iguais = [b for b in barras
+              if b in kvb and abs(kvb[b] - kv_alim) <= 0.1]
+    return iguais[0] if iguais else None
+
+
+def _barra_de_at_da_sub(c, info_trafos, kv_mt_padrao, log):
+    """A barra de MT de um transformador de AT da PROPRIA subestacao.
+
+    Ultima preferencia do `vaos()`, e a razao dela e o achado 31: quando
+    `CTMT.BARR` vem em branco E `CTMT.UNI_TR_AT` aponta para um trafo que nao
+    existe na UNTRAT, os tres caminhos anteriores morrem e o alimentador fica
+    sem vao. Sem vao nao ha EnergyMeter, e sem medidor a subestacao inteira
+    sai da medicao — na Cemig-D isso valia a SUB 1726751 por completo: 7.803
+    cargas, 25.974 barras e 1.782 km de MT que compilam, resolvem, e nao
+    entram em nenhum numero de perda.
+
+    O dado para resolver sempre esteve la: a UNTRAT declara 2 transformadores
+    de AT naquela subestacao. O que faltava era o elo — o `vaos()` so sabia
+    chegar aos trafos pelo `UNI_TR_AT` do alimentador, e era justamente ele
+    que apontava para o vazio.
+
+    ESCOLHA DETERMINISTICA, e por tensao antes de tudo: entre os trafos da
+    subestacao, prefere-se o que ja esta na tensao do alimentador, para nao
+    criar barra derivada e transformador de barra onde nao precisa. Havendo
+    empate, ou nenhum na tensao certa, vale a ordem do COD_ID — que nao
+    depende da ordem de leitura da BDGD, e portanto nao muda entre rodadas.
+    """
+    cods = sorted(info_trafos.get('por_sub', {}).get(c['sub'], []))
+    bt = info_trafos['barra_do_trafo']
+    candidatas = [bt[t] for t in cods if t in bt]
+    if not candidatas:
+        return None
+    kvb = info_trafos['kv_da_barra']
+    kv_alim = c.get('kv') or tensoes.kv(c['ten_nom'], kv_mt_padrao, log,
+                                        'CTMT.TEN_NOM')
+    if kv_alim:
+        iguais = [b for b in candidatas
+                  if kvb.get(b) and abs(kvb[b] - kv_alim) <= 0.1]
+        if iguais:
+            return iguais[0]
+    return candidatas[0]
+
+
 def vaos(ctmt_info, info_trafos, barras, kv_mt_padrao=13.8, log=None):
     """Liga a barra de MT da subestacao a cabeceira de cada alimentador.
 
@@ -405,6 +524,8 @@ def vaos(ctmt_info, info_trafos, barras, kv_mt_padrao=13.8, log=None):
     por_se = collections.defaultdict(list)
     ligados = {}
     sem_vao = []
+    por_trafo_da_sub = []       # achado 31: salvos pela quarta preferencia
+    por_nivel = []              # achado 39: ancorados pela tensao
     derivadas = {}                  # (sub, barra_orig, kv) -> barra derivada
     alim_por_sub = collections.Counter()
     alim_por_grupo = collections.Counter()
@@ -413,12 +534,23 @@ def vaos(ctmt_info, info_trafos, barras, kv_mt_padrao=13.8, log=None):
         barr = _no(c['barr'])
         tr = c['uni_tr_at']
         alvo = None
-        if barr and barr in barras_de_trafo:
+        # achado 39 — subestacao com mais de um nivel de secundario: quem
+        # manda e a tensao, e nao a BARR. Ver `_barra_no_nivel`.
+        alvo = _barra_no_nivel(c, info_trafos, kv_mt_padrao, log)
+        if alvo:
+            por_nivel.append(cod)
+        elif barr and barr in barras_de_trafo:
             alvo = barr
         elif tr and tr in bt:
             alvo = bt[tr]
         elif barr:
             alvo = barr
+        else:
+            # achado 31 — sem BARR e sem UNI_TR_AT valido, resta a propria
+            # subestacao. Ver `_barra_de_at_da_sub`.
+            alvo = _barra_de_at_da_sub(c, info_trafos, kv_mt_padrao, log)
+            if alvo:
+                por_trafo_da_sub.append(cod)
         pac = _no(c['pac_ini'])
         if not alvo or not pac or pac == alvo:
             sem_vao.append(cod)
@@ -479,11 +611,18 @@ def vaos(ctmt_info, info_trafos, barras, kv_mt_padrao=13.8, log=None):
             log(f'  {sub}: barra derivada de {kv_alim:g} kV para '
                 f'{alim_por_grupo[(sub, orig, kv_alim)]} alimentadores '
                 f'({mva:.0f} MVA)')
+    if log and por_nivel:
+        log(f'  {len(por_nivel)} alimentadores ancorados pela TENSAO, em '
+            f'subestacao com mais de um nivel de secundario — achado 39')
+    if log and por_trafo_da_sub:
+        log(f'  {len(por_trafo_da_sub)} alimentadores ancorados por um trafo '
+            f'de AT da propria subestacao (BARR em branco e UNI_TR_AT sem '
+            f'par) — achado 31')
     return ligados, sem_vao, dict(por_se)
 
 
 def escrever_vaos(caminho, linhas_dss):
-    open(caminho, 'w', encoding='utf-8').write(CAB_VAOS + '\n'.join(linhas_dss) + '\n')
+    open(caminho, 'w', encoding='utf-8', newline=escrita.FIM_DE_LINHA).write(CAB_VAOS + '\n'.join(linhas_dss) + '\n')
 
 
 # ============================================================ cargas e geracao
@@ -496,7 +635,7 @@ def cargas(bdgd, caminho, mes=1, kv_at_padrao=88.0, fator=1.0, log=None,
                                   f'ENE_P_{mes:02d}', f'ENE_F_{mes:02d}',
                                   f'DEM_P_{mes:02d}'])
     except Exception:
-        open(caminho, 'w').write('! UCAT_tab indisponivel\n')
+        escrita.escreve(caminho, '! UCAT_tab indisponivel\n')
         return 0, 0.0
     out = ['! CARGAS DE ALTA TENSAO — UCAT_tab',
            '! kW = (ENE_P + ENE_F) / 730 h, como na MT e na BT.']
@@ -521,7 +660,7 @@ def cargas(bdgd, caminho, mes=1, kv_at_padrao=88.0, fator=1.0, log=None,
                    f'kW={kw:.4f}')
         tot += kw
         n += 1
-    open(caminho, 'w', encoding='utf-8').write('\n'.join(out) + '\n')
+    open(caminho, 'w', encoding='utf-8', newline=escrita.FIM_DE_LINHA).write('\n'.join(out) + '\n')
     return n, round(tot, 1)
 
 
@@ -531,7 +670,7 @@ def geracao(bdgd, caminho, kv_at_padrao=88.0, log=None, nos_alvo=None):
     try:
         g = bdgd.ler('UGAT_tab', ['COD_ID', 'PAC', 'POT_INST', 'FAS_CON', 'TEN_CON'])
     except Exception:
-        open(caminho, 'w').write('! UGAT_tab indisponivel\n')
+        escrita.escreve(caminho, '! UGAT_tab indisponivel\n')
         return 0
     out = ['! GERACAO EM ALTA TENSAO — UGAT_tab']
     n = 0
@@ -548,7 +687,7 @@ def geracao(bdgd, caminho, kv_at_padrao=88.0, log=None, nos_alvo=None):
                    f'bus1={pac}.{".".join(fs)} kV={kv:.4f} kW={pot:.2f} '
                    f'pf=0.95 model=1 Vminpu=0.9 Vmaxpu=1.1')
         n += 1
-    open(caminho, 'w', encoding='utf-8').write('\n'.join(out) + '\n')
+    open(caminho, 'w', encoding='utf-8', newline=escrita.FIM_DE_LINHA).write('\n'.join(out) + '\n')
     return n
 
 
@@ -557,7 +696,7 @@ def capacitores(bdgd, caminho, kv_at_padrao=88.0, log=None, nos_alvo=None):
     try:
         c = bdgd.ler('UNCRAT', ['COD_ID', 'PAC_1', 'POT_NOM', 'FAS_CON', 'SIT_ATIV'])
     except Exception:
-        open(caminho, 'w').write('! UNCRAT indisponivel\n')
+        escrita.escreve(caminho, '! UNCRAT indisponivel\n')
         return 0
     out = ['! CAPACITORES DE AT — UNCRAT (banco fixo; a BDGD nao traz o controle)']
     n = 0
@@ -575,5 +714,5 @@ def capacitores(bdgd, caminho, kv_at_padrao=88.0, log=None, nos_alvo=None):
                    f'Bus1={pac}.{".".join(fs)} Phases={len(fs)} '
                    f'Conn=wye kV={kv_at_padrao:.4f} kvar={kvar:.1f}')
         n += 1
-    open(caminho, 'w', encoding='utf-8').write('\n'.join(out) + '\n')
+    open(caminho, 'w', encoding='utf-8', newline=escrita.FIM_DE_LINHA).write('\n'.join(out) + '\n')
     return n

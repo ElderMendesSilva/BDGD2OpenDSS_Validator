@@ -15,3 +15,9 @@
 # Arquivos gerados do OpenDSS: texto, mas nunca editados à mão
 *.dss text eol=crlf
 *.dat text eol=crlf
+
+# Script de shell TEM de ir com LF. Com CRLF o Linux nao executa: o  entra
+# no nome do interpretador e a mensagem e `bad interpreter: /usr/bin/env
+# bash^M`, que nao parece ter nada a ver com fim de linha.
+*.sh text eol=lf
+*.sbatch text eol=lf

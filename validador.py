@@ -18,7 +18,8 @@ Checa, nesta ordem:
 import argparse
 import os, sys, math, json, glob, statistics
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from bdgd2dss import diagnostico, lote, pausa
+from bdgd2dss import diagnostico, lote, pausa, plataforma
+from bdgd2dss import escrita
 
 try:
     import opendssdirect as dss
@@ -370,6 +371,11 @@ def main():
     por_pasta = {}
     if a.jobs > 1 and len(pastas) > 1:
         import concurrent.futures as cf
+        # `spawn` nos dois sistemas. No Linux o padrao e `fork`, e o
+        # filho nasceria com uma COPIA da DLL do OpenDSS ja carregada,
+        # com circuito e solucao dentro — o estado compartilhado que os
+        # processos separados existem para evitar.
+        plataforma.prepara_processos()
         print(f'{a.jobs} modelos em paralelo', flush=True)
         with cf.ProcessPoolExecutor(max_workers=a.jobs) as ex:
             fila = lote.maior_primeiro(pastas, lambda p: p)
@@ -393,7 +399,7 @@ def main():
         # dizer utf-8 o Python grava na codificacao do sistema (cp1252 aqui).
         # O arquivo entao nao volta: `can't decode byte 0x97`.
         json.dump(out, open(os.path.join(alvo, 'validacao.json'), 'w',
-                            encoding='utf-8'), indent=1, ensure_ascii=False)
+                            encoding='utf-8', newline=escrita.FIM_DE_LINHA), indent=1, ensure_ascii=False)
         ok = sum(1 for r in out if r.get('diagnostico') == ['ok'])
         print(f'\n{ok} de {len(out)} modelos sem ressalva.')
         if a.grafico:

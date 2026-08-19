@@ -58,6 +58,7 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from bdgd2dss.leitor import BDGD, num, txt          # noqa: E402
+from bdgd2dss import escrita
 
 MESES = [f'ENE_{i:02d}' for i in range(1, 13)]
 
@@ -294,7 +295,7 @@ def main():
                   f'total medida {x["pct_total_medido"]:7.2f}%')
 
     dest = os.path.join(raiz, 'validacao_balanco.json')
-    json.dump(linhas, open(dest, 'w', encoding='utf-8'), indent=1,
+    json.dump(linhas, open(dest, 'w', encoding='utf-8', newline=escrita.FIM_DE_LINHA), indent=1,
               ensure_ascii=False)
     print(f'\ndetalhe em {dest}')
     if a.grafico:

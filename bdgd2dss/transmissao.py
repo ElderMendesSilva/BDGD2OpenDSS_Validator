@@ -52,6 +52,7 @@ import os
 
 from .leitor import num, txt
 from . import tensoes
+from . import escrita
 
 # nom_subestacao na planilha de trafos -> COD_ID da SUB na BDGD.
 # Feito a mao a partir das duas planilhas; os nomes nao batem sozinhos
@@ -289,7 +290,7 @@ def fontes(componentes, info_trafos, ctat_heads, isa, caminho,
         # nenhuma componente com trafo: circuito precisa de pelo menos uma fonte
         out.append(f'New Circuit.ENEL_SP basekV={kv_at_padrao} pu=1.0 phases=3 '
                    f'bus1=SOURCEBUS Angle=0 MVAsc3={MVASC_PADRAO:g}')
-    open(caminho, 'w', encoding='utf-8').write('\n'.join(out) + '\n')
+    open(caminho, 'w', encoding='utf-8', newline=escrita.FIM_DE_LINHA).write('\n'.join(out) + '\n')
     if log:
         log(f'    fontes de AT: {n_head} em cabeceira real, {n_eq} equivalentes')
         if niveis_usados:
@@ -383,7 +384,7 @@ def trafos_transmissora(orfas, isa, caminho, kv_mt_padrao=13.8, log=None):
             niveis.add(float(kv1)); niveis.add(float(kv_mt))
             for a in alims:
                 barras[a] = {'barra': barra, 'kv': kv_mt}
-    open(caminho, 'w', encoding='utf-8').write('\n'.join(out) + '\n')
+    open(caminho, 'w', encoding='utf-8', newline=escrita.FIM_DE_LINHA).write('\n'.join(out) + '\n')
     if log:
         log(f'    subestacoes da transmissora: {n_real} com trafo da ISA, '
             f'{n_eq} com equivalente')

@@ -3264,3 +3264,214 @@ ser lida contra isso antes de ser atribuída ao conversor.
    regerar — e a V14 regerou.
 2. **Os ~5% de rede inalcançável** que o achado 32 não explica: a Roraima vai
    de 69,6% para 94,8% somando os reguladores, e o resíduo tem causa própria.
+
+---
+
+## Achado 38 — chave aberta não é aresta, e por isso metade da EQPA ficava no escuro
+
+Corrigido e medido. A premissa de ligação (achado 33, forma B) tratava metade
+da rede que devia, e o motivo era um grafo que não olhava o estado da chave.
+
+### O que se via
+
+Nas seis bases da V14, contando carga com e sem tensão no modelo resolvido:
+
+| base | cargas | sem tensão | energizadas |
+|---|---|---|---|
+| Enel CE | 373.839 | 0 | 100% |
+| Enel SP | 314.468 | 0 | 100% |
+| Light | 218.442 | 9 | 100% |
+| Roraima | 40.338 | 8 | 100% |
+| CPFL Paulista | 664.975 | 3.482 | 99,5% |
+| **Equatorial PA** | **389.688** | **174.578** | **55,2%** |
+
+Uma base fora da curva por duas ordens de grandeza. E não eram os 20
+alimentadores `-FC` do achado 33: **103 das 119 subestações** têm carga morta,
+entre 40% e 83% cada. Era sistêmico, não um balde.
+
+### A causa
+
+`ligacao.radiografia()` montava a adjacência ligando as duas barras de **toda**
+linha, sem consultar `IsOpen`. As chaves que o `_CHAVES_ABERTAS.dss` deixa
+abertas entravam como se conduzissem.
+
+O efeito: a rede desenergizada aparecia como **uma** componente gigante onde a
+eletricidade vê várias. A premissa ligava uma âncora só, e tudo além das chaves
+abertas continuava no escuro.
+
+Medido na CSO da Equatorial PA. O `_LIGACAO.dss` daquela subestação registra 21
+componentes mortas — uma de 21.913 barras e vinte de **1 barra e 0 cargas**.
+Ligou a gigante. Depois de ligada, sobraram **3 regiões mortas** de 162 a 462
+cargas, que não existiam como componentes separadas no grafo da premissa mas
+existem na rede: entre elas e a parte viva há **23 chaves abertas**.
+
+### A distinção que a correção obriga a fazer
+
+Corrigido o grafo, aparece uma escolha que antes estava escondida. Classificando
+cada carga morta por **como** ela toca a rede viva:
+
+| | EQPA (8 SEs) | Cemig-D (3 SEs) |
+|---|---|---|
+| atrás de chave **aberta declarada** | 50,3% | 62,0% |
+| **sem caminho nenhum** | 49,7% | 38,0% |
+
+São coisas opostas, e tratá-las igual seria errado nos dois sentidos:
+
+**Atrás de chave aberta é resultado, não resíduo.** A BDGD declara aquela chave
+aberta; o trecho existe, o caminho existe, e quem o alimentaria é outro
+alimentador. Inventar um elo ali não é modelar o que falta — é **apagar o que o
+dado diz**.
+
+**Sem caminho nenhum é ilha de verdade**, e é exatamente para ela que a premissa
+existe.
+
+Então a correção tem duas partes: o grafo passa a ter só o que conduz, **e**
+componente que alcança a rede viva por uma chave aberta não é ligada.
+
+### O número
+
+Oito subestações da EQPA, sobre os modelos da V14, só trocando a premissa:
+
+| | cargas sem tensão |
+|---|---|
+| V14 | 28.677 |
+| com a correção | **16.771** |
+
+**41,5% recuperadas**, 22 elos viram 68, **zero recusados** por convergência,
+todas convergem.
+
+E o resíduo passa a ter nome:
+
+| motivo | cargas |
+|---|---|
+| atrás de chave aberta declarada | 10.057 |
+| sem nenhuma barra na tensão de um vão | 6.662 |
+| componentes pequenas demais | 42 |
+
+O segundo motivo era desconhecido, e virou o achado 39.
+
+---
+
+## Achado 39 — `BARR_2` nomeia o pátio, não a barra
+
+Corrigido e medido. Uma subestação com dois níveis de secundário tinha os dois
+enrolamentos escritos na **mesma barra**, e a rede do nível perdedor recebia 40%
+da tensão.
+
+### O caso, na íntegra
+
+A BDGD declara, para a subestação RIM da Equatorial PA, dois transformadores de
+AT com secundários **diferentes**, e dois PACs diferentes:
+
+```
+RIM-03T1   TEN_SEC=49 → 13,8 kV   BARR_2=RIM01B1   PAC_2=RIM_490000095
+RIM-03T2   TEN_SEC=72 → 34,5 kV   BARR_2=RIM01B1   PAC_2=RIM_490000096
+```
+
+E seis alimentadores em dois níveis, cada trio com a sua barra declarada:
+
+```
+RIM01M1/M2/M3   TEN_NOM=49 (13,8 kV)   BARR=RIM01B1
+RIM09W1/W2/W3   TEN_NOM=72 (34,5 kV)   BARR=RIM09B1
+```
+
+**O dado está completo e coerente.** O `BARR_2` é que é o mesmo nos dois — ele
+nomeia o pátio, e o que distingue as duas barras é o `PAC_2`. O conversor usava
+`BARR_2` sempre que existisse, e o `PAC_2` só como reserva.
+
+### O que isso produzia
+
+Os dois enrolamentos iam para `rim01b1`. Escritos na mesma barra, eles disputam:
+o de 13,8 kV e 12,5 MVA vencia o de 34,5 kV e 6,3 MVA. A barra ficava em classe
+13,8, e os três alimentadores de 34,5 kV pendurados nela recebiam **40% da
+tensão**.
+
+E aí o conversor "corrigia" a diferença: como a tensão do alimentador diferia da
+barra, criava uma **barra derivada** com um transformador de barra **34,5 → 13,8
+alimentado por 13,8**. A barra derivada ia para **0,66 pu**.
+
+`RIM09B1`, a barra que a BDGD declara para os alimentadores de 34,5 kV, **não
+existia no modelo**.
+
+### O tamanho
+
+Na Equatorial PA, **18 das 112 barras de secundário** aparecem com mais de uma
+tensão, e **23 das 102 subestações** têm mais de um nível declarado. Elas
+concentram **40% de toda a carga morta da base**:
+
+| | cargas | sem tensão |
+|---|---|---|
+| subestações multi-nível | 141.156 | **49,8%** |
+| as demais | 248.532 | 42,0% |
+
+### A correção, e o que ela vale
+
+Duas partes:
+
+1. **`gerar_at` dá barra própria a cada nível** que divida a mesma `BARR_2`. O
+   nível mais baixo fica com o nome declarado e os demais ganham sufixo —
+   escolher pelo mais baixo, e não pela ordem de leitura, é o que mantém o nome
+   estável entre rodadas.
+2. **`vaos` ancora pela TENSÃO** quando a subestação tem mais de um nível. Só
+   nesse caso: fora dele a regra não opina, e as subestações de nível único
+   ficam intocadas. Na RIM isso importa porque o `CTMT.BARR` dos alimentadores
+   de 34,5 kV aponta para `RIM09B1`, que nenhum transformador declara — seguir a
+   BARR levava todos para a barra de 13,8, e quem decide certo é a tensão, que
+   os dois lados declaram.
+
+Medido na RIM, **só trocando a ancoragem**:
+
+| | antes | depois |
+|---|---|---|
+| perdas | **78,26%** | **0,44%** |
+| Vmin | 0,658 | 0,987 |
+| barra de 34,5 kV | 5.267 V | 19.966 V |
+| transformadores de barra | 1 (inventado) | 0 |
+
+**78% de perda técnica é fisicamente impossível**, e o modelo vinha reportando
+isso — sem que nenhum alarme disparasse, porque a subestação compila, converge e
+não tem NaN.
+
+### O colateral, medido antes de fundir
+
+Roraima reconvertida inteira: **356 arquivos, um diferente**. É a subestação
+5003487, que também tem dois níveis e perdeu um transformador de barra inventado
+em favor do transformador real — perdas 3,05% → 3,01%, cargas mortas 2 → 2. As
+outras 19 subestações saem byte a byte iguais.
+
+### Os dois achados juntos
+
+Mesma amostra de 8 subestações da EQPA, agora com a conversão refeita:
+
+| | cargas sem tensão |
+|---|---|
+| V14 | 28.677 |
+| só o achado 38 | 16.771 |
+| **os dois** | **11.635** |
+
+**59,4% recuperadas.** O achado 39 acertou exatamente onde devia: RIM e TUM
+eram as duas que não recuperavam nada com a ligação sozinha, e são justamente
+as multi-nível.
+
+E o resíduo virou quase um motivo só:
+
+| motivo | antes | depois |
+|---|---|---|
+| atrás de chave aberta declarada | 10.057 | 10.057 |
+| sem barra na tensão de um vão | 6.662 | **1.526** |
+| componentes pequenas demais | 42 | 42 |
+
+**86% do que resta é chave que a BDGD declara aberta** — resultado, e não
+resíduo. Os 6.662 do achado 38 caíram para 1.526: o achado 39 explicava 77%
+deles.
+
+### O que isto diz sobre o método
+
+Nenhum dos dois defeitos derrubava nada. A subestação compilava, convergia, não
+tinha NaN, e passava no validador. O que ela produzia era **perda de 78%** e
+**metade da base sem tensão** — números que só aparecem quando se olha a
+grandeza física, e não o estado da execução.
+
+É o argumento para o critério de cobertura de medição do `PLANO_V1.md`: um
+modelo que roda não é um modelo que vale, e a diferença entre os dois só se vê
+medindo o que ele diz.

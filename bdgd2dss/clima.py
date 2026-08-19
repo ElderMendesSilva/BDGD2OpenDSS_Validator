@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+from . import escrita
 """
 CLIMA DA REGIAO DA PROPRIA BASE — irradiancia e temperatura por coordenada.
 ==========================================================================
@@ -203,7 +204,7 @@ def caminho_cache(raiz, dist, mes):
 
 def gravar(dado, caminho):
     os.makedirs(os.path.dirname(caminho), exist_ok=True)
-    with open(caminho, 'w', encoding='utf-8') as fh:
+    with open(caminho, 'w', encoding='utf-8', newline=escrita.FIM_DE_LINHA) as fh:
         json.dump(dado, fh, indent=1, ensure_ascii=False)
     return caminho
 

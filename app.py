@@ -145,11 +145,12 @@ class App(tk.Tk):
         ttk.Spinbox(f4, from_=1, to=32, increment=1, width=8,
                     textvariable=self.v_jobs).grid(row=1, column=1,
                                                    sticky='w', padx=4)
-        ttk.Label(f4, text=f'usado na validação e nas premissas, não na '
-                           f'conversão. Esta máquina tem {os.cpu_count()} '
-                           f'núcleos; medido, o ganho satura perto de 8 '
-                           f'porque o custo é ler o modelo do disco, não '
-                           f'calcular. Use 1 se for usar o computador junto',
+        ttk.Label(f4, text=f'usado na conversão (`--jobs`, em lotes de '
+                           f'subestações), na validação e nas premissas. Esta '
+                           f'máquina tem {os.cpu_count()} núcleos; medido, o '
+                           f'ganho satura perto de 8 porque o custo é ler o '
+                           f'modelo do disco, não calcular. Use 1 se for usar '
+                           f'o computador junto',
                   foreground='#666', wraplength=430, justify='left'
                   ).grid(row=1, column=2, columnspan=3, sticky='w', padx=6)
 
@@ -383,6 +384,7 @@ class App(tk.Tk):
                     '--fator-carga', str(self.v_fator.get()),
                     '--bt', self.v_bt.get(),
                     '--max-ctmt', str(self.v_maxctmt.get()),
+                    '--jobs', str(self.v_jobs.get()),
                     '--kv-mt', self.v_kvmt.get(), '--kv-at', self.v_kvat.get(),
                     '--irradiancia', self.v_irrad.get(),
                     '--gd-fp', self.v_gdfp.get(),

@@ -50,6 +50,7 @@ import collections
 import math
 
 from .leitor import num, txt
+from . import escrita
 
 # razoes de sequencia zero adotadas na ausencia do dado
 K_R0 = 3.0
@@ -261,7 +262,7 @@ def gerar(bdgd, caminho_saida):
                       f'r1=0.00010 x1=0.00010 r0=0.00010 x0=0.00010 '
                       f'normamps=9999 emergamps=9999')
 
-    open(caminho_saida, 'w', encoding='utf-8').write('\n'.join(linhas) + '\n')
+    open(caminho_saida, 'w', encoding='utf-8', newline=escrita.FIM_DE_LINHA).write('\n'.join(linhas) + '\n')
     return mapa, len(mapa), correcoes
 
 
@@ -321,7 +322,7 @@ def escrever_usados(origem, destino, pasta_dss):
                 guardar = True          # comentarios e cabecalho ficam
             if guardar:
                 saida.append(l)
-    open(destino, 'w', encoding='utf-8').write(''.join(saida))
+    open(destino, 'w', encoding='utf-8', newline=escrita.FIM_DE_LINHA).write(''.join(saida))
     return len(usados)
 
 

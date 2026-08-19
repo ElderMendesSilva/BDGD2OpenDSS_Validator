@@ -54,6 +54,8 @@ padroes entre colchetes. Nenhum script fica preso a existencia de janela.
 """
 import json
 import os
+
+from bdgd2dss import plataforma
 import sys
 
 AQUI = os.path.dirname(os.path.abspath(__file__))
@@ -114,7 +116,9 @@ def bdgd_recente(raiz=os.path.dirname(AQUI)):
 
 
 def tem_janela():
-    if os.environ.get('BDGD_SEM_JANELA'):
+    # No modo cluster nunca ha janela, e nem se tenta: `tkinter.Tk()` num no
+    # sem servidor grafico demora ate desistir, e a resposta ja e conhecida.
+    if os.environ.get('BDGD_SEM_JANELA') or plataforma.no_cluster():
         return False
     try:
         import tkinter
@@ -138,6 +142,14 @@ def formulario(secao, titulo, campos, ajuda='', rodar='Executar'):
         if c.get('tipo') in ('pasta', 'arquivo') and not os.path.exists(str(v)):
             continue               # o ultimo caminho sumiu: fica o padrao do script
         c['padrao'] = v
+    if plataforma.no_cluster():
+        # NUM NO DE CLUSTER NAO SE PERGUNTA NADA. A entrada padrao costuma ser
+        # /dev/null, entao perguntar no terminal ou trava a tarefa ou lê fim de
+        # arquivo e responde qualquer coisa. Devolver None faz o executavel
+        # sair pela porta que ele ja tem: "sem argumento, nada a fazer".
+        print(f'{titulo}: modo cluster, sem formulario. '
+              f'Passe as opcoes pela linha de comando (--help).')
+        return None
     if not tem_janela():
         return _no_terminal(titulo, campos, ajuda, secao)
     return _na_janela(titulo, campos, ajuda, secao, rodar)

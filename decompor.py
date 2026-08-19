@@ -49,6 +49,7 @@ import os
 import re
 import statistics
 import sys
+from bdgd2dss import escrita
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
@@ -229,7 +230,7 @@ def aplicar(raiz, se, pu):
             linhas[k] = _RX_PU.sub(lambda m: f'{m.group(1)}{pu:.4f}', l, count=1)
     if antes is None:
         return None
-    with open(cam, 'w', encoding='utf-8') as fh:
+    with open(cam, 'w', encoding='utf-8', newline=escrita.FIM_DE_LINHA) as fh:
         fh.writelines(linhas)
     return antes, pu
 
@@ -306,7 +307,7 @@ def main():
                   f'{x["pu_calculado"]:10.4f} {x["diferenca"]:+8.4f}')
 
     dest = os.path.join(raiz, 'tensao_cabeceira.json')
-    with open(dest, 'w', encoding='utf-8') as fh:
+    with open(dest, 'w', encoding='utf-8', newline=escrita.FIM_DE_LINHA) as fh:
         json.dump(linhas, fh, indent=1, ensure_ascii=False)
     print(f'\ndetalhe em {dest}')
 

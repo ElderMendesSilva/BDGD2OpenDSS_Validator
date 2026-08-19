@@ -33,7 +33,8 @@ import os
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from bdgd2dss import lote, pausa                            # noqa: E402
+from bdgd2dss import lote, pausa, plataforma                # noqa: E402
+from bdgd2dss import escrita
 
 CWD = os.getcwd()
 
@@ -344,7 +345,15 @@ def main():
     ap = argparse.ArgumentParser(description=__doc__.split('\n')[2])
     ap.add_argument('raiz', nargs='?', default='MODELOS_V8')
     ap.add_argument('--se', nargs='*', help='so estas subestacoes')
-    ap.add_argument('--motor', choices=['ambos', 'capi', 'com'], default='ambos')
+    # O padrao NAO e fixo: `ambos` exige o motor COM da EPRI, que so
+    # existe registrado no Windows. Num no de cluster Linux o padrao
+    # cai para `capi`, e o rodape DIZ que comparou um motor so — em vez
+    # de quebrar a etapa no meio de um ciclo de horas, ou pior, de
+    # fingir que houve confronto entre motores.
+    ap.add_argument('--motor', choices=['ambos', 'capi', 'com'],
+                    default='ambos' if plataforma.tem_com() else 'capi',
+                    help='motores a usar; `ambos` exige o COM da EPRI '
+                         '(so Windows)')
     ap.add_argument('--jobs', type=int, default=8,
                     help='subestacoes em paralelo (padrao 8); cada uma custa '
                          'um processo com as suas instancias de motor')
@@ -377,6 +386,11 @@ def main():
 
     if a.jobs > 1 and len(itens) > 1:
         import concurrent.futures as cf
+        # `spawn` nos dois sistemas. No Linux o padrao e `fork`, e o
+        # filho nasceria com uma COPIA da DLL do OpenDSS ja carregada,
+        # com circuito e solucao dentro — o estado compartilhado que os
+        # processos separados existem para evitar.
+        plataforma.prepara_processos()
         print(f'{a.jobs} subestacoes em paralelo', flush=True)
         with cf.ProcessPoolExecutor(max_workers=a.jobs) as ex:
             fila = lote.maior_primeiro(
@@ -389,7 +403,7 @@ def main():
         # a ordem do arquivo e a de `itens`, nao a de quem terminou primeiro
         saida = [por_se[se] for se, _ in itens if se in por_se]
         json.dump(saida, open(os.path.join(raiz, 'verificacao.json'), 'w',
-                              encoding='utf-8'), indent=1, ensure_ascii=False)
+                              encoding='utf-8', newline=escrita.FIM_DE_LINHA), indent=1, ensure_ascii=False)
         print('\n' + '-' * 60)
         for k_, n in sorted(contagem.items(), key=lambda x: -x[1]):
             print(f'  {k_:22s} {n:4d}')
@@ -414,7 +428,7 @@ def main():
         saida.append({'se': se, 'veredicto': vd, 'capi': cap, 'com': com})
 
     json.dump(saida, open(os.path.join(raiz, 'verificacao.json'), 'w',
-                          encoding='utf-8'), indent=1, ensure_ascii=False)
+                          encoding='utf-8', newline=escrita.FIM_DE_LINHA), indent=1, ensure_ascii=False)
     print('\n' + '-' * 60)
     for k, n in sorted(contagem.items(), key=lambda x: -x[1]):
         print(f'  {k:22s} {n:4d}')

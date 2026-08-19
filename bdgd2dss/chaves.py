@@ -13,6 +13,7 @@ O estado e emitido DUAS vezes, de proposito:
 """
 from .leitor import num, txt, no
 from .linhas import nos
+from . import escrita
 
 # valores de P_N_OPE que significam chave aberta
 ABERTA = {'A', 'ABERTA', 'ABERTO', '0', 'N'}
@@ -78,6 +79,6 @@ def gerar(bdgd, ctmts, caminho_chaves, caminho_controles, barras=None):
         ch.insert(3, f'! {len(ilhadas)} chave(s) omitida(s): os dois PACs fora '
                      f'da rede de MT deste alimentador, o que criaria ilha '
                      f'flutuante — ex.: {", ".join(ilhadas[:3])}')
-    open(caminho_chaves, 'w', encoding='utf-8').write('\n'.join(ch) + '\n')
-    open(caminho_controles, 'w', encoding='utf-8').write('\n'.join(ct) + '\n')
+    open(caminho_chaves, 'w', encoding='utf-8', newline=escrita.FIM_DE_LINHA).write('\n'.join(ch) + '\n')
+    open(caminho_controles, 'w', encoding='utf-8', newline=escrita.FIM_DE_LINHA).write('\n'.join(ct) + '\n')
     return len(ch) - 3 - bool(ilhadas), abertas, ilhadas, criadas

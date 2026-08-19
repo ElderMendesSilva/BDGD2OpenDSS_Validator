@@ -47,6 +47,7 @@ silenciosa seria pior que o defeito: quem le o modelo tem de conseguir contar
 o que foi trocado e desfazer.
 """
 import collections
+from . import escrita
 
 MARGEM = 1.0            # quantas vezes a ampacidade a corrente precisa exceder
 
@@ -212,5 +213,5 @@ def escrever(caminho, subs, resumo):
     if not subs:
         out.append('! nenhum trecho excede a ampacidade declarada nesta '
                    'subestacao.')
-    open(caminho, 'w', encoding='utf-8').write('\n'.join(out) + '\n')
+    open(caminho, 'w', encoding='utf-8', newline=escrita.FIM_DE_LINHA).write('\n'.join(out) + '\n')
     return len(subs)
