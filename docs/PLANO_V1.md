@@ -125,18 +125,39 @@ ordem: a ligação energiza rede que estava no escuro, e a ampacidade decide
 pela corrente que passa depois disso.
 
 ### Fase 2 — fechar o resíduo de alcance
-**Custo: dias. Ganho: 60% → 70%.**
+**Custo: dias. Ganho: 60% → 70%. Código pronto em 19/08/2026; a nota espera
+a V15.**
 
-Sobram duas frentes, agora que a forma B está tratada:
+As duas frentes previstas eram o achado 31 e a forma C / balde `-FC`. A
+primeira estava certa. A segunda estava **olhando para o lugar errado**: medido
+o alcance na V14, o resíduo não era a forma C nem os 20 alimentadores `-FC` —
+era uma base inteira fora da curva, a Equatorial PA com **55,2% de carga
+energizada** contra 99,5% a 100% das outras seis, e em **103 das 119
+subestações**.
 
-1. **O achado 31** — cabeceira alcançada pela `SUB` quando `UNI_TR_AT` aponta
-   para o vazio. Vale a subestação 1726751 inteira, 7.803 cargas.
-2. **A forma C e o balde `-FC`** — rede estilhaçada em 1.922 componentes, e os
-   20 alimentadores da EQPA que somam 11% da MT daquela base. É o menos
-   entendido dos três.
+Foram dois defeitos, os dois corrigidos e medidos:
+
+1. **O achado 31** — âncora pelo trafo da própria `SUB` quando `BARR` está em
+   branco e `UNI_TR_AT` aponta para o vazio. Provado: `sem_vao: []` nas duas
+   subestações afetadas da Cemig-D, 7.803 cargas de volta à medição.
+2. **O achado 38** — o grafo da premissa de ligação tratava chave aberta como
+   aresta. Corrigido, e com ele a distinção entre o que é ilha (liga) e o que
+   está atrás de chave que a BDGD declara aberta (não liga, e passa a ser
+   resultado em vez de resíduo).
+3. **O achado 39** — `BARR_2` nomeia o pátio, não a barra: dois níveis de
+   secundário escritos na mesma barra faziam a rede do nível perdedor receber
+   40% da tensão. Na RIM, perdas de **78,26% → 0,44%**.
+
+Medido em 8 subestações da EQPA: **28.677 cargas sem tensão caem para 11.635**,
+59,4% recuperadas. O que resta é **86% um motivo só** — chave aberta declarada.
+
+**A NOTA NÃO SOBE AINDA.** A regra deste documento é que critério só muda com o
+número que o justifica, e o número que vale é o da base inteira, não o da
+amostra. Sobe quando a V15 medir.
 
 Critério de saída: alcance acima de 95% nas sete, ou limitação declarada com
-número por base.
+número por base. **A segunda metade do critério é a que se tornou possível**:
+o resíduo agora tem nome e conta.
 
 ### Fase 3 — quantificar o que falta e ler o que não lemos
 **Custo: uma semana. Ganho: 70% → 82%.**

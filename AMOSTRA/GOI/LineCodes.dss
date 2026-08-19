@@ -1,0 +1,37 @@
+! ==========================================================
+! LINECODES — gerados de SEGCON
+! R1/X1: dado da BDGD (ohm/km)
+! R0/X0: PREMISSA — R0=3.0 x R1, X0=3.5 x X1
+!        A BDGD nao traz sequencia zero. Ver README, secao "Limitacoes".
+! normamps = CNOM (capacidade nominal), emergamps = CMAX
+!
+! COERENCIA R1 x CNOM: 0 condutores tiveram a resistencia substituida
+! por estarem mais de 7.4x acima do previsto pelo ajuste calibrado nesta
+! propria base (R1 = 556.6 x CNOM^-1.237, n=582). Cada um esta
+! marcado com "!! R1 CORRIGIDO" na sua linha. Ver README.
+! ==========================================================
+
+New LineCode.CND_M30_33_3F nphases=3 basefreq=60 units=km r1=0.96310 x1=0.47000 r0=2.88930 x0=1.64500 normamps=175.0 emergamps=175.0
+New LineCode.CND_M30_32_3F nphases=3 basefreq=60 units=km r1=0.30180 x1=0.42490 r0=0.90540 x0=1.48715 normamps=365.0 emergamps=365.0
+New LineCode.CND_M30_42_3F nphases=3 basefreq=60 units=km r1=0.36790 x1=0.39780 r0=1.10370 x0=1.39230 normamps=350.0 emergamps=350.0
+New LineCode.CND_M30_89_3F nphases=3 basefreq=60 units=km r1=1.05030 x1=0.53000 r0=3.15090 x0=1.85500 normamps=175.0 emergamps=175.0
+New LineCode.CND_M20_89_2F nphases=2 basefreq=60 units=km r1=1.05030 x1=0.53000 r0=3.15090 x0=1.85500 normamps=175.0 emergamps=175.0
+New LineCode.CND_M30_1_3F nphases=3 basefreq=60 units=km r1=0.19020 x1=0.40330 r0=0.57060 x0=1.41155 normamps=495.0 emergamps=495.0
+New LineCode.CND_M20_40_2F nphases=2 basefreq=60 units=km r1=0.69610 x1=0.52090 r0=2.08830 x0=1.82315 normamps=230.0 emergamps=230.0
+New LineCode.CND_M30_30_3F nphases=3 basefreq=60 units=km r1=0.60420 x1=0.45130 r0=1.81260 x0=1.57955 normamps=235.0 emergamps=235.0
+New LineCode.CND_M10_1_1F nphases=1 basefreq=60 units=km r1=0.19020 x1=0.40330 r0=0.57060 x0=1.41155 normamps=495.0 emergamps=495.0
+New LineCode.CND_M10_30_1F nphases=1 basefreq=60 units=km r1=0.60420 x1=0.45130 r0=1.81260 x0=1.57955 normamps=235.0 emergamps=235.0
+New LineCode.CND_M10_89_1F nphases=1 basefreq=60 units=km r1=1.05030 x1=0.53000 r0=3.15090 x0=1.85500 normamps=175.0 emergamps=175.0
+New LineCode.CND_M10_89_3F nphases=3 basefreq=60 units=km r1=1.05030 x1=0.53000 r0=3.15090 x0=1.85500 normamps=175.0 emergamps=175.0
+New LineCode.CND_M10_40_1F nphases=1 basefreq=60 units=km r1=0.69610 x1=0.52090 r0=2.08830 x0=1.82315 normamps=230.0 emergamps=230.0
+New LineCode.CND_M10_33_1F nphases=1 basefreq=60 units=km r1=0.96310 x1=0.47000 r0=2.88930 x0=1.64500 normamps=175.0 emergamps=175.0
+New LineCode.CND_M10_42_1F nphases=1 basefreq=60 units=km r1=0.36790 x1=0.39780 r0=1.10370 x0=1.39230 normamps=350.0 emergamps=350.0
+New LineCode.CND_M10_39_1F nphases=1 basefreq=60 units=km r1=1.59720 x1=0.52200 r0=4.79160 x0=1.82700 normamps=130.0 emergamps=130.0
+New LineCode.CND_M30_40_3F nphases=3 basefreq=60 units=km r1=0.69610 x1=0.52090 r0=2.08830 x0=1.82315 normamps=230.0 emergamps=230.0
+New LineCode.CND_M10_52_1F nphases=1 basefreq=60 units=km r1=0.59910 x1=0.47000 r0=1.79730 x0=1.64500 normamps=90.0 emergamps=90.0
+New LineCode.CND_M30_39_3F nphases=3 basefreq=60 units=km r1=1.59720 x1=0.52200 r0=4.79160 x0=1.82700 normamps=130.0 emergamps=130.0
+New LineCode.CND_M10_29_1F nphases=1 basefreq=60 units=km r1=1.53010 x1=0.50000 r0=4.59030 x0=1.75000 normamps=130.0 emergamps=130.0
+New LineCode.CND_M30_29_3F nphases=3 basefreq=60 units=km r1=1.53010 x1=0.50000 r0=4.59030 x0=1.75000 normamps=130.0 emergamps=130.0
+New LineCode.CND_M20_30_2F nphases=2 basefreq=60 units=km r1=0.60420 x1=0.45130 r0=1.81260 x0=1.57955 normamps=235.0 emergamps=235.0
+
+! condutor generico para trechos sem TIP_CND na base

@@ -1,0 +1,28 @@
+! ==========================================================
+! VAOS DE SAIDA — barra de MT da SE -> cabeceira do alimentador
+! Derivado de CTMT.BARR e CTMT.UNI_TR_AT: a BDGD nao modela o
+! arranjo interno da subestacao, so o vinculo logico.
+! Cada vao e o disjuntor de saida do alimentador.
+! ==========================================================
+New Line.VAO_TAI01C4 phases=3 Bus1=tai01b1.1.2.3 Bus2=27385-12973190.1.2.3 Switch=y r1=0.0001 r0=0.0001 x1=0 x0=0 c1=0 c0=0
+New Monitor.M_TAI01C4 element=Line.VAO_TAI01C4 terminal=1 mode=1 ppolar=no
+New Line.VAO_TAI01C3 phases=3 Bus1=tai01b1.1.2.3 Bus2=27384-12973184.1.2.3 Switch=y r1=0.0001 r0=0.0001 x1=0 x0=0 c1=0 c0=0
+New Monitor.M_TAI01C3 element=Line.VAO_TAI01C3 terminal=1 mode=1 ppolar=no
+New Line.VAO_TAI01C2 phases=3 Bus1=tai01b1.1.2.3 Bus2=27383-12973155.1.2.3 Switch=y r1=0.0001 r0=0.0001 x1=0 x0=0 c1=0 c0=0
+New Monitor.M_TAI01C2 element=Line.VAO_TAI01C2 terminal=1 mode=1 ppolar=no
+New Line.VAO_TAI01C1 phases=3 Bus1=tai01b1.1.2.3 Bus2=27382-12972800.1.2.3 Switch=y r1=0.0001 r0=0.0001 x1=0 x0=0 c1=0 c0=0
+New Monitor.M_TAI01C1 element=Line.VAO_TAI01C1 terminal=1 mode=1 ppolar=no
+New Line.VAO_TAI09W1 phases=3 Bus1=tai01b1_34p5kv.1.2.3 Bus2=16284-11065003.1.2.3 Switch=y r1=0.0001 r0=0.0001 x1=0 x0=0 c1=0 c0=0
+New Monitor.M_TAI09W1 element=Line.VAO_TAI09W1 terminal=1 mode=1 ppolar=no
+New Line.VAO_TAI09W2 phases=3 Bus1=tai01b1_34p5kv.1.2.3 Bus2=15604-10506508.1.2.3 Switch=y r1=0.0001 r0=0.0001 x1=0 x0=0 c1=0 c0=0
+New Monitor.M_TAI09W2 element=Line.VAO_TAI09W2 terminal=1 mode=1 ppolar=no
+New Line.VAO_TAI09W3 phases=3 Bus1=tai01b1_34p5kv.1.2.3 Bus2=27342-12973114.1.2.3 Switch=y r1=0.0001 r0=0.0001 x1=0 x0=0 c1=0 c0=0
+New Monitor.M_TAI09W3 element=Line.VAO_TAI09W3 terminal=1 mode=1 ppolar=no
+New Line.VAO_TAITI-01 phases=3 Bus1=tai01b1.1.2.3 Bus2=20742-11504727.1.2.3 Switch=y r1=0.0001 r0=0.0001 x1=0 x0=0 c1=0 c0=0
+New Monitor.M_TAITI-01 element=Line.VAO_TAITI-01 terminal=1 mode=1 ppolar=no
+New Line.VAO_TAITI-02 phases=3 Bus1=tai01b1.1.2.3 Bus2=12685-7879144.1.2.3 Switch=y r1=0.0001 r0=0.0001 x1=0 x0=0 c1=0 c0=0
+New Monitor.M_TAITI-02 element=Line.VAO_TAITI-02 terminal=1 mode=1 ppolar=no
+New Line.VAO_TAITI-04 phases=3 Bus1=tai01b1.1.2.3 Bus2=12883-8233531.1.2.3 Switch=y r1=0.0001 r0=0.0001 x1=0 x0=0 c1=0 c0=0
+New Monitor.M_TAITI-04 element=Line.VAO_TAITI-04 terminal=1 mode=1 ppolar=no
+New Line.VAO_TAITI-05 phases=3 Bus1=tai01b1.1.2.3 Bus2=15562-10412477.1.2.3 Switch=y r1=0.0001 r0=0.0001 x1=0 x0=0 c1=0 c0=0
+New Monitor.M_TAITI-05 element=Line.VAO_TAITI-05 terminal=1 mode=1 ppolar=no

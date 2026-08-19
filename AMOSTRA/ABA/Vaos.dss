@@ -1,0 +1,24 @@
+! ==========================================================
+! VAOS DE SAIDA — barra de MT da SE -> cabeceira do alimentador
+! Derivado de CTMT.BARR e CTMT.UNI_TR_AT: a BDGD nao modela o
+! arranjo interno da subestacao, so o vinculo logico.
+! Cada vao e o disjuntor de saida do alimentador.
+! ==========================================================
+New Line.VAO_ABA01F6 phases=3 Bus1=aba01b1.1.2.3 Bus2=26282-12293823.1.2.3 Switch=y r1=0.0001 r0=0.0001 x1=0 x0=0 c1=0 c0=0
+New Monitor.M_ABA01F6 element=Line.VAO_ABA01F6 terminal=1 mode=1 ppolar=no
+New Line.VAO_ABA01F7 phases=3 Bus1=aba01b1.1.2.3 Bus2=26283-12286950.1.2.3 Switch=y r1=0.0001 r0=0.0001 x1=0 x0=0 c1=0 c0=0
+New Monitor.M_ABA01F7 element=Line.VAO_ABA01F7 terminal=1 mode=1 ppolar=no
+New Line.VAO_ABAAB-01 phases=3 Bus1=aba01b1.1.2.3 Bus2=16102-10869357.1.2.3 Switch=y r1=0.0001 r0=0.0001 x1=0 x0=0 c1=0 c0=0
+New Monitor.M_ABAAB-01 element=Line.VAO_ABAAB-01 terminal=1 mode=1 ppolar=no
+New Line.VAO_ABAAB-02 phases=3 Bus1=aba01b1.1.2.3 Bus2=16107-10888180.1.2.3 Switch=y r1=0.0001 r0=0.0001 x1=0 x0=0 c1=0 c0=0
+New Monitor.M_ABAAB-02 element=Line.VAO_ABAAB-02 terminal=1 mode=1 ppolar=no
+New Line.VAO_ABAAB-03 phases=3 Bus1=aba01b1.1.2.3 Bus2=16112-10915314.1.2.3 Switch=y r1=0.0001 r0=0.0001 x1=0 x0=0 c1=0 c0=0
+New Monitor.M_ABAAB-03 element=Line.VAO_ABAAB-03 terminal=1 mode=1 ppolar=no
+New Line.VAO_ABAAB-04 phases=3 Bus1=aba01b1.1.2.3 Bus2=21643-11545650.1.2.3 Switch=y r1=0.0001 r0=0.0001 x1=0 x0=0 c1=0 c0=0
+New Monitor.M_ABAAB-04 element=Line.VAO_ABAAB-04 terminal=1 mode=1 ppolar=no
+New Line.VAO_ABAAB-05 phases=3 Bus1=aba01b1.1.2.3 Bus2=21642-11545654.1.2.3 Switch=y r1=0.0001 r0=0.0001 x1=0 x0=0 c1=0 c0=0
+New Monitor.M_ABAAB-05 element=Line.VAO_ABAAB-05 terminal=1 mode=1 ppolar=no
+New Line.VAO_ABAAB-15 phases=3 Bus1=aba09b1.1.2.3 Bus2=15842-11474348.1.2.3 Switch=y r1=0.0001 r0=0.0001 x1=0 x0=0 c1=0 c0=0
+New Monitor.M_ABAAB-15 element=Line.VAO_ABAAB-15 terminal=1 mode=1 ppolar=no
+New Line.VAO_ABAAB-16 phases=3 Bus1=aba09b1.1.2.3 Bus2=15662-10521005.1.2.3 Switch=y r1=0.0001 r0=0.0001 x1=0 x0=0 c1=0 c0=0
+New Monitor.M_ABAAB-16 element=Line.VAO_ABAAB-16 terminal=1 mode=1 ppolar=no

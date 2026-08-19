@@ -1,0 +1,19 @@
+! REGULADORES — gerados de UNREMT
+! vreg = 122 V e band = 2 V — AJUSTES TIPICOS, nao de campo.
+! kVA = 5000 adotado; a BDGD nao traz a potencia do regulador.
+! O ptratio segue a tensao de cada alimentador (TP para 120 V).
+New Transformer.REG_3131638_1 phases=1 windings=2 XHL=0.04
+~ buses=[25203-12545390r.1 25203-12545390f.1] conns=[wye wye]
+~ kVs=[19.9186 19.9186] kVAs=[5000 5000] %Rs=[0.01 0.01]
+~ maxtap=1.10 mintap=0.90 numtaps=32
+New RegControl.RC_REG_3131638_1 transformer=REG_3131638_1 winding=2 vreg=122 band=2 ptratio=165.99 delay=15 maxtapchange=1
+New Transformer.REG_3131638_2 phases=1 windings=2 XHL=0.04
+~ buses=[25203-12545390r.2 25203-12545390f.2] conns=[wye wye]
+~ kVs=[19.9186 19.9186] kVAs=[5000 5000] %Rs=[0.01 0.01]
+~ maxtap=1.10 mintap=0.90 numtaps=32
+New RegControl.RC_REG_3131638_2 transformer=REG_3131638_2 winding=2 vreg=122 band=2 ptratio=165.99 delay=15 maxtapchange=1
+New Transformer.REG_3131638_3 phases=1 windings=2 XHL=0.04
+~ buses=[25203-12545390r.3 25203-12545390f.3] conns=[wye wye]
+~ kVs=[19.9186 19.9186] kVAs=[5000 5000] %Rs=[0.01 0.01]
+~ maxtap=1.10 mintap=0.90 numtaps=32
+New RegControl.RC_REG_3131638_3 transformer=REG_3131638_3 winding=2 vreg=122 band=2 ptratio=165.99 delay=15 maxtapchange=1

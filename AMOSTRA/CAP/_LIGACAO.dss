@@ -1,0 +1,106 @@
+! ==========================================================================
+!  LIGACAO A COMPONENTE DESENERGIZADA — achado 33, forma B
+! ==========================================================================
+!  ISTO E MODELAGEM, NAO CONVERSAO, E INVENTA UM ELO QUE A BDGD NAO DECLARA.
+!
+!  A rede destes alimentadores esta inteira numa componente conexa grande,
+!  e a cabeceira declarada no CTMT.PAC_INI esta numa ilha pequena ao lado.
+!  A BDGD nao diz qual e o elo entre as duas. Aqui ele e criado, ligando a
+!  barra de MT da subestacao a barra de MAIOR GRAU da componente — a que
+!  mais se parece com um tronco.
+!
+!  O elo e do mesmo tipo do vao de saida: chave de impedancia desprezivel.
+!  Ele representa o arranjo interno da subestacao, que a BDGD nao modela.
+!
+!  19 elo(s), energizando 5,606 cargas em 34,102 barras.
+!
+!  Para rodar SEM esta premissa, apague o `redirect _LIGACAO.dss` do MASTER.
+!  O modelo continua valido; o que muda e quanta rede fica energizada.
+! ==========================================================================
+
+New Line.VAO_EXTRA_1 phases=3 Bus1=cap01b1.1.2.3 Bus2=11972-6662119.1.2.3 Switch=y r1=0.0001 r0=0.0001 x1=0 x0=0 c1=0 c0=0   ! componente de 5,680 barras e 1,062 cargas, ancora de grau 4 em 7.9674 kV
+New Line.VAO_EXTRA_2 phases=3 Bus1=cap01b1.1.2.3 Bus2=25449-10683049.1.2.3 Switch=y r1=0.0001 r0=0.0001 x1=0 x0=0 c1=0 c0=0   ! componente de 3,986 barras e 487 cargas, ancora de grau 4 em 7.9674 kV
+New Line.VAO_EXTRA_3 phases=3 Bus1=cap01b1.1.2.3 Bus2=15682-10561937.1.2.3 Switch=y r1=0.0001 r0=0.0001 x1=0 x0=0 c1=0 c0=0   ! componente de 2,373 barras e 462 cargas, ancora de grau 5 em 7.9674 kV
+New Line.VAO_EXTRA_4 phases=3 Bus1=cap01b1.1.2.3 Bus2=26842-6484713.1.2.3 Switch=y r1=0.0001 r0=0.0001 x1=0 x0=0 c1=0 c0=0   ! componente de 2,593 barras e 446 cargas, ancora de grau 4 em 7.9674 kV
+New Line.VAO_EXTRA_5 phases=3 Bus1=cap01b1.1.2.3 Bus2=11972-11625238.1.2.3 Switch=y r1=0.0001 r0=0.0001 x1=0 x0=0 c1=0 c0=0   ! componente de 1,924 barras e 353 cargas, ancora de grau 4 em 7.9674 kV
+New Line.VAO_EXTRA_6 phases=3 Bus1=cap01b1.1.2.3 Bus2=25449-10686751.1.2.3 Switch=y r1=0.0001 r0=0.0001 x1=0 x0=0 c1=0 c0=0   ! componente de 2,817 barras e 340 cargas, ancora de grau 4 em 7.9674 kV
+New Line.VAO_EXTRA_7 phases=3 Bus1=cap01b1.1.2.3 Bus2=11920-6482842.1.2.3 Switch=y r1=0.0001 r0=0.0001 x1=0 x0=0 c1=0 c0=0   ! componente de 1,750 barras e 339 cargas, ancora de grau 4 em 7.9674 kV
+New Line.VAO_EXTRA_8 phases=3 Bus1=cap01b1.1.2.3 Bus2=15682-10561667.1.2.3 Switch=y r1=0.0001 r0=0.0001 x1=0 x0=0 c1=0 c0=0   ! componente de 1,996 barras e 300 cargas, ancora de grau 4 em 7.9674 kV
+New Line.VAO_EXTRA_9 phases=3 Bus1=cap01b1.1.2.3 Bus2=25449-10681779.1.2.3 Switch=y r1=0.0001 r0=0.0001 x1=0 x0=0 c1=0 c0=0   ! componente de 1,970 barras e 294 cargas, ancora de grau 4 em 7.9674 kV
+New Line.VAO_EXTRA_10 phases=3 Bus1=cap01b1.1.2.3 Bus2=16114-10911709.1.2.3 Switch=y r1=0.0001 r0=0.0001 x1=0 x0=0 c1=0 c0=0   ! componente de 1,500 barras e 283 cargas, ancora de grau 4 em 7.9674 kV
+New Line.VAO_EXTRA_11 phases=3 Bus1=cap01b1.1.2.3 Bus2=11958-11686803.1.2.3 Switch=y r1=0.0001 r0=0.0001 x1=0 x0=0 c1=0 c0=0   ! componente de 1,551 barras e 278 cargas, ancora de grau 4 em 7.9674 kV
+New Line.VAO_EXTRA_12 phases=3 Bus1=cap01b1.1.2.3 Bus2=11920-6484050.1.2.3 Switch=y r1=0.0001 r0=0.0001 x1=0 x0=0 c1=0 c0=0   ! componente de 1,410 barras e 253 cargas, ancora de grau 4 em 7.9674 kV
+New Line.VAO_EXTRA_13 phases=3 Bus1=cap01b1.1.2.3 Bus2=25449-10681489.1.2.3 Switch=y r1=0.0001 r0=0.0001 x1=0 x0=0 c1=0 c0=0   ! componente de 1,152 barras e 203 cargas, ancora de grau 4 em 7.9674 kV
+New Line.VAO_EXTRA_14 phases=3 Bus1=cap01b1.1.2.3 Bus2=25449-10686010.1.2.3 Switch=y r1=0.0001 r0=0.0001 x1=0 x0=0 c1=0 c0=0   ! componente de 1,170 barras e 135 cargas, ancora de grau 4 em 7.9674 kV
+New Line.VAO_EXTRA_15 phases=3 Bus1=cap01b1.1.2.3 Bus2=25449-10682730.1.2.3 Switch=y r1=0.0001 r0=0.0001 x1=0 x0=0 c1=0 c0=0   ! componente de 764 barras e 105 cargas, ancora de grau 3 em 7.9674 kV
+New Line.VAO_EXTRA_16 phases=3 Bus1=cap01b1.1.2.3 Bus2=11958-6600284.1.2.3 Switch=y r1=0.0001 r0=0.0001 x1=0 x0=0 c1=0 c0=0   ! componente de 571 barras e 99 cargas, ancora de grau 4 em 7.9674 kV
+New Line.VAO_EXTRA_17 phases=3 Bus1=cap01b1.1.2.3 Bus2=11958-6600831.1.2.3 Switch=y r1=0.0001 r0=0.0001 x1=0 x0=0 c1=0 c0=0   ! componente de 328 barras e 69 cargas, ancora de grau 4 em 7.9674 kV
+New Line.VAO_EXTRA_18 phases=3 Bus1=cap01b1.1.2.3 Bus2=11958-6601777.1.2.3 Switch=y r1=0.0001 r0=0.0001 x1=0 x0=0 c1=0 c0=0   ! componente de 374 barras e 61 cargas, ancora de grau 5 em 7.9674 kV
+New Line.VAO_EXTRA_19 phases=3 Bus1=cap01b1.1.2.3 Bus2=25449-10682253.1.2.3 Switch=y r1=0.0001 r0=0.0001 x1=0 x0=0 c1=0 c0=0   ! componente de 193 barras e 37 cargas, ancora de grau 4 em 7.9674 kV
+! descartada: 2,206 barras, 432 cargas — chave aberta declarada — outro alimentador e quem alimenta
+! descartada: 1,314 barras, 201 cargas — chave aberta declarada — outro alimentador e quem alimenta
+! descartada: 952 barras, 215 cargas — chave aberta declarada — outro alimentador e quem alimenta
+! descartada: 879 barras, 182 cargas — chave aberta declarada — outro alimentador e quem alimenta
+! descartada: 523 barras, 107 cargas — chave aberta declarada — outro alimentador e quem alimenta
+! descartada: 507 barras, 53 cargas — chave aberta declarada — outro alimentador e quem alimenta
+! descartada: 481 barras, 96 cargas — chave aberta declarada — outro alimentador e quem alimenta
+! descartada: 189 barras, 40 cargas — nenhuma barra na tensao de um vao
+! descartada: 132 barras, 44 cargas — chave aberta declarada — outro alimentador e quem alimenta
+! descartada: 120 barras, 32 cargas — chave aberta declarada — outro alimentador e quem alimenta
+! descartada: 104 barras, 35 cargas — chave aberta declarada — outro alimentador e quem alimenta
+! descartada: 1 barras, 0 cargas — poucas cargas
+! descartada: 1 barras, 0 cargas — poucas cargas
+! descartada: 1 barras, 0 cargas — poucas cargas
+! descartada: 1 barras, 0 cargas — poucas cargas
+! descartada: 1 barras, 0 cargas — poucas cargas
+! descartada: 1 barras, 0 cargas — poucas cargas
+! descartada: 1 barras, 0 cargas — poucas cargas
+! descartada: 1 barras, 0 cargas — poucas cargas
+! descartada: 1 barras, 0 cargas — poucas cargas
+! descartada: 1 barras, 0 cargas — poucas cargas
+! descartada: 1 barras, 0 cargas — poucas cargas
+! descartada: 1 barras, 0 cargas — poucas cargas
+! descartada: 1 barras, 0 cargas — poucas cargas
+! descartada: 1 barras, 0 cargas — poucas cargas
+! descartada: 1 barras, 0 cargas — poucas cargas
+! descartada: 1 barras, 0 cargas — poucas cargas
+! descartada: 1 barras, 0 cargas — poucas cargas
+! descartada: 1 barras, 0 cargas — poucas cargas
+! descartada: 1 barras, 0 cargas — poucas cargas
+! descartada: 1 barras, 0 cargas — poucas cargas
+! descartada: 1 barras, 0 cargas — poucas cargas
+! descartada: 1 barras, 0 cargas — poucas cargas
+! descartada: 1 barras, 0 cargas — poucas cargas
+! descartada: 1 barras, 0 cargas — poucas cargas
+! descartada: 1 barras, 0 cargas — poucas cargas
+! descartada: 1 barras, 0 cargas — poucas cargas
+! descartada: 1 barras, 0 cargas — poucas cargas
+! descartada: 1 barras, 0 cargas — poucas cargas
+! descartada: 1 barras, 0 cargas — poucas cargas
+! descartada: 1 barras, 0 cargas — poucas cargas
+! descartada: 1 barras, 0 cargas — poucas cargas
+! descartada: 1 barras, 0 cargas — poucas cargas
+! descartada: 1 barras, 0 cargas — poucas cargas
+! descartada: 1 barras, 0 cargas — poucas cargas
+! descartada: 1 barras, 0 cargas — poucas cargas
+! descartada: 1 barras, 0 cargas — poucas cargas
+! descartada: 1 barras, 0 cargas — poucas cargas
+! descartada: 1 barras, 0 cargas — poucas cargas
+! descartada: 1 barras, 0 cargas — poucas cargas
+! descartada: 1 barras, 0 cargas — poucas cargas
+! descartada: 1 barras, 0 cargas — poucas cargas
+! descartada: 1 barras, 0 cargas — poucas cargas
+! descartada: 1 barras, 0 cargas — poucas cargas
+! descartada: 1 barras, 0 cargas — poucas cargas
+! descartada: 1 barras, 0 cargas — poucas cargas
+! descartada: 1 barras, 0 cargas — poucas cargas
+! descartada: 1 barras, 0 cargas — poucas cargas
+! descartada: 1 barras, 0 cargas — poucas cargas
+! descartada: 1 barras, 0 cargas — poucas cargas
+! descartada: 1 barras, 0 cargas — poucas cargas
+! descartada: 1 barras, 0 cargas — poucas cargas
+! descartada: 1 barras, 0 cargas — poucas cargas
+! descartada: 1 barras, 0 cargas — poucas cargas
+! descartada: 1 barras, 0 cargas — poucas cargas
+! descartada: 1 barras, 0 cargas — poucas cargas
+! descartada: 1 barras, 0 cargas — poucas cargas

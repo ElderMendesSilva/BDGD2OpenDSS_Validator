@@ -1,0 +1,52 @@
+! ==========================================================================
+!  LIGACAO A COMPONENTE DESENERGIZADA — achado 33, forma B
+! ==========================================================================
+!  ISTO E MODELAGEM, NAO CONVERSAO, E INVENTA UM ELO QUE A BDGD NAO DECLARA.
+!
+!  A rede destes alimentadores esta inteira numa componente conexa grande,
+!  e a cabeceira declarada no CTMT.PAC_INI esta numa ilha pequena ao lado.
+!  A BDGD nao diz qual e o elo entre as duas. Aqui ele e criado, ligando a
+!  barra de MT da subestacao a barra de MAIOR GRAU da componente — a que
+!  mais se parece com um tronco.
+!
+!  O elo e do mesmo tipo do vao de saida: chave de impedancia desprezivel.
+!  Ele representa o arranjo interno da subestacao, que a BDGD nao modela.
+!
+!  2 elo(s), energizando 2,084 cargas em 22,853 barras.
+!
+!  Para rodar SEM esta premissa, apague o `redirect _LIGACAO.dss` do MASTER.
+!  O modelo continua valido; o que muda e quanta rede fica energizada.
+! ==========================================================================
+
+New Line.VAO_EXTRA_1 phases=3 Bus1=goi01b1.1.2.3 Bus2=13137-8899501.1.2.3 Switch=y r1=0.0001 r0=0.0001 x1=0 x0=0 c1=0 c0=0   ! componente de 20,511 barras e 1,843 cargas, ancora de grau 5 em 7.9674 kV
+New Line.VAO_EXTRA_2 phases=3 Bus1=goi01b1.1.2.3 Bus2=13137-8899906.1.2.3 Switch=y r1=0.0001 r0=0.0001 x1=0 x0=0 c1=0 c0=0   ! componente de 2,342 barras e 241 cargas, ancora de grau 4 em 7.9674 kV
+! descartada: 471 barras, 114 cargas — nenhuma barra na tensao de um vao
+! descartada: 1 barras, 0 cargas — poucas cargas
+! descartada: 1 barras, 0 cargas — poucas cargas
+! descartada: 1 barras, 0 cargas — poucas cargas
+! descartada: 1 barras, 0 cargas — poucas cargas
+! descartada: 1 barras, 0 cargas — poucas cargas
+! descartada: 1 barras, 0 cargas — poucas cargas
+! descartada: 1 barras, 0 cargas — poucas cargas
+! descartada: 1 barras, 0 cargas — poucas cargas
+! descartada: 1 barras, 0 cargas — poucas cargas
+! descartada: 1 barras, 0 cargas — poucas cargas
+! descartada: 1 barras, 0 cargas — poucas cargas
+! descartada: 1 barras, 0 cargas — poucas cargas
+! descartada: 1 barras, 0 cargas — poucas cargas
+! descartada: 1 barras, 0 cargas — poucas cargas
+! descartada: 1 barras, 0 cargas — poucas cargas
+! descartada: 1 barras, 0 cargas — poucas cargas
+! descartada: 1 barras, 0 cargas — poucas cargas
+! descartada: 1 barras, 0 cargas — poucas cargas
+! descartada: 1 barras, 0 cargas — poucas cargas
+! descartada: 1 barras, 0 cargas — poucas cargas
+! descartada: 1 barras, 0 cargas — poucas cargas
+! descartada: 1 barras, 0 cargas — poucas cargas
+! descartada: 1 barras, 0 cargas — poucas cargas
+! descartada: 1 barras, 0 cargas — poucas cargas
+! descartada: 1 barras, 0 cargas — poucas cargas
+! descartada: 1 barras, 0 cargas — poucas cargas
+! descartada: 1 barras, 0 cargas — poucas cargas
+! descartada: 1 barras, 0 cargas — poucas cargas
+! descartada: 1 barras, 0 cargas — poucas cargas

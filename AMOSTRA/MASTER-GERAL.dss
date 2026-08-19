@@ -1,0 +1,231 @@
+clear
+set defaultbasefrequency=60
+
+! ==========================================================================
+!  ENEL SP — MODELO COMPLETO DA CONCESSAO
+!  gerado de Equatorial_PA_371_2024-12-31_V11_20250911-0946.gdb
+!  por bdgd2dss
+! ==========================================================================
+!
+!  ABRANGENCIA
+!    subestacoes ......... 8
+!    alimentadores ....... 52
+!    trafos de potencia .. 19   (AT -> MT, reais da UNTRAT/EQTRAT)
+!    trechos de AT ....... 0  (0.0 km de subtransmissao)
+!    chaves de AT ........ 119
+!    vaos de saida ....... 48  (barra de MT -> cabeceira)
+!
+!  COMO ESTE MODELO E ALIMENTADO
+!    A malha de 88 kV da BDGD nao e conexa: sao 8 componentes
+!    separadas, e as subestacoes da transmissora nao possuem barra nesta
+!    exportacao. Cada patio de AT com transformador recebe portanto a sua
+!    propria fonte:
+!        0 em cabeceira de circuito de AT declarada (CTAT.PAC_INI)
+!        8 como equivalente no primario do transformador
+!    O nivel de curto vem da potencia instalada declarada pela ISA Energia
+!    onde a subestacao e uma ETT conhecida; nas demais usa-se o padrao
+!    documentado em bdgd2dss/transmissao.py.
+!
+!  ORDEM DE MONTAGEM
+!    1. fontes — o New Circuit tem de vir antes de qualquer elemento
+!    2. LineCodes e curvas (comuns a todos os niveis)
+!    3. subtransmissao: linhas, chaves, transformadores de potencia
+!    4. subestacoes da transmissora (as que nao tem trafo proprio)
+!    5. vaos de saida — e aqui que a AT encontra a MT
+!    6. uma subestacao por vez: MT, transformadores, cargas, GD
+!    7. estado das chaves normalmente abertas
+!
+!  LIMITES DECLARADOS — leia antes de publicar resultado
+!    R0/X0 sao premissa (3,0 e 3,5 vezes os de sequencia positiva), nao
+!      dado: a SEGCON so traz R1 e X1. Resultado de DESEQUILIBRIO nao tem
+!      validade neste modelo.
+!    Xhl dos trafos de potencia e adotado por faixa de potencia; a BDGD
+!      traz perdas, nao impedancia.
+!    A carga de BT esta agregada no secundario de cada trafo de
+!      distribuicao. Correto para carregamento de MT; NAO serve para tensao
+!      de atendimento ao consumidor (use --bt completo para isso).
+!    Fator de potencia 0,92 assumido, nao medido.
+!    Harmonicos fora de alcance: a BDGD nao traz espectro.
+! ==========================================================================
+
+
+! ---------------------------------------- 1. fontes
+redirect _AT/Fontes.dss
+
+! ---------------------------------------- 2. LineCodes e curvas
+redirect _global/LineCodes.dss
+redirect _global/Curvas.dss
+redirect _global/_XYCURVES.dss
+
+! ---------------------------------------- 3 a 5. alta tensao
+redirect _AT/Linhas_AT.dss
+redirect _AT/Chaves_AT.dss
+redirect _AT/Barras_AT.dss
+redirect _AT/Trafos_AT.dss
+redirect _AT/Cargas_AT.dss
+redirect _AT/GD_AT.dss
+redirect _AT/Capacitores_AT.dss
+
+! ---------------------------------------- 6. as 8 subestacoes
+redirect ABA/REDE-ABA.dss
+redirect CAP/REDE-CAP.dss
+redirect CSO/REDE-CSO.dss
+redirect GOI/REDE-GOI.dss
+redirect MOL/REDE-MOL.dss
+redirect RIM/REDE-RIM.dss
+redirect TAI/REDE-TAI.dss
+redirect TUM/REDE-TUM.dss
+
+! ------------------------------------------------------------------ medicao
+! EnergyMeter na entrada de cada alimentador (no vao de saida). E o que
+! permite apurar perdas, energia e sobrecarga POR ALIMENTADOR — o Monitor
+! sozinho registra grandeza, nao acumula perdas.
+!   Show Meters          resumo por alimentador
+!   Show Losses          perdas por elemento
+!   Export Meters        planilha com kWh, perdas e violacoes
+New EnergyMeter.EM_ABA01F6 element=Line.VAO_ABA01F6 terminal=1
+New EnergyMeter.EM_ABA01F7 element=Line.VAO_ABA01F7 terminal=1
+New EnergyMeter.EM_ABAAB-01 element=Line.VAO_ABAAB-01 terminal=1
+New EnergyMeter.EM_ABAAB-02 element=Line.VAO_ABAAB-02 terminal=1
+New EnergyMeter.EM_ABAAB-03 element=Line.VAO_ABAAB-03 terminal=1
+New EnergyMeter.EM_ABAAB-04 element=Line.VAO_ABAAB-04 terminal=1
+New EnergyMeter.EM_ABAAB-05 element=Line.VAO_ABAAB-05 terminal=1
+New EnergyMeter.EM_ABAAB-15 element=Line.VAO_ABAAB-15 terminal=1
+New EnergyMeter.EM_ABAAB-16 element=Line.VAO_ABAAB-16 terminal=1
+New EnergyMeter.EM_CAP01C8 element=Line.VAO_CAP01C8 terminal=1
+New EnergyMeter.EM_CAPCP-01 element=Line.VAO_CAPCP-01 terminal=1
+New EnergyMeter.EM_CAPCP-02 element=Line.VAO_CAPCP-02 terminal=1
+New EnergyMeter.EM_CAPCP-03 element=Line.VAO_CAPCP-03 terminal=1
+New EnergyMeter.EM_CAPCP-04 element=Line.VAO_CAPCP-04 terminal=1
+New EnergyMeter.EM_CAPCP-05 element=Line.VAO_CAPCP-05 terminal=1
+New EnergyMeter.EM_CAPCP-06 element=Line.VAO_CAPCP-06 terminal=1
+New EnergyMeter.EM_CAPCP-07 element=Line.VAO_CAPCP-07 terminal=1
+New EnergyMeter.EM_CSOCO-01 element=Line.VAO_CSOCO-01 terminal=1
+New EnergyMeter.EM_CSOCO-02 element=Line.VAO_CSOCO-02 terminal=1
+New EnergyMeter.EM_GOIGI-01 element=Line.VAO_GOIGI-01 terminal=1
+New EnergyMeter.EM_GOIGI-02 element=Line.VAO_GOIGI-02 terminal=1
+New EnergyMeter.EM_GOIGI-03 element=Line.VAO_GOIGI-03 terminal=1
+New EnergyMeter.EM_MOL01C1 element=Line.VAO_MOL01C1 terminal=1
+New EnergyMeter.EM_MOL01C2 element=Line.VAO_MOL01C2 terminal=1
+New EnergyMeter.EM_RIM01M1 element=Line.VAO_RIM01M1 terminal=1
+New EnergyMeter.EM_RIM01M2 element=Line.VAO_RIM01M2 terminal=1
+New EnergyMeter.EM_RIM01M3 element=Line.VAO_RIM01M3 terminal=1
+New EnergyMeter.EM_RIM09W1 element=Line.VAO_RIM09W1 terminal=1
+New EnergyMeter.EM_RIM09W2 element=Line.VAO_RIM09W2 terminal=1
+New EnergyMeter.EM_RIM09W3 element=Line.VAO_RIM09W3 terminal=1
+New EnergyMeter.EM_TAI01C4 element=Line.VAO_TAI01C4 terminal=1
+New EnergyMeter.EM_TAI01C3 element=Line.VAO_TAI01C3 terminal=1
+New EnergyMeter.EM_TAI01C2 element=Line.VAO_TAI01C2 terminal=1
+New EnergyMeter.EM_TAI01C1 element=Line.VAO_TAI01C1 terminal=1
+New EnergyMeter.EM_TAI09W1 element=Line.VAO_TAI09W1 terminal=1
+New EnergyMeter.EM_TAI09W2 element=Line.VAO_TAI09W2 terminal=1
+New EnergyMeter.EM_TAI09W3 element=Line.VAO_TAI09W3 terminal=1
+New EnergyMeter.EM_TAITI-01 element=Line.VAO_TAITI-01 terminal=1
+New EnergyMeter.EM_TAITI-02 element=Line.VAO_TAITI-02 terminal=1
+New EnergyMeter.EM_TAITI-04 element=Line.VAO_TAITI-04 terminal=1
+New EnergyMeter.EM_TAITI-05 element=Line.VAO_TAITI-05 terminal=1
+New EnergyMeter.EM_TUMTM-06 element=Line.VAO_TUMTM-06 terminal=1
+New EnergyMeter.EM_TUMTM-01 element=Line.VAO_TUMTM-01 terminal=1
+New EnergyMeter.EM_TUMTM-02 element=Line.VAO_TUMTM-02 terminal=1
+New EnergyMeter.EM_TUMTM-03 element=Line.VAO_TUMTM-03 terminal=1
+New EnergyMeter.EM_TUMTM-04 element=Line.VAO_TUMTM-04 terminal=1
+New EnergyMeter.EM_TUMTM-05 element=Line.VAO_TUMTM-05 terminal=1
+New EnergyMeter.EM_TUMTM-08 element=Line.VAO_TUMTM-08 terminal=1
+! Monitores de potencia nos transformadores de potencia (AT -> MT).
+New Monitor.MT_ABA-02T1 element=Transformer.AT_ABA-02T1 terminal=1 mode=1 ppolar=no
+New Monitor.MT_ABA-02T3 element=Transformer.AT_ABA-02T3 terminal=1 mode=1 ppolar=no
+New Monitor.MT_CAP-RI element=Transformer.AT_CAP-RI terminal=1 mode=1 ppolar=no
+New Monitor.MT_CAP-T-3 element=Transformer.AT_CAP-T-3 terminal=1 mode=1 ppolar=no
+New Monitor.MT_CSO-RI-1 element=Transformer.AT_CSO-RI-1 terminal=1 mode=1 ppolar=no
+New Monitor.MT_CSO-T-1 element=Transformer.AT_CSO-T-1 terminal=1 mode=1 ppolar=no
+New Monitor.MT_FIC_TUM_TRM element=Transformer.AT_FIC_TUM_TRM terminal=1 mode=1 ppolar=no
+New Monitor.MT_GOI-RI-1 element=Transformer.AT_GOI-RI-1 terminal=1 mode=1 ppolar=no
+New Monitor.MT_GOI-RI-2 element=Transformer.AT_GOI-RI-2 terminal=1 mode=1 ppolar=no
+New Monitor.MT_GOI-T-1 element=Transformer.AT_GOI-T-1 terminal=1 mode=1 ppolar=no
+New Monitor.MT_MAL-03T1 element=Transformer.AT_MAL-03T1 terminal=1 mode=1 ppolar=no
+New Monitor.MT_MAL-03T1_RI element=Transformer.AT_MAL-03T1_RI terminal=1 mode=1 ppolar=no
+New Monitor.MT_MAL-03T2 element=Transformer.AT_MAL-03T2 terminal=1 mode=1 ppolar=no
+New Monitor.MT_RIM-03T1 element=Transformer.AT_RIM-03T1 terminal=1 mode=1 ppolar=no
+New Monitor.MT_RIM-03T2 element=Transformer.AT_RIM-03T2 terminal=1 mode=1 ppolar=no
+New Monitor.MT_TAI-T-1 element=Transformer.AT_TAI-T-1 terminal=1 mode=1 ppolar=no
+New Monitor.MT_TAI-T-2 element=Transformer.AT_TAI-T-2 terminal=1 mode=1 ppolar=no
+New Monitor.MT_TUM-T-1 element=Transformer.AT_TUM-T-1 terminal=1 mode=1 ppolar=no
+New Monitor.MT_TUM-T-2 element=Transformer.AT_TUM-T-2 terminal=1 mode=1 ppolar=no
+! Monitores de corrente nos troncos de subtransmissao.
+! sem linhas de AT
+
+
+! ---------------------------------------- 7. chaves abertas
+
+! ------------------------------------------------------------------ solucao
+Set Voltagebases=[138 88 34.5 13.8 0.44 0.38 0.254 0.24 0.23 0.22 0.208]
+CalcVoltagebases
+
+Set maxcontroliter=200
+Set maxiterations=100
+Set controlmode=static
+Set tolerance=0.0001
+
+! estado das chaves normalmente abertas, fixado depois da montagem
+redirect _AT/_CHAVES_ABERTAS_AT.dss
+redirect ABA/_CHAVES_ABERTAS.dss
+redirect CAP/_CHAVES_ABERTAS.dss
+redirect CSO/_CHAVES_ABERTAS.dss
+redirect GOI/_CHAVES_ABERTAS.dss
+redirect MOL/_CHAVES_ABERTAS.dss
+redirect RIM/_CHAVES_ABERTAS.dss
+redirect TAI/_CHAVES_ABERTAS.dss
+redirect TUM/_CHAVES_ABERTAS.dss
+redirect ABA/_AMPACIDADE.dss
+redirect CAP/_AMPACIDADE.dss
+redirect CSO/_AMPACIDADE.dss
+redirect GOI/_AMPACIDADE.dss
+redirect MOL/_AMPACIDADE.dss
+redirect RIM/_AMPACIDADE.dss
+redirect TAI/_AMPACIDADE.dss
+redirect TUM/_AMPACIDADE.dss
+redirect ABA/_LIGACAO.dss
+redirect CAP/_LIGACAO.dss
+redirect CSO/_LIGACAO.dss
+redirect GOI/_LIGACAO.dss
+redirect MOL/_LIGACAO.dss
+redirect RIM/_LIGACAO.dss
+redirect TAI/_LIGACAO.dss
+redirect TUM/_LIGACAO.dss
+
+! solucao inicial, recalculo das bases e solucao definitiva
+Set mode=snap
+Solve
+CalcVoltagebases
+Solve
+
+! --------------------------------------------------- coordenadas geograficas
+! DEPOIS do Solve de proposito: a lista de barras do OpenDSS so existe apos a
+! montagem, e um Buscoords emitido antes nao encontra barra alguma para casar.
+! Extraidas da geometria da BDGD (SIRGAS 2000). Habilitam:
+!   Plot Circuit Power max=2000 dots=n labels=n C1=Blue
+!   Plot Circuit Voltage
+!   Plot profile phases=all
+Buscoords _AT/BusCoords_AT.dat
+Buscoords ABA/BusCoords.dat
+Buscoords CAP/BusCoords.dat
+Buscoords CSO/BusCoords.dat
+Buscoords GOI/BusCoords.dat
+Buscoords MOL/BusCoords.dat
+Buscoords RIM/BusCoords.dat
+Buscoords TAI/BusCoords.dat
+Buscoords TUM/BusCoords.dat
+
+! ------------------------------------------------------------------ conferencia
+! Descomente para o regime diario de 24 h em passos de 15 min:
+!   Set mode=daily
+!   Set stepsize=15m
+!   Set number=96
+!   Solve
+!
+! Depois de resolver:
+!   Show Convergence          quem nao convergiu
+!   Show Isolated             o que ficou sem fonte
+!   Show Voltages LN Nodes    tensoes por no
+!   Show Overloads            elementos acima da nominal
+!   Show Losses               perdas por elemento

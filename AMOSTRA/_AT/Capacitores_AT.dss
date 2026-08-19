@@ -1,0 +1,3 @@
+! CAPACITORES DE AT — UNCRAT (banco fixo; a BDGD nao traz o controle)
+New Capacitor.CAT_PA-OE-SE-CSO-TRM-REAT-REA-1 Bus1=cso_490000119.1.2.3 Phases=3 Conn=wye kV=88.0000 kvar=20.0
+New Capacitor.CAT_PA-OE-SE-MAL-TRM-REAT Bus1=mal_490000570.1.2.3 Phases=3 Conn=wye kV=88.0000 kvar=20.0

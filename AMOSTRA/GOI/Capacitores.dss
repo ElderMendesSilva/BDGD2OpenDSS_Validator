@@ -1,0 +1,10 @@
+! CAPACITORES — gerados de UNCRMT
+! Emitidos como banco FIXO. A BDGD nao traz o ajuste do CapControl;
+! se houver controle em campo, incluir CapControl aqui.
+! 0 bancos descartados por PAC ausente da rede.
+New Capacitor.2417038 Bus1=13146-8956045.1.2.3 Phases=3 Conn=wye kV=13.8 kvar=6.0
+New Capacitor.2958600 Bus1=13146-8956169.1.2.3 Phases=3 Conn=wye kV=13.8 kvar=10.0
+New Capacitor.2416950 Bus1=13146-8955825.1.2.3 Phases=3 Conn=wye kV=13.8 kvar=6.0
+New Capacitor.2395800 Bus1=13109-8841254.1.2.3 Phases=3 Conn=wye kV=13.8 kvar=6.0
+New Capacitor.2395723 Bus1=13109-8840992.1.2.3 Phases=3 Conn=wye kV=13.8 kvar=10.0
+New Capacitor.2417055 Bus1=13146-8955132.1.2.3 Phases=3 Conn=wye kV=13.8 kvar=6.0
