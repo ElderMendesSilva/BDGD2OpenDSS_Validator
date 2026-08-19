@@ -37,6 +37,7 @@ import os
 import re
 
 from .leitor import txt
+from . import escrita
 
 # impedancia do trecho barra <-> rede. E o vao de entrada da subestacao.
 R_BARRA = 1e-4
@@ -177,7 +178,7 @@ def gerar(comps, anc, caminho):
                        f'Bus1={b}.1.2.3 Bus2={n}.1.2.3 Switch=y '
                        f'r1={R_BARRA} r0={R_BARRA} x1=0 x0=0 c1=0 c0=0')
             nlig += 1
-    open(caminho, 'w', encoding='utf-8').write('\n'.join(out) + '\n')
+    open(caminho, 'w', encoding='utf-8', newline=escrita.FIM_DE_LINHA).write('\n'.join(out) + '\n')
 
     # componentes apos o fechamento (union-find sobre as barras)
     pai = list(range(len(comps)))

@@ -1,4 +1,4 @@
-﻿# -*- coding: utf-8 -*-
+# -*- coding: utf-8 -*-
 """
 UNTRMT (+ EQTRMT) -> New Transformer
 
@@ -19,6 +19,7 @@ paralelo entre fases diferentes da MT, o que e um curto-circuito.
 """
 import collections
 from .leitor import num, txt, no
+from . import escrita
 
 FASES = {'A': '1', 'B': '2', 'C': '3'}
 R_ATERRAMENTO = 0.5      # ohm
@@ -268,11 +269,11 @@ def gerar(bdgd, ctmts, caminho_trafos, caminho_aterramento, kv_mt=13.8,
         # nao pela barra. Indexa pelos dois para que cargas.py encontre.
         sec[cod] = dict(sec[bb], barra=bb)
 
-    open(caminho_trafos, 'w', encoding='utf-8').write('\n'.join(out) + '\n')
+    open(caminho_trafos, 'w', encoding='utf-8', newline=escrita.FIM_DE_LINHA).write('\n'.join(out) + '\n')
     at = ['! Aterramento do neutro (no 4) dos secundarios de BT',
           f'! Reactor de {R_ATERRAMENTO} ohm entre o no 4 e a terra (no 0).']
     for b in sorted(aterrar):
         at.append(f'New Reactor.NEUTRO_{b} phases=1 bus1={b}.4 bus2={b}.0 '
                   f'R={R_ATERRAMENTO} X=0')
-    open(caminho_aterramento, 'w', encoding='utf-8').write('\n'.join(at) + '\n')
+    open(caminho_aterramento, 'w', encoding='utf-8', newline=escrita.FIM_DE_LINHA).write('\n'.join(at) + '\n')
     return n, sec

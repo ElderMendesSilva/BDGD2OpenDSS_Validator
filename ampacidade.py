@@ -31,6 +31,7 @@ import time
 AQUI = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, AQUI)
 from bdgd2dss import ampacidade, lote, pausa                        # noqa: E402
+from bdgd2dss import escrita
 
 try:
     import opendssdirect as dss
@@ -231,7 +232,7 @@ def main():
               f'catalogo da base — nada foi trocado neles, e isso e alerta '
               f'de dado, nao de modelo')
     with open(os.path.join(raiz, 'ampacidade.json'), 'w',
-              encoding='utf-8') as fh:
+              encoding='utf-8', newline=escrita.FIM_DE_LINHA) as fh:
         json.dump({'margem': a.margem, 'subestacoes': saida}, fh,
                   indent=1, ensure_ascii=False)
     print(f'\ndetalhe em {os.path.join(raiz, "ampacidade.json")}')

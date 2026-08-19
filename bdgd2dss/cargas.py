@@ -46,6 +46,7 @@ que era a funcao do cutoff.
 """
 import collections
 from .leitor import num, txt, no, pertence as leitor_pertence
+from . import escrita
 
 HORAS = 730.0
 FASES = {'A': '1', 'B': '2', 'C': '3'}
@@ -144,7 +145,7 @@ def gerar(bdgd, ctmts, sec, caminho_saida, mes=1, curvas_validas=None,
         n += 1
 
     out.insert(5, f'! {fora} cargas de MT descartadas por PAC ausente da rede.')
-    open(caminho_saida, 'w', encoding='utf-8').write('\n'.join(out) + '\n')
+    open(caminho_saida, 'w', encoding='utf-8', newline=escrita.FIM_DE_LINHA).write('\n'.join(out) + '\n')
     return {'n_cargas': n, 'kW_BT': round(tot_bt, 1), 'kW_MT': round(tot_mt, 1),
             'mt_fora_da_rede': fora}
 
@@ -200,5 +201,5 @@ def gerar_bt_completa(bdgd, ctmts, sec, caminho_saida, mes=1,
         tot += kw
     if sem_rede:
         out.insert(4, f'! {sem_rede} UCs sem transformador conhecido — omitidas.')
-    open(caminho_saida, 'w', encoding='utf-8').write('\n'.join(out) + '\n')
+    open(caminho_saida, 'w', encoding='utf-8', newline=escrita.FIM_DE_LINHA).write('\n'.join(out) + '\n')
     return {'n_cargas_bt': n, 'kW_BT': round(tot, 1), 'sem_trafo': sem_rede}

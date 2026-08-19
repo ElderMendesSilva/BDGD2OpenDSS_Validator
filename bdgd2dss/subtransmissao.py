@@ -36,6 +36,7 @@ import math
 from .leitor import num, txt, no as _no
 from . import tensoes
 from .linhas import comprimento
+from . import escrita
 
 FASES = {'A': '1', 'B': '2', 'C': '3'}
 
@@ -242,7 +243,7 @@ def trafos(dados, caminho, kv_at_padrao=88.0, kv_mt_padrao=13.8, log=None,
         por_sub[sub].append(cod)
         mva_por_sub[sub] += mva
         ativos += 1
-    open(caminho, 'w', encoding='utf-8').write('\n'.join(out) + '\n')
+    open(caminho, 'w', encoding='utf-8', newline=escrita.FIM_DE_LINHA).write('\n'.join(out) + '\n')
     if log and por_barra_sub:
         log(f'  {por_barra_sub} de {ativos} trafos ancorados pela barra de AT '
             f'da subestacao (PAC_1 fora da malha) — achado 7')
@@ -287,7 +288,7 @@ def linhas(dados, mapa_cnd, caminho, log=None, nos_alvo=None):
         nomes.append(cod)
         km += comp / 1000.0
         n += 1
-    open(caminho, 'w', encoding='utf-8').write('\n'.join(out) + '\n')
+    open(caminho, 'w', encoding='utf-8', newline=escrita.FIM_DE_LINHA).write('\n'.join(out) + '\n')
     return n, round(km, 2), barras, nomes
 
 
@@ -320,10 +321,10 @@ def chaves(dados, caminho, caminho_abertas, nos_alvo=None):
         if txt(s['P_N_OPE'][i]).upper().startswith('A'):
             abertas.append(nome)
         n += 1
-    open(caminho, 'w', encoding='utf-8').write('\n'.join(out) + '\n')
+    open(caminho, 'w', encoding='utf-8', newline=escrita.FIM_DE_LINHA).write('\n'.join(out) + '\n')
     ab = ['! Chaves de AT normalmente abertas — estado fixado apos a montagem.']
     ab += [f'Open Line.{x} 1' for x in abertas]
-    open(caminho_abertas, 'w', encoding='utf-8').write('\n'.join(ab) + '\n')
+    open(caminho_abertas, 'w', encoding='utf-8', newline=escrita.FIM_DE_LINHA).write('\n'.join(ab) + '\n')
     return n, abertas
 
 
@@ -483,7 +484,7 @@ def vaos(ctmt_info, info_trafos, barras, kv_mt_padrao=13.8, log=None):
 
 
 def escrever_vaos(caminho, linhas_dss):
-    open(caminho, 'w', encoding='utf-8').write(CAB_VAOS + '\n'.join(linhas_dss) + '\n')
+    open(caminho, 'w', encoding='utf-8', newline=escrita.FIM_DE_LINHA).write(CAB_VAOS + '\n'.join(linhas_dss) + '\n')
 
 
 # ============================================================ cargas e geracao
@@ -496,7 +497,7 @@ def cargas(bdgd, caminho, mes=1, kv_at_padrao=88.0, fator=1.0, log=None,
                                   f'ENE_P_{mes:02d}', f'ENE_F_{mes:02d}',
                                   f'DEM_P_{mes:02d}'])
     except Exception:
-        open(caminho, 'w').write('! UCAT_tab indisponivel\n')
+        escrita.escreve(caminho, '! UCAT_tab indisponivel\n')
         return 0, 0.0
     out = ['! CARGAS DE ALTA TENSAO — UCAT_tab',
            '! kW = (ENE_P + ENE_F) / 730 h, como na MT e na BT.']
@@ -521,7 +522,7 @@ def cargas(bdgd, caminho, mes=1, kv_at_padrao=88.0, fator=1.0, log=None,
                    f'kW={kw:.4f}')
         tot += kw
         n += 1
-    open(caminho, 'w', encoding='utf-8').write('\n'.join(out) + '\n')
+    open(caminho, 'w', encoding='utf-8', newline=escrita.FIM_DE_LINHA).write('\n'.join(out) + '\n')
     return n, round(tot, 1)
 
 
@@ -531,7 +532,7 @@ def geracao(bdgd, caminho, kv_at_padrao=88.0, log=None, nos_alvo=None):
     try:
         g = bdgd.ler('UGAT_tab', ['COD_ID', 'PAC', 'POT_INST', 'FAS_CON', 'TEN_CON'])
     except Exception:
-        open(caminho, 'w').write('! UGAT_tab indisponivel\n')
+        escrita.escreve(caminho, '! UGAT_tab indisponivel\n')
         return 0
     out = ['! GERACAO EM ALTA TENSAO — UGAT_tab']
     n = 0
@@ -548,7 +549,7 @@ def geracao(bdgd, caminho, kv_at_padrao=88.0, log=None, nos_alvo=None):
                    f'bus1={pac}.{".".join(fs)} kV={kv:.4f} kW={pot:.2f} '
                    f'pf=0.95 model=1 Vminpu=0.9 Vmaxpu=1.1')
         n += 1
-    open(caminho, 'w', encoding='utf-8').write('\n'.join(out) + '\n')
+    open(caminho, 'w', encoding='utf-8', newline=escrita.FIM_DE_LINHA).write('\n'.join(out) + '\n')
     return n
 
 
@@ -557,7 +558,7 @@ def capacitores(bdgd, caminho, kv_at_padrao=88.0, log=None, nos_alvo=None):
     try:
         c = bdgd.ler('UNCRAT', ['COD_ID', 'PAC_1', 'POT_NOM', 'FAS_CON', 'SIT_ATIV'])
     except Exception:
-        open(caminho, 'w').write('! UNCRAT indisponivel\n')
+        escrita.escreve(caminho, '! UNCRAT indisponivel\n')
         return 0
     out = ['! CAPACITORES DE AT — UNCRAT (banco fixo; a BDGD nao traz o controle)']
     n = 0
@@ -575,5 +576,5 @@ def capacitores(bdgd, caminho, kv_at_padrao=88.0, log=None, nos_alvo=None):
                    f'Bus1={pac}.{".".join(fs)} Phases={len(fs)} '
                    f'Conn=wye kV={kv_at_padrao:.4f} kvar={kvar:.1f}')
         n += 1
-    open(caminho, 'w', encoding='utf-8').write('\n'.join(out) + '\n')
+    open(caminho, 'w', encoding='utf-8', newline=escrita.FIM_DE_LINHA).write('\n'.join(out) + '\n')
     return n

@@ -34,6 +34,7 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from bdgd2dss import lote, pausa                            # noqa: E402
+from bdgd2dss import escrita
 
 CWD = os.getcwd()
 
@@ -389,7 +390,7 @@ def main():
         # a ordem do arquivo e a de `itens`, nao a de quem terminou primeiro
         saida = [por_se[se] for se, _ in itens if se in por_se]
         json.dump(saida, open(os.path.join(raiz, 'verificacao.json'), 'w',
-                              encoding='utf-8'), indent=1, ensure_ascii=False)
+                              encoding='utf-8', newline=escrita.FIM_DE_LINHA), indent=1, ensure_ascii=False)
         print('\n' + '-' * 60)
         for k_, n in sorted(contagem.items(), key=lambda x: -x[1]):
             print(f'  {k_:22s} {n:4d}')
@@ -414,7 +415,7 @@ def main():
         saida.append({'se': se, 'veredicto': vd, 'capi': cap, 'com': com})
 
     json.dump(saida, open(os.path.join(raiz, 'verificacao.json'), 'w',
-                          encoding='utf-8'), indent=1, ensure_ascii=False)
+                          encoding='utf-8', newline=escrita.FIM_DE_LINHA), indent=1, ensure_ascii=False)
     print('\n' + '-' * 60)
     for k, n in sorted(contagem.items(), key=lambda x: -x[1]):
         print(f'  {k:22s} {n:4d}')

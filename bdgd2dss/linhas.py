@@ -8,6 +8,7 @@ PAC_1/PAC_2 da BDGD, preservados como estao — e isso que permite casar com
 transformadores, chaves e cargas sem nenhuma tabela de-para.
 """
 from .leitor import num, txt, no
+from . import escrita
 
 FASES = {'A': '1', 'B': '2', 'C': '3', 'N': '4'}
 
@@ -92,7 +93,7 @@ def gerar(bdgd, mapa_cnd, ctmts, caminho_saida, camada='SSDMT', col=None):
                       f'LineCode={lc} Length={comp:.2f} Units=m')
         barras.add(b1); barras.add(b2)
         km += comp / 1000.0
-    open(caminho_saida, 'w', encoding='utf-8').write('\n'.join(linhas) + '\n')
+    open(caminho_saida, 'w', encoding='utf-8', newline=escrita.FIM_DE_LINHA).write('\n'.join(linhas) + '\n')
     return len(linhas) - 4, round(km, 2), barras
 
 
@@ -149,5 +150,5 @@ def gerar_bt(bdgd, mapa_cnd, ctmts, caminho_saida, camada='SSDBT', col=None):
         barras.add(b1.lower()); barras.add(b2.lower())
         km += comp / 1000.0
         nl += 2
-    open(caminho_saida, 'w', encoding='utf-8').write('\n'.join(out) + '\n')
+    open(caminho_saida, 'w', encoding='utf-8', newline=escrita.FIM_DE_LINHA).write('\n'.join(out) + '\n')
     return nl, round(km, 2), barras

@@ -48,6 +48,7 @@ silencioso seria pior que o defeito: quem le o modelo tem de conseguir dizer
 quanto do resultado depende desta premissa.
 """
 import collections
+from . import escrita
 
 MIN_CARGAS = 20          # abaixo disso e ruido, nao alimentador
 
@@ -211,5 +212,5 @@ def escrever(caminho, ligacoes, barra_por_kv, descartadas=()):
         else:
             out.append(f"! descartada: {d['barras']:,} barras, "
                        f"{d['cargas']:,} cargas — {d['motivo']}")
-    open(caminho, 'w', encoding='utf-8').write('\n'.join(out) + '\n')
+    open(caminho, 'w', encoding='utf-8', newline=escrita.FIM_DE_LINHA).write('\n'.join(out) + '\n')
     return len(ligacoes)

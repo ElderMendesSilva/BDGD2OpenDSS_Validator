@@ -30,6 +30,7 @@ Solve. Assim o mesmo arquivo serve aos dois MASTERs.
 import os
 
 from . import tensoes
+from . import escrita
 
 CAB_GERAL = """clear
 set defaultbasefrequency=60
@@ -202,7 +203,7 @@ def rede_se(se, arquivos, caminho):
         if os.path.basename(a) in comuns:
             continue
         out.append(f'redirect {a}')
-    open(caminho, 'w', encoding='utf-8').write('\n'.join(out) + '\n')
+    open(caminho, 'w', encoding='utf-8', newline=escrita.FIM_DE_LINHA).write('\n'.join(out) + '\n')
     return [a for a in arquivos if os.path.basename(a) not in comuns]
 
 
@@ -233,7 +234,7 @@ def gerar_se(se, caminho, barra_mt, kv_mt, n_alim, n_barras, mvasc,
     bases = ' '.join(f'{x:g}' for x in tensoes.bases(*niveis, bt=bt))
     out.append(RODAPE_SE.format(bases=bases, buscoords=buscoords,
                                medicao=bloco_medicao))
-    open(caminho, 'w', encoding='utf-8').write('\n'.join(out))
+    open(caminho, 'w', encoding='utf-8', newline=escrita.FIM_DE_LINHA).write('\n'.join(out))
 
 
 CAB_AT = """clear
@@ -332,7 +333,7 @@ def gerar_at(caminho, arquivos_at, ses, niveis, buscoords='', bt=None,
     out += linhas
     bases = ' '.join(f'{x:g}' for x in tensoes.bases(*niveis, bt=bt))
     out.append(RODAPE_AT.format(bases=bases, buscoords=buscoords))
-    open(caminho, 'w', encoding='utf-8').write('\n'.join(out))
+    open(caminho, 'w', encoding='utf-8', newline=escrita.FIM_DE_LINHA).write('\n'.join(out))
     return len(linhas), round(mw, 1)
 
 
@@ -398,4 +399,4 @@ def gerar_geral(caminho, gdb, ses, arquivos_at, arquivos_globais,
     bases = ' '.join(f'{x:g}' for x in tensoes.bases(*niveis, bt=bt))
     out.append(RODAPE_GERAL.format(bases=bases, aberturas=ab + '\n',
                                    buscoords=buscoords))
-    open(caminho, 'w', encoding='utf-8').write('\n'.join(out))
+    open(caminho, 'w', encoding='utf-8', newline=escrita.FIM_DE_LINHA).write('\n'.join(out))

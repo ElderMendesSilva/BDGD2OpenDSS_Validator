@@ -37,7 +37,7 @@ CANCELAR = None   # a interface grafica injeta um threading.Event aqui
 
 from bdgd2dss import (linecodes, linhas, chaves, transformadores, cargas,
                       complementos, master, subtransmissao, transmissao,
-                      tensoes, malha_at, coordenadas, pausa)
+                      tensoes, malha_at, coordenadas, pausa, escrita)
 
 
 def ja_gerada(pasta, se):
@@ -515,7 +515,7 @@ def main():
         print(f'[{k}/{len(alvo)}] {se} — {len(ctmts)} alimentadores', flush=True)
 
         for f in ('Curvas.dss', '_XYCURVES.dss'):
-            open(os.path.join(d, f), 'w', encoding='utf-8').write(
+            open(os.path.join(d, f), 'w', encoding='utf-8', newline=escrita.FIM_DE_LINHA).write(
                 open(os.path.join(tmp, f), encoding='utf-8').read())
         # LineCodes fica para o fim do bloco: so os que esta SE referencia.
 
@@ -616,20 +616,20 @@ def main():
         ab = ['! Chaves normalmente abertas — estado fixado apos a montagem.']
         ab += [f'Open Line.{n} 1' for n in abertas]
         open(os.path.join(d, '_CHAVES_ABERTAS.dss'), 'w',
-             encoding='utf-8').write('\n'.join(ab) + '\n')
+             encoding='utf-8', newline=escrita.FIM_DE_LINHA).write('\n'.join(ab) + '\n')
 
         # O MASTER redireciona `_AMPACIDADE.dss` SEMPRE, e `Redirect` de
         # arquivo ausente derruba a compilacao da subestacao inteira. Quem
         # preenche e o `ampacidade.py`, que roda depois porque precisa do
         # fluxo resolvido; ate la o arquivo existe e nao faz nada.
-        open(os.path.join(d, '_AMPACIDADE.dss'), 'w', encoding='utf-8').write(
+        open(os.path.join(d, '_AMPACIDADE.dss'), 'w', encoding='utf-8', newline=escrita.FIM_DE_LINHA).write(
             '! Substituicao por ampacidade insuficiente — achado 34.\n'
             '! Vazio: rode `python ampacidade.py <pasta>` para preencher.\n'
             '! Sem isso o modelo reproduz a BDGD como ela e, que e o padrao.\n')
 
         # Mesma razao do `_AMPACIDADE.dss`: o MASTER redireciona sempre, e
         # `Redirect` de arquivo ausente derruba a subestacao inteira.
-        open(os.path.join(d, '_LIGACAO.dss'), 'w', encoding='utf-8').write(
+        open(os.path.join(d, '_LIGACAO.dss'), 'w', encoding='utf-8', newline=escrita.FIM_DE_LINHA).write(
             '! Ligacao a componente desenergizada — achado 33, forma B.\n'
             '! Vazio: rode `python ligacao.py <pasta>` para preencher.\n'
             '! Sem isso o modelo reproduz a topologia que a BDGD declara.\n')
@@ -713,7 +713,7 @@ def main():
              'mva_at': round((info_tr or {}).get('mva_por_sub', {}).get(se, 0), 1)
              if info_tr else 0,
              **info}
-        json.dump(r, open(os.path.join(d, 'resumo.json'), 'w', encoding='utf-8'),
+        json.dump(r, open(os.path.join(d, 'resumo.json'), 'w', encoding='utf-8', newline=escrita.FIM_DE_LINHA),
                   indent=1, ensure_ascii=False)
         resumo.append(r)
         feitas.append(se)
@@ -815,9 +815,9 @@ def main():
            'alta_tensao': est_at,
            'subestacoes': resumo}
     json.dump(rel, open(os.path.join(a.saida, 'relatorio_rede.json'), 'w',
-                        encoding='utf-8'), indent=1, ensure_ascii=False)
+                        encoding='utf-8', newline=escrita.FIM_DE_LINHA), indent=1, ensure_ascii=False)
     json.dump(resumo, open(os.path.join(a.saida, 'resumo_geral.json'), 'w',
-                           encoding='utf-8'), indent=1, ensure_ascii=False)
+                           encoding='utf-8', newline=escrita.FIM_DE_LINHA), indent=1, ensure_ascii=False)
 
     if tensoes.desconhecidos():
         print(f'\nCodigos de tensao sem valor definido: '

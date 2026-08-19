@@ -46,6 +46,7 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from bdgd2dss import lote, pausa                            # noqa: E402
+from bdgd2dss import escrita
 
 CWD = os.getcwd()
 
@@ -416,7 +417,7 @@ def main():
         # deixaria um JSON truncado no lugar do bom
         lista = [por_se[k] for k in ordem if k in por_se]
         tmp = alvo + '.parcial'
-        with open(tmp, 'w', encoding='utf-8') as fh:
+        with open(tmp, 'w', encoding='utf-8', newline=escrita.FIM_DE_LINHA) as fh:
             json.dump(lista, fh, indent=1, ensure_ascii=False)
         os.replace(tmp, alvo)
 

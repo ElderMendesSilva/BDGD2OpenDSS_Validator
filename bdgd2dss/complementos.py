@@ -10,6 +10,7 @@ Elementos complementares, cada funcao gerando um arquivo:
 """
 import math
 from .leitor import num, txt, no
+from . import escrita
 
 FASES = {'A': '1', 'B': '2', 'C': '3'}
 HORAS = 730.0                       # horas no mes, igual ao usado em cargas.py
@@ -283,7 +284,7 @@ def curvas(bdgd, caminho, tipo_dia='DU', clima=None):
                'MyPvsT espera. Ambiente + aquecimento NOCT por irradiancia.')
     out.append('New TShape.TEMP_DIA npts=96 interval=0.25 '
                f'temp=({" ".join(f"{x:.2f}" for x in cel)})')
-    open(caminho, 'w', encoding='utf-8').write('\n'.join(out) + '\n')
+    open(caminho, 'w', encoding='utf-8', newline=escrita.FIM_DE_LINHA).write('\n'.join(out) + '\n')
     return nomes, irr, cel
 
 
@@ -296,7 +297,7 @@ def capacitores(bdgd, ctmts, caminho, kv=13.8, kv_por_ctmt=None, barras=None):
         col = bdgd.ler_filtrado('UNCRMT', 'CTMT', ctmts,
                                 ['COD_ID', 'PAC_1', 'CTMT', 'POT_NOM', 'FAS_CON'])
     except Exception:
-        open(caminho, 'w').write('! UNCRMT indisponivel\n'); return 0
+        escrita.escreve(caminho, '! UNCRMT indisponivel\n'); return 0
     out = ['! CAPACITORES — gerados de UNCRMT',
            '! Emitidos como banco FIXO. A BDGD nao traz o ajuste do CapControl;',
            '! se houver controle em campo, incluir CapControl aqui.']
@@ -315,7 +316,7 @@ def capacitores(bdgd, ctmts, caminho, kv=13.8, kv_por_ctmt=None, barras=None):
                    f'Phases={len(fs)} Conn=wye kV={kvc:g} kvar={kvar:.1f}')
         n += 1
     out.insert(3, f'! {fora} bancos descartados por PAC ausente da rede.')
-    open(caminho, 'w', encoding='utf-8').write('\n'.join(out) + '\n')
+    open(caminho, 'w', encoding='utf-8', newline=escrita.FIM_DE_LINHA).write('\n'.join(out) + '\n')
     return n
 
 
@@ -341,7 +342,7 @@ def reguladores(bdgd, ctmts, caminho, kv=13.8, kv_por_ctmt=None,
         col = bdgd.ler_filtrado('UNREMT', 'CTMT', ctmts,
                                 ['COD_ID', 'PAC_1', 'PAC_2', 'CTMT', 'FAS_CON'])
     except Exception:
-        open(caminho, 'w').write('! UNREMT indisponivel\n'); return 0
+        escrita.escreve(caminho, '! UNREMT indisponivel\n'); return 0
     out = ['! REGULADORES — gerados de UNREMT',
            f'! vreg = {vreg:g} V e band = {band:g} V — AJUSTES TIPICOS, nao de campo.',
            f'! kVA = {kva:g} adotado; a BDGD nao traz a potencia do regulador.',
@@ -369,7 +370,7 @@ def reguladores(bdgd, ctmts, caminho, kv=13.8, kv_por_ctmt=None,
                        f'vreg={vreg:g} band={band:g} ptratio={ptratio} '
                        f'delay=15 maxtapchange=1')
             n += 1
-    open(caminho, 'w', encoding='utf-8').write('\n'.join(out) + '\n')
+    open(caminho, 'w', encoding='utf-8', newline=escrita.FIM_DE_LINHA).write('\n'.join(out) + '\n')
     return n
 
 
@@ -558,7 +559,7 @@ def geracao(bdgd, ctmts, sec, caminho, kv_mt=13.8, barras=None,
                   f'capacidade exigida pelo PRODIST, nao despacho.')
     out.insert(8, f'! {por_ceg} unidades de MT ligadas pelo PAC da carga '
                   f'(casadas por CEG_GD): o PAC da UGMT nao existe na SSDMT.')
-    open(caminho, 'w', encoding='utf-8').write('\n'.join(out) + '\n')
+    open(caminho, 'w', encoding='utf-8', newline=escrita.FIM_DE_LINHA).write('\n'.join(out) + '\n')
     return (n, nulos, realocados, sem_rede, barras_limitadas,
             round(kw_cortado, 1), por_ceg)
 
@@ -585,4 +586,4 @@ def _pv(cod, bus, nf, kv, pot, irrad=1.0, fp=1.0):
 
 
 def xycurves(caminho):
-    open(caminho, 'w', encoding='utf-8').write(XYCURVES)
+    open(caminho, 'w', encoding='utf-8', newline=escrita.FIM_DE_LINHA).write(XYCURVES)

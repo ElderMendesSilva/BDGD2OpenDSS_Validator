@@ -19,6 +19,7 @@ import argparse
 import os, sys, math, json, glob, statistics
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from bdgd2dss import diagnostico, lote, pausa
+from bdgd2dss import escrita
 
 try:
     import opendssdirect as dss
@@ -393,7 +394,7 @@ def main():
         # dizer utf-8 o Python grava na codificacao do sistema (cp1252 aqui).
         # O arquivo entao nao volta: `can't decode byte 0x97`.
         json.dump(out, open(os.path.join(alvo, 'validacao.json'), 'w',
-                            encoding='utf-8'), indent=1, ensure_ascii=False)
+                            encoding='utf-8', newline=escrita.FIM_DE_LINHA), indent=1, ensure_ascii=False)
         ok = sum(1 for r in out if r.get('diagnostico') == ['ok'])
         print(f'\n{ok} de {len(out)} modelos sem ressalva.')
         if a.grafico:

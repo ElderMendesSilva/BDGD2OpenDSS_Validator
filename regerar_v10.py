@@ -51,6 +51,7 @@ import time
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from bdgd2dss import pausa                           # noqa: E402
+from bdgd2dss import escrita
 
 AQUI = os.path.dirname(os.path.abspath(__file__))
 BDGDS = r'D:\Elder\Elder\BDGDs'
@@ -78,7 +79,7 @@ class _Tee:
     """Escreve no console E num arquivo. Sem dependencia, sem logging."""
 
     def __init__(self, caminho):
-        self.arq = open(caminho, 'a', encoding='utf-8', errors='replace')
+        self.arq = open(caminho, 'a', encoding='utf-8', errors='replace', newline=escrita.FIM_DE_LINHA)
         self.console = sys.__stdout__
 
     def write(self, s):
@@ -158,7 +159,7 @@ def _gravador(destino):
                     antes = json.load(fh).get('bases') or []
             except Exception:
                 antes = []          # arquivo ilegivel nao pode travar a rodada
-        with open(destino, 'w', encoding='utf-8') as fh:
+        with open(destino, 'w', encoding='utf-8', newline=escrita.FIM_DE_LINHA) as fh:
             json.dump({'procedencia': proc, 'bases': mesclar(antes, agora)},
                       fh, indent=1, ensure_ascii=False)
     return gravar
@@ -179,7 +180,7 @@ def passo(rot, cmd, log, limite):
     pausa.espera(rot, avisa=lambda t: print(f'   {t}', flush=True))
     t0 = time.time()
     parado = 0.0
-    with open(log, 'a', encoding='utf-8') as fh:
+    with open(log, 'a', encoding='utf-8', newline=escrita.FIM_DE_LINHA) as fh:
         fh.write(f'\n{"="*72}\n== {rot}  [{time.strftime("%d/%m %H:%M:%S")}]\n'
                  f'== {" ".join(cmd)}\n{"="*72}\n')
         fh.flush()
@@ -472,7 +473,7 @@ def main():
         # a procedencia vai TAMBEM para dentro do modelo: o resumo geral pode
         # se separar dele, o arquivo ao lado do MASTER nao
         with open(os.path.join(AQUI, saida, '_procedencia.json'), 'w',
-                  encoding='utf-8') as fh:
+                  encoding='utf-8', newline=escrita.FIM_DE_LINHA) as fh:
             json.dump(dict(proc, base=tag), fh, indent=1, ensure_ascii=False)
         gravar(proc, resumo)
 

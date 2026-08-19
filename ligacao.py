@@ -28,6 +28,7 @@ import time
 AQUI = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, AQUI)
 from bdgd2dss import ligacao, lote, pausa                          # noqa: E402
+from bdgd2dss import escrita
 
 try:
     import opendssdirect as dss
@@ -324,7 +325,7 @@ def main():
     if nc:
         print(f'ATENCAO: {len(nc)} nao convergem NEM SEM elo — defeito '
               f'anterior a esta premissa: {", ".join(nc[:5])}')
-    with open(os.path.join(raiz, 'ligacao.json'), 'w', encoding='utf-8') as fh:
+    with open(os.path.join(raiz, 'ligacao.json'), 'w', encoding='utf-8', newline=escrita.FIM_DE_LINHA) as fh:
         json.dump({'min_cargas': a.min_cargas, 'subestacoes': saida}, fh,
                   indent=1, ensure_ascii=False)
     print(f'\ndetalhe em {os.path.join(raiz, "ligacao.json")}')
