@@ -45,7 +45,7 @@ import os
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from bdgd2dss import lote, pausa                            # noqa: E402
+from bdgd2dss import lote, pausa, plataforma                # noqa: E402
 from bdgd2dss import escrita
 
 CWD = os.getcwd()
