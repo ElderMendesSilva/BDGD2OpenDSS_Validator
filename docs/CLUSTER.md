@@ -121,6 +121,35 @@ código: `open(x, 'w')` traduz a quebra de linha para o padrão do sistema, e se
 fixar, o mesmo código produziria arquivos diferentes em cada máquina, sem que
 uma conta tivesse mudado.
 
+## Se o nó tiver ambiente gráfico
+
+Tem — e isso muda uma coisa e não muda outra.
+
+**Muda:** `menu.py`, `painel.py` e `app.py` funcionam. `tkinter` é
+multiplataforma, então a porta de entrada do projeto está disponível ali como
+está aqui. Numa sessão com tela, ou por `ssh -X`, o painel abre.
+
+Um detalhe de instalação: `tkinter` é da biblioteca padrão do Python, **mas em
+Linux o `tk` costuma vir num pacote à parte** (`python3-tk`). Um Python
+perfeito no resto pode falhar só no import do `tkinter`. O `doutor.py` confere
+e diz. O Python instalado pelo micromamba já traz o `tk`.
+
+**Não muda:** o motor COM da EPRI continua não existindo. Ele não depende de
+haver tela — depende de ser Windows, porque é um servidor COM registrado no
+sistema. Ter GUI no Linux não traz o segundo motor.
+
+**Cuidado com a detecção do modo.** Num nó Linux com `DISPLAY` definido, a
+detecção automática diz `pessoal` — que deixa núcleos livres e limita a 8.
+Correto para quem está usando o painel interativamente; errado para uma rodada
+de produção. Em lote, seja explícito:
+
+```bash
+BDGD2DSS_MODO=cluster python regerar_v10.py --sufixo V15 --so CMIG --jobs 0
+```
+
+O `cluster/uma_base.sbatch` já faz isso, e dentro do Slurm o `SLURM_JOB_ID`
+decide de qualquer forma.
+
 ## Quantos processos pedir
 
 `--jobs 0`, que é o padrão, deixa o código decidir: **o menor** entre os

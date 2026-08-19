@@ -82,6 +82,27 @@ def motor_eletrico():
         return _linha(ERRO, 'OpenDSS nao funciona', f'{type(e).__name__}: {e}')
 
 
+def interface_grafica():
+    """O painel e o menu, que sao a porta de entrada do projeto.
+
+    `tkinter` e da biblioteca padrao, mas em Linux o `tk` do sistema costuma
+    vir num pacote a parte (`python3-tk`) — entao o import falha num Python
+    que, fora isso, esta perfeito. Num no COM tela isso importa: e a diferenca
+    entre usar o painel e ter de decorar linha de comando.
+    """
+    from bdgd2dss import plataforma
+    try:
+        import tkinter                                  # noqa: F401
+    except Exception as e:
+        return _linha(AVISO, 'tkinter ausente — sem painel, so linha de comando',
+                      f'{type(e).__name__}: instale python3-tk, ou use o '
+                      f'Python do micromamba, que ja traz o tk')
+    if not os.environ.get('DISPLAY') and sys.platform.startswith('linux'):
+        return _linha(OK, 'tkinter presente; sem DISPLAY agora',
+                      'o painel funciona numa sessao com tela ou com ssh -X')
+    return _linha(OK, f'painel disponivel (modo {plataforma.modo()})')
+
+
 def leitura_de_gdb(pasta):
     """Uma .gdb aberta de verdade. E o passo que depende do GDAL, que e a
     dependencia mais chata de instalar em Linux."""
@@ -178,7 +199,7 @@ def main():
     print(f'\nAUTOTESTE — {sys.platform}, {os.cpu_count()} nucleos\n')
     estados = [python_novo(), bibliotecas(), motor_eletrico(),
                escrita_de_arquivo(), paralelismo(), memoria_por_processo(),
-               leitura_de_gdb(a.bases)]
+               interface_grafica(), leitura_de_gdb(a.bases)]
     erros = estados.count(ERRO)
     avisos = estados.count(AVISO)
     print()
