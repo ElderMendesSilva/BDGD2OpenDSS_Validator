@@ -52,6 +52,32 @@ from . import escrita
 
 MIN_CARGAS = 20          # abaixo disso e ruido, nao alimentador
 
+R3 = 3 ** 0.5
+
+
+def kv_de_fase(kv, n_fases):
+    """A tensao do enrolamento, convertida para FASE-NEUTRO.
+
+    ACHADO 41. `decidir` compara a tensao da barra com a dos vaos, e os dois
+    lados vinham em convencoes diferentes:
+
+        `dss.Bus.kVBase()`        sempre fase-neutro
+        `dss.Transformers.kV()`   linha-linha, quando o enrolamento e trifasico
+
+    Medido nos transformadores da UTN da Equatorial PA: os de 3 fases devolvem
+    13,8 e a barra viva deles devolve 7,9674 — a MESMA tensao, com 73% de
+    diferenca, contra uma tolerancia de 5%. A componente era descartada com o
+    motivo `nenhuma barra na tensao de um vao`.
+
+    Custo do defeito, medido na V16: 64.726 cargas na Equatorial PA (88% do
+    que ainda estava no escuro), 17.201 na Cemig-D e 2.049 na CPFL.
+
+    E por isso a premissa funcionava pela metade: onde o transformador e
+    monofasico o conversor ja escrevia `kvp/sqrt(3)`, e os dois lados batiam.
+    Na UTN eram 902 trifasicos contra 4 monofasicos nas barras mortas.
+    """
+    return kv / R3 if n_fases >= 2 else kv
+
 
 def componentes(adjacencia, mortas):
     """Agrupa as barras mortas em componentes conexas.
