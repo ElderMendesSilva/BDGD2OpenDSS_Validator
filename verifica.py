@@ -408,10 +408,16 @@ def main():
                 se, cap, com = f_.result()
                 k += 1
                 por_se[se] = registra(se, cap, com, k)
-        # a ordem do arquivo e a de `itens`, nao a de quem terminou primeiro
-        saida = [por_se[se] for se, _ in itens if se in por_se]
-        json.dump(saida, open(os.path.join(raiz, 'verificacao.json'), 'w',
-                              encoding='utf-8', newline=escrita.FIM_DE_LINHA), indent=1, ensure_ascii=False)
+            # AINDA DENTRO DO `with`, DE PROPOSITO. Sair daqui e
+            # `shutdown(wait=True)`, e esperar processo trabalhador morrer
+            # nao tem prazo: na V16 a Cemig-D processou as 413 subestacoes e
+            # foi morta pelo limite de 6h antes desta linha, sem escrever
+            # nada. O resultado vai para o disco antes de qualquer espera.
+            #
+            # a ordem do arquivo e a de `itens`, nao a de quem terminou antes
+            saida = [por_se[se] for se, _ in itens if se in por_se]
+            json.dump(saida, open(os.path.join(raiz, 'verificacao.json'), 'w',
+                                  encoding='utf-8', newline=escrita.FIM_DE_LINHA), indent=1, ensure_ascii=False)
         print('\n' + '-' * 60)
         for k_, n in sorted(contagem.items(), key=lambda x: -x[1]):
             print(f'  {k_:22s} {n:4d}')

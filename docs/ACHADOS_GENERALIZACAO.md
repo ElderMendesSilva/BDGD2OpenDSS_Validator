@@ -3528,3 +3528,187 @@ grandeza física, e não o estado da execução.
 É o argumento para o critério de cobertura de medição do `PLANO_V1.md`: um
 modelo que roda não é um modelo que vale, e a diferença entre os dois só se vê
 medindo o que ele diz.
+
+---
+
+## Achado 40 — o balde `-FC` e a rede de 34,5 kV filiada a um alimentador de 13,8 kV
+
+Diagnostico, medido na Equatorial PA. **Nenhuma correcao implementada** — a
+V16 da Cemig-D ainda esta rodando, e correcao que muda a saida do conversor
+espera a rodada fechar.
+
+O achado 33 descreveu o balde `-FC` e disse, com todas as letras, que o que
+`-FC` significa nao estava estabelecido. Agora esta.
+
+### Primeiro: o alcance fechou sozinho
+
+Na V14 os vinte alimentadores `-FC` alcancavam duas ou tres barras de vinte
+mil — 0,01%. Medido sobre a V16, com a premissa de ligacao corrigida pelos
+achados 38 e 39:
+
+| subestacao | alimentador | barras | km | barras com tensao |
+|---|---|---|---|---|
+| CAP | CAPCP-FC | 21.120 | 1.685,9 | **90,4%** |
+| GOI | GOIGI-FC | 20.049 | 1.968,5 | **98,1%** |
+| CSO | CSOCO-FC | 19.196 | 2.030,6 | **100,0%** |
+
+O balde nao era problema de alcance, e deixou de ser problema de alcance sem
+que ninguem o tratasse. Quem o energiza sao os elos que a `ligacao` inventa —
+nenhum dos vinte tem vao declarado no modelo.
+
+### Segundo: ele nao e um resto ao lado dos alimentadores reais
+
+Ele **e** a rede. Nas vinte subestacoes que tem um:
+
+| | `-FC` | fatia |
+|---|---|---|
+| km de MT | 18.470 | **62,1%** dos 29.739 km das vinte |
+| consumidores BT | 111.806 | 23,6% |
+| consumidores MT | 298 | 19,8% |
+| energia `ENE_01` | 22,4 GWh | 14,2% |
+
+Os alimentadores nomeados que convivem com ele sao tocos: `CSOCO-01` tem 400
+barras e 21 km ao lado das 19.196 barras e 2.030 km do `CSOCO-FC`.
+
+### Terceiro: a assinatura estrutural
+
+Duas marcas separam os vinte do resto da base, e as duas sao quase perfeitas:
+
+| | `-FC` | demais |
+|---|---|---|
+| `PAC_INI` == `BARR` (cabeceira e a propria barra da SE) | **19 de 20** | 2 de 682 |
+| `DESCR` e `TEN_NOM` discordam de nivel de tensao | **19 de 20** | 4 de 682 |
+
+O `DESCR` da EQPA comeca por `A13` ou `A34`, e no resto da base isso acompanha
+a tensao: `A13` com `TEN_NOM=49` (13,8 kV) em 550 de 553, `A34` com
+`TEN_NOM=72` (34,5 kV) em 127 de 130. Nos `-FC` a associacao inverte em
+dezenove dos vinte.
+
+### Quarto: o que os transformadores dizem, e que o conversor nao le
+
+`EQTRMT.TEN_PRI` da a tensao primaria declarada de cada transformador de MT.
+Cruzada com o `TEN_NOM` do alimentador em que ele esta, na EQPA inteira:
+
+| `TEN_PRI` | `TEN_NOM` do alimentador | tipo | trafos |
+|---|---|---|---|
+| 58 | 72 (34,5 kV) | normal | 80.094 |
+| 49 | 49 (13,8 kV) | normal | 55.840 |
+| 39 | 49 (13,8 kV) | normal | 41.957 |
+| **58** | **49 (13,8 kV)** | **`-FC`** | **15.620** |
+
+O codigo 58 aparece 99.092 vezes na base, e em 96% delas o alimentador e
+declarado de 34,5 kV — e um primario de 34,5 kV, sem ambiguidade. Ha 18.998
+transformadores de codigo 58 pendurados em alimentador de 13,8 kV, e **15.620
+deles, 82%, estao nos vinte `-FC`**.
+
+**O `-FC` e a rede de 34,5 kV da subestacao, arquivada sob um CTMT que declara
+13,8 kV.**
+
+E o conversor segue o CTMT: `transformadores.gerar` tira a tensao primaria de
+`kv_por_ctmt`, e **nunca le `EQTRMT.TEN_PRI`**. Por isso o codigo 58 nem consta
+da lista de codigos de tensao desconhecidos da EQPA (`82`, `95`, `96`) —
+ninguem o consulta. Dezoito mil e quatrocentos quilometros de rede e quinze mil
+transformadores sao modelados em 13,8 kV, em silencio.
+
+E o mesmo formato do achado 39: o cadastro tem a informacao, o conversor le o
+campo errado, e nada dispara.
+
+### O que este achado NAO explica
+
+A perda tecnica baixa da EQPA. Modelar rede de 34,5 kV em 13,8 kV multiplica a
+corrente por 2,5 e a perda por 6,25 — **inflaria** a perda, e a da EQPA e a
+mais baixa das sete (0,68% de mediana). O sinal aponta para o lado contrario, e
+dizer que um explica o outro seria inventar.
+
+A hipotese de colapso de tensao no `-FC` tambem nao se sustentou: das tres
+subestacoes medidas, so a CAP tem barra afundada (26,4% abaixo de 0,90 pu
+contra 4,3% nos irmaos nomeados), e nela a propria base de tensao esta errada —
+a media da pu passa de 2, que e impossivel. GOI e CSO ficam em 0,99. Uma em
+tres nao e padrao, e a CAP tem defeito proprio a investigar.
+
+### O que fazer com ele
+
+1. **Ler `EQTRMT.TEN_PRI`** e usar a tensao declarada do transformador quando
+   ela discordar do `TEN_NOM` do alimentador, ou no minimo avisar. Hoje o
+   conflito e invisivel.
+2. **Preencher os codigos 58 e 39** em `bdgd2dss/tensoes.py`, que nao estao la.
+3. **Medir o efeito** convertendo as vinte subestacoes nos dois niveis e
+   comparando perda, tensao e carga servida. So depois disso o achado vira
+   correcao.
+4. **A base de tensao da CAP** e fio proprio: media acima de 2 pu nao e leitura,
+   e defeito.
+
+---
+
+## Achado 41 — a premissa de ligacao comparava tensao de linha com tensao de fase
+
+Diagnostico, medido na Equatorial PA sobre a V16. **Nenhuma correcao
+implementada** — a V16 da Cemig-D ainda esta rodando.
+
+`decidir` so pendura elo em barra cuja tensao de base case, a 5%, com a de
+algum vao. O que nao casa vira `nenhuma barra na tensao de um vao`. Esse motivo
+parecia o menor dos fios abertos: na amostra de 8 subestacoes do achado 39 ele
+valia 1.526 cargas.
+
+Medido na base inteira da V16, ele e o maior:
+
+| base | cargas | componentes | subestacoes |
+|---|---|---|---|
+| **Equatorial PA** | **64.726** | 609 | 96 de 119 |
+| Cemig-D | 17.201 | 159 | 103 de 413 |
+| CPFL Paulista | 2.049 | 1 | 1 |
+
+Sao **88% das 73.634 cargas que ainda estao no escuro na EQPA** e 41% das da
+Cemig-D. A amostra de oito subestacoes subestimou o fio em quarenta vezes.
+
+### A causa
+
+Os dois lados da comparacao usam convencoes diferentes.
+
+`kvs_de_vao` vem de `dss.Bus.kVBase()`, que e sempre **fase-neutro**.
+`kv_por_barra` vem de `dss.Transformers.kV()`, que para enrolamento trifasico
+em estrela e **linha-linha**. Medido na UTN, nos proprios transformadores do
+modelo:
+
+| fases | `Transformers.kV()` | `Bus.kVBase()` da barra | n |
+|---|---|---|---|
+| 3 | 13,8000 | 7,9674 | 830 vivas |
+| 1 | 7,9674 | 7,9674 | 29 vivas |
+
+Treze virgula oito contra sete virgula nove sete e a MESMA tensao —
+13,8 / sqrt(3) = 7,967. A tolerancia e de 5%, a diferenca e de 73%, e a
+componente e descartada.
+
+Isso explica por que a premissa funcionava em parte: onde o transformador da
+componente morta e monofasico, `transformadores.gerar` escreve `kvp/sqrt(3)` e
+os dois lados batem. Onde e trifasico, nunca batem. Na UTN sao 902
+transformadores trifasicos nas barras mortas contra 4 monofasicos.
+
+### O tamanho de cada causa
+
+Classificadas as componentes descartadas nas 20 subestacoes que concentram
+metade do residuo da EQPA — 31.870 das 64.726 cargas:
+
+| causa | componentes | cargas | |
+|---|---|---|---|
+| **convencao** (a tensao e a de um vao a menos de sqrt(3)) | 269 | **29.694** | **93,2%** |
+| **nivel ausente** (a subestacao nao tem vao naquela tensao) | 5 | 2.176 | 6,8% |
+
+O segundo grupo nao e defeito de codigo: e rede de 34,5 kV numa subestacao cujo
+unico vao e de 13,8 kV, a familia do achado 40. A TUR e o caso — componentes em
+19,9186 kV e vao em 7,9674 kV.
+
+**Medido em 20 das 96 subestacoes afetadas, cobrindo 49% do residuo. Nao
+extrapolado para as outras 76.**
+
+### A correcao
+
+Normalizar os dois lados antes de comparar: `Transformers.kV()` dividido por
+sqrt(3) quando o enrolamento e trifasico, ou a comparacao aceitar o par
+(k, k/sqrt(3)) explicitamente. A primeira e melhor — corrige a grandeza na
+origem, em vez de ensinar o comparador a tolerar uma unidade errada.
+
+E preciso um teste que falhe hoje: componente morta com transformador
+TRIFASICO, vao na mesma tensao fisica, e a premissa tem de liga-la. O teste
+atual de `ligacao` usa transformador monofasico, que e exatamente o caso que
+passa.

@@ -14,6 +14,7 @@ original no arquivo que grava, e e isso que permite comparar duas geracoes byte
 a byte. Se alguem simplificar trocando `ses` por `fila` na linha da saida, o
 resultado continua correto e a comparacao entre geracoes morre em silencio.
 """
+import ast
 import os
 import re
 import sys
@@ -25,12 +26,18 @@ RAIZ = os.path.dirname(AQUI)
 sys.path.insert(0, RAIZ)
 from bdgd2dss import lote                              # noqa: E402
 
-# etapa -> (linha que monta a fila, linha que monta a saida)
+# etapa -> nome da lista ORIGINAL, a que define a ordem do arquivo
+#
+# Exige-se a PROPRIEDADE, e nao o texto da linha. A versao anterior guardava a
+# linha inteira, e quebrou quando a montagem da saida foi para dentro de um
+# `grava()` — a ordem continuava certa e o teste reprovava. Teste que casa
+# token e um obstaculo a refatoracao; o que precisa ficar trancado e de QUE
+# lista a saida itera.
 ETAPAS = {
-    'ligacao.py': 'saida = [por_se[s_] for s_ in ses if s_ in por_se]',
-    'ampacidade.py': 'saida = [por_se[s_] for s_ in ses if s_ in por_se]',
-    'verifica.py': 'saida = [por_se[se] for se, _ in itens if se in por_se]',
-    'validador.py': 'out = [por_pasta[p] for p in pastas if p in por_pasta]',
+    'ligacao.py': 'ses',
+    'ampacidade.py': 'ses',
+    'verifica.py': 'itens',
+    'validador.py': 'pastas',
 }
 
 
@@ -89,15 +96,39 @@ class AOrdemDaSaida(unittest.TestCase):
     """A fila e para despachar. A saida continua na ordem original."""
 
     def test_nenhuma_etapa_grava_na_ordem_da_fila(self):
-        for script, linha_saida in ETAPAS.items():
+        """A lista gravada itera a colecao original, nunca a `fila`.
+
+        Le a arvore: procura a compreensao que indexa o dicionario de
+        resultados (`por_se[...]`, `por_pasta[...]`) e confere sobre o que ela
+        itera. E a propriedade que permite comparar duas geracoes byte a byte.
+        """
+        for script, original in ETAPAS.items():
             with open(os.path.join(RAIZ, script), encoding='utf-8') as fh:
                 fonte = fh.read()
             self.assertIn('lote.maior_primeiro', fonte,
                           f'{script} nao despacha a maior primeiro')
-            self.assertIn(linha_saida, fonte,
-                          f'{script}: a saida deixou de sair na ordem '
-                          f'original — a comparacao entre geracoes perde o '
-                          f'valor')
+            arvore = ast.parse(fonte.lstrip('﻿'))
+            fontes = []
+            for n in ast.walk(arvore):
+                if not isinstance(n, ast.ListComp):
+                    continue
+                if not (isinstance(n.elt, ast.Subscript)
+                        and isinstance(n.elt.value, ast.Name)
+                        and n.elt.value.id.startswith('por_')):
+                    continue
+                for g in n.generators:
+                    it = g.iter
+                    fontes.append(it.id if isinstance(it, ast.Name)
+                                  else ast.dump(it))
+            self.assertTrue(
+                fontes,
+                f'{script}: nao achei a compreensao que monta a saida — o '
+                f'teste perdeu o alvo, e nao o codigo a propriedade')
+            self.assertEqual(
+                set(fontes), {original},
+                f'{script}: a saida deixou de iterar `{original}` — a ordem '
+                f'passa a depender de quem terminou primeiro e a comparacao '
+                f'entre geracoes morre em silencio')
 
     def test_a_fila_so_aparece_dentro_do_bloco_paralelo(self):
         """`fila` alimentando qualquer coisa fora do `submit` e o erro que

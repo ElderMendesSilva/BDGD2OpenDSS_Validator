@@ -379,6 +379,26 @@ def main():
     # duas geracoes — que e como se prova que uma mudanca nao mexeu no
     # resultado — deixaria de valer.
     por_pasta = {}
+
+    def grava():
+        """Poe no disco o que ja terminou, e devolve na ordem de `pastas`.
+
+        Chamada DENTRO do `with` do pool, e nao depois. Sair do `with` e
+        `shutdown(wait=True)`, e essa espera nao tem prazo: na V16 o
+        `verifica` da Cemig-D terminou as 413 subestacoes e foi morto pelo
+        limite de 6h antes de escrever — ver
+        `testes/test_grava_antes_de_esperar.py`.
+
+        encoding explicito: com ensure_ascii=False o JSON leva acento, e sem
+        dizer utf-8 o Python grava na codificacao do sistema (cp1252 aqui). O
+        arquivo entao nao volta: `can't decode byte 0x97`.
+        """
+        o = [por_pasta[p] for p in pastas if p in por_pasta]
+        if o:
+            json.dump(o, open(os.path.join(alvo, 'validacao.json'), 'w',
+                              encoding='utf-8', newline=escrita.FIM_DE_LINHA), indent=1, ensure_ascii=False)
+        return o
+
     if a.jobs > 1 and len(pastas) > 1:
         import concurrent.futures as cf
         # `spawn` nos dois sistemas. No Linux o padrao e `fork`, e o
@@ -395,6 +415,7 @@ def main():
                 if r:
                     por_pasta[fut[f_]] = r
                     _linha(r)
+            grava()
     else:
         for p in pastas:
             pausa.espera()   # mesmo ponto de parada do paralelo
@@ -402,14 +423,9 @@ def main():
             if r:
                 por_pasta[p] = r
                 _linha(r)
-    out = [por_pasta[p] for p in pastas if p in por_pasta]
+    out = grava()
 
     if out:
-        # encoding explicito: com ensure_ascii=False o JSON leva acento, e sem
-        # dizer utf-8 o Python grava na codificacao do sistema (cp1252 aqui).
-        # O arquivo entao nao volta: `can't decode byte 0x97`.
-        json.dump(out, open(os.path.join(alvo, 'validacao.json'), 'w',
-                            encoding='utf-8', newline=escrita.FIM_DE_LINHA), indent=1, ensure_ascii=False)
         ok = sum(1 for r in out if r.get('diagnostico') == ['ok'])
         print(f'\n{ok} de {len(out)} modelos sem ressalva.')
         if a.grafico:

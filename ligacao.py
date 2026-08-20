@@ -343,6 +343,22 @@ def main():
     # A ORDEM DO JSON NAO PODE DEPENDER DE QUEM TERMINOU PRIMEIRO: ele sai na
     # ordem de `ses`, que e a da execucao serial.
     por_se = {}
+
+    def grava():
+        """Poe no disco o que ja terminou, e devolve na ordem de `ses`.
+
+        Chamada DENTRO do `with` do pool, e nao depois. Sair do `with` e
+        `shutdown(wait=True)`, e essa espera nao tem prazo: na V16 o
+        `verifica` da Cemig-D terminou as 413 subestacoes e foi morto pelo
+        limite de 6h antes de escrever — ver
+        `testes/test_grava_antes_de_esperar.py`.
+        """
+        s = [por_se[s_] for s_ in ses if s_ in por_se]
+        with open(os.path.join(raiz, 'ligacao.json'), 'w', encoding='utf-8', newline=escrita.FIM_DE_LINHA) as fh:
+            json.dump({'min_cargas': a.min_cargas, 'subestacoes': s}, fh,
+                      indent=1, ensure_ascii=False)
+        return s
+
     if a.jobs > 1 and len(ses) > 1:
         import concurrent.futures as cf
         # `spawn` nos dois sistemas. No Linux o padrao e `fork`, e o
@@ -360,13 +376,14 @@ def main():
                 if r is not None:
                     por_se[fut[f_]] = r
                     _linha(r)
+            grava()
     else:
         for se in ses:
             r = uma(raiz, se, a.min_cargas)
             if r is not None:
                 por_se[se] = r
                 _linha(r)
-    saida = [por_se[s_] for s_ in ses if s_ in por_se]
+    saida = grava()
 
     ok = [r for r in saida if not r.get('erro')]
     rec = sum(r['mortas_antes'] - r['mortas_depois'] for r in ok)
@@ -381,9 +398,6 @@ def main():
     if nc:
         print(f'ATENCAO: {len(nc)} nao convergem NEM SEM elo — defeito '
               f'anterior a esta premissa: {", ".join(nc[:5])}')
-    with open(os.path.join(raiz, 'ligacao.json'), 'w', encoding='utf-8', newline=escrita.FIM_DE_LINHA) as fh:
-        json.dump({'min_cargas': a.min_cargas, 'subestacoes': saida}, fh,
-                  indent=1, ensure_ascii=False)
     print(f'\ndetalhe em {os.path.join(raiz, "ligacao.json")}')
 
 
