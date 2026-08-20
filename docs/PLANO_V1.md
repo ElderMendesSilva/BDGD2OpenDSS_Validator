@@ -11,6 +11,17 @@ precisa acontecer para a nota subir.
 sete bases regeradas (50% → 53%). O critério 4 é uma contagem e sobe 1,4 ponto
 por base; a Fase 1 completa leva a régua a ~59%.
 
+**A NOTA NÃO SOBE COM A V16, DE PROPÓSITO — 20/08/2026.** As sete foram
+regeradas, mas o critério 4 diz "com o código ATUAL", e o código atual já não é
+o da V16: o achado 41 foi corrigido depois dela. A V17 está rodando com ele, e
+é ela que fecha o critério 4 em 100% e leva a régua a **60,2%**. Contar duas
+vezes a mesma rodada, ou contar uma rodada que o código já superou, é
+exatamente o que a régua existe para impedir.
+
+O que a V16 mudou de verdade não foi a nota, foi o mapa: ela **fechou a
+hipótese da Fase 2** (ver abaixo) e mostrou que os 20 pontos do critério 3 não
+saem de regerar. Ver também a projeção realista no fim deste documento.
+
 ---
 
 ## 1. A régua
@@ -159,7 +170,57 @@ Critério de saída: alcance acima de 95% nas sete, ou limitação declarada com
 número por base. **A segunda metade do critério é a que se tornou possível**:
 o resíduo agora tem nome e conta.
 
-#### O que a Equatorial PA deixa em aberto
+#### A V16 mediu, e os quatro fios têm resposta — 20/08/2026
+
+As sete bases, com o código de `29b3241`:
+
+| base | sadias | cobertura | razão | viola real |
+|---|---|---|---|---|
+| Roraima | 20/20 | 89,9% | 2,63× | 3,75% |
+| Enel CE | 129/129 | 94,2% | 0,83× | 0,15% |
+| Equatorial PA | 119/119 | 91,1% | **0,55×** | 0,00% |
+| Enel SP | 155/155 | 87,2% | 3,19× | 2,80% |
+| Light | 92/94 | 93,9% | 0,74× | 0,26% |
+| CPFL Paulista | 265/265 | 94,6% | 0,88× | 0,58% |
+| Cemig-D | — | 76,3% | **0,45×** | 0,95% |
+
+A Cemig-D sai sem `sadias`: o `verifica` completou as 413 subestações e foi
+morto pelo limite de 6 h antes de escrever, travado no `shutdown` do pool.
+Corrigido em `ebdc207`, com teste.
+
+**O RESULTADO PRINCIPAL DESTA RODADA É NEGATIVO, E É O MAIS IMPORTANTE ATÉ
+AQUI.** Energizar rede não move a validação de perda. Nas duas bases onde o
+alcance mudou muito:
+
+| | carga energizada | cobertura | razão |
+|---|---|---|---|
+| Equatorial PA V14 | 55,2% | 91,0% | 0,55× |
+| **Equatorial PA V16** | **81,1%** | 91,1% | **0,55×** |
+| Cemig-D V14 | 90,0% | 76,3% | 0,45× |
+| **Cemig-D V16** | **97,5%** | **76,3%** | **0,45×** |
+
+A EQPA ganhou 26 pontos de carga energizada e a Cemig-D recuperou 382.258
+cargas. A cobertura e a razão das duas saíram **idênticas às da V14**, até a
+segunda casa.
+
+Isso encerra a hipótese que sustentava a Fase 2 inteira: **o alcance não era a
+causa da razão baixa**. A causa é própria, e vai para a Fase 4. Regerar de novo
+não vai mexer nesses números — foi o que três gerações mostraram.
+
+#### Os quatro fios da Equatorial PA, e o que a V16 respondeu
+
+1. **Chave aberta declarada** — deixou de ser resíduo com a regra por CTMT.
+2. **As 1.526 sem barra na tensão de um vão** — eram **64.726**, e viraram o
+   achado 41: comparação de tensão de linha com tensão de fase. Corrigido e
+   medido, 78,6% do resíduo de volta em oito subestações.
+3. **O balde `-FC`** — virou o achado 40: é a rede de 34,5 kV arquivada sob um
+   CTMT que declara 13,8 kV.
+4. **A razão de 0,55×** — **não se moveu**, e a pergunta está respondida acima.
+
+O texto abaixo é o de 19/08, mantido porque a previsão de cada fio e o que
+aconteceu com ele é o registro que interessa.
+
+#### O que a Equatorial PA deixava em aberto — 19/08/2026
 
 Ela é a base que puxa todos os resíduos, e o que sobra dela tem de continuar
 visível depois que a Fase 2 fechar. Quatro fios, com o número de cada um:
@@ -253,3 +314,54 @@ Fase 0 vem primeiro.
 A nota muda quando um critério muda, e a mudança tem de vir com o número que a
 justifica. Sem medição, sem alteração de nota — foi assim que cinco hipóteses
 confiantes caíram este mês, inclusive duas minhas no mesmo dia.
+
+---
+
+## Quanto dá para chegar, e quando — 20/08/2026
+
+Escrito porque a pergunta "ate uma V20 estamos em 90%?" merece aritmetica, e
+nao otimismo.
+
+**Nao. Somando o ganho realista de TODOS os doze criterios, a regua bate em
+88,5%.** E os ultimos 4% deste documento ja explicam por que 100 nao existe.
+
+| criterio | peso | hoje | ganho realista | de onde vem |
+|---|---|---|---|---|
+| 4 — as sete regeradas | 10 | 29% | **+7,1** | sai com a V17 |
+| 3 — perda valida | 20 | 60% | +5,0 | **o gargalo** |
+| 5 — BT quantificada | 8 | 20% | +4,8 | e medir |
+| 11 — referencia externa | 6 | 0% | +4,8 | precisa de dado da ANEEL |
+| 12 — proxima safra | 4 | 10% | +2,8 | depende da safra sair |
+| 10 — cobertura de medicao | 7 | 45% | +2,45 | mede metade das bases |
+| 9 — robustez | 8 | 55% | +2,4 | ja subiu em 20/08 |
+| 1, 2, 6, 7, 8 | 37 | — | +6,1 | incremental |
+| | | | **+35,4** | **88,5%** |
+
+### Por que rodada nao resolve
+
+O criterio 3 vale 20 pontos e **nao depende de regerar**. Quatro razoes nao se
+mexeram em tres geracoes seguidas, com o alcance mudando muito no meio:
+
+| base | V14 | V15 | V16 |
+|---|---|---|---|
+| Enel SP | 3,19× | 3,19× | 3,19× |
+| Roraima | 2,63× | 2,63× | 2,63× |
+| Equatorial PA | 0,55× | 0,54× | 0,55× |
+| Cemig-D | 0,45× | 0,45× | 0,45× |
+
+Duas superestimam a perda em tres vezes, duas subestimam pela metade. A EQPA
+saiu de 55,2% para 81,1% de carga energizada entre a V14 e a V16 e a razao dela
+andou 0,00. Rodar V18, V19 e V20 sem atacar a causa produz esta mesma tabela
+tres vezes.
+
+E o criterio 11, que vale 6, esta em **zero**: hoje a ferramenta valida a BDGD
+contra a propria BDGD, o que e autoconsistencia e nao validacao.
+
+### O que fazer no lugar
+
+Uma rodada so — a V17, com o achado 41 — e depois **parar de regerar** e gastar
+duas semanas nos criterios 3 e 11, que somam 26 dos 100 pontos e nao se movem
+com rodada nenhuma.
+
+Meta honesta para o fim de setembro de 2026: **75%**, com o 3 e o 11 atacados.
+Os 90% sao conversa de dezembro, e so se a validacao externa fechar.
