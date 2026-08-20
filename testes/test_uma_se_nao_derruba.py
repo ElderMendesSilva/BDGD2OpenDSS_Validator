@@ -67,20 +67,35 @@ class NenhumaFalhaDeUmaSEDerrubaAEtapa(unittest.TestCase):
                          'ate o pool e mata a etapa inteira, e com ela o '
                          'trabalho das outras subestacoes')
 
-    def test_a_falha_e_devolvida_junto_com_a_subestacao(self):
+    def test_a_falha_diz_de_que_subestacao_e(self):
         """Erro sem o nome da SE nao serve: ninguem sabe o que refazer.
 
-        A forma varia de propria de cada etapa — o `ligacao` devolve
-        `{'se', 'erro'}`, o `energia` devolve a tripla `(se, r, erro)` — entao
-        o que se exige e o par, e nao um formato.
+        A FORMA varia por etapa e nao se exige uma: o `ligacao` devolve
+        `{'se': ..., 'erro': ...}` e o `energia` devolve a tripla
+        `(se, None, mensagem)`. O que se exige e que o retorno da falha
+        carregue a identidade da subestacao — sem isso o operador tem a
+        mensagem e nao tem o que fazer com ela.
         """
+        IDENT = {'se', 'pasta', 'modelo', 'master'}
+        sem_nome = []
         for script, nome in TRABALHADORES.items():
             f = _funcao(os.path.join(RAIZ, script), nome)
-            fonte = ast.unparse(f)
-            self.assertIn('erro', fonte,
-                          f'{script}: a falha nao e devolvida')
-            self.assertTrue('se' in fonte or 'modelo' in fonte,
-                            f'{script}: a falha nao diz de que subestacao e')
+            largo = [h for n in ast.walk(f) if isinstance(n, ast.Try)
+                     for h in n.handlers
+                     if h.type is None or (isinstance(h.type, ast.Name)
+                                           and h.type.id in ('Exception',
+                                                             'BaseException'))]
+            achou = False
+            for h in largo:
+                for r in [x for x in ast.walk(h) if isinstance(x, ast.Return)]:
+                    nomes = {n.id for n in ast.walk(r)
+                             if isinstance(n, ast.Name)}
+                    if nomes & IDENT:
+                        achou = True
+            if not achou:
+                sem_nome.append(f'{script}:{nome}')
+        self.assertEqual(sem_nome, [],
+                         'o retorno da falha nao diz de que subestacao e')
 
 
 if __name__ == '__main__':
