@@ -53,6 +53,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from bdgd2dss import pausa                           # noqa: E402
 from bdgd2dss import escrita
 from bdgd2dss import plataforma      # noqa: E402
+from bdgd2dss import cobertura       # noqa: E402
 
 AQUI = os.path.dirname(os.path.abspath(__file__))
 # ONDE ESTAO AS .gdb. O caminho do Windows desta maquina era o padrao fixo, e
@@ -272,6 +273,11 @@ def colher(tag, reg):
         reg['ligacao_elos'] = sum(x.get('elos', 0) for x in ses)
         reg['ligacao_cargas'] = sum(x.get('mortas_antes', 0)
                                     - x.get('mortas_depois', 0) for x in ses)
+        # Carga energizada nas DUAS medidas — ver `bdgd2dss/cobertura.py`.
+        c = cobertura.energizada(ses)
+        reg['energizada_cont_pct'] = c['cont_pct']
+        reg['energizada_kW_pct'] = c['kW_pct']
+        reg['MW_nominal'] = c['MW_nominal']
 
     b = ler('validacao_balanco.json')
     if b:
@@ -495,6 +501,8 @@ def main():
         resumo.append(colher(tag, reg))
         r = resumo[-1]
         print(f'   -> {r.get("sadias","?")}/{r.get("subestacoes","?")} sadias | '
+              f'energizada {r.get("energizada_kW_pct","?")}% do kW '
+              f'({r.get("energizada_cont_pct","?")}% das cargas) | '
               f'cobertura {r.get("cobertura_pct","?")}% | '
               f'razao {r.get("razao_mediana","?")}x | '
               f'viola real {r.get("pct_viola_real","?")}%\n', flush=True)
@@ -508,11 +516,14 @@ def main():
     gravar(proc, resumo)
 
     print(f'\n{"="*72}\nRESUMO — {(time.time()-t0)/60:.0f} min no total')
-    print(f'{"base":6s} {"sadias":>12s} {"cobertura":>10s} {"razao":>8s} '
-          f'{"viola real":>12s} {"conv min":>9s}')
+    print(f'{"base":6s} {"sadias":>12s} {"energ kW":>9s} {"energ cont":>11s} '
+          f'{"cobertura":>10s} {"razao":>8s} {"viola real":>12s} '
+          f'{"conv min":>9s}')
     for r in resumo:
         print(f'{r["tag"]:6s} '
               f'{str(r.get("sadias","—"))+"/"+str(r.get("subestacoes","—")):>12s} '
+              f'{str(r.get("energizada_kW_pct","—")):>8s}% '
+              f'{str(r.get("energizada_cont_pct","—")):>10s}% '
               f'{str(r.get("cobertura_pct","—")):>9s}% '
               f'{str(r.get("razao_mediana","—")):>7s}x '
               f'{str(r.get("pct_viola_real","—")):>11s}% '

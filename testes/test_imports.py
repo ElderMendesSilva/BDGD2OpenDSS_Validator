@@ -27,7 +27,8 @@ RAIZ = os.path.dirname(AQUI)
 NOSSOS = {'plataforma', 'pausa', 'lote', 'escrita', 'ligacao', 'ampacidade',
           'diagnostico', 'tensoes', 'linhas', 'chaves', 'cargas', 'master',
           'linecodes', 'complementos', 'coordenadas', 'transformadores',
-          'subtransmissao', 'transmissao', 'malha_at', 'clima', 'interativo'}
+          'subtransmissao', 'transmissao', 'malha_at', 'clima', 'interativo',
+          'cobertura'}
 
 
 def _importados(arvore):

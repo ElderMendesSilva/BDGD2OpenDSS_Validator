@@ -29,6 +29,7 @@ AQUI = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, AQUI)
 from bdgd2dss import ligacao, lote, pausa, plataforma                          # noqa: E402
 from bdgd2dss import escrita
+from bdgd2dss import cobertura
 
 try:
     import opendssdirect as dss
@@ -233,13 +234,21 @@ def uma(pasta, se, min_cargas):
         dss.Text.Command('Clear')
         dss.Text.Command(f'Redirect MASTER-{se}.dss')
         dss.Text.Command('Solve')
+        # EM kW, E NAO SO EM CONTAGEM. Carga morta nao tem o tamanho da media
+        # — medido nas 119 subestacoes da Equatorial PA da V16, ela e 1,77x
+        # maior, e a base sai de 81,1% energizada por contagem para 66,5% em
+        # kW. Ver `bdgd2dss/cobertura.py`.
         m2 = 0
+        kw_total = kw_morto = 0.0
         i = dss.Loads.First()
         while i:
+            kw = dss.Loads.kW()
             dss.Circuit.SetActiveElement('Load.' + dss.Loads.Name())
             v = dss.CktElement.VoltagesMagAng()[0::2]
+            kw_total += kw
             if v and max(v) < MORTA_V:
                 m2 += 1
+                kw_morto += kw
             i = dss.Loads.Next()
         p = dss.Circuit.TotalPower()
         return {'se': se, 'elos': len(lig), 'cargas': n_cargas,
@@ -247,6 +256,8 @@ def uma(pasta, se, min_cargas):
                 'mortas_antes': mortas_antes, 'mortas_depois': m2,
                 'componentes': len(comps), 'descartadas': len(fora),
                 'carga_kW': round(-p[0], 1),
+                'kW_nominal': round(kw_total, 1),
+                'kW_morto': round(kw_morto, 1),
                 'convergiu': bool(dss.Solution.Converged()),
                 'ligacoes': lig}
     except Exception as e:
@@ -390,6 +401,10 @@ def main():
     print(f'\n{"="*70}')
     print(f'{sum(r["elos"] for r in ok):,} elos em {len(ok)} subestacoes, '
           f'{rec:,} cargas recuperadas ({time.time()-t0:.0f} s)')
+    # As DUAS medidas, e a de kW na frente — ver `bdgd2dss/cobertura.py`.
+    l = cobertura.linha(cobertura.energizada(ok))
+    if l:
+        print(l)
     rec = sum(r.get('recusados', 0) for r in ok)
     if rec:
         print(f'{rec:,} elos RECUSADOS por quebrarem a convergencia — a rede '
