@@ -138,7 +138,14 @@ def radiografia():
         secundarias.update(bs[1:])
         try:
             dss.Transformers.Wdg(1)
-            kv_prim[bs[0]] = dss.Transformers.kV()
+            kv = dss.Transformers.kV()
+            # ACHADO 41: `Transformers.kV()` e linha-linha em enrolamento
+            # trifasico e `Bus.kVBase()` e fase-neutro. Sem converter aqui, a
+            # comparacao em `decidir` e 13,8 contra 7,9674 — a mesma tensao,
+            # 73% de diferenca, tolerancia de 5%. O elemento ativo continua
+            # sendo este transformador: `Wdg` move o enrolamento, nao o
+            # elemento.
+            kv_prim[bs[0]] = ligacao.kv_de_fase(kv, dss.CktElement.NumPhases())
         except Exception:
             pass
         i = dss.Transformers.Next()
