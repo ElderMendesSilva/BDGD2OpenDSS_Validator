@@ -249,6 +249,18 @@ def uma(pasta, se, min_cargas):
                 'carga_kW': round(-p[0], 1),
                 'convergiu': bool(dss.Solution.Converged()),
                 'ligacoes': lig}
+    except Exception as e:
+        # UMA SUBESTACAO NAO PODE DERRUBAR A ETAPA. Na V16 a 1726671 da
+        # Cemig-D estourou o limite de iteracoes de controle — um AVISO do
+        # OpenDSS, que o `opendssdirect` levanta como excecao — e levou junto
+        # as outras 412: a etapa morreu aos 15,4 min e o ciclo seguiu sem
+        # `ligacao.json`.
+        #
+        # O motivo do aviso e proprio desta premissa: quanto mais rede ela
+        # energiza, mais regulador entra no laco de controle. Entao o caso vai
+        # se repetir, e a resposta certa e a subestacao ficar de fora COM O
+        # MOTIVO ESCRITO, e nao a rodada inteira parar.
+        return {'se': se, 'erro': f'{type(e).__name__}: {str(e)[:200]}'}
     finally:
         os.chdir(cwd)
 

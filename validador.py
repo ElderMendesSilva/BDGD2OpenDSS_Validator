@@ -257,7 +257,17 @@ def _uma(tarefa):
     # segura poucos MB em vez do circuito inteiro.
     pausa.espera()
     pasta, ref = tarefa
-    return valida(pasta, ref)
+    # UMA SUBESTACAO NAO PODE DERRUBAR A ETAPA. Ver o caso da 1726671 da
+    # Cemig-D na V16: um AVISO do OpenDSS levantado como excecao matou o
+    # `ligacao` inteiro e o trabalho das outras 412 subestacoes.
+    try:
+        return valida(pasta, ref)
+    except Exception as e:
+        return {'modelo': os.path.basename(pasta), 'compila': False,
+                'erro': f'{type(e).__name__}: {str(e)[:200]}',
+                'causa': 'MODELO_QUEBRADO', 'acionavel': True,
+                'causa_detalhe': f'{type(e).__name__} ao validar',
+                'diagnostico': ['falhou']}
 
 
 def _linha(r):

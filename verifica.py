@@ -56,8 +56,16 @@ def _uma(tarefa):
     # segura poucos MB em vez do circuito inteiro.
     pausa.espera()
     se, master, motor = tarefa
-    cap = _capi(master) if motor in ('ambos', 'capi') else None
-    com = _com(master) if motor in ('ambos', 'com') else None
+    # UMA SUBESTACAO NAO PODE DERRUBAR A ETAPA. Ver o caso da 1726671 da
+    # Cemig-D na V16: um AVISO do OpenDSS levantado como excecao matou o
+    # `ligacao` inteiro e o trabalho das outras 412 subestacoes.
+    try:
+        cap = _capi(master) if motor in ('ambos', 'capi') else None
+        com = _com(master) if motor in ('ambos', 'com') else None
+    except Exception as e:
+        erro = {'compila': False, 'erro': f'{type(e).__name__}: '
+                                          f'{str(e)[:200]}'}
+        return se, erro, None
     return se, cap, com
 
 

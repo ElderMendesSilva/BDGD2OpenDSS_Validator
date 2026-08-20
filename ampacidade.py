@@ -114,6 +114,11 @@ def uma(pasta, se, margem):
                 'perdas_pct_antes': round(100 * antes / carga, 3) if carga else None,
                 'perdas_pct_depois': round(100 * depois / carga2, 3) if carga2 else None,
                 'por_condutor': resumo['por_condutor']}
+    except Exception as e:
+        # UMA SUBESTACAO NAO PODE DERRUBAR A ETAPA. Ver o caso da 1726671 da
+        # Cemig-D na V16: um AVISO do OpenDSS levantado como excecao matou o
+        # `ligacao` inteiro e o trabalho das outras 412 subestacoes.
+        return {'se': se, 'erro': f'{type(e).__name__}: {str(e)[:200]}'}
     finally:
         os.chdir(cwd)
 
