@@ -3352,6 +3352,59 @@ O segundo motivo era desconhecido, e virou o achado 39.
 
 ---
 
+### Correção do próprio achado 38: recusar era errado, e a BDGD diz por quê
+
+A segunda metade da correção — **não ligar** componente que alcança a rede viva
+por chave declarada aberta — estava errada, e a V15 mostrou o tamanho:
+
+| | V14 | V15 (recusando) |
+|---|---|---|
+| Cemig-D energizada | 90,0% | **79,7%** |
+| Roraima sem tensão | 8 cargas | **826** |
+
+Investigado. Cruzando as componentes mortas da SUB 1645246100 da Cemig-D com o
+`SSDMT.CTMT`: **84% a 88% das barras de cada uma pertencem a alimentadores da
+própria subestação**, e nenhuma contém cabeceira — são trechos de meio de
+alimentador, cortados.
+
+O mesmo cadastro afirma duas coisas incompatíveis:
+
+```
+SSDMT.CTMT       este trecho é do alimentador X da subestação S
+UNSEMT.P_N_OPE   o único caminho de X até ele está aberto
+```
+
+**Qual vence tem critério, e não é preferência.** A atribuição por CTMT é a que
+a distribuidora usa na própria contabilidade: o `PERD_A4` é declarado por CTMT e
+a energia das unidades consumidoras é atribuída por CTMT. Deixar o trecho escuro
+faz o modelo do alimentador X excluir rede que a distribuidora conta como de X —
+e aí a validação compara a perda de **duas redes diferentes**.
+
+E ligar **não fecha a chave declarada**: o elo vai da barra de MT da subestação
+até a componente, e a chave continua aberta onde a BDGD a põe. O que se faz é
+*alimentar* o trecho a partir da subestação que o cadastro nomeia como dona.
+
+Medido nas três piores subestações da Cemig-D:
+
+| SE | V14 | V15 (recusando) | por CTMT |
+|---|---|---|---|
+| 1645246100 | 2.803 | 7.380 | **158** |
+| 1726545 | 1.904 | 4.657 | **389** |
+| 1726655 | 1.295 | 4.856 | **155** |
+| **total** | **6.002** | **16.893** | **702** |
+
+**88,3% menos carga morta que a V14**, zero recusados por convergência.
+
+A condição não se perde: cada elo cujo trecho só alcançava a rede viva por chave
+aberta sai marcado no `_LIGACAO.dss`. Vira **informação**, e não critério — quem
+lê o arquivo tem direito de saber em que condição aquele trecho estava.
+
+**A primeira metade do achado 38 continua valendo e é o que recupera**: o grafo
+com só o que conduz é o que faz a premissa enxergar as componentes de verdade,
+em vez de uma gigante.
+
+---
+
 ## Achado 39 — `BARR_2` nomeia o pátio, não a barra
 
 Corrigido e medido. Uma subestação com dois níveis de secundário tinha os dois
