@@ -97,13 +97,36 @@ def ancora(comp, adjacencia, grau_min=1):
 def alcancavel_por_chave(comp, aberto, mortas):
     """A componente toca a rede VIVA por um elemento que nao conduz?
 
-    Se toca, ela esta escura porque a BDGD declara aquela chave aberta — o
-    trecho existe, o caminho existe, e quem alimentaria seria outro
-    alimentador. Inventar um elo ali nao e modelar o que falta: e apagar o
-    que o dado diz.
+    ISTO E INFORMACAO, E NAO CRITERIO — e a distincao custou uma geracao.
 
-    Sem esta checagem a premissa ligava tudo que estivesse escuro, e metade
-    do que ela ligaria na Equatorial PA cai nesta categoria.
+    A primeira versao RECUSAVA ligar essas componentes, com o argumento de que
+    a BDGD declara aquela chave aberta e inventar um elo ali seria apagar o
+    dado. Medido, o argumento estava errado, e a propria BDGD diz por que.
+
+    Cruzando as componentes mortas da SUB 1645246100 da Cemig-D com o
+    `SSDMT.CTMT`: **84% a 88% das barras de cada uma pertencem a alimentadores
+    DESTA subestacao**, e nenhuma delas contem cabeceira — sao trechos de meio
+    de alimentador, cortados. Ou seja, o mesmo cadastro afirma duas coisas
+    incompativeis:
+
+        SSDMT.CTMT      este trecho e do alimentador X da subestacao S
+        UNSEMT.P_N_OPE  o unico caminho de X ate ele esta aberto
+
+    Qual vence tem criterio: **a atribuicao por CTMT e a que a distribuidora
+    usa na propria contabilidade**. O PERD_A4 e declarado por CTMT e a energia
+    das unidades consumidoras e atribuida por CTMT. Deixar o trecho escuro faz
+    o modelo do alimentador X excluir rede que a distribuidora conta como de
+    X — e ai a validacao compara perda de duas redes diferentes.
+
+    E ligar nao fecha a chave declarada: o elo vai da barra de MT da
+    subestacao ate a componente, e a chave continua aberta onde a BDGD a poe.
+    O que se faz e ALIMENTAR o trecho a partir da subestacao que o cadastro
+    nomeia como dona dele.
+
+    Recusar custou, na V15: Cemig-D de 90,0% para 79,7% de carga energizada, e
+    Roraima de 8 para 826 cargas sem tensao. A funcao fica porque a condicao
+    vale a pena aparecer no arquivo gerado — quem le tem direito de saber que
+    aquele trecho so alcanca a rede viva por uma chave aberta.
     """
     if not aberto:
         return False
@@ -132,11 +155,6 @@ def decidir(comps, adjacencia, cargas_por_barra, kv_por_barra, kvs_de_vao,
             fora.append({'barras': len(comp), 'cargas': n_cargas,
                          'motivo': 'poucas cargas'})
             continue
-        if alcancavel_por_chave(comp, aberto, mortas):
-            fora.append({'barras': len(comp), 'cargas': n_cargas,
-                         'motivo': 'chave aberta declarada — outro '
-                                   'alimentador e quem alimenta'})
-            continue
         # so barras cuja tensao de base case com a de algum vao
         elegiveis = [b for b in comp
                      if any(abs(kv_por_barra.get(b, 0.0) - k) <= tol_kv * k
@@ -152,7 +170,10 @@ def decidir(comps, adjacencia, cargas_por_barra, kv_por_barra, kvs_de_vao,
             continue
         lig.append({'barra': a, 'kv': kv_por_barra.get(a, 0.0),
                     'cargas': n_cargas, 'barras': len(comp),
-                    'grau': len(adjacencia.get(a, ()))})
+                    'grau': len(adjacencia.get(a, ())),
+                    # so para o arquivo gerado dizer em que condicao o trecho
+                    # estava — ver `alcancavel_por_chave`
+                    'so_por_chave': alcancavel_por_chave(comp, aberto, mortas)})
     return lig, fora
 
 
@@ -223,7 +244,9 @@ def escrever(caminho, ligacoes, barra_por_kv, descartadas=()):
             f"Bus2={l['barra']}.1.2.3 Switch=y r1=0.0001 r0=0.0001 "
             f"x1=0 x0=0 c1=0 c0=0"
             f"   ! componente de {l['barras']:,} barras e {l['cargas']:,} "
-            f"cargas, ancora de grau {l['grau']} em {l['kv']:g} kV")
+            f"cargas, ancora de grau {l['grau']} em {l['kv']:g} kV"
+            + ('; so alcancava a rede viva por chave declarada ABERTA'
+               if l.get('so_por_chave') else ''))
     if not ligacoes:
         out.append('! nenhuma componente desenergizada relevante nesta '
                    'subestacao.')

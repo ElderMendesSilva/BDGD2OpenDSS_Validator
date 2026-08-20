@@ -237,16 +237,30 @@ class ChaveAbertaNaoEAresta(unittest.TestCase):
         self.assertFalse(ligacao.alcancavel_por_chave(
             {'a', 'b'}, aberto, mortas={'a', 'b', 'c'}))
 
-    def test_decidir_recusa_e_diz_o_motivo(self):
+    def test_decidir_liga_e_ANOTA_que_so_alcanca_por_chave(self):
+        """A condicao vira informacao no arquivo gerado, e nao recusa.
+
+        Recusar custou uma geracao: a Cemig-D caiu de 90,0% para 79,7% de
+        carga energizada e a Roraima foi de 8 para 826 cargas sem tensao,
+        porque a rede recusada e — pelo `SSDMT.CTMT` — dos alimentadores da
+        propria subestacao.
+        """
         comps = [{'x', 'y'}]
-        cargas = {'x': 50}
-        kvb = {'x': 13.8, 'y': 13.8}
-        lig, fora = ligacao.decidir(comps, {'x': {'y'}, 'y': {'x'}}, cargas,
-                                    kvb, [13.8], min_cargas=20,
+        lig, fora = ligacao.decidir(comps, {'x': {'y'}, 'y': {'x'}},
+                                    {'x': 50}, {'x': 13.8, 'y': 13.8},
+                                    [13.8], min_cargas=20,
                                     aberto={'x': {'viva'}}, mortas={'x', 'y'})
-        self.assertEqual(lig, [])
-        self.assertEqual(len(fora), 1)
-        self.assertIn('chave aberta', fora[0]['motivo'])
+        self.assertEqual(len(lig), 1)
+        self.assertTrue(lig[0]['so_por_chave'])
+        self.assertEqual(fora, [])
+
+    def test_ilha_de_verdade_e_ligada_sem_a_marca(self):
+        lig, _ = ligacao.decidir([{'x', 'y'}], {'x': {'y'}, 'y': {'x'}},
+                                 {'x': 50}, {'x': 13.8, 'y': 13.8},
+                                 [13.8], min_cargas=20,
+                                 aberto={}, mortas={'x', 'y'})
+        self.assertEqual(len(lig), 1)
+        self.assertFalse(lig[0]['so_por_chave'])
 
     def test_sem_o_grafo_aberto_o_comportamento_e_o_de_antes(self):
         """Quem chamar sem `aberto` continua ligando tudo — os testes antigos
