@@ -3787,3 +3787,61 @@ condutor mais resistivo das sete, por projeto.
 Corrigir esse R1 seria PIORAR o modelo em dois sentidos: apagaria a rede que a
 distribuidora declara ter, e derrubaria a perda modelada de uma base que ja
 esta em razao 0,83x — abaixo do declarado, nao acima.
+
+---
+
+## Achado 43 — um oitavo das barras da Equatorial PA reporta pu sem sentido
+
+Diagnostico, medido nas seis bases da V16. **Nenhuma correcao implementada**, e
+a causa raiz nao esta fechada — o que esta medido e o tamanho e o que ele
+invalida.
+
+Barras cuja tensao resolvida nao bate com a propria `kVBase`:
+
+| base | barras | pu > 1,5 | em | pu < 0,5 |
+|---|---|---|---|---|
+| **Equatorial PA** | 1.904.755 | **230.830 — 12,12%** | 66 de 119 SEs | 42.624 — 2,24% |
+| Roraima | 232.028 | 53 — 0,02% | 12 de 20 | **23.365 — 10,07%** |
+| Enel CE | 1.141.925 | 13 — 0,00% | 9 de 129 | 476 — 0,04% |
+| Enel SP | 1.648.494 | 1 — 0,00% | 1 de 155 | 29 — 0,00% |
+| Light | 1.132.855 | 0 | 0 de 94 | 7.666 — 0,68% |
+| CPFL Paulista | 2.138.017 | 0 | 0 de 265 | **100.405 — 4,70%** |
+
+### O que sao
+
+Na CAP, 3.677 barras. Todas com `kVBase = 0,1201 kV` — que e 0,208/sqrt(3), a
+MENOR base da lista — e tensao real de 7.868 V. Sao barras de MEDIA com base de
+BAIXA, e o pu delas sai **65 vezes** maior do que a fisica.
+
+Nao sao secundario de trafo: 3.344 das 3.677 tocam so linha, e 331 sao primario
+de transformador. Duas sao secundario.
+
+### O que ja foi descartado, com teste
+
+- **Nao e falta de `CalcVoltagebases`.** O MASTER ja chama duas vezes. Uma
+  terceira e uma quarta chamada nao mudam nada: 3.677 antes e 3.677 depois.
+- **Nao e a lista de tensoes.** Acrescentar 34,5 kV a `Set Voltagebases` nao
+  muda: 3.677.
+- **Nao e "barra morta no solve sem carga".** Com todas as cargas desabilitadas
+  a barra continua em 8.037 V, e o `CalcVoltagebases` insiste no 0,1201.
+- **Nao e consequencia do achado 41.** Nas oito subestacoes da amostra, o
+  numero e IDENTICO antes e depois da correcao: 21.239 nos dois. Sao dois
+  defeitos independentes; a fracao cai de 9,77% para 8,16% so porque o
+  denominador cresce quando mais barra energiza.
+
+### Por que importa
+
+Todo criterio expresso em pu que passar por essas barras mente. Isso inclui a
+faixa de tensao do Modulo 8, que e o proximo criterio a entrar, e o `V_media`
+que o `verifica` reporta hoje por subestacao.
+
+E o alarme que faltava e barato: media de pu fora de [0,8; 1,1] numa subestacao
+nao e leitura, e defeito. Nenhuma etapa olha para isso hoje.
+
+### O outro lado da tabela
+
+`pu < 0,5` e problema diferente e tambem nao esta explicado: Roraima com 10,07%
+e a CPFL com 4,70% das barras abaixo de meia tensao, enquanto a Enel SP tem
+0,00%. Roraima e a base de razao 2,63x — a que mais superestima perda —, e
+tensao colapsada e exatamente o que produz perda alem da conta. Vale investigar
+junto.
