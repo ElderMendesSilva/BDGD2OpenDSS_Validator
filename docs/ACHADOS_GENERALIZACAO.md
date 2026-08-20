@@ -3712,3 +3712,78 @@ E preciso um teste que falhe hoje: componente morta com transformador
 TRIFASICO, vao na mesma tensao fisica, e a premissa tem de liga-la. O teste
 atual de `ligacao` usa transformador monofasico, que e exatamente o caso que
 passa.
+
+---
+
+## Achado 42 — o R1 de 29 ohm/km da Enel CE esta certo: e cabo de aco
+
+Alarme falso, e o registro existe para que ninguem "corrija" um numero correto.
+
+Eu tinha medido R1 ponderado por comprimento de 4,48 ohm/km na Enel CE, contra
+0,30 a 1,53 nas outras cinco, e escrevi que era "um 10 AWG na rede inteira,
+fora da faixa fisica para cima". Errado nas duas pontas.
+
+### Primeiro: a amostra mentiu, de novo
+
+Os 4,48 saiam de seis subestacoes. Medida a base inteira pela SSDMT cruzada
+com a SEGCON, o valor e **5,307 ohm/km**. Terceira vez nesta rodada em que
+amostra pequena da um numero que a base nao confirma — ver achado 41.
+
+### Segundo: a faixa que eu usei era de aluminio
+
+O condutor e este, e a propria BDGD diz o que ele e:
+
+```
+COD_ID   1000182     R1 29,142 ohm/km   CNOM 25 A   CND_FAS 1
+R_REGUL  AZN1X3_09MM
+DESCR    MT-CAZ 3,09 MM - 1 x 3,09 mm - Cabos de aco zincado
+```
+
+Aco zincado de 3,09 mm da 7,50 mm2 de secao. Com resistividade de aco
+(~0,19 ohm.mm2/m) isso e ~25 ohm/km, e os 29,142 declarados estao dentro. Para
+aluminio a faixa e 0,17 a 1,5; para aco nao e.
+
+### O tamanho, e onde ele esta
+
+| | |
+|---|---|
+| km na Enel CE | **14.143 de 99.832 — 14,2%** |
+| destes, monofasicos (`FAS_CON` de uma letra) | **10.803 — 76%** |
+| contribuicao dele ao R1 ponderado da base | 4,14 dos 5,307 — **78%** |
+| R1 ponderado da Enel CE SEM ele | **1,37 ohm/km** |
+
+E rede monofasica com retorno por terra, o MRT rural do Ceara. Sem ela a Enel
+CE fica em 1,37 ohm/km, ao lado de Roraima (0,98) e CPFL (1,06).
+
+E ela e exclusiva desta base:
+
+| base | km de MT | km em aco | |
+|---|---|---|---|
+| **Enel CE** | 99.832 | **14.143** | **14,2%** |
+| Roraima | 15.712 | 0 | 0,0% |
+| Equatorial PA | 149.635 | 0 | 0,0% |
+| Light | 25.611 | 0 | 0,0% |
+| CPFL Paulista | 90.851 | 0 | 0,0% |
+
+### O guarda do conversor agiu certo
+
+`linecodes.gerar` ajusta R1 = a x CNOM^b sobre a propria SEGCON e so substitui
+quem passa de `FATOR_CORRIGE = 7,4` vezes o previsto. Para o 1000182 o ajuste
+preve 6,944 ohm/km em 25 A e o declarado esta a **4,20x** — abaixo do limiar,
+e nao foi tocado. Estava certo nao tocar.
+
+Fica uma limitacao anotada, e nao um defeito: o guarda le so a SEGCON, que nao
+tem comprimento, entao ele nao sabe distinguir um erro de fator 4 em 14.143 km
+de um erro de fator 10 em 3 km. Aqui isso nao custou nada porque o dado estava
+certo; numa base em que estiver errado, vai custar.
+
+### O que isto muda na leitura das perdas
+
+A perda mediana de 4,49% por subestacao da Enel CE deixa de ser suspeita e
+passa a ser esperada: um setimo da rede dela e fio de aco. E o contrario do que
+eu tinha concluido — a Enel CE nao e a base com condutor errado, e a base com o
+condutor mais resistivo das sete, por projeto.
+
+Corrigir esse R1 seria PIORAR o modelo em dois sentidos: apagaria a rede que a
+distribuidora declara ter, e derrubaria a perda modelada de uma base que ja
+esta em razao 0,83x — abaixo do declarado, nao acima.
