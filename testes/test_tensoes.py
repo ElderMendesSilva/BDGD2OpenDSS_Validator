@@ -33,11 +33,27 @@ class CodigoParaKv(unittest.TestCase):
         self.assertEqual(tensoes.kv('72', 13.8), 34.5)
         self.assertEqual(tensoes.kv('84', 13.8), 88.0)
 
-    def test_codigo_desconhecido_cai_no_padrao(self):
-        """`67` aparece na Enel SP e em 132 alimentadores da Light, sem valor
-        confirmado em nenhuma. Tem de cair no padrao, nao explodir."""
-        self.assertEqual(tensoes.kv('67', 13.8), 13.8)
-        self.assertEqual(tensoes.kv('67', 34.5), 34.5)
+    def test_a_tabela_e_a_TTEN_inteira(self):
+        """103 codigos, do dicionario da ANEEL, e nao os cinco que a gente
+        tinha confirmado a mao. Cada um dos oito abaixo estava fazendo
+        alimentador de verdade cair no padrao errado."""
+        self.assertEqual(len(tensoes.TENSAO_KV), 103)
+        for cod, kv in (('41', 11.4), ('42', 11.9), ('46', 13.2),
+                        ('61', 22.0), ('62', 23.0), ('67', 25.0),
+                        ('77', 45.0), ('27', 3.8)):
+            self.assertEqual(tensoes.kv(cod, 13.8), kv,
+                             f'codigo {cod} da TTEN')
+
+    def test_o_59_valia_21_e_nao_20(self):
+        """Estava errado desde que a tabela foi escrita a mao: a TTEN diz
+        21 kV e o modulo dizia 20."""
+        self.assertEqual(tensoes.kv('59', 13.8), 21.0)
+
+    def test_codigo_fora_da_TTEN_cai_no_padrao(self):
+        """Agora isto quer dizer outra coisa: a BDGD trouxe codigo que o
+        dicionario da ANEEL nao preve. E achado, e nao lacuna nossa."""
+        self.assertEqual(tensoes.kv('998', 13.8), 13.8)
+        self.assertEqual(tensoes.kv('998', 34.5), 34.5)
 
     def test_codigo_desconhecido_avisa_uma_vez_so(self):
         tensoes._avisados.clear()
