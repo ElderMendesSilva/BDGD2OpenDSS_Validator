@@ -3845,3 +3845,163 @@ e a CPFL com 4,70% das barras abaixo de meia tensao, enquanto a Enel SP tem
 0,00%. Roraima e a base de razao 2,63x — a que mais superestima perda —, e
 tensao colapsada e exatamente o que produz perda alem da conta. Vale investigar
 junto.
+
+---
+
+## Achado 44 — a razao publicada dependia de uma escolha nossa tanto quanto do modelo
+
+Corrigido em `ebca996`. O projeto publicava UM numero por base: a mediana de
+`modelo/declarado` sobre a amostra que sobra depois de descartar declaracao
+abaixo de 0,5%. Medido na V17, variando so o corte:
+
+| base | 0% | 0,25% | 0,5% | 1% | 2% |
+|---|---|---|---|---|---|
+| Light | **1,38x** | 0,97x | **0,74x** | 0,53x | 0,26x |
+| Equatorial PA | 0,74x | 0,66x | 0,54x | 0,40x | 0,14x |
+| Roraima | 3,53x | 2,90x | 2,63x | 2,35x | 1,48x |
+| Cemig-D | 0,45x | 0,45x | 0,45x | 0,45x | 0,45x |
+
+A Light **atravessa o 1,0** por causa do corte: com ele, o modelo parece
+subestimar 26%; sem ele, superestima 38%. A Cemig-D nao se move em corte
+nenhum. Publicar "0,74x" e "0,45x" lado a lado apaga a diferenca entre esses
+dois casos, e eles sao opostos.
+
+O corte tem razao de existir e esta documentado: alimentador que declara 0,00%
+produz razao de 105.874x. O erro nao era filtrar, era publicar o resultado como
+se nao houvesse escolha.
+
+### O filtro era assimetrico
+
+Ele peneirava a DECLARACAO implausivel e **nunca olhava o modelo**:
+
+| base | mediana | agregado | alim. com perda modelada > 20% | fatia da perda |
+|---|---|---|---|---|
+| CPFL Paulista | 0,88x | **5,96x** | 8 de 1.548 | **86,4%** |
+| Roraima | 2,63x | 4,62x | 8 de 80 | 60,7% |
+| Cemig-D | 0,45x | 0,85x | 6 de 1.831 | 23,4% |
+| Enel SP | 3,19x | 3,10x | 7 de 1.575 | 2,9% |
+| Enel CE | 0,83x | 0,92x | 6 de 686 | 5,5% |
+| Light | 0,74x | 0,90x | 1 de 1.546 | 8,7% |
+| **Equatorial PA** | 0,55x | 0,41x | **0 de 628** | **0,0%** |
+
+Oito alimentadores da CPFL — meio por cento da base — carregam **86,4%** da
+perda que o modelo dela produz, e o pior declara **11.224%**. A mediana nao os
+ve; o agregado e feito deles. A Equatorial PA, que tem a razao mais criticada,
+e a unica base sem nenhum alimentador implausivel.
+
+### A causa dos implausiveis, e ela e conhecida
+
+A pior da CPFL, `esm01`, tem **3.862 barras em 0,60 pu** — e 13,8/23 = 0,60.
+Alimentador na tensao errada, a mesma familia do achado 39 e do 40.
+
+E nao e acaso: **1.219 dos 1.636 alimentadores da CPFL (74,5%)** tem codigo de
+`TEN_NOM` que o `bdgd2dss/tensoes.py` nao conhece — 41 (610), 46 (440),
+42 (168) e 77 (1) — e caem no padrao. So 393 usam o codigo 49 (13,8 kV).
+Quatro dos seis piores carregam os codigos 41 e 42.
+
+O que os codigos 41, 42 e 46 significam **nao esta estabelecido**. O cruzamento
+com o `TEN_SEC` do trafo de AT nao decidiu, porque a mesma subestacao tem
+varios secundarios.
+
+### A correcao
+
+`bdgd2dss/concordancia.py` publica as tres: `sensibilidade` (a mediana em
+varios cortes), `agregado` (soma dos dois lados, em percentual, sem corte) e
+`implausivel` (o que o filtro nao olhava). Um numero so nao volta.
+
+---
+
+## Achado 45 — `--bt completo` esta quebrado, e por isso o criterio 5 nunca foi medido
+
+Diagnostico. **Nenhuma correcao implementada.**
+
+O criterio 5 do `PLANO_V1.md` — "BT modelada ou sua ausencia quantificada",
+peso 8, nota 20% — vinha sendo tratado como trabalho que ninguem tinha feito.
+Nao e: **nao da para fazer com o codigo de hoje.**
+
+Convertida a subestacao mediana de tres bases nos dois modos, e resolvidas:
+
+| base | subestacao | cargas sem tensao no modo COMPLETO |
+|---|---|---|
+| Enel CE | IPU | **28.821 de 30.841 — 93,5%** |
+| Roraima | 5003532 | 1.292 de 3.541 — 36,5% |
+| Equatorial PA | ALE | Vmin 0,1023 pu |
+
+No modo `agregado` as mesmas subestacoes ficam perto de 0% de carga morta. Na
+IPU, 48.076 barras ficam sem tensao nenhuma.
+
+Os numeros de "quanto a BT acrescenta a perda" que sairam dessa medicao —
++4,7% em Roraima, +477,8% na Enel CE, +521,7% na Equatorial — **nao valem
+nada**: sao de um modelo colapsado, e nao de rede de baixa.
+
+O defeito ja tinha sido visto uma vez. A docstring de `bdgd2dss/linhas.py`
+registra que, no primeiro teste do modo completo, "29.834 das 30.009 cargas"
+ficaram sem tensao, por causa do neutro (no 4) que nao existe nas barras
+distantes. A correcao de entao nao resolveu, ou nao resolveu para todas as
+bases.
+
+**Consequencia para o plano:** o criterio 5 nao e "medir a BT ausente", e
+"consertar o modo completo E DEPOIS medir". O custo previsto muda, e a nota nao
+sobe enquanto isso.
+
+---
+
+## Achado 46 — a primeira ancora externa, e ela ordena o que fazer
+
+Primeira medicao do criterio 11 do `PLANO_V1.md`, que estava em **zero**. Ate
+aqui a ferramenta validava o `PERD_A4` da BDGD contra a propria BDGD.
+
+### A ancora
+
+A ANEEL publica, no relatorio anual de perdas na distribuicao, que em 2024 as
+perdas totais foram **14% da energia injetada — cerca de 7,4% tecnicas e 6,6%
+nao tecnicas**. Esse 7,4% cobre TODOS os segmentos: alta tensao, media,
+transformadores de distribuicao e rede de baixa.
+
+Nosso modelo cobre MT e transformadores, e **nao** a rede de BT (`--bt
+agregado`). Entao a perda agregada dele tem de ficar ABAIXO de 7,4%. E um teste
+fraco — passar nele nao prova que o modelo esta certo —, mas reprovar prova que
+esta errado, e e o primeiro teste que nao vem da propria BDGD.
+
+### O resultado, e o que ele separa
+
+| base | agregado | sem os implausiveis | declarado BDGD | fracao dos 7,4% |
+|---|---|---|---|---|
+| Roraima | **9,83%** | 3,98% | 2,13% | 0,54x |
+| Enel SP | 4,39% | 4,29% | 1,42% | 0,58x |
+| Enel CE | 3,50% | 3,33% | 3,79% | 0,45x |
+| Cemig-D | 2,72% | 2,08% | 3,21% | 0,28x |
+| Light | 1,43% | 1,31% | 1,58% | 0,18x |
+| CPFL Paulista | **9,08%** | **1,23%** | 1,52% | 0,17x |
+| Equatorial PA | 0,88% | 0,88% | 2,12% | 0,12x |
+
+**Como esta hoje, Roraima e a CPFL REPROVAM**: 9,83% e 9,08% de perda so na MT,
+acima dos 7,4% que a ANEEL da para a rede inteira do pais.
+
+Tirados os ~30 alimentadores com perda modelada acima de 20% — o achado 44 —, as
+sete passam, e a dispersao desaba: de 0,88% a 9,83% vira **0,88% a 4,29%**. Na
+CPFL a diferenca e de **7,4 vezes**, produzida por oito alimentadores de 1.548.
+
+### O que isso ordena
+
+1. **Consertar os ~30 alimentadores implausiveis vale mais que qualquer outra
+   coisa na fila.** Eles nao mudam a mediana, mudam o agregado por fator de ate
+   7,4, e sao o que faz duas bases reprovarem no unico teste externo que
+   existe. A causa provavel ja tem nome: alimentador na tensao errada
+   (achados 39, 40 e 44).
+
+2. **A ancora nao substitui o dado por distribuidora.** Os 7,4% sao nacionais;
+   comparar cada base com a perda tecnica DELA e o que fecha o criterio 11, e
+   isso ainda nao foi obtido: o numero por distribuidora existe, mas mora num
+   painel Power BI que nao expoe endpoint, e a API de dados abertos da ANEEL
+   nao devolve o conjunto por busca direta. Fica como trabalho, com o caminho
+   ja mapeado.
+
+3. **Tres bases ficam MUITO abaixo mesmo depois da limpeza** — Equatorial PA
+   (0,12x), CPFL (0,17x) e Light (0,18x). Para elas a pergunta deixa de ser
+   "por que a razao contra a BDGD e baixa" e passa a ser "quanta perda de MT
+   real este modelo esta deixando de fora", que e uma pergunta melhor porque
+   tem referencia de fora.
+
+Fonte: relatorio de perdas na distribuicao da ANEEL, exercicio 2024, divulgado
+em 2025.
