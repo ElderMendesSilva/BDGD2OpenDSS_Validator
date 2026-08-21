@@ -40,6 +40,7 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from bdgd2dss.leitor import BDGD, num, txt          # noqa: E402
 from bdgd2dss import escrita
+from bdgd2dss import concordancia
 
 # As parcelas eletricas da CTMT. PERD_MED (medicao) e PERD_A3a
 # (subtransmissao) ficam de fora — a primeira nao e eletrica, a segunda esta
@@ -357,6 +358,16 @@ def main():
     print(f'   abaixo de 0,67x: {sum(1 for x in r if x < 0.67):5,} '
           f'({100*sum(1 for x in r if x < 0.67)/len(r):5.1f}%)')
 
+    # AS TRES MEDIDAS, sobre `todos` — a amostra SEM o corte de
+    # plausibilidade. O numero acima depende da escolha do corte tanto
+    # quanto do modelo (a Light vai de 1,38x a 0,26x e atravessa o 1,0),
+    # e o corte so peneirava a DECLARACAO: modelo com 11.224% de perda
+    # passava direto. Ver `bdgd2dss/concordancia.py`.
+    quatro = [(m, d, k, e) for _, _, m, d, k, e in todos]
+    print()
+    for _l in concordancia.linhas(quatro):
+        print(_l)
+
     pares.sort(key=lambda x: -(x[2] / x[3]) if x[3] else 0)
     print(f'\n{"SE":6s} {"alimentador":22s} {"modelo":>8s} {"declarado":>10s} {"razao":>7s}')
     for se, cod, m, d, _, _ in pares[:10]:
@@ -389,9 +400,15 @@ def main():
     # `parcelas` vai em cada registro de proposito: sem ela o arquivo nao diz
     # contra o QUE a razao foi calculada, e duas rodadas com composicoes
     # diferentes ficariam indistinguiveis no disco.
-    json.dump([{'se': s, 'ctmt': c, 'modelo_pct': m, 'declarado_pct': d,
-                'razao': (m / d) if d else None, 'parcelas': parc}
-               for s, c, m, d, _, _ in pares],
+    json.dump({'parcelas': parc,
+               'sensibilidade': concordancia.sensibilidade(quatro),
+               'agregado': concordancia.agregado(quatro),
+               'modelo_implausivel': concordancia.implausivel(quatro),
+               'alimentadores': [
+                   {'se': s, 'ctmt': c, 'modelo_pct': m,
+                    'declarado_pct': d,
+                    'razao': (m / d) if d else None, 'parcelas': parc}
+                   for s, c, m, d, _, _ in pares]},
               open(os.path.join(raiz, 'validacao_perdas.json'), 'w',
                    encoding='utf-8', newline=escrita.FIM_DE_LINHA), indent=1, ensure_ascii=False)
     print(f'\ndetalhe em {os.path.join(raiz, "validacao_perdas.json")}')

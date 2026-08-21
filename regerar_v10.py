@@ -255,10 +255,26 @@ def colher(tag, reg):
 
     p = ler('validacao_perdas.json')
     if p:
-        r = [x['razao'] for x in p if x['razao']]
+        # DUAS FORMAS. Ate a V17 o arquivo era uma LISTA de
+        # alimentadores; passou a ser um dicionario, para caber a
+        # sensibilidade ao corte, o agregado e o aviso de modelo
+        # implausivel. Ler as duas mantem a tabela comparavel com as
+        # rodadas velhas, que e o que permite dizer que um numero mudou.
+        alim = p if isinstance(p, list) else (p.get('alimentadores') or [])
+        r = [x['razao'] for x in alim if x['razao']]
         if r:
             reg['razao_mediana'] = round(statistics.median(r), 2)
-            reg['parcelas'] = p[0].get('parcelas')
+            reg['parcelas'] = alim[0].get('parcelas')
+        if isinstance(p, dict):
+            ag = p.get('agregado') or {}
+            im = p.get('modelo_implausivel') or {}
+            reg['razao_agregada'] = (round(ag['razao'], 2)
+                                     if ag.get('razao') else None)
+            reg['sensibilidade'] = p.get('sensibilidade')
+            reg['alim_implausiveis'] = im.get('n')
+            reg['fatia_perda_implausivel'] = (
+                round(im['fatia_da_perda_pct'], 1)
+                if im.get('fatia_da_perda_pct') is not None else None)
 
     amp = ler('ampacidade.json')
     if amp:

@@ -113,6 +113,8 @@ for nome, tag in BASES:
         import statistics
         p = json.load(open(os.path.join(P, saida, 'validacao_perdas.json'),
                            encoding='utf-8'))
+        # lista ate a V17, dicionario depois — ver valida_perdas
+        p = p if isinstance(p, list) else (p.get('alimentadores') or [])
         r = [x['razao'] for x in p if x['razao']]
         reg['alim_comparados'] = len(p)
         reg['modelo_pct'] = round(statistics.median([x['modelo_pct'] for x in p]), 2)
