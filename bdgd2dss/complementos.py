@@ -11,6 +11,7 @@ Elementos complementares, cada funcao gerando um arquivo:
 import math
 from .leitor import num, txt, no
 from . import escrita
+from . import dominios
 
 FASES = {'A': '1', 'B': '2', 'C': '3'}
 HORAS = 730.0                       # horas no mes, igual ao usado em cargas.py
@@ -343,9 +344,31 @@ def reguladores(bdgd, ctmts, caminho, kv=13.8, kv_por_ctmt=None,
                                 ['COD_ID', 'PAC_1', 'PAC_2', 'CTMT', 'FAS_CON'])
     except Exception:
         escrita.escreve(caminho, '! UNREMT indisponivel\n'); return 0
+    # A BDGD TRAZ A POTENCIA E O AJUSTE, e ate aqui nao eram lidos. O
+    # comentario que este bloco substitui dizia que a BDGD nao traz a
+    # potencia do regulador; ela traz, na EQRE, e o campo e CODIGO e nao
+    # valor: POT_NOM indexa a TPOTAPRT. Medido, o tipico de 5.000 kVA
+    # estava longe do declarado — 2.750 kVA em 1.506 reguladores da Enel
+    # CE e 333 kVA em 201 da Enel SP.
+    #
+    # TEN_REG e decimal e vem em p.u.: 1,05 em Roraima, 1,04 na Enel CE e
+    # na Equatorial PA, 0,95 na Enel SP. O tipico de 122 V (1,0167 p.u.)
+    # errava as quatro, e na Enel SP errava o SENTIDO da regulacao.
+    eqre = {}
+    try:
+        e = bdgd.ler('EQRE', colunas=['UN_RE', 'POT_NOM', 'TEN_REG'])
+        for k in range(len(e['UN_RE'])):
+            eqre[txt(e['UN_RE'][k])] = (
+                dominios.TPOTAPRT.get(txt(e['POT_NOM'][k])),
+                num(e['TEN_REG'][k]) or None)
+    except Exception:
+        pass          # base sem EQRE segue nos tipicos, como antes
+
     out = ['! REGULADORES — gerados de UNREMT',
            f'! vreg = {vreg:g} V e band = {band:g} V — AJUSTES TIPICOS, nao de campo.',
-           f'! kVA = {kva:g} adotado; a BDGD nao traz a potencia do regulador.',
+           f'! {len(eqre):,} regulador(es) com EQRE: potencia da TPOTAPRT e'
+           f' vreg do TEN_REG declarado. Sem EQRE, kVA = {kva:g}.',
+           '! band continua tipico: a BDGD nao declara a faixa morta.',
            '! O ptratio segue a tensao de cada alimentador (TP para 120 V).']
     n = 0
     for i in range(len(col['COD_ID'])):
@@ -360,14 +383,17 @@ def reguladores(bdgd, ctmts, caminho, kv=13.8, kv_por_ctmt=None,
         kv_ct = kv_por_ctmt.get(txt(col['CTMT'][i]), kv)
         kv_fn = kv_ct / math.sqrt(3)
         ptratio = round(kv_fn * 1000 / 120.0, 2)
+        _pot, _pu = eqre.get(cod, (None, None))
+        kva_i = _pot if _pot else kva
+        vreg_i = round(_pu * 120.0, 1) if _pu else vreg
         for f in [FASES[c] for c in txt(col['FAS_CON'][i], 'ABC').upper() if c in FASES] or ['1']:
             nome = f'REG_{cod}_{f}'
             out.append(f'New Transformer.{nome} phases=1 windings=2 XHL=0.04\n'
                        f'~ buses=[{b1}.{f} {b2}.{f}] conns=[wye wye]\n'
-                       f'~ kVs=[{kv_fn:.4f} {kv_fn:.4f}] kVAs=[{kva:g} {kva:g}] %Rs=[0.01 0.01]\n'
+                       f'~ kVs=[{kv_fn:.4f} {kv_fn:.4f}] kVAs=[{kva_i:g} {kva_i:g}] %Rs=[0.01 0.01]\n'
                        f'~ maxtap=1.10 mintap=0.90 numtaps=32')
             out.append(f'New RegControl.RC_{nome} transformer={nome} winding=2 '
-                       f'vreg={vreg:g} band={band:g} ptratio={ptratio} '
+                       f'vreg={vreg_i:g} band={band:g} ptratio={ptratio} '
                        f'delay=15 maxtapchange=1')
             n += 1
     open(caminho, 'w', encoding='utf-8', newline=escrita.FIM_DE_LINHA).write('\n'.join(out) + '\n')

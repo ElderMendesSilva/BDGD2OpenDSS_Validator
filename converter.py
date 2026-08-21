@@ -304,6 +304,7 @@ def _uma_se(C, se, k):
     """
     a = C['a']
     agregado = C['agregado']
+    agregado_ip = C.get('agregado_ip')
     alvo = C['alvo']
     b = C['b']
     bt_da_base = C['bt_da_base']
@@ -370,6 +371,7 @@ def _uma_se(C, se, k):
                             agregado_bt=collections.defaultdict(
                                 lambda: {'ene': 0.0, 'cur': collections.Counter(), 'n': 0}),
                             kv_por_ctmt=kv_por_ctmt, kv_mt_padrao=a.kv_mt,
+                            agregado_pip=agregado_ip,
                             barras=barras_rede)
         ibt = cargas.gerar_bt_completa(b, ctmts, sec,
                                        os.path.join(d, 'CargasBT.dss'), a.mes,
@@ -392,7 +394,8 @@ def _uma_se(C, se, k):
     else:
         info = cargas.gerar(b, ctmts, sec, os.path.join(d, 'Cargas.dss'), a.mes,
                             nomes_curva, a.fator_carga, agregado,
-                            kv_por_ctmt, a.kv_mt, barras=barras_rede)
+                            kv_por_ctmt, a.kv_mt, barras=barras_rede,
+                            agregado_pip=agregado_ip)
 
     # a GD vem depois da rede de BT: com --bt completo o PAC da UGBT so
     # existe depois que SSDBT e RAMLIG foram escritos
@@ -749,6 +752,7 @@ def main():
 
     # --- agregacao da carga de BT: UMA varredura para todas as SEs
     agregado = None
+    agregado_ip = None
     if a.bt == 'agregado':
         todos_ctmt = [c for s in alvo for c in ses.get(s, [])]
         print(f'Agregando carga de BT de {len(todos_ctmt)} alimentadores '
@@ -756,8 +760,13 @@ def main():
         import pickle
         cache = os.path.join(a.saida, f'{a.cache}.mes{a.mes:02d}')
         if os.path.exists(cache):
-            agregado = pickle.load(open(cache, 'rb'))
-            print(f'  cache reaproveitado: {len(agregado):,} transformadores', flush=True)
+            # O cache passou a guardar (BT, IP). Cache antigo tem so o
+            # dicionario da BT; aceitar as duas formas evita jogar fora a
+            # agregacao de quem ja a tem em disco.
+            _g = pickle.load(open(cache, 'rb'))
+            agregado, agregado_ip = _g if isinstance(_g, tuple) else (_g, None)
+            print(f'  cache reaproveitado: {len(agregado):,} transformadores'
+                  f' e {len(agregado_ip or {}):,} com iluminacao publica', flush=True)
         else:
             # `dict(...)` e nao o defaultdict cru: o `_agrega_bt` devolve um
             # defaultdict cuja fabrica e um lambda local, que nao atravessa
@@ -765,7 +774,11 @@ def main():
             # cache JA entregava um dict comum, entao isto so faz a primeira
             # execucao dar o mesmo objeto que a segunda.
             agregado = dict(cargas._agrega_bt(b, todos_ctmt, a.mes))
-            pickle.dump(agregado, open(cache, 'wb'))
+            # a PIP tem o mesmo problema de custo: sem pre-agregar, cada
+            # subestacao varreria a tabela inteira — 2,4 milhoes de
+            # registros vezes 413 na Cemig-D.
+            agregado_ip = dict(cargas._agrega_pip(b, todos_ctmt, a.mes))
+            pickle.dump((agregado, agregado_ip), open(cache, 'wb'))
             print(f'  {len(agregado):,} transformadores com carga (cache salvo)', flush=True)
 
     resumo = []
@@ -828,7 +841,8 @@ def main():
     # preco de poder rodar o laco noutro processo — e tambem o que torna a
     # dependencia visivel: antes bastava acrescentar uma variavel no `main`
     # para o laco passar a depender dela sem ninguem notar.
-    C = {'a': a, 'agregado': agregado, 'alvo': alvo, 'bt_da_base': bt_da_base,
+    C = {'a': a, 'agregado': agregado, 'agregado_ip': agregado_ip,
+         'alvo': alvo, 'bt_da_base': bt_da_base,
          'ctmt_info': ctmt_info, 'est_at': est_at, 'fc_gd': fc_gd,
          'info_tr': info_tr, 'kv_por_ctmt': kv_por_ctmt, 'mapa_cnd': mapa_cnd,
          'nomes_curva': nomes_curva, 'ses': ses, 'tmp': tmp,

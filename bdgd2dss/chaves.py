@@ -14,6 +14,7 @@ O estado e emitido DUAS vezes, de proposito:
 from .leitor import num, txt, no
 from .linhas import nos
 from . import escrita
+from . import dominios
 
 # valores de P_N_OPE que significam chave aberta
 ABERTA = {'A', 'ABERTA', 'ABERTO', '0', 'N'}
@@ -63,8 +64,19 @@ def gerar(bdgd, ctmts, caminho_chaves, caminho_controles, barras=None):
         nome = txt(col['COD_ID'][i])
         nd = nos(col['FAS_CON'][i])
         nf = max(1, len([c for c in txt(col['FAS_CON'][i]).upper() if c in 'ABC']))
+        # A AMPACIDADE DA CHAVE ESTAVA SENDO JOGADA FORA. `COR_NOM` ja era
+        # lido do UNSEMT e o arquivo saia com normamps=9999 — infinito —,
+        # entao chave sobrecarregada nunca aparecia em lugar nenhum.
+        # Medido: 100% das chaves das sete bases tem codigo valido na TCOR,
+        # e Roraima sozinha tem 20.638 chaves de 100 A modeladas como 9999.
+        #
+        # Isto NAO muda a premissa de ampacidade: ela pula chave
+        # (`if not dss.Lines.IsSwitch()`), entao nada e reescrito. O que
+        # muda e a sobrecarga passar a ser VISIVEL para quem mede.
+        amps = dominios.TCOR.get(txt(col['COR_NOM'][i])) or 9999
         ch.append(f'New Line.{nome} Phases={nf} Bus1={b1}{nd} Bus2={b2}{nd} '
-                  f'Switch=Y r1=1e-4 x1=1e-4 r0=1e-4 x0=1e-4 normamps=9999')
+                  f'Switch=Y r1=1e-4 x1=1e-4 r0=1e-4 x0=1e-4 '
+                  f'normamps={amps:g}')
         # as barras que a chave cria fazem parte da rede tanto quanto as da
         # SSDMT — e o regulador so se liga por elas (achado 32)
         criadas.add(b1); criadas.add(b2)

@@ -74,9 +74,46 @@ def _agrega_bt(bdgd, ctmts, mes):
     return acc
 
 
+def _agrega_pip(bdgd, ctmts, mes):
+    """Soma a energia da ILUMINACAO PUBLICA por transformador.
+
+    A PIP e carga de verdade e estava ficando de fora. Medida a energia do
+    mes 01 nas sete bases, ela vale de 1,24% (Enel SP) a 4,80% (Enel CE)
+    de tudo que a distribuidora entrega, com 5,8 milhoes de pontos somados.
+
+    Vai em carga SEPARADA, e nao somada a agregacao da BT, por causa da
+    curva: `TIP_CC` da PIP e `IP-Tipo1` em 100% dos registros da Enel CE, e
+    a curva de iluminacao e quase nula de dia e cheia de noite. Somada a
+    BT, a energia dela seguiria o perfil residencial, que e o contrario.
+    A curva ja existe no Curvas.dss: ela vem da CRVCRG como as outras.
+
+    O `UNI_TR_MT` esta preenchido em 439.142 de 439.142 registros da Enel
+    CE, entao a juncao pelo transformador nao perde nada.
+    """
+    cols = ['CTMT', 'UNI_TR_MT', 'TIP_CC', f'ENE_{mes:02d}']
+    acc = collections.defaultdict(
+        lambda: {'ene': 0.0, 'cur': collections.Counter(), 'n': 0})
+    alvo = set(ctmts)
+    import numpy as np
+    try:
+        fatias = list(bdgd.ler_em_fatias('PIP', cols))
+    except Exception:
+        return acc            # base sem PIP segue sem iluminacao publica
+    for col, lido, total in fatias:
+        mask = leitor_pertence(col['CTMT'], alvo)
+        idx = np.nonzero(mask)[0]
+        if len(idx):
+            ene = np.nan_to_num(col[f'ENE_{mes:02d}'][idx].astype(float))
+            for j, k in enumerate(idx):
+                d = acc[txt(col['UNI_TR_MT'][k])]
+                d['ene'] += ene[j]; d['n'] += 1
+                d['cur'][txt(col['TIP_CC'][k])] += 1
+    return acc
+
+
 def gerar(bdgd, ctmts, sec, caminho_saida, mes=1, curvas_validas=None,
           fator=1.0, agregado_bt=None, kv_por_ctmt=None, kv_mt_padrao=13.8,
-          barras=None):
+          barras=None, agregado_pip=None):
     """Escreve as cargas. `fator` permite escalar a demanda (util para o
     NSGA-II, ao gerar cenarios de estresse de ampacidade).
 
@@ -94,6 +131,7 @@ def gerar(bdgd, ctmts, sec, caminho_saida, mes=1, curvas_validas=None,
            f'! CARGAS — mes {mes:02d}',
            '! BT: UCBT_tab agregada por transformador (kW = ENE/730 h)',
            '! MT: UCMT_tab individual no PAC do consumidor',
+           '! IP: PIP agregada por transformador, com curva propria',
            f'! fator de escala aplicado: {fator:g}',
            '! ==========================================================']
     tot_bt = tot_mt = 0.0
@@ -121,6 +159,34 @@ def gerar(bdgd, ctmts, sec, caminho_saida, mes=1, curvas_validas=None,
     # --- media tensao
     cols = ['CTMT', 'PAC', 'FAS_CON', 'TIP_CC', f'ENE_{mes:02d}']
     col = bdgd.ler_filtrado('UCMT_tab', 'CTMT', ctmts, cols)
+    # ILUMINACAO PUBLICA: carga propria, curva propria. Ver `_agrega_pip`.
+    ip = agregado_pip if agregado_pip is not None else _agrega_pip(
+        bdgd, ctmts, mes)
+    tot_ip = 0.0
+    n_ip = 0
+    if ip:
+        out.append('')
+        out.append('! --- iluminacao publica (PIP), agregada por trafo ---')
+    for cod, d in ip.items():
+        s = sec.get(cod)
+        if not s:
+            continue
+        kw = d['ene'] / HORAS * fator
+        if kw <= 0.001:
+            continue
+        curva = d['cur'].most_common(1)[0][0] if d['cur'] else 'IP-Tipo1'
+        if curva not in curvas_validas:
+            curva = 'RES-Tipo02'
+        pernas = s['nos'] or ['1']
+        bus = s.get('barra', cod)
+        kwf = kw / len(pernas)
+        for f in pernas:
+            out.append(f'New Load.IP_{cod}_{f} Bus1={bus}.{f}.4 Phases=1 '
+                       f'Model=8 zipv={ZIPV} kv={s["kv_fn"]:.4f} pf=0.92 '
+                       f'kW={kwf:.6f} Daily={curva}')
+            n_ip += 1
+        tot_ip += kw
+
     out.append('\n! --- cargas de media tensao (UCMT_tab) ---')
     for i in range(len(col['CTMT'])):
         kw = num(col[f'ENE_{mes:02d}'][i]) / HORAS * fator
