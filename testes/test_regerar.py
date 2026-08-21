@@ -44,9 +44,15 @@ class Mesclagem(unittest.TestCase):
 
     def test_a_ordem_e_a_de_BASES_e_nao_a_de_chegada(self):
         """A tabela impressa no fim tem de sair sempre igual, senao comparar
-        duas rodadas vira trabalho de conferencia."""
+        duas rodadas vira trabalho de conferencia.
+
+        A ordem esperada vem do APELIDO, e nao de `rg.BASES`: desde que as
+        bases sao DESCOBERTAS na pasta, `BASES` depende de quais .gdb
+        existem na maquina, e um teste nao pode depender disso. O que se
+        exige e que `mesclar` respeite a ordem canonica das conhecidas.
+        """
+        ordem = [tag for tag, _ in rg.APELIDO.values()]
         r = rg.mesclar([_b('CMIG'), _b('RR')], [_b('SP')])
-        ordem = [t for t, _, _ in rg.BASES]
         saiu = [x['tag'] for x in r]
         self.assertEqual(saiu, sorted(saiu, key=ordem.index))
 

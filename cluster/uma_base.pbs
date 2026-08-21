@@ -23,7 +23,7 @@ set -euo pipefail
 
 # --- o que muda de instalacao para instalacao -------------------------------
 TAG="${TAG:-RR}"                                   # qsub -v TAG=CMIG
-SUFIXO="${SUFIXO:-V15}"
+SUFIXO="${SUFIXO:-V18}"
 PROJETO="${PROJETO:-$HOME/elder/BDGD2OpenDSS_Validator}"
 export BDGD2DSS_BASES="${BDGD2DSS_BASES:-$HOME/elder/bdgds}"
 

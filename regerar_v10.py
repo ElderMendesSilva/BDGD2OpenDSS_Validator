@@ -74,20 +74,82 @@ def _acha(nome, *alternativas):
     return os.path.join(BDGDS, nome)          # inexistente: reportado na hora
 
 
-# (tag, caminho da .gdb, minutos de conversao medidos na rodada anterior)
-# A ordem E o projeto: canario primeiro, depois por tamanho crescente.
-BASES = [
-    ('RR', os.path.join(BDGDS, 'Roraima_Energia_370_2024-12-31_V11_20250924-1424.gdb'), 1.9),
-    ('ENCE', os.path.join(BDGDS, 'Enel_CE_39_2024-12-31_V11_20250822-1151.gdb'), 21.6),
-    ('EQPA', os.path.join(BDGDS, 'Equatorial_PA_371_2024-12-31_V11_20250911-0946.gdb'), 40.1),
-    # A Enel SP mora fora da pasta das bases nesta maquina. Se nao
-    # estiver la, procura junto com as outras — que e como vai estar
-    # em qualquer lugar que nao seja este computador.
-    ('SP', _acha('Enel_SP_390_2024-12-31_V11_20250702-2009.gdb', CRIT), 48.2),
-    ('LT', os.path.join(BDGDS, 'Light_382_2024-12-31_V11_20250925-1811.gdb'), 52.9),
-    ('CPFL', os.path.join(BDGDS, 'CPFL_Paulista_63_2024-12-31_V11_20250731-1036.gdb'), 85.3),
-    ('CMIG', os.path.join(BDGDS, 'Cemig-D_4950_2024-12-31_V11_20250929-1522.gdb'), 148.4),
-]
+# AS BASES SAO DESCOBERTAS NA PASTA, e nao listadas aqui.
+#
+# Ate 21/08/2026 esta lista tinha sete tuplas com o nome exato de cada
+# .gdb. Rodar uma distribuidora nova exigia editar Python, e rodar as 53 do
+# pais exigia escrever 53 linhas a mao — e errar uma delas as 3 da manha.
+#
+# Agora: qualquer *.gdb em BDGD2DSS_BASES entra. O que fica escrito aqui e
+# so o que NAO da para descobrir: a sigla curta que a gente ja usa nos
+# nomes de pasta e nos logs (trocar 'RR' por 'RORAIMA' quebraria a
+# comparacao com todas as rodadas anteriores) e os minutos de conversao
+# medidos, que servem para prever o tempo e para ordenar o canario.
+APELIDO = {
+    'roraima_energia': ('RR', 1.9),
+    'enel_ce': ('ENCE', 21.6),
+    'equatorial_pa': ('EQPA', 40.1),
+    'enel_sp': ('SP', 48.2),
+    'light': ('LT', 52.9),
+    'cpfl_paulista': ('CPFL', 85.3),
+    'cemig-d': ('CMIG', 148.4),
+}
+
+
+def _sigla(nome):
+    """A sigla de uma .gdb. Conhecida vira apelido; nova vira o nome dela.
+
+    O padrao da ANEEL e `<Distribuidora>_<codigo>_<data>_V11_<carimbo>.gdb`.
+    O codigo e o numero do agente no cadastro, e e o unico identificador
+    estavel — o nome muda com incorporacao, o carimbo muda a cada safra.
+    """
+    base = os.path.basename(nome)
+    sem = base[:-4] if base.lower().endswith('.gdb') else base
+    partes = sem.split('_')
+    # o codigo do agente e a primeira parte que e so digito
+    cod = next((p for p in partes if p.isdigit()), '')
+    chave = '_'.join(partes[:partes.index(cod)]).lower() if cod else sem.lower()
+    if chave in APELIDO:
+        return APELIDO[chave]
+    curta = chave.upper().replace('-', '')[:10] or 'BASE'
+    return (f'{curta}{cod}' if cod else curta), None
+
+
+def descobrir(pasta=None):
+    """(tag, caminho, minutos) para cada .gdb encontrada.
+
+    Ordem: as conhecidas primeiro, na ordem medida — canario antes de tudo,
+    porque uma base de 20 subestacoes falha em dois minutos e nao em duas
+    horas. As novas vao depois, por tamanho de arquivo crescente, que e o
+    melhor palpite de custo que existe sem ter rodado nenhuma vez.
+    """
+    import glob
+    pasta = pasta or BDGDS
+    achadas = sorted(glob.glob(os.path.join(pasta, '*.gdb')))
+    # a Enel SP mora fora da pasta nesta maquina; se estiver la, entra
+    fora = _acha('Enel_SP_390_2024-12-31_V11_20250702-2009.gdb', CRIT)
+    if os.path.exists(fora) and fora not in achadas:
+        achadas.append(fora)
+
+    conhecidas, novas = [], []
+    ordem = [t for t, _ in APELIDO.values()]
+    for cam in achadas:
+        tag, min_conv = _sigla(cam)
+        if min_conv is not None:
+            conhecidas.append((tag, cam, min_conv))
+        else:
+            try:
+                tam = sum(os.path.getsize(os.path.join(r, f))
+                          for r, _, fs in os.walk(cam) for f in fs)
+            except OSError:
+                tam = 0
+            novas.append((tag, cam, None, tam))
+    conhecidas.sort(key=lambda x: ordem.index(x[0]))
+    novas.sort(key=lambda x: x[3])
+    return conhecidas + [(t, c, m) for t, c, m, _ in novas]
+
+
+BASES = descobrir()
 
 os.environ['BDGD_SEM_JANELA'] = '1'
 os.environ['PYTHONIOENCODING'] = 'utf-8'
@@ -161,7 +223,13 @@ def mesclar(antes, agora):
     novo = {r['tag']: r for r in agora}
     velho = {r['tag']: r for r in antes if r.get('tag') not in novo}
     juntos = {**velho, **novo}
-    ordem = [t for t, _, _ in BASES]
+    # A ORDEM CANONICA VEM DO APELIDO, e nao de `BASES`. Desde que as
+    # bases sao descobertas na pasta, `BASES` depende de quais .gdb estao
+    # na maquina — e a tabela final mudaria de ordem conforme o disco.
+    # As conhecidas vem sempre na mesma ordem; o que foi descoberto e nao
+    # tem apelido vai depois, e `mesclar` ja poe desconhecido no fim.
+    ordem = [tag for tag, _ in APELIDO.values()]
+    ordem += [t for t, _, _ in BASES if t not in ordem]
     return sorted(juntos.values(),
                   key=lambda r: (ordem.index(r['tag'])
                                  if r.get('tag') in ordem else len(ordem)))
