@@ -4069,3 +4069,60 @@ essa e a definicao do achado 38. Se depois de ligada ela vira anel, entao ou a
 componente ja estava alcancavel e a deteccao errou, ou o elo esta sendo posto
 no lugar errado dentro dela. Corrigir o guarda sem responder isso trata o
 sintoma.
+
+### Correcao do achado 47 — nao e laco, e subestacao sem barramento
+
+Escrito duas horas depois, com a investigacao feita. O diagnostico acima —
+"o elo fecha um laco entre dois pontos que ja estavam ligados" — **esta errado**,
+e o experimento que o sustentava provava outra coisa.
+
+O que o experimento provou e que **desligar o elo derruba a perda de 84,97%
+para 0,54%**. Isso e verdade e continua valendo. O que nao se seguia dele e a
+causa.
+
+### O que a investigacao achou
+
+Sem o elo, as duas pontas dele **nao se alcancam** — nao ha anel. E com o elo
+ligado:
+
+| | |
+|---|---|
+| `TRB_esm561913_11p4kv` | **0 A** |
+| `TRB_esm561913_13p8kv_11p4kv` | **0 A** |
+| `VAO_EXTRA_1`, o elo | **6.443 A**, 12.969 kW |
+
+Os dois transformadores de barra que o conversor INVENTA nao conduzem nada. E a
+fonte do circuito nao esta numa barra de subestacao:
+
+```
+New Circuit.ESM basekV=11.4 pu=1.0340 phases=3 bus1=mt_esm11_336
+```
+
+Ela esta na **cabeceira do alimentador ESM11**. A subestacao e alimentada de
+dentro de um alimentador, a corrente volta pelo vao dele ate a barra e sai pelo
+elo para todo o resto. As quatro barras da subestacao ficam entre 0,45 e
+0,86 p.u. porque tudo passa em serie por um caminho so.
+
+### A causa, entao
+
+**A ESM nao tem barramento comum no modelo.** Ela tem duas barras derivadas de
+11,4 kV, criadas pela maquina do achado 39 a partir de primarios diferentes —
+11,9 kV com Xhl 10,50 e 13,8 kV com Xhl 9,00 — e nenhuma das duas e alimentada.
+Os alimentadores ESM01 a ESM05 nascem numa, ESM08 a ESM11 na outra, e as duas
+sao ilhas ate que alguem as ligue.
+
+O elo nao criou o defeito. Ele **expos** o defeito e, ao energizar a rede que
+estava morta, obrigou a corrente inteira da subestacao a passar por 35 metros
+de cabo de 522 A.
+
+### O que isso muda na fila
+
+A correcao do guarda de `aceitar()` continua valendo — modelo que converge com
+84,97% de perda tem de ser recusado, e isso e independente da causa. Mas ela
+trata o sintoma: mesmo recusando o elo, a ESM fica com cinco alimentadores sem
+tensao e uma subestacao sem barramento.
+
+O que precisa ser respondido antes: **por que a fonte esta na cabeceira de um
+alimentador**, e por que os dois transformadores de barra inventados ficam
+pendurados sem alimentacao. Isso e da camada de subestacao (achados 31, 39 e
+40), e nao da premissa de ligacao.
