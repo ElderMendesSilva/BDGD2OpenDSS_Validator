@@ -16,13 +16,19 @@ set -euo pipefail
 
 cd "$(dirname "${BASH_SOURCE[0]}")/.."
 FILA="${FILA:-BIRA_Q3}"
-SUFIXO="${SUFIXO:-V15}"
+SUFIXO="${SUFIXO:-V18}"
 
 echo "filas disponiveis (confira o nome antes de submeter):"
 qstat -q || true
 echo
 
-for TAG in RR ENCE EQPA SP LT CPFL CMIG; do
+# As bases sao descobertas na pasta, e nao listadas aqui: qualquer *.gdb
+# em BDGD2DSS_BASES entra. Assim vale para as sete de hoje e para as 53
+# do pais sem editar script nenhum.
+TAGS=$(python -c "import regerar_v10 as r; print(' '.join(t for t,_,_ in r.BASES))")
+echo "bases encontradas: $TAGS"
+echo
+for TAG in $TAGS; do
     id=$(qsub -q "$FILA" -N "bdgd_$TAG" \
               -v "TAG=$TAG,SUFIXO=$SUFIXO,PROJETO=$PWD,BDGD2DSS_BASES=${BDGD2DSS_BASES:-$HOME/elder/bdgds}" \
               cluster/uma_base.pbs)
