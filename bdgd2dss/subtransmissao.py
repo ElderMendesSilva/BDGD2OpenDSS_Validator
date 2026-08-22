@@ -563,10 +563,12 @@ def vaos(ctmt_info, info_trafos, barras, kv_mt_padrao=13.8, log=None):
         kv_barra = kvb.get(alvo)
         kv = kv_barra or kv_alim
         derivada = False
+        origem = None
         if kv_barra and kv_alim and abs(kv_barra - kv_alim) > 0.1:
             chave = (sub, alvo, round(kv_alim, 4))
             if chave not in derivadas:
                 derivadas[chave] = f'{alvo}_{kv_alim:g}kv'.replace('.', 'p')
+            origem = alvo          # a barra REAL, antes do sufixo
             alvo = derivadas[chave]
             kv = kv_alim
             derivada = True
@@ -580,7 +582,14 @@ def vaos(ctmt_info, info_trafos, barras, kv_mt_padrao=13.8, log=None):
             f'mode=1 ppolar=no')
         # `derivada` avisa o converter para NAO por Vsource nessa barra: ela
         # e alimentada pelo transformador de barra, nao por fonte propria
-        ligados[cod] = {'barra': alvo, 'kv': kv, 'derivada': derivada}
+        # `origem` e a barra de onde a derivada nasce — o primario do
+        # transformador de barra, que e o barramento REAL da subestacao.
+        # Sem ela, o `converter` nao tinha onde por a fonte quando TODAS as
+        # barras da subestacao eram derivadas, e caia na cabeceira do
+        # primeiro alimentador — 171 das 265 subestacoes da CPFL na V18.
+        ligados[cod] = {'barra': alvo, 'kv': kv, 'derivada': derivada,
+                        'origem': origem,
+                        'kv_origem': kvb.get(origem) if origem else None}
         barras.add(alvo)
 
     # transformadores de barra das derivadas, um por nivel de tensao
