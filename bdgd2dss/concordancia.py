@@ -117,12 +117,91 @@ def implausivel(pares, teto=TETO_MODELO):
             'fatia_da_perda_pct': (100.0 * alto / tot) if tot else None}
 
 
-def linhas(pares, cortes=CORTES):
-    """As tres medidas em texto, para o rodape de quem chama."""
+def populacao(no_modelo, comparados, sem_declaracao, sem_energia, ambos):
+    """De quantos alimentadores a comparacao fala, e de quantos ela cala.
+
+    POR QUE EXISTE. As tres medidas acima publicam `n` e `de` — a CPFL da
+    V18 saiu com "27 de 1.467". Mas a CPFL tem 1.636 alimentadores no
+    modelo: 169 nunca entraram, e nenhum arquivo dizia isso. Quem le
+    "27 de 1.467" entende "de todos", e nao e.
+
+    MEDIDO NA V18, as sete bases:
+
+        base    no modelo   comparados   fora   sem decl   sem energia  ambos
+        RR             89           63     26         17             2      7
+        ENCE          728          685     43          1             2     40
+        EQPA          688          612     76         16            37     23
+        LT          1.647        1.488    159         17            59     83
+        CPFL        1.636        1.467    169         19            64     86
+        CMIG        2.397        1.783    614         44           233    337
+        SP          1.806        1.535    271         40             3    228
+
+        total       8.991        7.633  1.358        154           400    804
+
+    Sao 15,1% do pais fora da conta, e a Cemig-D perde 25,6% dela mesma.
+
+    OS TRES BALDES NAO VALEM O MESMO, e por isso saem separados:
+
+      `sem_declaracao`  a CTMT nao traz PERD_*. Nao ha contra o que comparar,
+                        e a culpa nao e do modelo. 154 no pais.
+
+      `sem_energia`     ESTE E O QUE INCOMODA. A distribuidora DECLARA a
+                        perda do alimentador e o nosso modelo devolve zero
+                        energia nele — rede morta que a metrica escondia
+                        justamente por estar morta. Sao 400 no pais, 233 so
+                        na Cemig-D. Alimentador nesse balde e falha nossa, e
+                        tem de aparecer.
+
+      `ambos`           sem declaracao E sem energia. Quase sempre CTMT
+                        desativada que sobrou na base. 804 no pais.
+
+    A soma dos tres tem de fechar com `no_modelo - comparados`; se nao
+    fechar, alguem drenou alimentador por um quarto caminho sem contar.
+    """
+    fora = sem_declaracao + sem_energia + ambos
+    return {
+        'no_modelo': no_modelo,
+        'comparados': comparados,
+        'fora': fora,
+        'sem_declaracao': sem_declaracao,
+        'sem_energia_no_modelo': sem_energia,
+        'sem_os_dois': ambos,
+        'cobertura_pct': (100.0 * comparados / no_modelo) if no_modelo else None,
+        # o balde que e falha do modelo, isolado: e o unico dos tres que o
+        # projeto pode diminuir por conta propria
+        'declarado_e_morto_pct': ((100.0 * sem_energia / no_modelo)
+                                  if no_modelo else None),
+        'fecha': (comparados + fora) == no_modelo,
+    }
+
+
+
+def linhas(pares, cortes=CORTES, pop=None):
+    """As tres medidas em texto, para o rodape de quem chama.
+
+    `pop` e o que `populacao` devolve. Sem ela o rodape sai como antes,
+    e a linha de cobertura simplesmente nao aparece — nenhum chamador
+    antigo quebra.
+    """
     s = sensibilidade(pares, cortes)
     a = agregado(pares)
     i = implausivel(pares)
-    out = ['razao por corte de declaracao:']
+    out = []
+    if pop:
+        out.append(f'populacao: {pop["comparados"]:,} de {pop["no_modelo"]:,} '
+                   f'alimentadores comparados ({pop["cobertura_pct"]:.1f}%) — '
+                   f'{pop["fora"]:,} fora: {pop["sem_declaracao"]:,} sem PERD_* '
+                   f'na CTMT, {pop["sem_energia_no_modelo"]:,} DECLARADOS e sem '
+                   f'energia no modelo, {pop["sem_os_dois"]:,} sem os dois')
+        if not pop['fecha']:
+            out.append('ATENCAO: os baldes nao fecham com o total — ha alimentador '
+                       'saindo da conta por um caminho nao contado')
+        if pop['sem_energia_no_modelo']:
+            out.append(f'ATENCAO: {pop["sem_energia_no_modelo"]:,} alimentador(es) que a '
+                       f'distribuidora DECLARA e que o modelo deixa sem energia '
+                       f'({pop["declarado_e_morto_pct"]:.1f}% da base). Rede morta '
+                       f'nao entra na razao — ela some dela.')
+    out.append('razao por corte de declaracao:')
     out.append('   ' + '  '.join(
         f'{x["corte"]:.2f}%: ' + (f'{x["razao"]:.2f}x' if x['razao'] else '—')
         + f' (n={x["n"]})' for x in s))
