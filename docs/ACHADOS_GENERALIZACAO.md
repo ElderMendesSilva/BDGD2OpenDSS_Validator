@@ -4005,3 +4005,67 @@ CPFL a diferenca e de **7,4 vezes**, produzida por oito alimentadores de 1.548.
 
 Fonte: relatorio de perdas na distribuicao da ANEEL, exercicio 2024, divulgado
 em 2025.
+
+---
+
+## Achado 47 — a premissa de ligacao fecha laco, e convergir nao prova nada
+
+Causa dos alimentadores com perda impossivel, estabelecida por experimento
+controlado. **Nenhuma correcao implementada.**
+
+O achado 44 mostrou que ~30 alimentadores de 7.894 carregam ate 86% da perda
+modelada de uma base. A tabela `TTEN` (achado 44) explicou parte deles e criou
+outros: na CPFL foram de 8 para 27. A causa dos que restaram e outra.
+
+### O experimento
+
+Na ESM da CPFL, a pior de todas, desligando so os elos que a premissa inventa:
+
+| | como esta | sem os elos |
+|---|---|---|
+| perda | **84,97%** | **0,54%** |
+| pior trecho | **6.420 A** | 0 A |
+| barras abaixo de 0,9 pu | 4.304 | 198 |
+
+O condutor daquele trecho e de **522 A**: 1.230% da ampacidade, em 35 metros de
+cabo. Seis mil e quatrocentos amperes a 11,4 kV sao **126 MVA**, muito maior que
+a subestacao inteira — nao e corrente de carga, e corrente de CIRCULACAO. O elo
+fecha um laco entre dois pontos que ja estavam ligados por outro caminho, e a
+diferenca de tensao entre eles empurra corrente pelo anel.
+
+### Generaliza
+
+Na CPFL da V18, subestacao a subestacao:
+
+| | tem elo de ligacao |
+|---|---|
+| 28 subestacoes com alimentador de perda > 20% | **24 — 86%** |
+| 221 subestacoes sadias | 31 — **14%** |
+
+Seis vezes mais frequente, e **um elo basta**: todas as quebradas tem
+exatamente um. A CPFL inteira tem 56 elos em 55 das 265 subestacoes.
+
+### Por que o guarda existente nao pegou
+
+`ligacao.aceitar()` adiciona os elos um a um e mantem so o que **nao quebra a
+solucao**, medindo isso por `dss.Solution.Converged()`. A ESM CONVERGE — com
+84,97% de perda e 4.304 barras abaixo de 0,9 pu.
+
+Convergir e um teste de estabilidade numerica, nao de plausibilidade fisica. E
+o mesmo erro do achado 39, onde a RIM compilava, convergia, nao tinha NaN e
+reportava 78,26% de perda.
+
+### A correcao, e o que ela exige
+
+O criterio de aceitacao tem de olhar a GRANDEZA e nao o estado da execucao:
+depois de inserir o elo, a perda da subestacao tem de continuar plausivel e
+nenhum trecho pode passar da propria ampacidade por causa dele. O
+`bdgd2dss/concordancia.py` ja tem o teto de 20% para perda de alimentador; o
+mesmo numero serve aqui.
+
+E ha uma pergunta anterior a corrigir: **por que o elo fecha laco.** A premissa
+so deveria ligar componente que NAO alcanca a rede viva por caminho nenhum —
+essa e a definicao do achado 38. Se depois de ligada ela vira anel, entao ou a
+componente ja estava alcancavel e a deteccao errou, ou o elo esta sendo posto
+no lugar errado dentro dela. Corrigir o guarda sem responder isso trata o
+sintoma.
