@@ -41,6 +41,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from bdgd2dss.leitor import BDGD, num, txt          # noqa: E402
 from bdgd2dss import escrita
 from bdgd2dss import concordancia
+from bdgd2dss import referencia
 
 # As parcelas eletricas da CTMT. PERD_MED (medicao) e PERD_A3a
 # (subtransmissao) ficam de fora — a primeira nao e eletrica, a segunda esta
@@ -126,6 +127,26 @@ FAIXAS = [(0, 5e6, 'ate 5 GWh'), (5e6, 15e6, '5 a 15 GWh'),
 # 105.874x (TBAN ban0306) e destroem qualquer estatistica. O mesmo vale para
 # o outro extremo: acima de 40% a declaracao nao e critica.
 MIN_DECL, MAX_DECL = 0.5, 40.0
+
+
+def _agente(gdb):
+    """O codigo ANEEL da distribuidora, da tabela BASE da propria BDGD.
+
+    E o unico identificador estavel da base: o nome muda com incorporacao e o
+    carimbo do arquivo muda a cada safra. Devolve None quando a BASE nao abre
+    — a comparacao entao cai na media nacional e diz que caiu.
+    """
+    try:
+        b = BDGD(gdb, verbose=False)
+        col = b.ler('BASE', colunas=['DIST'])
+        for v in col['DIST']:
+            s = txt(v).strip()
+            if s:
+                return s
+    except Exception:
+        pass
+    return None
+
 
 
 def declarado(gdb, parcelas=None):
@@ -393,6 +414,15 @@ def main():
     for _l in concordancia.linhas(quatro, pop=pop):
         print(_l)
 
+    # A ANCORA DE FORA DA BDGD. Tudo acima compara o modelo com o
+    # `PERD_A4` da CTMT, que sai do MESMO arquivo que o modelo le —
+    # autoconsistencia, e nao validacao. Ver `bdgd2dss/referencia.py`.
+    ext = referencia.comparar(concordancia.agregado(quatro)["pct_modelo"],
+                              agente=_agente(a.gdb))
+    print()
+    for _l in referencia.linhas(ext):
+        print(_l)
+
     pares.sort(key=lambda x: -(x[2] / x[3]) if x[3] else 0)
     print(f'\n{"SE":6s} {"alimentador":22s} {"modelo":>8s} {"declarado":>10s} {"razao":>7s}')
     for se, cod, m, d, _, _ in pares[:10]:
@@ -427,6 +457,7 @@ def main():
     # diferentes ficariam indistinguiveis no disco.
     json.dump({'parcelas': parc,
                'populacao': pop,
+               'referencia_externa': ext,
                # nomeados e nao so contados, e sem teto silencioso: se um
                # dia forem 5.000, o arquivo tem 5.000 linhas e quem le
                # ve o tamanho do problema
