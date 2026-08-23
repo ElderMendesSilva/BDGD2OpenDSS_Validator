@@ -271,6 +271,29 @@ def censo_bt(bdgd, log=None):
 # LINHA. Comparar os dois crus acusaria discordancia em quase tudo. Aqui o
 # voto do trafo monofasico e multiplicado por raiz(3) antes de entrar na urna.
 
+# O QUE A CORRECAO FEZ, medido conversor contra conversor no mesmo comando:
+#
+#   RORAIMA (5 alimentadores reconciliados, todos para BAIXO)
+#     5003488   61,25% -> 35,23% de perda; entrada 7.667 -> 3.996 kW
+#     5003487    3,06% ->  5,40%
+#     5003585    2,90% ->  3,97%
+#     base       9,91% ->  8,19%
+#     As outras 17 subestacoes saem IDENTICAS byte a byte: 396 arquivos, 18
+#     diferentes, todos nas 3 subestacoes tocadas mais o MASTER-AT.
+#
+#   EQUATORIAL PA (37 reconciliados, 18 deles os `-FC`, todos para CIMA)
+#     carga VIVA    648.459 -> 658.154 kW   (+9.695 kW)
+#     carga MORTA   533.215 -> 523.520 kW   (45,1% -> 44,3%)
+#     perda           4.827 ->   5.649 kW   (1,04% -> 1,17%)
+#
+#   Na EQPA a perda SOBE, e isso e o conserto funcionando: os `-FC` eram
+#   energizados a 13,8 kV com o parque em 34,5 e boa parte deles nao
+#   acordava. Rede que acorda traz perda junto. O que decide e a carga viva,
+#   e ela subiu 9,7 MW. (Os percentuais de carga morta acima sao de modelo
+#   SO do conversor, sem a premissa de ligacao; com ela a EQPA fica em 3,0%.
+#   O que vale aqui e a diferenca entre as duas rodadas, nao o valor
+#   absoluto.)
+
 MAIORIA = 0.60           # fracao dos trafos que tem de concordar entre si
 VOTOS_MINIMOS = 5        # abaixo disto a amostra nao decide nada
 TOLERANCIA_KV = 0.5      # diferenca menor que isto e arredondamento
