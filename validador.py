@@ -18,7 +18,7 @@ Checa, nesta ordem:
 import argparse
 import os, sys, math, json, glob, statistics
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from bdgd2dss import diagnostico, lote, pausa, plataforma
+from bdgd2dss import diagnostico, lote, pausa, plataforma, pool
 from bdgd2dss import escrita
 
 try:
@@ -416,6 +416,11 @@ def main():
                     por_pasta[fut[f_]] = r
                     _linha(r)
             grava()
+            # A SEGUNDA DEFESA. Gravar antes de sair do `with` salva o
+            # RESULTADO; nao salva as horas de fila que vem depois.
+            # Sair do `with` e `shutdown(wait=True)`, sem prazo.
+            # Ver `bdgd2dss/pool.py` e o caso da Cemig-D na V16.
+            pool.encerrar(ex, log=lambda m: print(m, flush=True))
     else:
         for p in pastas:
             pausa.espera()   # mesmo ponto de parada do paralelo

@@ -27,7 +27,7 @@ import time
 
 AQUI = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, AQUI)
-from bdgd2dss import ligacao, lote, pausa, plataforma                          # noqa: E402
+from bdgd2dss import ligacao, lote, pausa, plataforma, pool                          # noqa: E402
 from bdgd2dss import escrita
 from bdgd2dss import cobertura
 
@@ -395,6 +395,11 @@ def main():
                     por_se[fut[f_]] = r
                     _linha(r)
             grava()
+            # A SEGUNDA DEFESA. Gravar antes de sair do `with` salva o
+            # RESULTADO; nao salva as horas de fila que vem depois.
+            # Sair do `with` e `shutdown(wait=True)`, sem prazo.
+            # Ver `bdgd2dss/pool.py` e o caso da Cemig-D na V16.
+            pool.encerrar(ex, log=lambda m: print(m, flush=True))
     else:
         for se in ses:
             r = uma(raiz, se, a.min_cargas)

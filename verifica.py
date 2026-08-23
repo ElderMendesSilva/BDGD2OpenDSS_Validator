@@ -33,7 +33,7 @@ import os
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from bdgd2dss import lote, pausa, plataforma                # noqa: E402
+from bdgd2dss import lote, pausa, plataforma, pool                # noqa: E402
 from bdgd2dss import escrita
 
 CWD = os.getcwd()
@@ -418,6 +418,13 @@ def main():
             saida = [por_se[se] for se, _ in itens if se in por_se]
             json.dump(saida, open(os.path.join(raiz, 'verificacao.json'), 'w',
                                   encoding='utf-8', newline=escrita.FIM_DE_LINHA), indent=1, ensure_ascii=False)
+            # A SEGUNDA DEFESA, e ela e a que faltava. Gravar antes de sair do
+            # `with` salva o RESULTADO; nao salva as horas de fila que vem
+            # depois. Sair do `with` e `shutdown(wait=True)`, sem prazo: na
+            # V16 da Cemig-D os oito trabalhadores criados as 04:37 ainda
+            # estavam vivos as 14:30, seis horas depois de o pai ter sido
+            # morto pelo limite. Ver `bdgd2dss/pool.py`.
+            pool.encerrar(ex, log=lambda m: print(m, flush=True))
         print('\n' + '-' * 60)
         for k_, n in sorted(contagem.items(), key=lambda x: -x[1]):
             print(f'  {k_:22s} {n:4d}')
