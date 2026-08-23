@@ -41,6 +41,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from bdgd2dss.leitor import BDGD, num, txt          # noqa: E402
 from bdgd2dss import escrita
 from bdgd2dss import concordancia
+from bdgd2dss import referencia
 
 # As parcelas eletricas da CTMT. PERD_MED (medicao) e PERD_A3a
 # (subtransmissao) ficam de fora — a primeira nao e eletrica, a segunda esta
@@ -126,6 +127,26 @@ FAIXAS = [(0, 5e6, 'ate 5 GWh'), (5e6, 15e6, '5 a 15 GWh'),
 # 105.874x (TBAN ban0306) e destroem qualquer estatistica. O mesmo vale para
 # o outro extremo: acima de 40% a declaracao nao e critica.
 MIN_DECL, MAX_DECL = 0.5, 40.0
+
+
+def _agente(gdb):
+    """O codigo ANEEL da distribuidora, da tabela BASE da propria BDGD.
+
+    E o unico identificador estavel da base: o nome muda com incorporacao e o
+    carimbo do arquivo muda a cada safra. Devolve None quando a BASE nao abre
+    — a comparacao entao cai na media nacional e diz que caiu.
+    """
+    try:
+        b = BDGD(gdb, verbose=False)
+        col = b.ler('BASE', colunas=['DIST'])
+        for v in col['DIST']:
+            s = txt(v).strip()
+            if s:
+                return s
+    except Exception:
+        pass
+    return None
+
 
 
 def declarado(gdb, parcelas=None):
@@ -322,13 +343,35 @@ def main():
     # a tabela de composicoes, que precisa de amostra independente da escolha
     # sendo avaliada (o filtro de plausibilidade dela e ancorado nas tres).
     pares, todos = [], []
-    sem_decl = degenerado = 0
+    degenerado = 0
+    # OS TRES BALDES DE QUEM FICA DE FORA. Contados separados porque
+    # nao valem o mesmo: sem PERD_* na CTMT nao ha contra o que
+    # comparar e a culpa nao e nossa; DECLARADO e sem energia no
+    # modelo e rede morta que a metrica escondia. Ver
+    # `concordancia.populacao`.
+    b_sem_decl = b_sem_ene = b_ambos = 0
+    no_modelo = 0
+    declarados_e_mortos = []
     for se in modelo:
         for cod, v in (se.get('alimentadores') or {}).items():
+            no_modelo += 1
             # o OpenDSS devolve o nome do medidor em minusculas
             d = decl.get(cod.upper())
-            if not d or not d['pct'] or v['perdas_pct'] is None:
-                sem_decl += 1
+            sem_d = not (d and d['pct'])
+            sem_e = v['perdas_pct'] is None
+            if sem_d and sem_e:
+                b_ambos += 1
+                continue
+            if sem_d:
+                b_sem_decl += 1
+                continue
+            if sem_e:
+                b_sem_ene += 1
+                # nomeado, e nao so contado: alimentador que a
+                # distribuidora declara e o modelo deixa morto e o
+                # unico dos tres baldes que da para atacar
+                declarados_e_mortos.append({'se': se['se'], 'ctmt': cod,
+                                            'declarado_pct': d['pct']})
                 continue
             reg = (se['se'], cod, v['perdas_pct'], d['pct'],
                    v['kWh'], d['ene_ano'])
@@ -342,8 +385,11 @@ def main():
         raise SystemExit('nenhum alimentador casou entre modelo e CTMT')
 
     raz = [m / d for _, _, m, d, _, _ in pares if d > 0]
-    print(f'{len(pares):,} alimentadores comparados '
-          f'({sem_decl:,} sem par ou sem declaracao)\n')
+    pop = concordancia.populacao(no_modelo, len(todos),
+                                 b_sem_decl, b_sem_ene, b_ambos)
+    print(f'{len(pares):,} alimentadores na amostra principal, {len(todos):,} '
+          f'comparaveis de {no_modelo:,} no modelo '
+          f'({pop["cobertura_pct"]:.1f}% de cobertura)\n')
     print(f'{"perdas % do modelo":>22s}: mediana '
           f'{statistics.median([m for _, _, m, _, _, _ in pares]):6.2f}%')
     print(f'{"perdas % declarado":>22s}: mediana '
@@ -365,7 +411,16 @@ def main():
     # passava direto. Ver `bdgd2dss/concordancia.py`.
     quatro = [(m, d, k, e) for _, _, m, d, k, e in todos]
     print()
-    for _l in concordancia.linhas(quatro):
+    for _l in concordancia.linhas(quatro, pop=pop):
+        print(_l)
+
+    # A ANCORA DE FORA DA BDGD. Tudo acima compara o modelo com o
+    # `PERD_A4` da CTMT, que sai do MESMO arquivo que o modelo le —
+    # autoconsistencia, e nao validacao. Ver `bdgd2dss/referencia.py`.
+    ext = referencia.comparar(concordancia.agregado(quatro)["pct_modelo"],
+                              agente=_agente(a.gdb))
+    print()
+    for _l in referencia.linhas(ext):
         print(_l)
 
     pares.sort(key=lambda x: -(x[2] / x[3]) if x[3] else 0)
@@ -401,6 +456,12 @@ def main():
     # contra o QUE a razao foi calculada, e duas rodadas com composicoes
     # diferentes ficariam indistinguiveis no disco.
     json.dump({'parcelas': parc,
+               'populacao': pop,
+               'referencia_externa': ext,
+               # nomeados e nao so contados, e sem teto silencioso: se um
+               # dia forem 5.000, o arquivo tem 5.000 linhas e quem le
+               # ve o tamanho do problema
+               'declarados_e_mortos': declarados_e_mortos,
                'sensibilidade': concordancia.sensibilidade(quatro),
                'agregado': concordancia.agregado(quatro),
                'modelo_implausivel': concordancia.implausivel(quatro),
