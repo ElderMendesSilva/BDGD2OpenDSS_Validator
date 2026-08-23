@@ -20,6 +20,52 @@ from . import dominios
 ABERTA = {'A', 'ABERTA', 'ABERTO', '0', 'N'}
 
 
+def bypass_de_regulador(bdgd, ctmts):
+    """Os pares de PAC que tem um regulador entre eles.
+
+    Chave FECHADA sobre esse par e o bypass do regulador, e bypass fechado
+    com regulador em servico e um curto-circuito sobre o regulador.
+
+    POR QUE ISTO EXISTE. O achado 32 ja tinha mostrado que o regulador da
+    BDGD nao se liga a SSDMT: ele fica ENTRE DUAS CHAVES, e os dois PACs
+    dele so existem na UNSEMT. O que faltava ver e que a CPFL declara
+    dezenas de chaves NO MESMO PAR — 58 no ESM01, 73 no RIB02 —, todas com
+    P_N_OPE='F'. Emitidas fechadas, elas ficam em paralelo com o regulador,
+    cujo XHL e 0,04%: a impedancia do ramo paralelo fica na ordem de
+    0,0007 ohm, o RegControl le subtensao, sobe o tape ate o maximo, e a
+    corrente de circulacao explode.
+
+    MEDIDO NO ESM01 DA CPFL, V18:
+
+        REG_29143280 com 58 chaves fechadas em paralelo
+        tape em 1,1000 (o maximo), barra de 11,4 kV em 0,1012 pu
+        7.565 A no vao de 11,4 kV e 83.166 A no regulador
+        perda da subestacao: 53,02%
+
+        com as 58 chaves abertas: tape 1,0437, barra em 0,9981 pu,
+        perda da subestacao: 0,75%
+
+    Sao 8 reguladores na CPFL e ZERO nas outras seis bases. Sete deles sao
+    exatamente os sete alimentadores da CPFL com perda modelada acima de
+    2.500% na V18 — ESM01, NGR02, PRG07, UNE02, CDJ02, TNB01 e SCA01 —, os
+    mesmos que carregavam a maior parte dos 81,7% de perda concentrada em
+    alimentador implausivel.
+
+    Devolve um `set` de pares ordenados `(pac_menor, pac_maior)`. Base sem
+    UNREMT devolve vazio, e nada muda.
+    """
+    try:
+        r = bdgd.ler_filtrado('UNREMT', 'CTMT', ctmts, ['PAC_1', 'PAC_2'])
+    except Exception:
+        return set()
+    pares = set()
+    for i in range(len(r['PAC_1'])):
+        a, z = no(r['PAC_1'][i]), no(r['PAC_2'][i])
+        if a and z and a != z:
+            pares.add((a, z) if a < z else (z, a))
+    return pares
+
+
 def gerar(bdgd, ctmts, caminho_chaves, caminho_controles, barras=None):
     """`barras` sao os nos que a rede de media tensao ja criou.
 
@@ -45,12 +91,15 @@ def gerar(bdgd, ctmts, caminho_chaves, caminho_controles, barras=None):
             'COR_NOM', 'TIP_UNID']
     col = bdgd.ler_filtrado('UNSEMT', 'CTMT', ctmts, cols)
     n = len(col['COD_ID'])
+    bypass = bypass_de_regulador(bdgd, ctmts)
     ch = ['! ==========================================================',
           '! CHAVES — geradas de UNSEMT (Line com Switch=Y)',
           '! ==========================================================']
     ct = ['! SwtControl — estado normal de operacao (P_N_OPE)']
     abertas = []
     ilhadas = []
+    em_bypass = []
+    n_emitidas = 0          # nao contar por len(ch): o arquivo tem avisos
     criadas = set()          # barras que as chaves emitidas trazem
     rede = set(barras) if barras else None
     for i in range(n):
@@ -80,11 +129,27 @@ def gerar(bdgd, ctmts, caminho_chaves, caminho_controles, barras=None):
         # as barras que a chave cria fazem parte da rede tanto quanto as da
         # SSDMT — e o regulador so se liga por elas (achado 32)
         criadas.add(b1); criadas.add(b2)
+        n_emitidas += 1
         estado = 'Open' if txt(col['P_N_OPE'][i]).strip().upper() in ABERTA else 'Closed'
+        # BYPASS DE REGULADOR. Ver `bypass_de_regulador`: fechada, esta
+        # chave curto-circuita o regulador que esta no mesmo par de PACs.
+        # Em campo o bypass fica ABERTO com o regulador em servico.
+        if estado == 'Closed' and ((b1, b2) if b1 < b2 else (b2, b1)) in bypass:
+            estado = 'Open'
+            em_bypass.append(nome)
         ct.append(f'New SwtControl.SW_{nome} SwitchedObj=Line.{nome} SwitchedTerm=1 '
                   f'Lock=No Delay=0 State={estado}')
         if estado == 'Open':
             abertas.append(nome)
+    if em_bypass:
+        # dito no arquivo, e nao so no log: chave que muda de estado sem
+        # deixar rastro e a proxima duvida de quem for auditar o modelo
+        ch.append(f'! {len(em_bypass)} chave(s) ABERTA(S) por estarem em paralelo com um '
+                  f'regulador: a BDGD as declara fechadas (P_N_OPE=F) sobre o '
+                  f'MESMO par de PACs do regulador, o que e o bypass dele. Bypass '
+                  f'fechado com regulador em servico e curto no regulador — medido '
+                  f'no ESM01 da CPFL: 53,02% de perda com as chaves fechadas, '
+                  f'0,75% com elas abertas. Ex.: {", ".join(em_bypass[:3])}')
     if ilhadas:
         # dito no proprio arquivo: chave suprimida em silencio e chave que
         # ninguem sabe que faltou
@@ -93,4 +158,4 @@ def gerar(bdgd, ctmts, caminho_chaves, caminho_controles, barras=None):
                      f'flutuante — ex.: {", ".join(ilhadas[:3])}')
     open(caminho_chaves, 'w', encoding='utf-8', newline=escrita.FIM_DE_LINHA).write('\n'.join(ch) + '\n')
     open(caminho_controles, 'w', encoding='utf-8', newline=escrita.FIM_DE_LINHA).write('\n'.join(ct) + '\n')
-    return len(ch) - 3 - bool(ilhadas), abertas, ilhadas, criadas
+    return n_emitidas, abertas, ilhadas, criadas

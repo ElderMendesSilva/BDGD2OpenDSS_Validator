@@ -494,6 +494,28 @@ def _uma_se(C, se, k):
             barras_se.setdefault(b_, (vaos_lig[c]['kv'],
                                       tap_se or ctmt_info[c]['ten_ope']))
     if not barras_se:
+        # TODAS as barras desta subestacao sao derivadas. A fonte tem de ir
+        # para a barra de onde elas nascem — o primario dos transformadores
+        # de barra, que e o barramento REAL da subestacao.
+        #
+        # Antes o codigo caia na cabeceira do PRIMEIRO alimentador da lista.
+        # Medido na CPFL: com a tabela TTEN preenchida, os alimentadores
+        # passaram a declarar 11,4, 11,9 e 13,2 kV, que diferem do secundario
+        # do trafo da subestacao — os transformadores de barra foram de 2
+        # para 246, e com eles 171 das 265 subestacoes perderam o barramento
+        # e passaram a ser alimentadas de dentro de um alimentador.
+        #
+        # O efeito, medido na ESM: os dois transformadores de barra ficam
+        # com 0 A, o elo da premissa de ligacao carrega 6.443 A por 35 m de
+        # cabo de 522 A, e a perda da subestacao vai a 84,97%.
+        for c in ctmts:
+            v = vaos_lig.get(c) or {}
+            if v.get('origem'):
+                barras_se.setdefault(
+                    v['origem'], (v.get('kv_origem') or kv_se,
+                                  tap_se or ctmt_info[c]['ten_ope']))
+    if not barras_se:
+        # sem vao nenhum, derivado ou nao: sobra a cabeceira declarada
         barras_se = {subtransmissao._no(ctmt_info[ctmts[0]]['pac_ini']):
                      (kv_se, tap_se or 1.0)}
     itens = sorted(barras_se.items(), key=lambda x: -x[1][0])
