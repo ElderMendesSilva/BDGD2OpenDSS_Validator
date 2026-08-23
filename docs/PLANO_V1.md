@@ -365,3 +365,68 @@ com rodada nenhuma.
 
 Meta honesta para o fim de setembro de 2026: **75%**, com o 3 e o 11 atacados.
 Os 90% sao conversa de dezembro, e so se a validacao externa fechar.
+
+---
+
+## O usuário roda UMA base, e nós rodamos sete — 23/08/2026
+
+Observação do Elder, e ela reordena o plano.
+
+Nós sofremos 9 h por rodada porque regeramos **as sete** para comparar geração
+com geração. Isso é workflow de pesquisa. Quem for usar a ferramenta converte
+**uma** BDGD, uma vez por safra.
+
+Tempo real por base, da V18 — a rodada inteira levou 543 min para 141,6 min de
+conversão, então o ciclo completo é **3,8× a conversão**:
+
+| base | conversão | ciclo completo |
+|---|---|---|
+| Roraima | 0,6 min | ~5 min |
+| Light | 5,7 min | ~22 min |
+| Enel CE | 7,1 min | ~27 min |
+| Equatorial PA | 10,5 min | ~40 min |
+| Enel SP | 13,1 min | ~50 min |
+| CPFL Paulista | 17,7 min | ~68 min |
+| Cemig-D | 86,9 min | ~5,5 h |
+
+**A mediana é 40 min.** A Cemig-D, a maior do país, leva 5,5 h — uma vez por
+ano. O tempo nunca foi o problema do usuário; é o nosso.
+
+### A inversão que sustenta o argumento
+
+O achado 49 só apareceu porque a Light tinha 25,3% de alimentadores em
+desacordo com o próprio parque e a Enel CE tinha 0,0%. Com uma BDGD só,
+ninguém veria. **A dor das sete bases é o que torna a ferramenta confiável
+para quem roda uma.** O nosso custo é a qualidade do produto do outro.
+
+### O que isto muda no plano, e é bastante
+
+**Sobe para o topo: o critério 8 e a tarefa da portabilidade.** Se o uso é uma
+base, "roda em qualquer máquina que clone o repositório" deixa de ser item de
+lista e passa a ser o item que decide se existe produto. Hoje toda medição
+deste documento saiu de UMA máquina, com UM Python, sobre SETE bases. Software
+que só roda num lugar não se comercializa, por melhor que seja o número.
+
+**Desce, e sai do caminho crítico: encurtar a rodada.** Paralelizar as bases no
+cluster era candidato a próxima grande tarefa. Para o produto não vale nada —
+o usuário nunca roda sete. O cluster continua útil para NÓS, ao testar as 53,
+e é só isso.
+
+**Entra no plano: a distância entre avisar e resolver.** O
+`validacao_perdas.json` hoje diz
+
+> ATENÇÃO: 73 alimentador(es) que a distribuidora DECLARA e que o modelo deixa
+> sem energia (4,5% da base).
+
+e quem lê precisa conhecer os achados 39 a 50 para saber o que fazer. Um
+engenheiro de distribuidora vai ler e perguntar "e agora?". Essa é a distância
+que separa validador de produto — e ela é menor do que parece: é documentação
+e uma tela, não é código novo.
+
+### O diferencial, dito na forma que se vende
+
+Não é converter BDGD para OpenDSS; isso outros fazem. É **a ferramenta dizer
+quando ela está mentindo**: quantos alimentadores entraram na conta, quantos
+ficaram de fora e por quê, quais têm perda fisicamente impossível, e como o
+resultado se compara com o que a ANEEL publica — e não só com o que a própria
+BDGD declara.
