@@ -38,6 +38,60 @@ completo dá ~2,7× isso.
 
 ---
 
+## O plano: 15 bases, e não 53
+
+A pergunta foi: já que a BDGD é padronizada, não bastaria uma por
+distribuidora? **Não basta, e a prova está na pasta.** Enel CE e Enel SP são a
+mesma distribuidora:
+
+| | Enel CE | Enel SP |
+|---|---|---|
+| razão agregada | **0,92×** | **3,09×** |
+| perda declarada | 3,79% | 1,42% |
+| achado 49 — CTMT contra o parque | 0 de 678 (0,0%) | 65 de 1.569 (4,1%) |
+| achado 50 — regulador pendurado | 8 de 1.056 (0,8%) | **55 de 77 (71,4%)** |
+| R1 médio do condutor | 5,307 Ω/km | 1,642 Ω/km |
+| cobertura da comparação | 94% | 85% |
+
+Com só a Enel CE, a conclusão seria "Enel está calibrada". A Enel SP está em
+3,09× e 71% dos reguladores dela não regulam nada.
+
+**O padronizado é o formato, não o preenchimento.** O Módulo 10 define as
+tabelas e a TTEN define os códigos — por isso o conversor lê qualquer BDGD.
+Quem preenche é a equipe de cada **concessão**, do cadastro de ativos local.
+O `UNI_TR_AT` vazio de Roraima, o `-FC` da Equatorial PA e as 58 chaves sobre
+o regulador da CPFL não são política de holding: são prática de concessão.
+
+### As 8 a baixar
+
+**Quatro testam a hipótese da holding.** Se baterem com as irmãs, o corte por
+grupo se sustenta e o resto não precisa ser baixado.
+
+| # | distribuidora | o que ela testa |
+|---|---|---|
+| 9 | Enel RJ | a terceira Enel — contra CE (0,92×) e SP (3,09×) |
+| 16 | CPFL Piratininga | a segunda CPFL — contra Paulista |
+| 10 | Equatorial MA | a segunda Equatorial — contra PA |
+| 24 | Energisa MT | o maior grupo do país, do qual não temos nenhuma |
+
+**Quatro cobrem o que as 7 não cobrem.**
+
+| # | distribuidora | o que ela cobre |
+|---|---|---|
+| 7 | Coelba | a maior do Nordeste que falta |
+| 28 | Copel | prática do Sul |
+| 27 | Elektro | interior de SP, outra origem de cadastro |
+| 53 | DME-PC | a MENOR das 53 — a ponta onde o conversor nunca rodou |
+
+Com as 7 que já existem, isso cobre o ranking de complexidade da ANEEL do 1º
+ao 53º. Estimativa de disco para as 8, extrapolando das 7: **40 a 50 GB**.
+
+**O critério de corte é cobrir a variação, e não o dono.** Se as quatro
+primeiras divergirem das irmãs como CE e SP divergiram, a hipótese cai e a
+amostragem passa a ser por complexidade.
+
+---
+
 ## Grupo 1 — grande porte (36)
 
 As sete que temos aparecem marcadas.
