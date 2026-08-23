@@ -16,7 +16,11 @@ set -euo pipefail
 
 cd "$(dirname "${BASH_SOURCE[0]}")/.."
 FILA="${FILA:-BIRA_Q3}"
-SUFIXO="${SUFIXO:-V18}"
+# O SUFIXO NAO TEM PADRAO, E DE PROPOSITO. Ele cai em V18 antes, e V18 e uma
+# rodada FECHADA que serve de referencia. Quem submetesse sem definir gravava
+# por cima dela em silencio, e so descobriria ao comparar geracoes e achar as
+# duas iguais. Sem padrao, o script recusa e diz o que fazer.
+SUFIXO="${SUFIXO:?defina o sufixo da rodada, ex.: SUFIXO=V20 bash cluster/submeter_todas.sh}"
 
 echo "filas disponiveis (confira o nome antes de submeter):"
 qstat -q || true

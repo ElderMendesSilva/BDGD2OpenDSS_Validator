@@ -485,3 +485,58 @@ Que o usuário roda uma base e nunca vai precisar de cluster. O cluster é
 ferramenta **nossa**, de desenvolvimento — como a suíte de testes e o canário.
 Ninguém compra a suíte de testes, e ainda assim ela é o que faz o produto
 existir.
+
+---
+
+## O que o cluster roda, de verdade — 23/08/2026
+
+Eu tinha dito que o cluster não rodaria o `energia` e o `valida_perdas` por
+falta dos motores. **Está errado.** Conferido, etapa por etapa, qual motor
+cada uma importa:
+
+| etapa | motor | Linux |
+|---|---|---|
+| `converter.py` | nenhum | roda |
+| `ligacao.py` | só `opendssdirect` | roda |
+| `ampacidade.py` | só `opendssdirect` | roda |
+| `verifica.py` | `opendssdirect` **e** `win32com` | roda com um |
+| `energia.py` | só `opendssdirect` | roda |
+| `validador.py` | só `opendssdirect` | roda |
+| `valida_perdas.py` | **nenhum** — lê JSON e a `.gdb` | roda |
+| `valida_balanco.py` | lê JSON | roda |
+
+O `opendssdirect` traz a própria DSS C-API dentro do pacote e é
+multiplataforma. **É ele que faz todas as contas do projeto.** Só o `verifica`
+toca COM, e lá o COM é um dos dois motores — o código já cai em `capi` sozinho
+quando o COM não existe:
+
+```python
+ap.add_argument('--motor', choices=['ambos', 'capi', 'com'],
+                default='ambos' if plataforma.tem_com() else 'capi')
+```
+
+**O que se perde no cluster é UMA coisa:** a conferência cruzada entre dois
+motores independentes no `verifica`. E ela pega outra classe de defeito —
+modelo que o C-API resolve e o motor da EPRI derruba, que importa porque é o
+da EPRI que o usuário abre no OpenDSS. Nenhum dos cinco achados do mês veio
+dali; todos vieram de comparar bases.
+
+**Como fechar essa lacuna sem perder nada:** rodar `verifica --motor com` aqui
+no Windows, depois, só nas bases que interessarem. Custa pouco, porque só
+compila e resolve.
+
+### O `qsub` já roda o ciclo inteiro
+
+`cluster/uma_base.pbs` chama `regerar_v10.py --so $TAG`, que é converter →
+ligação → ampacidade → verifica → energia → validador → perdas → balanço. Não
+é só o conversor. Uma distribuidora por job, com o canário primeiro:
+Roraima aparece em minutos e um código quebrado não desperdiça a fila inteira.
+
+Ajustado em 23/08/2026: **o `SUFIXO` deixou de ter padrão.** Ele caía em `V18`,
+que é uma rodada fechada e serve de referência — quem submetesse sem definir
+gravaria por cima dela em silêncio, e só descobriria ao comparar gerações e
+achar as duas iguais.
+
+**A conferir quando o cluster rodar de verdade:** o `walltime` está em 12 h e a
+Cemig-D leva 5,5 h nesta máquina. Se o nó for duas vezes mais lento, ela
+encosta no limite. Medir na primeira submissão e ajustar.
