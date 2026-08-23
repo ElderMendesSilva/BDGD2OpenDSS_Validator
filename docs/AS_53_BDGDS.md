@@ -81,7 +81,18 @@ grupo se sustenta e o resto não precisa ser baixado.
 | 7 | Coelba | a maior do Nordeste que falta |
 | 28 | Copel | prática do Sul |
 | 27 | Elektro | interior de SP, outra origem de cadastro |
-| 53 | DME-PC | a MENOR das 53 — a ponta onde o conversor nunca rodou |
+| 1 | CEA (Amapá) | a MAIS COMPLEXA das 53 pelo ranking da própria ANEEL |
+
+> **A vaga era da DME-PC, e ela não publicou a safra 2024.** Conferido em
+> 23/08/2026. O objetivo dela era testar a ponta pequena — mas Roraima já
+> cobre isso: 89 alimentadores, 20 subestações, 0,32 GB. A ponta pequena já
+> estava na amostra e eu não tinha percebido.
+>
+> A CEA entra no lugar por um motivo melhor: ela é **1º no ranking de
+> complexidade**, e não temos nada do topo. Se o conversor sobreviver à mais
+> difícil da lista, isso vale mais do que sobreviver à menor. Se a CEA
+> também não tiver 2024, a segunda opção é a **Ame (Amazonas Energia, 3º)**,
+> pelo mesmo motivo.
 
 Com as 7 que já existem, isso cobre o ranking de complexidade da ANEEL do 1º
 ao 53º. Estimativa de disco para as 8, extrapolando das 7: **40 a 50 GB**.
