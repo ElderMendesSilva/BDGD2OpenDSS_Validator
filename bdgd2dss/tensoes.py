@@ -235,3 +235,116 @@ def censo_bt(bdgd, log=None):
                         sorted(c, key=c.get, reverse=True)[:6])
         log(f'  tensoes de BT desta base: {det}')
     return fora
+
+
+# ---------------------------------------------------------------- achado 49
+# Quando o CTMT diz uma tensao e os trafos DELE dizem outra, ganha o equipamento.
+#
+# `CTMT.TEN_NOM` e UM campo por alimentador. `EQTRMT.TEN_PRI` e um campo por
+# transformador, e um alimentador tem centenas deles. No BF_AL2-01 de Roraima o
+# cabecalho diz 34,5 kV e 603 dos 714 trafos dizem 13,8 kV; a subestacao dele
+# tem um unico trafo de AT, 69 -> 13,8 kV. Acreditar no cabecalho fazia o
+# achado 39 criar barra derivada de 34,5 kV e INVENTAR um transformador de
+# barra de 10 MVA para alimenta-la.
+#
+# Nao se trata de classe de isolamento: a EQTRMT traz `CLAS_TEN` num campo
+# separado. `TEN_PRI` e a tensao de operacao do primario.
+#
+# CENSO NAS SETE BASES (maioria de 60% ou mais, diferenca acima de 0,5 kV):
+#
+#     base    CTMT   discorda      %   kWh/dia sob discordancia
+#     RR        80          6    7,5%              173.964
+#     ENCE     678          0    0,0%                    0
+#     EQPA     679         37    5,4%            1.875.392
+#     SP     1.569         65    4,1%            4.149.529
+#     LT     1.468        371   25,3%           21.650.901
+#     CPFL   1.535         15    1,0%            1.358.031
+#     CMIG   2.040         16    0,8%              625.349
+#
+#     total  8.049        510    6,3%           29.833.166
+#
+# A Light e o caso extremo: um quarto dos alimentadores dela declara 25,0 kV
+# ou 13,8 kV com o parque em 13,2 kV.
+#
+# ATENCAO AO ACHADO 41. `EQTRMT.TEN_PRI` de trafo MONOFASICO e FASE-NEUTRO
+# (codigo 39 = 7,96 kV, que e 13,8/raiz(3)) e `CTMT.TEN_NOM` e tensao de
+# LINHA. Comparar os dois crus acusaria discordancia em quase tudo. Aqui o
+# voto do trafo monofasico e multiplicado por raiz(3) antes de entrar na urna.
+
+MAIORIA = 0.60           # fracao dos trafos que tem de concordar entre si
+VOTOS_MINIMOS = 5        # abaixo disto a amostra nao decide nada
+TOLERANCIA_KV = 0.5      # diferenca menor que isto e arredondamento
+
+
+def por_equipamento(bdgd, log=None):
+    """A tensao de LINHA que os trafos de cada alimentador declaram.
+
+    Devolve `{CTMT: (kv, votos_da_maioria, total_de_votos)}`, so para os
+    alimentadores em que a maioria alcanca `MAIORIA` e `VOTOS_MINIMOS`.
+
+    Base sem UNTRMT ou sem EQTRMT devolve `{}` e nada muda.
+    """
+    import collections
+    from .leitor import txt
+    try:
+        u = bdgd.ler('UNTRMT', colunas=['COD_ID', 'CTMT', 'FAS_CON_P'])
+        e = bdgd.ler('EQTRMT', colunas=['UNI_TR_MT', 'TEN_PRI'])
+    except Exception:
+        return {}
+    ctmt_do_tr, fases_do_tr = {}, {}
+    for i in range(len(u['COD_ID'])):
+        k = txt(u['COD_ID'][i]).strip()
+        ctmt_do_tr[k] = txt(u['CTMT'][i]).strip()
+        fases_do_tr[k] = max(1, len([c for c in txt(u['FAS_CON_P'][i]).upper()
+                                     if c in 'ABC']))
+    urna = collections.defaultdict(collections.Counter)
+    for i in range(len(e['UNI_TR_MT'])):
+        k = txt(e['UNI_TR_MT'][i]).strip()
+        c = ctmt_do_tr.get(k)
+        if not c:
+            continue
+        kv = TENSAO_KV.get(txt(e['TEN_PRI'][i]).strip())
+        if not kv:
+            continue
+        # achado 41: um no e fase-neutro, dois ou tres e tensao de linha
+        if fases_do_tr.get(k, 1) < 2:
+            kv *= 3 ** 0.5
+        urna[c][round(kv, 1)] += 1
+    out = {}
+    for c, v in urna.items():
+        total = sum(v.values())
+        kv, q = v.most_common(1)[0]
+        if total >= VOTOS_MINIMOS and q / total >= MAIORIA:
+            out[c] = (kv, q, total)
+    if log:
+        log(f'  {len(out):,} alimentadores com tensao decidida pelo parque de '
+            f'transformadores (EQTRMT.TEN_PRI)')
+    return out
+
+
+def concilia(ctmt_info, do_equipamento, log=None):
+    """Poe a tensao do equipamento no lugar da do cabecalho, quando discordam.
+
+    Altera `ctmt_info` no lugar e devolve a lista do que mudou, para o
+    relatorio: trocar a tensao de um alimentador em silencio e a ultima coisa
+    que se quer num modelo que alguem vai auditar.
+    """
+    mudou = []
+    for cod, c in ctmt_info.items():
+        alvo = do_equipamento.get(cod)
+        if not alvo:
+            continue
+        kv, q, total = alvo
+        antes = c.get('kv')
+        if antes and abs(kv - antes) > TOLERANCIA_KV:
+            c['kv'] = kv
+            c['kv_do_cabecalho'] = antes
+            c['kv_votos'] = [q, total]
+            mudou.append((cod, antes, kv, q, total))
+    if log and mudou:
+        mudou.sort(key=lambda x: -x[4])
+        log(f'  ACHADO 49: {len(mudou):,} alimentadores em que CTMT.TEN_NOM '
+            f'discorda do proprio parque; vale o equipamento')
+        for cod, a, d, q, t in mudou[:5]:
+            log(f'     {cod}: cabecalho {a:g} kV, {q:,}/{t:,} trafos em {d:g} kV')
+    return mudou

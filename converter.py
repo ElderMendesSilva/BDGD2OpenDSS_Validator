@@ -62,6 +62,11 @@ def memoria_gb():
         return 0.0
 
 
+def concilia_tensao(info, bdgd, log):
+    """Separado de `ler_ctmt` so para poder ser testado sem uma BDGD."""
+    return tensoes.concilia(info, tensoes.por_equipamento(bdgd, log), log)
+
+
 def ler_ctmt(bdgd, kv_mt_padrao, log):
     """Cadastro dos alimentadores: subestacao, trafo de AT que o alimenta,
     barra de saida, cabeceira e tensao.
@@ -93,6 +98,13 @@ def ler_ctmt(bdgd, kv_mt_padrao, log):
             # ficava em 0,921 pu e cinco subestacoes nem convergiam.
             'ten_ope': min(1.15, max(0.9, num(col['TEN_OPE'][i], 1.0) or 1.0)),
         }
+    # ACHADO 49. O cabecalho do alimentador contra o parque dele. Ver
+    # `tensoes.por_equipamento`: no BF_AL2-01 de Roraima o CTMT diz 34,5 kV
+    # e 603 dos 714 trafos dizem 13,8 kV, e a subestacao tem um unico trafo
+    # de AT, 69 -> 13,8. Acreditar no cabecalho fazia o achado 39 criar
+    # barra derivada e INVENTAR um transformador de barra de 10 MVA.
+    concilia_tensao(info, bdgd, log)
+
     return info
 
 
