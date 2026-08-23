@@ -373,10 +373,15 @@ def _uma_se(C, se, k):
 
     n_cp = complementos.capacitores(b, ctmts, os.path.join(d, 'Capacitores.dss'),
                                     a.kv_mt, kv_por_ctmt, barras=barras_rede)
-    n_rg = complementos.reguladores(b, ctmts, os.path.join(d, 'Reguladores.dss'),
-                                    a.kv_mt, kv_por_ctmt,
-                                    a.reg_vreg, a.reg_band, a.reg_kva,
-                                    barras=barras_rede)
+    # ACHADO 50. `reg_pendurados` sao os reguladores com um PAC que nao existe
+    # na rede: compilam, nao regulam nada, e deixam o tronco sem apoio. Sobe
+    # para o resumo porque alimentador longo sem regulador tem a perda
+    # SUPERESTIMADA, e quem le o numero precisa saber.
+    n_rg, reg_pendurados = complementos.reguladores(
+        b, ctmts, os.path.join(d, 'Reguladores.dss'),
+        a.kv_mt, kv_por_ctmt,
+        a.reg_vreg, a.reg_band, a.reg_kva,
+        barras=barras_rede)
     if a.bt == 'completo':
         info = cargas.gerar(b, ctmts, sec, os.path.join(d, 'Cargas.dss'), a.mes,
                             nomes_curva, a.fator_carga,
@@ -529,7 +534,12 @@ def _uma_se(C, se, k):
          'chaves_abertas': len(abertas),
          'chaves_ilhadas': len(ch_ilhadas), 'trafos': n_tr,
          'capacitores': n_cp,
-         'reguladores': n_rg, 'GD': n_gd, 'GD_nulos': gd_nulos,
+         'reguladores': n_rg,
+         # achado 50: regulador com um PAC fora da rede nao regula nada, e a
+         # perda do alimentador sai SUPERESTIMADA por falta de apoio de tensao
+         'reguladores_pendurados': len(reg_pendurados),
+         'reguladores_pendurados_cod': [c for c, _ in reg_pendurados],
+         'GD': n_gd, 'GD_nulos': gd_nulos,
          'GD_realocada': gd_realoc, 'GD_fora_da_rede': gd_fora,
          'GD_barras_limitadas': gd_lim, 'GD_kW_cortado': gd_kw_cortado,
          'GD_MT_por_CEG_GD': gd_por_ceg,

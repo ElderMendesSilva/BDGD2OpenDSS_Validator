@@ -371,6 +371,7 @@ def reguladores(bdgd, ctmts, caminho, kv=13.8, kv_por_ctmt=None,
            '! band continua tipico: a BDGD nao declara a faixa morta.',
            '! O ptratio segue a tensao de cada alimentador (TP para 120 V).']
     n = 0
+    pendurados = []
     for i in range(len(col['COD_ID'])):
         b1 = no(col['PAC_1'][i]); b2 = no(col['PAC_2'][i])
         if not b1 or not b2 or b1 == b2:
@@ -380,6 +381,29 @@ def reguladores(bdgd, ctmts, caminho, kv=13.8, kv_por_ctmt=None,
         if barras is not None and b1 not in barras and b2 not in barras:
             continue
         cod = txt(col['COD_ID'][i])
+        # ACHADO 50. UMA ponta fora da rede e pior que as duas: o regulador
+        # COMPILA, aparece no arquivo, e nao regula nada — a barra da ponta
+        # solta e tocada so por ele. Os PACs de jusante como
+        # `mt2_1019345202` nao existem em NENHUMA das 20 camadas da BDGD;
+        # so na propria UNREMT.PAC_2, e isso foi conferido camada a camada.
+        #
+        # CENSO NAS SETE: 298 de 5.444 reguladores pendurados de um lado.
+        #     RR      24 de    40  (60,0%) jusante   <- o caso do BF_AL2-01
+        #     CPFL   157 de   863  (18,2%) jusante
+        #     LT       2 de    14  (14,3%) jusante
+        #     SP      55 de    77  (71,4%) MONTANTE
+        #     CMIG    33 de 3.099  ( 1,1%) os dois
+        #     EQPA     2 de   295  ( 0,7%) jusante
+        #     ENCE     8 de 1.056  ( 0,8%) montante
+        #
+        # Medido no BF_AL2-01 de Roraima: 5 dos 10 reguladores da subestacao
+        # conduzem 0 A. Sem eles o tronco de 155 km cai a 0,45 pu, e a perda
+        # da subestacao fica em 35,23% mesmo depois do achado 49.
+        # ALIMENTADOR LONGO SEM REGULADOR TEM PERDA SUPERESTIMADA, e quem le
+        # o numero precisa saber disso — por isso o aviso sai no arquivo e
+        # a lista sobe para quem chama.
+        if barras is not None and (b1 not in barras or b2 not in barras):
+            pendurados.append((cod, b1 if b1 not in barras else b2))
         kv_ct = kv_por_ctmt.get(txt(col['CTMT'][i]), kv)
         kv_fn = kv_ct / math.sqrt(3)
         ptratio = round(kv_fn * 1000 / 120.0, 2)
@@ -396,8 +420,21 @@ def reguladores(bdgd, ctmts, caminho, kv=13.8, kv_por_ctmt=None,
                        f'vreg={vreg_i:g} band={band:g} ptratio={ptratio} '
                        f'delay=15 maxtapchange=1')
             n += 1
+    if pendurados:
+        out.append(f'! ATENCAO: {len(pendurados)} regulador(es) com um PAC que '
+                   f'nao existe na rede.')
+        out.append('! Eles COMPILAM e nao regulam nada: a barra da ponta solta '
+                   'e tocada so por eles.')
+        out.append('! ALIMENTADOR LONGO SEM REGULADOR TEM PERDA SUPERESTIMADA. '
+                   'Medido no BF_AL2-01')
+        out.append('! de Roraima: 155 km de tronco, 5 dos 10 reguladores da '
+                   'subestacao em 0 A,')
+        out.append('! e 35,23% de perda. Ver `complementos.reguladores`, '
+                   'achado 50.')
+        out.append('! Ex.: ' + ', '.join(f'{c} (ponta solta {b})'
+                                         for c, b in pendurados[:3]))
     open(caminho, 'w', encoding='utf-8', newline=escrita.FIM_DE_LINHA).write('\n'.join(out) + '\n')
-    return n
+    return n, pendurados
 
 
 # ------------------------------------------------------------------ geracao
