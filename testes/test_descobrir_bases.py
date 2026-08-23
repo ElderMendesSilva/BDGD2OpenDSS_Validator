@@ -124,12 +124,59 @@ class ADescoberta(unittest.TestCase):
 class OQueNaoPodeVoltar(unittest.TestCase):
 
     def test_nao_ha_lista_de_gdb_no_codigo(self):
-        """Uma tupla com nome de arquivo aqui e o defeito voltando."""
+        """Uma tupla com nome de arquivo aqui e o defeito voltando.
+
+        Ate 23/08/2026 este teste tinha UMA excecao: o nome completo da .gdb
+        da Enel SP, que mora fora da pasta nesta maquina e era resgatada pelo
+        nome. A excecao caiu quando `BDGD2DSS_BASES` passou a aceitar VARIAS
+        pastas — quem tem base em mais de um lugar diz onde, e nenhum nome de
+        arquivo precisa existir no codigo.
+
+        Sem excecao nenhuma, de proposito: o carimbo de exportacao muda a cada
+        safra, entao nome de arquivo escrito aqui deixa de funcionar sozinho e
+        em silencio no ano que vem.
+        """
         with open(os.path.join(RAIZ, 'regerar_v10.py'), encoding='utf-8') as fh:
             fonte = fh.read()
-        self.assertNotIn("_2024-12-31_V11_2025", fonte.replace(
-            "'Enel_SP_390_2024-12-31_V11_20250702-2009.gdb'", ''),
-            'voltou nome de .gdb para dentro do codigo')
+        self.assertNotIn('_2024-12-31_V11_2025', fonte,
+                         'voltou nome de .gdb para dentro do codigo')
+
+    def test_a_pasta_das_bases_e_uma_lista(self):
+        """Base em mais de um lugar e o caso normal, e nao a excecao."""
+        self.assertIsInstance(rg.PASTAS_BDGD, list)
+        self.assertTrue(rg.PASTAS_BDGD)
+
+    def test_a_variavel_de_ambiente_aceita_varias_pastas(self):
+        import importlib
+        sep = os.pathsep
+        antes = os.environ.get('BDGD2DSS_BASES')
+        try:
+            os.environ['BDGD2DSS_BASES'] = f'/um{sep}/dois{sep}/tres'
+            importlib.reload(rg)
+            self.assertEqual(rg.PASTAS_BDGD, ['/um', '/dois', '/tres'])
+        finally:
+            if antes is None:
+                os.environ.pop('BDGD2DSS_BASES', None)
+            else:
+                os.environ['BDGD2DSS_BASES'] = antes
+            importlib.reload(rg)
+
+    def test_pasta_inexistente_na_lista_nao_quebra(self):
+        """Cada maquina tem as suas; a que nao existe e ignorada."""
+        import importlib
+        antes = os.environ.get('BDGD2DSS_BASES')
+        try:
+            vazia = tempfile.mkdtemp(prefix='sem_bases_')
+            os.environ['BDGD2DSS_BASES'] = os.pathsep.join(
+                ['/nao_existe_de_jeito_nenhum', vazia])
+            importlib.reload(rg)
+            self.assertEqual(rg.descobrir(), [])
+        finally:
+            if antes is None:
+                os.environ.pop('BDGD2DSS_BASES', None)
+            else:
+                os.environ['BDGD2DSS_BASES'] = antes
+            importlib.reload(rg)
 
 
 if __name__ == '__main__':

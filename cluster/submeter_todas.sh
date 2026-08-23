@@ -37,7 +37,7 @@ echo "bases encontradas: $TAGS"
 echo
 for TAG in $TAGS; do
     id=$(qsub -q "$FILA" -N "bdgd_$TAG" \
-              -v "TAG=$TAG,SUFIXO=$SUFIXO,PROJETO=$PWD,BDGD2DSS_BASES=${BDGD2DSS_BASES:-$HOME/elder/bdgds}" \
+              -v "TAG=$TAG,SUFIXO=$SUFIXO,PROJETO=$PWD,BDGD2DSS_BASES=${BDGD2DSS_BASES:?defina onde estao as .gdb}" \
               cluster/uma_base.pbs)
     echo "  $TAG -> $id"
 done

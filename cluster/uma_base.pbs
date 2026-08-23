@@ -31,8 +31,16 @@ TAG="${TAG:-RR}"                                   # qsub -v TAG=CMIG
 #
 # Continua dando para mandar outro: SUFIXO=V2_cluster bash cluster/submeter_todas.sh
 SUFIXO="${SUFIXO:-V1_cluster}"
-PROJETO="${PROJETO:-$HOME/elder/BDGD2OpenDSS_Validator}"
-export BDGD2DSS_BASES="${BDGD2DSS_BASES:-$HOME/elder/bdgds}"
+# O PROJETO E ONDE ESTE ARQUIVO ESTA, e nao um caminho decorado. `$HOME/elder/
+# BDGD2OpenDSS_Validator` so existia na conta do Elder no Ubiratan: qualquer
+# outra pessoa, ou a mesma pessoa noutra maquina, submetia e o job morria na
+# primeira linha depois de esperar a noite na fila.
+PROJETO="${PROJETO:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
+
+# ONDE ESTAO AS .gdb. Sem a variavel o job PARA aqui, em vez de procurar num
+# caminho que talvez nao exista e falhar dez minutos depois com "base ausente".
+# Aceita varias pastas separadas por `:`, que e o mesmo que o regerar entende.
+export BDGD2DSS_BASES="${BDGD2DSS_BASES:?defina onde estao as .gdb, ex.: BDGD2DSS_BASES=\$HOME/bdgds}"
 
 # `cluster` tambem seria detectado sozinho pelo PBS_JOBID; explicito e melhor
 # num script que alguem vai ler daqui a um ano.

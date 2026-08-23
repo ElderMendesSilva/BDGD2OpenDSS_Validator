@@ -56,12 +56,39 @@ from bdgd2dss import plataforma      # noqa: E402
 from bdgd2dss import cobertura       # noqa: E402
 
 AQUI = os.path.dirname(os.path.abspath(__file__))
-# ONDE ESTAO AS .gdb. O caminho do Windows desta maquina era o padrao fixo, e
-# num no de cluster ele simplesmente nao existe — a rodada morreria na primeira
-# base, depois de agendada. `BDGD2DSS_BASES` resolve sem editar codigo, que e o
-# que se quer de quem so vai submeter a tarefa.
-BDGDS = os.environ.get('BDGD2DSS_BASES') or r'D:\Elder\Elder\BDGDs'
 CRIT = os.path.dirname(AQUI)
+
+# ONDE ESTAO AS .gdb — UMA LISTA DE PASTAS, e nao uma so.
+#
+# O caminho do Windows desta maquina era o padrao fixo, e num no de cluster ele
+# simplesmente nao existe: a rodada morreria na primeira base, depois de ja ter
+# esperado a noite na fila. `BDGD2DSS_BASES` resolveu isso.
+#
+# O QUE FALTAVA, e e o motivo de virar lista: a Enel SP mora FORA da pasta
+# nesta maquina, e o resgate dela era o NOME COMPLETO DO ARQUIVO escrito aqui
+# dentro, com codigo do agente, safra, versao e carimbo de exportacao. Isso
+# prendia o projeto a este computador de duas formas ao mesmo tempo: pelo
+# caminho e pelo carimbo. Na safra seguinte o nome muda e o resgate para de
+# funcionar, calado.
+#
+# Agora quem tem base em mais de um lugar diz onde, separando com o separador
+# do sistema (`;` no Windows, `:` no Linux):
+#
+#     set BDGD2DSS_BASES=D:\BDGDs;E:\outras
+#     export BDGD2DSS_BASES=$HOME/bdgds:/mnt/dados/bdgds
+#
+# Sem a variavel, valem os dois lugares onde as bases estao NESTA maquina — e
+# isso e conveniencia de quem trabalha aqui, nao premissa do codigo: qualquer
+# pasta que nao exista e simplesmente ignorada.
+def _pastas_das_bases():
+    v = os.environ.get('BDGD2DSS_BASES')
+    if v:
+        return [p for p in v.split(os.pathsep) if p.strip()]
+    return [r'D:\Elder\Elder\BDGDs', CRIT]
+
+
+PASTAS_BDGD = _pastas_das_bases()
+BDGDS = PASTAS_BDGD[0]        # compatibilidade: quem so quer "a pasta"
 LOGS = os.path.join(AQUI, 'logs', 'v10')      # ver PASTAS, no CLAUDE.md
 PY = sys.executable
 
@@ -124,16 +151,17 @@ def descobrir(pasta=None):
     melhor palpite de custo que existe sem ter rodado nenhuma vez.
     """
     import glob
-    pasta = pasta or BDGDS
-    achadas = sorted(glob.glob(os.path.join(pasta, '*.gdb')))
-    # A Enel SP mora fora da pasta NESTA maquina. O resgate so vale para a
-    # pasta padrao: quem pede uma pasta especifica quer o que esta NELA, e
-    # injetar uma base de outro lugar seria mentira — foi o que o teste de
-    # pasta vazia pegou.
-    if pasta == BDGDS:
-        fora = _acha('Enel_SP_390_2024-12-31_V11_20250702-2009.gdb', CRIT)
-        if os.path.exists(fora) and fora not in achadas:
-            achadas.append(fora)
+    # Uma pasta pedida vale sozinha; sem pedido, valem TODAS as de
+    # `PASTAS_BDGD`. Quem pede uma pasta especifica quer o que esta NELA, e
+    # injetar base de outro lugar seria mentira — foi o que o teste de pasta
+    # vazia pegou.
+    pastas = [pasta] if pasta else PASTAS_BDGD
+    achadas = []
+    for p in pastas:
+        for cam in sorted(glob.glob(os.path.join(p, '*.gdb'))):
+            if cam not in achadas:
+                achadas.append(cam)
+    achadas.sort()
 
     conhecidas, novas = [], []
     ordem = [t for t, _ in APELIDO.values()]
