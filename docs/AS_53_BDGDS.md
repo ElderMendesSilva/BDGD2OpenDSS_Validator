@@ -86,6 +86,39 @@ grupo se sustenta e o resto não precisa ser baixado.
 Com as 7 que já existem, isso cobre o ranking de complexidade da ANEEL do 1º
 ao 53º. Estimativa de disco para as 8, extrapolando das 7: **40 a 50 GB**.
 
+### O nome curto do relatório não é o nome do portal
+
+O Anexo II abrevia. O portal usa o nome societário, quase sempre com a marca
+do grupo na frente. Isso já custou uma busca frustrada por "DME-PC".
+
+| no relatório | procurar no portal por |
+|---|---|
+| DME-PC | **DME Distribuição S.A. (DMED)** — Poços de Caldas/MG, CNPJ 23.664.303/0001-04 |
+| Coelba | Neoenergia Coelba |
+| Elektro | Neoenergia Elektro |
+| Celpe | Neoenergia Pernambuco |
+| Cosern | Neoenergia Cosern |
+| Copel | Copel Distribuição |
+| Enel RJ | Enel Distribuição Rio (a antiga Ampla) |
+| Equatorial MA | Equatorial Maranhão (a antiga Cemar) |
+| Energisa MT | Energisa Mato Grosso (a antiga Cemat) |
+| Ame | Amazonas Energia |
+| CEA | Companhia de Eletricidade do Amapá |
+
+**O padrão do arquivo**, deduzido dos 7 que já temos:
+
+    <Nome>_<codigo do agente>_<safra>_<versao>_<carimbo>.gdb
+    Enel_CE_39_2024-12-31_V11_20250822-1151.gdb
+
+O código do agente vem no próprio nome do arquivo — não é preciso descobri-lo
+antes. É ele que o `regerar_v10._sigla` usa para nomear as pastas, e é ele que
+aparece em `BASE.DIST`.
+
+**Se a DME-PC não estiver publicada**, qualquer uma do Grupo 2 serve para o
+mesmo fim, que é testar a ponta pequena: Cocel, Forcel, Hidropan, Urussanga.
+O que importa é ter UMA distribuidora minúscula na amostra, porque todo
+defeito que achamos até hoje veio de base grande.
+
 **O critério de corte é cobrir a variação, e não o dono.** Se as quatro
 primeiras divergirem das irmãs como CE e SP divergiram, a hipótese cai e a
 amostragem passa a ser por complexidade.
