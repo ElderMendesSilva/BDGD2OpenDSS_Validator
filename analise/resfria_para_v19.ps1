@@ -46,22 +46,18 @@ $FICA = @(
   # agendador que dispara este script, e o proprio script
   'taskeng','taskhost','powershell','pwsh',
   # Claude Code
-  'claude','node',
-
-  # --- os tres grupos que ficam por decisao, e nao por necessidade -------
-  # ACESSO REMOTO. A V19 roda das 21:00 as ~6:00. Matar isto aqui tira a
-  # unica forma de olhar a rodada de fora de casa no meio da noite. Custa
-  # 36 MB manter e custa a noite inteira nao manter.
-  'AnyDesk','remoting_host','remote_assistance_host',
-  # MAQUINA VIRTUAL. `vmmem` sao 789 MB e e o maior bloco fora do navegador,
-  # mas mata-lo a forca e desligar a VM no botao: o disco virtual pode ficar
-  # corrompido. Desligar por dentro e seguro; a forca, nao.
-  'vmmem','vmms','vmwp','vmcompute','wslservice',
-  # VPN. Derrubar o servico no meio da sessao troca a rota de rede da
-  # maquina. A V19 e local e nao precisa de rede, entao o ganho e nenhum e
-  # o risco de ficar sem rede as 3 da manha e real.
-  'ProtonVPNService','ProtonVPN.Client','ProtonVPN.NrptWatchdog'
+  'claude','node'
 )
+
+# ACESSO REMOTO, VM E VPN MORREM TAMBEM. Eu levantei os tres riscos, e o
+# Elder decidiu duas vezes: primeiro "pode matar tbm", e depois, ja sabendo
+# que nao estaria em casa as 21:00, "nao quero olhar nada, pode matar".
+# Ficam anotados porque a consequencia e real e alguem vai reler isto:
+#
+#   * sem AnyDesk, a rodada de 9 h corre sem ninguem podendo olhar — e essa
+#     e a escolha, nao um esquecimento. O relatorio esta em logs/ pela manha;
+#   * sem VPN, a rota de rede da maquina muda as 20:45;
+#   * a VM some — e por isso ela e a unica que NAO morre a forca. Ver abaixo.
 
 Diz '--- resfriando para a V19 ---'
 $m0 = Get-CimInstance Win32_OperatingSystem
@@ -70,6 +66,27 @@ Diz ("antes: {0:N2} GB livres de {1:N2} GB" -f ($m0.FreePhysicalMemory/1MB), ($m
 $eu = $PID
 $mortos = 0
 $poupados = @{}
+
+# --- a VM sai por dentro, e nao no tapa ------------------------------------
+# `vmmem` e o processo que SEGURA a memoria da VM; mata-lo e o equivalente a
+# arrancar a tomada, e o disco virtual pode ficar inconsistente. Desligar por
+# dentro leva alguns segundos e chega no mesmo lugar: a memoria e devolvida e
+# o `vmmem` some sozinho. Se algum sobreviver, a varredura abaixo pega — mas
+# ai ja foi tentado o caminho limpo.
+try {
+  if (Get-Command wsl.exe -ErrorAction SilentlyContinue) {
+    Diz 'desligando o WSL por dentro (wsl --shutdown)'
+    & wsl.exe --shutdown 2>&1 | Out-Null
+  }
+} catch { Diz "WSL nao respondeu: $_" }
+try {
+  $vms = Get-VM -ErrorAction SilentlyContinue | Where-Object { $_.State -eq 'Running' }
+  foreach ($vm in $vms) {
+    Diz "desligando a VM '$($vm.Name)' por dentro (Stop-VM)"
+    Stop-VM -Name $vm.Name -Force -ErrorAction SilentlyContinue
+  }
+} catch { Diz "Hyper-V nao respondeu: $_" }
+if ((Get-Process vmmem -ErrorAction SilentlyContinue) -or $vms) { Start-Sleep -Seconds 20 }
 
 Get-CimInstance Win32_Process | ForEach-Object {
   $p = $_
