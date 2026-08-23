@@ -40,12 +40,23 @@ def encerrar(ex, prazo=PRAZO, log=None):
         if log:
             log(m)
 
+    # A LISTA VEM ANTES DO SHUTDOWN, e a ordem aqui nao e estilo.
+    # `ProcessPoolExecutor.shutdown` faz `self._processes = None` no fim.
+    # Pegar a lista depois devolvia None, e o `.values()` explodia com
+    # `AttributeError: 'NoneType' object has no attribute 'values'` —
+    # derrubando a etapa INTEIRA no exato ponto em que este modulo existe
+    # para nao derrubar nada. Pego pelo canario de Roraima em 23/08/2026,
+    # com `ligacao` e `ampacidade` falhando depois de terem feito o trabalho.
+    #
+    # `getattr(..., {}) or {}` porque o atributo pode estar AUSENTE (outro
+    # executor) ou PRESENTE E None (o nosso, depois de um shutdown anterior).
+    procs = list((getattr(ex, '_processes', None) or {}).values())
+
     try:
         ex.shutdown(wait=False, cancel_futures=True)
     except Exception:
         pass
 
-    procs = list(getattr(ex, '_processes', {}).values())
     if not procs:
         return 0
 

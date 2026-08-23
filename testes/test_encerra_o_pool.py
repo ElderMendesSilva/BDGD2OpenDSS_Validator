@@ -148,6 +148,39 @@ class EncerrarNuncaLevanta(unittest.TestCase):
         self.assertTrue(avisos, 'matar trabalhador em silencio esconde o '
                                 'defeito que motivou este modulo')
 
+    def test_shutdown_que_zera__processes_nao_derruba(self):
+        """O defeito que o canario pegou, e que os testes nao pegavam.
+
+        `ProcessPoolExecutor.shutdown` faz `self._processes = None` no fim.
+        A primeira versao lia a lista DEPOIS do shutdown e recebia None; o
+        `.values()` explodia e derrubava a etapa inteira — no exato ponto em
+        que este modulo existe para nao derrubar nada. Medido em 23/08/2026:
+        `ligacao` e `ampacidade` de Roraima falharam DEPOIS de ter feito o
+        trabalho todo.
+
+        Os testes de mentira passavam porque o `shutdown` deles nao mexia em
+        `_processes`. Dublê que nao imita o defeito nao protege de nada.
+        """
+        class Zumbi:
+            def is_alive(self):
+                return False
+
+        class ComoOCPython:
+            def __init__(self):
+                self._processes = {1: Zumbi()}
+
+            def shutdown(self, **k):
+                self._processes = None      # e o que o CPython faz
+
+        self.assertEqual(pool.encerrar(ComoOCPython(), prazo=0.1), 0)
+
+    def test_executor_sem__processes_nao_derruba(self):
+        """Outro executor qualquer pode nem ter o atributo."""
+        class Estranho:
+            def shutdown(self, **k):
+                pass
+        self.assertEqual(pool.encerrar(Estranho()), 0)
+
     def test_trabalhador_que_morre_sozinho_nao_e_contado(self):
         class Saudavel:
             def is_alive(self):
