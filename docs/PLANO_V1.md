@@ -532,10 +532,16 @@ ligação → ampacidade → verifica → energia → validador → perdas → b
 é só o conversor. Uma distribuidora por job, com o canário primeiro:
 Roraima aparece em minutos e um código quebrado não desperdiça a fila inteira.
 
-Ajustado em 23/08/2026: **o `SUFIXO` deixou de ter padrão.** Ele caía em `V18`,
-que é uma rodada fechada e serve de referência — quem submetesse sem definir
-gravaria por cima dela em silêncio, e só descobriria ao comparar gerações e
-achar as duas iguais.
+Ajustado em 23/08/2026: **o sufixo padrão passou a ser `V1_cluster`.** Ele
+caía em `V18`, que é uma rodada fechada e serve de referência — quem
+submetesse sem definir gravaria por cima dela em silêncio, e só descobriria ao
+comparar gerações e achar as duas iguais.
+
+`V1_cluster` resolve as duas coisas de uma vez: não colide com a numeração
+local (V10 a V19) e **a pasta já diz onde a rodada aconteceu** —
+`MODELOS_CMIG_V1_cluster`, `logs/v1_cluster/`. Quando o resultado do cluster
+divergir do daqui, o nome sozinho aponta para a diferença de ambiente antes de
+alguém procurar no código. Para a segunda rodada, `SUFIXO=V2_cluster`.
 
 **A conferir quando o cluster rodar de verdade:** o `walltime` está em 12 h e a
 Cemig-D leva 5,5 h nesta máquina. Se o nó for duas vezes mais lento, ela
