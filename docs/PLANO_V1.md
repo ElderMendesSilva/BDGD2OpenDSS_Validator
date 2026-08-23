@@ -407,10 +407,10 @@ lista e passa a ser o item que decide se existe produto. Hoje toda medição
 deste documento saiu de UMA máquina, com UM Python, sobre SETE bases. Software
 que só roda num lugar não se comercializa, por melhor que seja o número.
 
-**Desce, e sai do caminho crítico: encurtar a rodada.** Paralelizar as bases no
-cluster era candidato a próxima grande tarefa. Para o produto não vale nada —
-o usuário nunca roda sete. O cluster continua útil para NÓS, ao testar as 53,
-e é só isso.
+**O cluster NÃO desce — e eu tinha errado isto.** Encurtar a rodada não vale
+nada para o usuário, é verdade: ele nunca roda sete. Mas o cluster não é
+throughput de MODELO, é throughput de EVIDÊNCIA, e a evidência é o que
+melhora a ferramenta. Ver a seção própria abaixo.
 
 **Entra no plano: a distância entre avisar e resolver.** O
 `validacao_perdas.json` hoje diz
@@ -430,3 +430,58 @@ quando ela está mentindo**: quantos alimentadores entraram na conta, quantos
 ficaram de fora e por quê, quais têm perda fisicamente impossível, e como o
 resultado se compara com o que a ANEEL publica — e não só com o que a própria
 BDGD declara.
+
+---
+
+## O cluster é a máquina de achados — 23/08/2026
+
+Correção de rumo. Eu tinha posto o cluster fora do caminho crítico, com o
+argumento de que o usuário nunca roda sete bases. O argumento está certo e a
+conclusão estava errada: **o cluster não serve para entregar modelo, serve
+para produzir evidência** — e evidência é a única coisa que faz esta
+ferramenta melhorar.
+
+### Todo achado deste mês veio de comparar bases
+
+| achado | o que é | o que só se vê comparando |
+|---|---|---|
+| 40 | o `-FC` de 34,5 kV | Equatorial PA tem 21; as outras seis, zero |
+| 41 | tensão de linha contra a de fase | EQPA 64.726 cargas, Cemig-D 17.201 |
+| 48 | chave fechada sobre o regulador | CPFL 8; as outras seis, **zero** |
+| 49 | CTMT contra o próprio parque | Light 25,3% contra Enel CE **0,0%** |
+| 50 | regulador pendurado | Enel SP 71,4% a montante, Roraima 60,0% a jusante |
+
+Cinco de cinco. Nenhum apareceu olhando uma base isolada — todos apareceram
+porque **uma base destoava das outras**. Com sete bases enxergamos sete
+práticas de preenchimento. Com 53, enxergamos 53.
+
+### O ganho não é de tempo, é de variância
+
+| | em série | em paralelo |
+|---|---|---|
+| as 7 da V18 | 543 min | ~5,5 h, limitado pela Cemig-D |
+| as 53 | acima de 40 h | ~5,5 h, com nó suficiente |
+
+Nas sete o ganho é 1,6× e não justifica nada. **Nas 53 o ganho é o que torna a
+varredura possível**, porque uma rodada nacional em série não cabe numa noite
+nem numa semana de paciência.
+
+### E o cluster é, de graça, o teste de portabilidade
+
+O nó é Linux, com outro Python, outro escalonador (PBS) e sem o motor COM. É
+exatamente o que o critério 8 e a tarefa da portabilidade precisam provar. Já
+existem `cluster/instalar.sh`, `cluster/uma_base.pbs` e
+`cluster/submeter_todas.sh`, e o ramo `portabilidade-linux` registra o que já
+foi descoberto: *"o nó tem ambiente gráfico: painel funciona, COM continua não
+existindo"*.
+
+Então o cluster resolve **duas** prioridades ao mesmo tempo — a máquina de
+achados e a prova de que o software roda fora daqui. Isso o põe de volta no
+caminho crítico, e não como conveniência.
+
+### O que continua valendo do argumento do produto
+
+Que o usuário roda uma base e nunca vai precisar de cluster. O cluster é
+ferramenta **nossa**, de desenvolvimento — como a suíte de testes e o canário.
+Ninguém compra a suíte de testes, e ainda assim ela é o que faz o produto
+existir.
