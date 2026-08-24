@@ -54,16 +54,20 @@ IFS=':' read -ra DIRS <<< "$PASTAS"
 enviar_uma() {
     local gdb="$1" nome zip
     nome="$(basename "$gdb")"
-    zip="$PACOTES/$nome.zip"
+    zip="$PACOTES/$nome.tgz"
     if [[ ! -f "$zip" ]]; then
         echo "== compactando $nome"
-        ( cd "$(dirname "$gdb")" && zip -rq "$OLDPWD/$zip" "$nome" )
+        ( cd "$(dirname "$gdb")" && tar czf "$OLDPWD/$zip" "$nome" )
     fi
     # A soma de conferencia viaja junto. .gdb truncada no meio da subida nao
     # da erro na hora: ela da erro as 3 da manha, no minuto 2 do job.
     sha256sum "$zip" > "$zip.sha256"
     echo "== enviando $nome ($(du -h "$zip" | cut -f1))"
-    rsync -avh --partial --progress "$zip" "$zip.sha256" "$ALVO:$DESTINO/"
+    # scp, e nao rsync: o Git Bash desta maquina NAO tem rsync (conferido
+    # em 24/08/2026). Se um dia tiver, troque — ele RETOMA de onde parou, e
+    # o scp recomeca do zero, o que numa .gdb de 4 GB e a diferenca entre
+    # perder minutos e perder a tarde.
+    scp -C "$zip" "$zip.sha256" "$ALVO:$DESTINO/"
 }
 
 echo "destino: $ALVO:$DESTINO"
@@ -92,8 +96,8 @@ Agora, NO NO:
 
     cd $DESTINO
     sha256sum -c *.sha256          # confere antes de descompactar
-    for z in *.zip; do unzip -q "\$z"; done
-    rm -f *.zip *.sha256           # so depois de conferir
+    for z in *.tgz; do tar xzf "\$z"; done
+    rm -f *.tgz *.sha256           # so depois de conferir
 
     cd ~/BDGD2OpenDSS_Validator
     export BDGD2DSS_BASES=$DESTINO
