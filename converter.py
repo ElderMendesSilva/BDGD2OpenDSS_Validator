@@ -36,6 +36,7 @@ from bdgd2dss.leitor import BDGD, num, txt
 CANCELAR = None   # a interface grafica injeta um threading.Event aqui
 
 from bdgd2dss import (linecodes, linhas, chaves, transformadores, cargas,
+                      tabelas,
                       complementos, master, subtransmissao, transmissao,
                       tensoes, malha_at, coordenadas, pausa, escrita,
                       plataforma)
@@ -993,6 +994,10 @@ def main():
            'bt': a.bt, 'mes': a.mes, 'dia': a.dia,
            'fator_carga': a.fator_carga,
            'codigos_tensao_desconhecidos': tensoes.desconhecidos(),
+           # CRITERIO 7: as tabelas que ficaram de fora, DECLARADAS com o
+           # numero DESTA base. Declaracao que mora so num .md envelhece na
+           # safra seguinte; esta sai a cada rodada. Ver bdgd2dss/tabelas.py.
+           'tabelas_nao_lidas': tabelas.censo(b, log),
            'condutores_r1_corrigido': corr_cnd,
            'alta_tensao': est_at,
            'subestacoes': resumo}
