@@ -343,8 +343,23 @@ class TensaoDeCabeceiraUnica(unittest.TestCase):
                       'o pu do isolado tem de vir do mesmo tap do trafo de AT')
         self.assertIn("tap_se or ctmt_info[c]['ten_ope']", fonte,
                       'o tap manda; ten_ope so entra como reserva')
-        self.assertIn('(kv_se, tap_se or 1.0)', fonte,
-                      'o fallback tambem: nada de 1.0 fixo quando ha tap')
+        # O ULTIMO RECURSO, conferido no proprio trecho e nao no arquivo
+        # inteiro. Ate 24/08/2026 esta linha procurava o literal
+        # `(kv_se, tap_se or 1.0)`. O achado 52 trocou aquele `1.0` cego pelo
+        # `ten_ope` DECLARADO de cada alimentador, que e mais forte — e o
+        # teste quebrou por procurar a forma em vez da garantia.
+        #
+        # A garantia e uma so: o pu do ultimo recurso nao pode ser 1,0 fixo
+        # quando ha tap. Foi assim que a DALP saiu com 1,00 no modelo isolado
+        # e 1,09 no geral, e uma equipe de fora relatou subtensao que nao
+        # existia.
+        i = fonte.index('SEM VAO NENHUM')
+        ultimo = fonte[i:i + 1400]
+        self.assertIn('tap_se or', ultimo,
+                      'o ultimo recurso ignorou o tap da subestacao')
+        self.assertNotIn('or 1.0)', ultimo,
+                         'voltou o 1.0 fixo no ultimo recurso: e a divergencia '
+                         'de 0,09 pu da DALP de novo')
 
 
 class BarraDaSubestacaoNoGrupo(unittest.TestCase):
