@@ -99,13 +99,46 @@ MEDICAO = """
 {mon_linha}
 """
 
+# ---------------------------------------------------------------------------
+# O TETO DE ITERACOES — por que 500 e nao 100
+# ---------------------------------------------------------------------------
+# O teto era 100, e ele estava REPROVANDO modelo sadio. Medido na 5003346 de
+# Roraima com `--bt completo`, 205.122 barras:
+#
+#     maxiterations   usou   convergiu    perda
+#          100         100      NAO        7,53%
+#          500         202      sim        7,98%
+#         2000         202      sim        7,98%
+#
+# Com 100 o OpenDSS parava no meio e devolvia um ponto que nao e solucao — e
+# a perda saia 0,45 ponto percentual abaixo da verdadeira, para menos, que e
+# o lado que engana.
+#
+# Quantas iteracoes ela precisa depende de onde a solucao COMECA: 202 quando
+# retomada do ponto em que o teto de 100 a abandonou, 123 quando o MASTER ja
+# nasce com teto de 500 e resolve de uma vez. Os dois passam de 100, e e so
+# isso que decide o teto.
+#
+# 500 e nao 2000 porque o teto tambem limita o desperdicio de quem NAO
+# converge nunca. Na V19, 6 subestacoes de 2.390 nao convergiram, todas na
+# CEMIG, todas paradas exatamente em 100. Elas nao sao caso de teto: com
+# 2.000 iteracoes a 1726539 continua sem convergir, e a solucao fica IDENTICA
+# ate a quarta casa nas tres tentativas (553,4 kW, 3,38%). Alguns nos ficam
+# oscilando enquanto o resto ja convergiu. Para essas, subir o teto so gasta
+# tempo — 500 limita esse gasto a 5x em vez de 20x.
+#
+# Quem converge para antes e nao paga nada por este numero.
+
 RODAPE_GERAL = """
 ! ------------------------------------------------------------------ solucao
 Set Voltagebases=[{bases}]
 CalcVoltagebases
 
+! teto de 500: a 5003346 de Roraima com BT completa precisa de
+! 202 iteracoes, e com 100 o OpenDSS parava no meio e devolvia
+! perda 0,45 ponto abaixo da real. Ver master.py.
 Set maxcontroliter=200
-Set maxiterations=100
+Set maxiterations=500
 Set controlmode=static
 Set tolerance=0.0001
 
@@ -165,8 +198,11 @@ RODAPE_SE = """
 Set Voltagebases=[{bases}]
 CalcVoltagebases
 
+! teto de 500: a 5003346 de Roraima com BT completa precisa de
+! 202 iteracoes, e com 100 o OpenDSS parava no meio e devolvia
+! perda 0,45 ponto abaixo da real. Ver master.py.
 Set maxcontroliter=200
-Set maxiterations=100
+Set maxiterations=500
 Set controlmode=static
 
 redirect _CHAVES_ABERTAS.dss
@@ -281,8 +317,11 @@ RODAPE_AT = """
 Set Voltagebases=[{bases}]
 CalcVoltagebases
 
+! teto de 500: a 5003346 de Roraima com BT completa precisa de
+! 202 iteracoes, e com 100 o OpenDSS parava no meio e devolvia
+! perda 0,45 ponto abaixo da real. Ver master.py.
 Set maxcontroliter=200
-Set maxiterations=100
+Set maxiterations=500
 Set controlmode=static
 
 Set mode=snap
