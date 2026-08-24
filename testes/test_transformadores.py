@@ -224,16 +224,24 @@ class PrimarioBifasico(unittest.TestCase):
                              f'FAS_CON_P={fas} nao tem a fase de {ausente}')
 
 
-def _eqtrmt(r, xhl=3.2):
+def _eqtrmt(r, xhl=3.2, per_fer=0.0, per_tot=0.0, pot_nom='75.0'):
+    """O duble da EQTRMT.
+
+    `per_fer` e `per_tot` sao ZERO por omissao, e isso e proposital: assim
+    `_placa` devolve None e os testes do achado 26 continuam medindo o
+    caminho do `EQTRMT.R`, que e o que eles existem para medir. Quem quiser o
+    caminho da placa (achado 53) informa os dois em WATTS.
+    """
     a = lambda *v: np.array(v, dtype=object)          # noqa: E731
     return {'UNI_TR_MT': a('TX'), 'R': np.array([r]),
-            'XHL': np.array([xhl]), 'POT_NOM': np.array([75.0])}
+            'XHL': np.array([xhl]), 'POT_NOM': a(pot_nom),
+            'PER_FER': np.array([per_fer]), 'PER_TOT': np.array([per_tot])}
 
 
-def _texto(fas_p, fas_s, r=4.15):
+def _texto(fas_p, fas_s, r=4.15, **kw):
     tmp = tempfile.mkdtemp()
     t = os.path.join(tmp, 'Trafos.dss')
-    tr.gerar(_Leitor(_untrmt(fas_p, fas_s), _eqtrmt(r)), ['F1'], t,
+    tr.gerar(_Leitor(_untrmt(fas_p, fas_s), _eqtrmt(r, **kw)), ['F1'], t,
              os.path.join(tmp, 'Aterr.dss'), kv_mt=13.8)
     with open(t, encoding='utf-8') as fh:
         return fh.read()
