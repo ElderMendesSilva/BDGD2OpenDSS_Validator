@@ -356,9 +356,13 @@ def _uma_se(C, se, k):
     n_ch, abertas, ch_ilhadas, barras_chave = chaves.gerar(
         b, ctmts, os.path.join(d, 'Chaves.dss'),
         os.path.join(d, 'Controles.dss'), barras=barras)
-    n_tr, sec = transformadores.gerar(b, ctmts, os.path.join(d, 'Trafos.dss'),
-                                      os.path.join(d, '_ATERRAMENTO.dss'),
-                                      a.kv_mt, kv_por_ctmt)
+    # `barras` e a rede de media desta subestacao, e ela e que decide de que
+    # lado do transformador esta a media (achado 54). `barras_chave` entra
+    # junto porque um trafo pode estar pendurado numa chave.
+    n_tr, sec, tr_invertidos = transformadores.gerar(
+        b, ctmts, os.path.join(d, 'Trafos.dss'),
+        os.path.join(d, '_ATERRAMENTO.dss'), a.kv_mt, kv_por_ctmt,
+        barras_mt=barras | barras_chave)
     # Conjunto de pontos de conexao que a rede realmente tem. Um shunt
     # (carga, banco, PVSystem) num PAC ausente daqui cria a barra sozinho,
     # a ilha fica sem fonte e a solucao devolve NaN — foi o que travava a
@@ -601,6 +605,7 @@ def _uma_se(C, se, k):
          'linhas': n_ln, 'km_MT': km, 'barras': len(barras), 'chaves': n_ch,
          'chaves_abertas': len(abertas),
          'chaves_ilhadas': len(ch_ilhadas), 'trafos': n_tr,
+         'trafos_pac_invertido': len(tr_invertidos),
          'capacitores': n_cp,
          'reguladores': n_rg,
          # achado 50: regulador com um PAC fora da rede nao regula nada, e a

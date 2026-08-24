@@ -144,6 +144,65 @@ def _perto(v, niveis, tol=TOL_REGRA):
     return melhor
 
 
+def _placa(pot_nom, per_fer, per_tot):
+    """As perdas da PLACA, em % da nominal: (ferro, cobre) ou None.
+
+    ACHADO 53, e sao dois defeitos no mesmo lugar.
+
+    1. O TRANSFORMADOR DE DISTRIBUICAO NAO TINHA PERDA A VAZIO. O caminho de
+       AT sempre escreveu `%noloadloss` a partir de `PER_FER`; o de
+       distribuicao nunca escreveu nada, e `%noloadloss` do OpenDSS e ZERO por
+       omissao. Todo trafo de distribuicao das sete bases estava sem ferro.
+
+       Perda de ferro e CONSTANTE, 24 h por dia, e ha 2,3 milhoes de
+       transformadores nas sete. Medido, o que faltava em % da carga viva:
+
+           Cemig-D 3,60%   CPFL    1,79%   Enel SP 1,48%
+           RR      2,55%   Light   1,52%   Enel CE 1,45%
+           EQPA    2,41%
+
+       Isso e da ordem de TUDO o que o modelo perdia — a EQPA modelava 1,09%
+       e deixava 2,41% de fora.
+
+    2. O `EQTRMT.R` NAO E CONFIAVEL, e o erro tem sinal diferente por base.
+       Ele deveria ser a perda em carga percentual; comparado com a placa
+       — `(PER_TOT - PER_FER) / (kVA x 10)` — da:
+
+           base   R mediana  valores distintos  carga real   R/real
+           RR         4,150         15            2,100%      1,98
+           ENCE       2,960          6            1,950%      1,52
+           EQPA       1,000          2            1,900%      0,53
+           SP         1,330         37            1,536%      0,87
+           LT         1,320         22            1,218%      1,08
+           CPFL       1,317         38            1,733%      0,76
+           CMIG       1,800         41            2,100%      0,86
+
+       Dois valores distintos em 227 mil transformadores da Equatorial PA;
+       quinze em Roraima. Nessas o campo e marcador de posicao, e o desvio
+       explica os dois extremos que sobravam: Roraima DOBRA o cobre e
+       modelava mais perda em MT do que o pais inteiro perde em distribuicao;
+       a EQPA CORTA PELA METADE e modelava um setimo.
+
+    Por isso a placa manda quando existe, e o `R` fica de reserva. A placa e
+    coerente por tipo de transformador — 35 W de ferro e 140 W totais num
+    5 kVA sao 0,700% e 2,800% —, e o `R` nao precisa ser.
+
+    A conta e `% = W / (kVA x 1000) x 100`, ou seja `W / (kVA x 10)`.
+    """
+    from . import dominios
+    kva = dominios.TPOTAPRT.get(txt(pot_nom))
+    f, t = num(per_fer), num(per_tot)
+    if not kva or not f or not t or t <= f:
+        return None
+    ferro = f / (kva * 10.0)
+    cobre = (t - f) / (kva * 10.0)
+    # Placa fora do plausivel nao substitui nada: transformador de
+    # distribuicao fica entre 0,1% e 1,5% de ferro e 0,5% e 4% de cobre.
+    if not (0.05 <= ferro <= 2.0 and 0.2 <= cobre <= 6.0):
+        return None
+    return round(ferro, 4), round(cobre, 4)
+
+
 def _linha(tl):
     """Devolve a tensao de LINHA do secundario, corrigindo o campo trocado."""
     v = round(float(tl), 6)
@@ -165,30 +224,111 @@ def _linha(tl):
     return v
 
 
+def _inverte_pacs(col, barras_mt):
+    """Achado 54 — os dois PACs do transformador trocados de lugar.
+
+    `PAC_1` e o lado de MEDIA e `PAC_2` o de BAIXA. Em alguns registros isso
+    esta invertido, e o efeito e violento: a rede de media entra pelo
+    enrolamento de 0,12 kV e o transformador funciona como ELEVADOR. Medido
+    na 5003346 de Roraima, com a carga toda desligada:
+
+        1018862858   declara Kv=7,9674 no enrolamento 1
+                     a barra dele esta a 480,1 kV       ->  60,3x
+        1019437451   declara Kv=13,8
+                     a barra dele esta a 493,9 kV       ->  35,8x
+
+    Os dois lados sobem juntos, na relacao exata do transformador — nao e
+    ruido de convergencia, e topologia trocada. E a perda a vazio escala com
+    V^2, entao NOVE transformadores assim, de 4.539, respondiam por 86,8% da
+    perda a vazio da subestacao inteira: 2.711 kW de 3.124 kW.
+
+    A REGRA NAO USA O NOME. O PAC costuma denunciar-se — em Roraima 33 deles
+    tem `PAC_1` terminado em "-BT" — mas nem todos: o 1002409124, que sozinho
+    fazia 585 kW, tem os dois PACs sem sufixo nenhum. Quem decide e a
+    TOPOLOGIA: se o `PAC_2` e um no da rede de media e o `PAC_1` nao e, os
+    dois estao trocados.
+
+    As DUAS condicoes sao necessarias, e o censo mostra por que. Em Roraima
+    59 tem `PAC_2` na MT, 57 tem `PAC_1` fora dela, e 55 tem as duas coisas —
+    os conjuntos praticamente coincidem, que e a assinatura de uma troca de
+    verdade. Na Enel SP 63 tem `PAC_1` fora da MT e ZERO tem `PAC_2` dentro:
+    la sao primarios pendurados, defeito diferente, e exigir as duas
+    condicoes impede que virem troca.
+
+        base      trafos    PAC_2 na MT   PAC_1 fora   INVERTIDOS
+        RR        27.700         59           57            55
+        ENCE     169.357          0            0             0
+        EQPA     227.407         56            0             0
+        SP       159.061          0           63             0
+        LT        98.455          0            0             0
+        CPFL     237.390         19            9             0
+        CMIG     952.231         97          668            21
+
+    A EQPA e a CPFL sao os outros contraexemplos uteis: 56 e 19 com `PAC_2`
+    na MT e NENHUM invertido, porque o `PAC_1` deles tambem esta la.
+
+    Sao 76 em 1,87 milhao de transformadores — raro. Mas raro nao e
+    inofensivo: os nove de UMA subestacao de Roraima faziam 86,8% da perda a
+    vazio dela, e a barra mais alta do modelo caiu de 9,645 pu para 1,360 pu
+    quando eles foram endireitados.
+
+    So os PACs sao trocados. `FAS_CON_P` e `FAS_CON_S` ja descrevem o lado
+    certo — no 1018862858, `FAS_CON_P='B'` e monofasico, como o lado de media
+    de um trafo de 5 kVA tem de ser, e `FAS_CON_S='BN'` traz o neutro da
+    baixa. Trocar tambem as fases desfaria isso.
+
+    Devolve a lista de pares `(b1, b2)` ja na ordem certa e os codigos dos
+    que foram invertidos.
+    """
+    pares, invertidos = [], []
+    n = len(col['COD_ID'])
+    for i in range(n):
+        b1, b2 = no(col['PAC_1'][i]), no(col['PAC_2'][i])
+        if barras_mt and b1 and b2 and b2 in barras_mt and b1 not in barras_mt:
+            b1, b2 = b2, b1
+            invertidos.append(txt(col['COD_ID'][i]))
+        pares.append((b1, b2))
+    return pares, invertidos
+
+
 def gerar(bdgd, ctmts, caminho_trafos, caminho_aterramento, kv_mt=13.8,
-          kv_por_ctmt=None):
+          kv_por_ctmt=None, barras_mt=None):
     """`kv_por_ctmt` da a tensao primaria de cada alimentador; `kv_mt` e o
-    padrao para quem nao estiver no mapa."""
+    padrao para quem nao estiver no mapa.
+
+    `barras_mt` sao os nos que a rede de media realmente tem. Sem eles a
+    deteccao do achado 54 fica desligada e o conversor escreve o que a BDGD
+    disser, como antes."""
     kv_por_ctmt = kv_por_ctmt or {}
     cols = ['COD_ID', 'PAC_1', 'PAC_2', 'CTMT', 'POT_NOM', 'TEN_LIN_SE',
             'FAS_CON_P', 'FAS_CON_S']
     col = bdgd.ler_filtrado('UNTRMT', 'CTMT', ctmts, cols)
     n = len(col['COD_ID'])
 
-    # impedancias por transformador (EQTRMT), quando disponiveis
+    # impedancias e PERDAS por transformador (EQTRMT), quando disponiveis
     imp = {}
     try:
-        e = bdgd.ler('EQTRMT', ['UNI_TR_MT', 'R', 'XHL', 'POT_NOM'])
+        e = bdgd.ler('EQTRMT', ['UNI_TR_MT', 'R', 'XHL', 'POT_NOM',
+                                'PER_FER', 'PER_TOT'])
         for i in range(len(e['UNI_TR_MT'])):
-            imp[txt(e['UNI_TR_MT'][i])] = (num(e['R'][i], 0.5), num(e['XHL'][i], 2.0))
+            imp[txt(e['UNI_TR_MT'][i])] = (
+                num(e['R'][i], 0.5), num(e['XHL'][i], 2.0),
+                _placa(e['POT_NOM'][i], e['PER_FER'][i], e['PER_TOT'][i]))
     except Exception:
         pass
+
+    n_placa = 0                 # quantos usaram a placa (achado 53)
+    # Achado 54: os PACs sao endireitados ANTES de tudo. A deteccao de banco
+    # logo abaixo conta trafos por barra SECUNDARIA, e com os lados trocados
+    # ela contaria pela barra de media — um alimentador inteiro viraria um
+    # banco so.
+    pares, invertidos = _inverte_pacs(col, barras_mt)
 
     # quantos trafos por barra secundaria (deteccao de banco)
     banco = collections.Counter()
     ordem = collections.defaultdict(list)
     for i in range(n):
-        b = no(col['PAC_2'][i])
+        b = pares[i][1]
         banco[b] += 1
         ordem[b].append(txt(col['COD_ID'][i]))
 
@@ -203,8 +343,7 @@ def gerar(bdgd, ctmts, caminho_trafos, caminho_aterramento, kv_mt=13.8,
     n_norm = 0
     for i in range(n):
         cod = txt(col['COD_ID'][i])
-        b1 = no(col['PAC_1'][i])
-        b2 = no(col['PAC_2'][i])
+        b1, b2 = pares[i]
         if not b1 or not b2:
             continue
         kva = num(col['POT_NOM'][i], 45.0) or 45.0
@@ -213,8 +352,15 @@ def gerar(bdgd, ctmts, caminho_trafos, caminho_aterramento, kv_mt=13.8,
         n_norm += (tl != _tl0)
         fp = _fases(col['FAS_CON_P'][i], 'A')
         fs = _fases(col['FAS_CON_S'][i], 'A')
-        r, xhl = imp.get(cod, (0.5, 2.0))
+        r, xhl, placa = imp.get(cod, (0.5, 2.0, None))
         xhl = xhl if xhl > 0 else 2.0
+        # ACHADO 53: a placa manda quando existe. Ver `_placa` para os numeros
+        # que motivaram isso — o `R` da EQPA tem DOIS valores distintos em
+        # 227 mil transformadores, e vale 0,53x da perda em carga real.
+        ferro = 0.0
+        if placa:
+            ferro, r = placa
+        n_placa += bool(placa)
         bb = b2
         nd_p = '.' + '.'.join(fp)
         kvp = kv_por_ctmt.get(txt(col['CTMT'][i]), kv_mt)
@@ -240,6 +386,7 @@ def gerar(bdgd, ctmts, caminho_trafos, caminho_aterramento, kv_mt=13.8,
             # trifasico: estrela com neutro no no 4
             kv2 = tl
             out.append(f'New Transformer.{cod} phases=3 windings=2 Xhl={xhl:.3f}\n'
+                       f'~ %noloadloss={ferro:.4f}\n'
                        f'~ wdg=1 bus={b1}.1.2.3 conn=delta Kv={kvp:g} Kva={kva:.1f} %R={r_enrol:.3f}\n'
                        f'~ wdg=2 bus={b2}.1.2.3.4 conn=wye Kv={kv2:.4f} Kva={kva:.1f} %R={r_enrol:.3f}')
             sec[bb] = {'kv_fn': round(tl / (3 ** 0.5), 4), 'nos': ['1', '2', '3'],
@@ -249,6 +396,7 @@ def gerar(bdgd, ctmts, caminho_trafos, caminho_aterramento, kv_mt=13.8,
             k = str(ordem[bb].index(cod) % 3 + 1)
             kv2 = tl / 2.0
             out.append(f'New Transformer.{cod} phases=1 windings=2 Xhl={xhl:.3f}\n'
+                       f'~ %noloadloss={ferro:.4f}\n'
                        f'~ wdg=1 bus={b1}{nd_p} conn=wye Kv={kv_prim:.4f} Kva={kva:.1f} %R={r_enrol:.3f}\n'
                        f'~ wdg=2 bus={b2}.{k}.4 conn=wye Kv={kv2:.4f} Kva={kva:.1f} %R={r_enrol:.3f}')
             ant = sec.get(bb, {}).get('nos', [])
@@ -259,6 +407,7 @@ def gerar(bdgd, ctmts, caminho_trafos, caminho_aterramento, kv_mt=13.8,
             kv2 = tl / 2.0
             out.append(f'New Transformer.{cod} phases=1 windings=3 '
                        f'Xhl={xhl:.3f} Xht={xhl:.3f} Xlt={xhl/2:.3f}\n'
+                       f'~ %noloadloss={ferro:.4f}\n'
                        f'~ wdg=1 bus={b1}{nd_p} conn=wye Kv={kv_prim:.4f} Kva={kva:.1f} %R={r_enrol:.3f}\n'
                        f'~ wdg=2 bus={b2}.1.4 conn=wye Kv={kv2:.4f} Kva={kva:.1f} %R={r_enrol:.3f}\n'
                        f'~ wdg=3 bus={b2}.4.2 conn=wye Kv={kv2:.4f} Kva={kva:.1f} %R={r_enrol:.3f}')
@@ -269,6 +418,25 @@ def gerar(bdgd, ctmts, caminho_trafos, caminho_aterramento, kv_mt=13.8,
         # nao pela barra. Indexa pelos dois para que cargas.py encontre.
         sec[cod] = dict(sec[bb], barra=bb)
 
+    # ACHADO 53, dito no proprio arquivo: quantos trafos tiveram as perdas
+    # DA PLACA e quantos cairam no `EQTRMT.R`. Onde a placa nao existe, o
+    # ferro fica em zero e o cobre vem de um campo que em tres das sete bases
+    # e marcador de posicao — quem auditar o modelo precisa saber qual e o
+    # caso daquela subestacao.
+    out.insert(5, f'! {n_placa:,} de {n:,} transformadores com as perdas da '
+                  f'PLACA (PER_FER/PER_TOT); o resto usa EQTRMT.R e fica sem '
+                  f'ferro. Ver achado 53 em transformadores._placa.')
+    if invertidos:
+        # Achado 54. Vai no arquivo, e nao so no relatorio: quem abre o
+        # Trafos.dss e ve um COD_ID diferente do que a UNTRMT diz precisa
+        # saber que a troca foi nossa e por que.
+        out.insert(6, f'! {len(invertidos):,} transformadores com PAC_1 e '
+                      f'PAC_2 TROCADOS na BDGD (PAC_2 na rede de media, '
+                      f'PAC_1 fora dela): os lados foram endireitados aqui. '
+                      f'Sem isso o trafo vira elevador. Ver achado 54 em '
+                      f'transformadores._inverte_pacs.')
+        for c in sorted(invertidos):
+            out.append(f'! PACs invertidos na BDGD, endireitados: {c}')
     open(caminho_trafos, 'w', encoding='utf-8', newline=escrita.FIM_DE_LINHA).write('\n'.join(out) + '\n')
     at = ['! Aterramento do neutro (no 4) dos secundarios de BT',
           f'! Reactor de {R_ATERRAMENTO} ohm entre o no 4 e a terra (no 0).']
@@ -276,4 +444,4 @@ def gerar(bdgd, ctmts, caminho_trafos, caminho_aterramento, kv_mt=13.8,
         at.append(f'New Reactor.NEUTRO_{b} phases=1 bus1={b}.4 bus2={b}.0 '
                   f'R={R_ATERRAMENTO} X=0')
     open(caminho_aterramento, 'w', encoding='utf-8', newline=escrita.FIM_DE_LINHA).write('\n'.join(at) + '\n')
-    return n, sec
+    return n, sec, invertidos
