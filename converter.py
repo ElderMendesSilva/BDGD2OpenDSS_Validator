@@ -557,9 +557,30 @@ def _uma_se(C, se, k):
                     v['origem'], (v.get('kv_origem') or kv_se,
                                   tap_se or ctmt_info[c]['ten_ope']))
     if not barras_se:
-        # sem vao nenhum, derivado ou nao: sobra a cabeceira declarada
-        barras_se = {subtransmissao._no(ctmt_info[ctmts[0]]['pac_ini']):
-                     (kv_se, tap_se or 1.0)}
+        # SEM VAO NENHUM: a cabeceira declarada de CADA alimentador, e nao a
+        # do primeiro da lista.
+        #
+        # ACHADO 52, e ele so aparece com `--sem-at`. Os vaos nascem no
+        # `gerar_at`, porque a ligacao barra-a-cabeceira pertence ao patio da
+        # subestacao. Com `--sem-at` o `gerar_at` nao roda, `vaos_lig` fica
+        # vazio, e a linha antiga punha UMA fonte na cabeceira do PRIMEIRO
+        # alimentador — os demais ficavam sem fonte alguma.
+        #
+        # Medido em Roraima, base inteira:
+        #     com AT      2,9% de carga morta, 16 vaos na 5003346
+        #     --sem-at   84,7% de carga morta,  0 vaos, 1 fonte
+        #
+        # Nao e a alta tensao que falta ao modelo isolado: e a ligacao interna
+        # do patio, que mora no mesmo lugar. Sem barramento modelado, o
+        # honesto e alimentar cada alimentador na propria cabeceira — que e o
+        # que `barras_extra` ja sabe fazer para o caso de varias barras.
+        barras_se = {}
+        for c in ctmts:
+            b_ = subtransmissao._no(ctmt_info[c]['pac_ini'])
+            if b_:
+                barras_se.setdefault(
+                    b_, (ctmt_info[c].get('kv') or kv_se,
+                         tap_se or ctmt_info[c]['ten_ope']))
     itens = sorted(barras_se.items(), key=lambda x: -x[1][0])
     barra_se, (kv_se, pu_se) = itens[0]
     extras = [(b_, kv_, pu_) for b_, (kv_, pu_) in itens[1:]]
