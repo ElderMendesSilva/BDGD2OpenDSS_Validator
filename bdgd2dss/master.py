@@ -171,6 +171,11 @@ Set controlmode=static
 
 redirect _CHAVES_ABERTAS.dss
 
+! Achado 51. Trecho de BT que nao chega a secundario nenhum: ilha
+! flutuante, matriz singular, tensao NaN — e o NaN contamina a perda da
+! subestacao INTEIRA. Vazio quando nao ha nenhum. Ver linhas.ilhadas_bt.
+redirect _BT_ILHADA.dss
+
 ! Premissa de modelagem, e nao conversao — achado 34. Vazio quando a base nao
 ! tem trecho conduzindo acima da propria ampacidade. Apagar esta linha devolve
 ! o modelo ao que a BDGD declara.

@@ -399,21 +399,45 @@ def _uma_se(C, se, k):
         # A cadeia real e trafo -> SSDBT -> RAMLIG -> UC. Sem o ramal de
         # ligacao, 97% das unidades consumidoras ficam soltas: o PAC da
         # UCBT e a ponta do RAMLIG, nao um no da rede secundaria.
-        n_bt, km_bt, bb_bt = linhas.gerar_bt(b, mapa_cnd, ctmts,
-                                             os.path.join(d, 'LinhasBT.dss'), 'SSDBT')
-        n_rm, km_rm, bb_rm = linhas.gerar_bt(b, mapa_cnd, ctmts,
-                                             os.path.join(d, 'Ramais.dss'), 'RAMLIG')
+        n_bt, km_bt, bb_bt, rm_bt = linhas.gerar_bt(
+            b, mapa_cnd, ctmts, os.path.join(d, 'LinhasBT.dss'), 'SSDBT')
+        n_rm, km_rm, bb_rm, rm_rm = linhas.gerar_bt(
+            b, mapa_cnd, ctmts, os.path.join(d, 'Ramais.dss'), 'RAMLIG')
         info['linhas_BT'] = n_bt + n_rm
         info['km_BT'] = round(km_bt + km_rm, 2)
         # guardadas em separado: a GD de BT precisa saber o que e barra DE
         # BT, e nao apenas o que e barra (achado 30)
         barras_bt = set(bb_bt) | set(bb_rm)
         barras_rede |= barras_bt
+        # ACHADO 51: trecho de BT que nao chega a secundario nenhum e ilha
+        # flutuante — matriz singular, tensao NaN, e o NaN contamina o
+        # `Circuit.Losses()` da subestacao inteira. Em Roraima QUATRO linhas
+        # numa subestacao punham a perda da BASE INTEIRA em NaN.
+        #
+        # A pergunta so tem resposta sobre a UNIAO da SSDBT com a RAMLIG,
+        # porque um trecho pode chegar a rede so atraves de um ramal — por
+        # isso a conta e aqui, e nao dentro do `gerar_bt`.
+        ilhadas = linhas.ilhadas_bt(rm_bt + rm_rm, sec)
     else:
+        ilhadas = set()
         info = cargas.gerar(b, ctmts, sec, os.path.join(d, 'Cargas.dss'), a.mes,
                             nomes_curva, a.fator_carga, agregado,
                             kv_por_ctmt, a.kv_mt, barras=barras_rede,
                             agregado_pip=agregado_ip)
+
+    # SEMPRE escrito, nos dois modos: o MASTER redireciona sem condicao, e
+    # `redirect` de arquivo ausente aborta a compilacao. Vazio tambem e
+    # informacao — diz que a conferencia rodou e nao achou nada.
+    info['bt_ilhada'] = len(ilhadas)
+    escrita.escreve(
+        os.path.join(d, '_BT_ILHADA.dss'),
+        '! Trechos de BT que nao chegam a secundario de transformador\n'
+        '! nenhum: ilha flutuante, matriz singular, tensao NaN — e o NaN\n'
+        '! contamina a perda da subestacao INTEIRA. Ver achado 51 em\n'
+        '! bdgd2dss/linhas.py:ilhadas_bt.\n'
+        + (''.join(f'Line.{x}.enabled=no\nLine.N_{x}.enabled=no\n'
+                   for x in sorted(ilhadas))
+           if ilhadas else '! nenhum trecho ilhado nesta subestacao\n'))
 
     # a GD vem depois da rede de BT: com --bt completo o PAC da UGBT so
     # existe depois que SSDBT e RAMLIG foram escritos

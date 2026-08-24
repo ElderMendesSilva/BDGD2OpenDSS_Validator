@@ -126,6 +126,7 @@ def gerar_bt(bdgd, mapa_cnd, ctmts, caminho_saida, camada='SSDBT', col=None):
            f'! linha monofasica paralela com {K_NEUTRO:g} x a impedancia da fase.',
            '! ==========================================================']
     barras = set()
+    ramos = []
     km = 0.0
     nl = 0
     for i in range(n):
@@ -148,7 +149,56 @@ def gerar_bt(bdgd, mapa_cnd, ctmts, caminho_saida, camada='SSDBT', col=None):
                    f'units=km r1={r1:.5f} x1={x1:.5f} r0={r1:.5f} x0={x1:.5f} '
                    f'c1=0 c0=0 Length={comp/1000.0:.5f} normamps=200')
         barras.add(b1.lower()); barras.add(b2.lower())
+        ramos.append((cod, b1.lower(), b2.lower()))
         km += comp / 1000.0
         nl += 2
     open(caminho_saida, 'w', encoding='utf-8', newline=escrita.FIM_DE_LINHA).write('\n'.join(out) + '\n')
-    return nl, round(km, 2), barras
+    return nl, round(km, 2), barras, ramos
+
+
+def ilhadas_bt(ramos, ancoras):
+    """Os trechos de BT que nao chegam a secundario de transformador nenhum.
+
+    ACHADO 51, e e o achado 28 se repetindo na baixa tensao. La era a chave
+    com os dois PACs fora da rede de MT: ilha de duas barras, matriz singular,
+    tensao NaN — e o NaN nao fica quieto, ele contamina o `Circuit.Losses()`
+    da subestacao inteira. A MT ganhou defesa; a BT ficou sem.
+
+    MEDIDO em Roraima com `--bt completo`: a subestacao 1019465324 devolvia
+    `perda = NaN`, e os culpados eram QUATRO linhas. Uma delas:
+
+        New Line.1019529892   Bus1=6358977.1.2.3  Bus2=6358869.1.2.3
+        New Line.N_1019529892 Bus1=6358977.4      Bus2=6358869.4
+
+    Nada mais no modelo toca `6358977` nem `6358869`. Sao duas barras
+    penduradas uma na outra, sem fonte e sem caminho para a terra.
+
+    Com uma subestacao assim, a base inteira perde o numero: a soma de
+    `Circuit.Losses()` das 20 subestacoes de Roraima saia NaN por causa de
+    quatro linhas em uma delas.
+
+    POR QUE NAO DA PARA CONFERIR DENTRO DO `gerar_bt`: ele roda DUAS vezes,
+    uma para a SSDBT e outra para a RAMLIG, escrevendo arquivos separados. Um
+    trecho da SSDBT pode chegar a rede SO atraves de um ramal da RAMLIG. A
+    pergunta "isto se liga em algum lugar?" so tem resposta sobre a uniao dos
+    dois, mais os secundarios dos transformadores, que sao as ancoras.
+
+    `ramos` sao `(nome, barra1, barra2)`; `ancoras` sao as barras de
+    secundario. Devolve os NOMES a suprimir — quem chama decide o que fazer
+    com eles, e diz no arquivo quantos foram.
+    """
+    import collections
+    adj = collections.defaultdict(set)
+    for _, a, z in ramos:
+        adj[a].add(z)
+        adj[z].add(a)
+    vivos = set()
+    fila = [a for a in (x.lower() for x in ancoras) if a in adj]
+    vivos.update(fila)
+    while fila:
+        x = fila.pop()
+        for y in adj[x]:
+            if y not in vivos:
+                vivos.add(y)
+                fila.append(y)
+    return {nome for nome, a, z in ramos if a not in vivos and z not in vivos}
