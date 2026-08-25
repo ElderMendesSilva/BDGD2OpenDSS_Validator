@@ -462,6 +462,55 @@ comparação entre bases, como o limiar de sobrecarga do achado 11.
 
 **Commit.** —
 
+## 2026-08-25 (a Cemig fecha, e as SETE passam) — NÓ
+
+**A Cemig-D fechou às 18:21, em 83 min.** `410/413 sadias`, conversão em 58,7
+min contra 148,4 documentados. Com ela, a V1_cluster tem as sete.
+
+### O quadro fechado, contra as três referências
+
+| base | modelo% | vs ANEEL (7,4%) | vs `PERD_*` | viola limite |
+|---|---:|---:|---:|---:|
+| Equatorial PA | 2,79 | 0,38× | 2,10× | 1,31% |
+| CPFL Paulista | 3,36 | 0,45× | 2,51× | 1,05% |
+| Light | 3,36 | 0,45× | 2,86× | 0,89% |
+| Enel SP | 4,16 | 0,56× | 3,16× | 3,18% |
+| Enel CE | 4,44 | 0,60× | 1,10× | 0,73% |
+| Roraima | 5,01 | 0,68× | 2,77× | 1,25% |
+| Cemig-D | 5,35 | 0,72× | 1,27× | **11,12%** |
+
+**`reprova = False` nas SETE.** Dispersão de 2,79% a 5,35% — **fator 1,9**,
+contra os 11× que o achado 46 media em 20/08.
+
+### A Cemig é a exceção que precisa de nome
+
+| | V16 | hoje |
+|---|---:|---:|
+| razão vs `PERD_*` | 0,45× | **1,27×** |
+| violação real | 0,95% | **11,12%** |
+
+Agregado sadio (5,35%, passa na âncora) e **11,12% dos alimentadores violando
+individualmente** — dez vezes as outras. Como o agregado passa, o defeito é
+**localizado, não sistêmico**, e é o padrão do "filtro assimétrico" do achado
+44: poucos alimentadores com perda modelada enorme dominando.
+
+A cobertura dela também é a menor das sete: **76,7%**.
+
+**Isto é contra-evidência ao otimismo da entrada anterior.** As correções dos
+achados 53–55 subiram as perdas e melhoraram seis bases; na Cemig empurraram a
+violação de 0,95% para 11,12%. **A perda no ferro pode estar excedendo**, e a
+Cemig é onde isso aparece. Não medido — hipótese com o dedo apontado.
+
+**Para a outra máquina.**
+- **O próximo achado provavelmente está nos 11,12% da Cemig.** É o maior desvio
+  não explicado do projeto hoje, e tem a assinatura de causa localizada, que é
+  a mesma do condutor 593 — o tipo que se resolve por sensibilidade de uma
+  variável.
+- Com as sete passando na âncora externa, o **critério 11 tem número para
+  reavaliação** e não é mais 0%.
+
+**Commit.** —
+
 ## 2026-08-25 (as 97 na fila) — CEAMAZON
 
 **Feito.**
