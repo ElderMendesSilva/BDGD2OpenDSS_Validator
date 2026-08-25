@@ -1,0 +1,97 @@
+#!/bin/bash
+# O ACHADO 45 AINDA VALE? Mede `--bt completo` contra `--bt agregado`, por base.
+#
+#     qsub cluster/diag_bt_completo.pbs
+#     qsub -v BASES="Roraima,Enel_CE" cluster/diag_bt_completo.pbs
+#
+# O achado 45 registra `--bt completo` como QUEBRADO e trava o criterio 5 do
+# `PLANO_V1.md` (peso 8, nota 20%). Ele mediu TRES subestacoes de TRES bases:
+#
+#     Enel CE / IPU        28.821 de 30.841 cargas sem tensao — 93,5%
+#     Roraima / 5003532     1.292 de  3.541 cargas sem tensao — 36,5%
+#     Equatorial PA / ALE   Vmin 0,1023 pu
+#
+# Em 25/08/2026 a Roraima foi remedida num laptop e **nao reproduziu**: 2 de
+# 3.617 (0,06%), zero NaN, Vmed de 0,8861 nas fases contra 0,9019 do agregado.
+# O provavel motivo e o achado 51 (ilha de BT sem secundario), POSTERIOR ao 45.
+#
+# Uma base nao decide, e as outras duas nao cabiam no laptop. Aqui cabem: as 97
+# estao no no. Este job existe para responder UMA pergunta — ha conserto a
+# fazer, ou o achado 45 virou historico? — antes de alguem escrever correcao
+# para um defeito que talvez ja nao exista.
+#
+# ORDEM PROPOSITAL. As tres do achado 45 vem primeiro, e as tres carregam a
+# subestacao EXATA que ele usou, via `--se-de`. Comparar a mesma subestacao e o
+# que torna a medicao um confronto, e nao uma segunda opiniao sobre outra coisa.
+# As quatro seguintes sao cobertura, e se o tempo acabar nelas nao se perde a
+# resposta.
+#
+# ISTO NAO E CONVERSAO DE PRODUCAO. Uma subestacao por base, pasta de trabalho
+# descartavel, `--refazer` sempre. Nao compare o que sair daqui com geracao
+# nenhuma.
+#
+#PBS -N diag_bt
+#PBS -l nodes=1:ppn=32
+#PBS -l walltime=12:00:00
+#PBS -q BIRA_Q3
+#PBS -j oe
+#PBS -o logs/cluster/
+#
+##PBS -m ae
+##PBS -M seu@email
+
+set -uo pipefail
+
+# As tres do achado 45 primeiro; o resto e cobertura.
+BASES="${BASES:-Roraima,Enel_CE,Equatorial_PA,Enel_SP,Light,CPFL_Paulista,Cemig-D}"
+# A subestacao exata de cada uma das tres, pelo codigo do agente.
+SEDE="${SEDE:-370=5003532,39=IPU,371=ALE}"
+LIMITE="${LIMITE:-3600}"            # teto por conversao, em segundos
+
+export BDGD2DSS_MODO=cluster
+export BDGD2DSS_BASES="${BDGD2DSS_BASES:-$HOME/elder/bdgds}"
+
+PROJETO="${PROJETO:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
+cd "${PBS_O_WORKDIR:-$PROJETO}"
+mkdir -p logs/cluster medicoes
+source .venv/bin/activate
+
+echo "=============================================================="
+echo " DIAGNOSTICO DO --bt completo — $(date '+%d-%m-%Y as %T')"
+echo "=============================================================="
+echo "job      : ${PBS_JOBID:-interativo}"
+echo "no       : $(hostname -s)"
+echo "PBS_NP   : ${PBS_NP:-<vazio>}   nproc: $(nproc)"
+echo "memoria  : $(free -g | awk '/^Mem:/{print $7}') GB livres"
+echo "bases    : $BASES"
+echo "fixas    : $SEDE"
+echo
+
+# O autoteste custa segundos e evita a falha classica: o job espera na fila,
+# comeca de madrugada e morre no minuto 2 por falta de biblioteca.
+python doutor.py --bases "$BDGD2DSS_BASES" || exit 1
+echo
+
+# `--trabalho` no scratch do proprio no: e disco local, mais rapido, e o que
+# sai dali e descartavel por definicao. O que precisa sobreviver e o JSON, que
+# vai para `medicoes/` no $HOME.
+TRAB="${TRAB:-/scratch/local/$USER/diag_bt_${PBS_JOBID:-local}}"
+mkdir -p "$TRAB" 2>/dev/null || TRAB="$PWD/DIAG_BT"
+echo "trabalho : $TRAB"
+echo
+
+python -u diagnosticos/bt_completo.py \
+    --bases "$BDGD2DSS_BASES" \
+    --so "$BASES" \
+    --se-de "$SEDE" \
+    --trabalho "$TRAB" \
+    --limite "$LIMITE" \
+    --saida-json "medicoes/bt_completo_${PBS_JOBID:-local}.json"
+rc=$?
+
+echo
+echo "--- limpando a pasta de trabalho ($(du -sh "$TRAB" 2>/dev/null | cut -f1))"
+rm -rf "$TRAB"
+
+echo "## terminou em $(date '+%d-%m-%Y as %T'), rc=$rc"
+exit $rc

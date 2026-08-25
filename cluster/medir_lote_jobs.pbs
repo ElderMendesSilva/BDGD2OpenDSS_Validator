@@ -1,0 +1,206 @@
+#!/bin/bash
+# MEDE O CONVERSOR DA CEMIG-D: quanto o paralelismo compra, e a que custo.
+#
+#     qsub cluster/medir_lote_jobs.pbs
+#     qsub -v BASE=Enel_SP,MAXFASE=7200 cluster/medir_lote_jobs.pbs
+#
+# POR QUE ESTE JOB EXISTE. O `docs/CLUSTER.md` diz que acima de ~32 nucleos
+# "mais nucleo nao compra nada: tudo trava no converter da Cemig-D, que hoje e
+# processo unico e leva 2,5 h sozinho". Duas coisas mudaram desde que isso foi
+# escrito e nenhuma foi remedida:
+#
+#   1. o achado 36 tirou 85% do tempo de conversao (revarredura de geometria).
+#      A Roraima, que o PLANO.md registra em 1,9 min, converteu em 0,2 min num
+#      laptop em 25/08/2026. Se o mesmo fator valer aqui, as 2,5 h ja nao
+#      existem e nao ha gargalo a atacar;
+#   2. o conversor GANHOU `--jobs` em 19/08/2026. Ele nao e mais processo
+#      unico. O que acontece e que `regerar_v10.py` chama `converter.py` sem
+#      passar `--jobs`, entao ele roda com o padrao, que e 1.
+#
+# O QUE ESTE JOB NAO E. Nao e uma conversao de producao: ele grava sempre na
+# mesma pasta e a refaz a cada fase. Nao compare os modelos que sairem daqui
+# com geracao nenhuma.
+#
+# A PERGUNTA REAL NAO E SO `--jobs`. O paralelismo e por LOTE, e o numero de
+# lotes e governado por `--lote` (subestacoes por varredura) e `--max-ctmt`
+# (alimentadores por varredura). Com `--lote 200` a Cemig-D, de 413
+# subestacoes, vira uns poucos lotes — e `--jobs 32` nao teria o que
+# distribuir. Mas quebrar em muitos lotes paga uma varredura de camada por
+# lote, que e exatamente o custo que o achado 36 acabou de remover. Por isso a
+# matriz varia os DOIS, e nao so um.
+#
+#PBS -N medir_lote_jobs
+#PBS -l nodes=1:ppn=32
+#PBS -l walltime=12:00:00
+#PBS -q BIRA_Q3
+#PBS -j oe
+#PBS -o logs/cluster/
+#
+##PBS -m ae
+##PBS -M seu@email
+
+set -uo pipefail          # sem `-e`: uma fase que falha nao pode matar a medicao
+
+BASE="${BASE:-Cemig-D}"                 # prefixo do nome da .gdb
+MAXFASE="${MAXFASE:-14400}"             # teto por fase, em segundos (4 h)
+SAIDA="${SAIDA:-MEDICAO_LOTE_JOBS}"
+
+export BDGD2DSS_MODO=cluster
+export BDGD2DSS_BASES="${BDGD2DSS_BASES:-$HOME/elder/bdgds}"
+
+PROJETO="${PROJETO:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
+cd "${PBS_O_WORKDIR:-$PROJETO}"
+mkdir -p logs/cluster
+source .venv/bin/activate
+
+GDB="$(ls -d "$BDGD2DSS_BASES"/${BASE}*.gdb 2>/dev/null | head -1)"
+if [[ -z "$GDB" ]]; then
+    echo "!! nao achei ${BASE}*.gdb em $BDGD2DSS_BASES"; exit 1
+fi
+
+# ---------------------------------------------------------------------------
+# 1. O QUE O PBS DEU DE VERDADE
+#
+# Isto nao e enfeite. O `-l nodes=1:ppn=32` do cabecalho e sintaxe do Torque, e
+# aqui roda OpenPBS 22.05, que a aceita como forma LEGADA traduzida para
+# `select=1:ncpus=32`. Se a traducao nao acontecer, o job recebe 1 nucleo, roda
+# 32 vezes mais devagar e TERMINA SEM ERRO — a medicao inteira sairia errada e
+# pareceria conclusao sobre o conversor. Medir aqui custa uma linha.
+# ---------------------------------------------------------------------------
+echo "=============================================================="
+echo " MEDICAO lote x jobs — $(date '+%d-%m-%Y as %T')"
+echo "=============================================================="
+echo "job        : ${PBS_JOBID:-interativo}"
+echo "no         : $(hostname -s)"
+echo "base       : $(basename "$GDB")"
+echo "PBS_NP     : ${PBS_NP:-<vazio>}"
+echo "nproc      : $(nproc)"
+echo "nodefile   : $([[ -n "${PBS_NODEFILE:-}" ]] && wc -l < "$PBS_NODEFILE" || echo '-')"
+echo "mem livre  : $(free -g | awk '/^Mem:/{print $7}') GB de $(free -g | awk '/^Mem:/{print $2}') GB"
+echo "cgroup cpu : $(cat /sys/fs/cgroup/cpuset/cpuset.cpus 2>/dev/null || \
+                     cat /sys/fs/cgroup/cpuset.cpus.effective 2>/dev/null || echo '-')"
+echo
+
+# ---------------------------------------------------------------------------
+# 2. AMOSTRADOR DE MEMORIA
+#
+# `/usr/bin/time -v` nao serve: ele reporta o maior filho, e o que interessa e
+# a SOMA dos processos do pool — e por ela que o no pagina. Amostra a cada 5 s.
+# ---------------------------------------------------------------------------
+amostra_memoria() {
+    local arquivo="$1" max=0 agora
+    while :; do
+        agora=$(ps -eo rss,args --no-headers -u "$USER" 2>/dev/null \
+                | awk '/converter\.py/ && !/awk/ {s+=$1} END {print s+0}')
+        (( agora > max )) && max=$agora
+        echo "$max" > "$arquivo"
+        sleep 5
+    done
+}
+
+# ---------------------------------------------------------------------------
+# 3. WARM-UP — constroi o cache da UCBT FORA da medicao
+#
+# O cache da agregacao da UCBT (8,26 M linhas) e gravado dentro de `--saida` e
+# reusado entre execucoes. Sem este passo, a PRIMEIRA fase pagaria a construcao
+# e as outras nao: a comparacao mediria o cache, nao o `--jobs`, e a fase 1
+# apareceria lenta por um motivo que nada tem a ver com paralelismo.
+#
+# `--se` limita as subestacoes geradas, mas a agregacao da UCBT e da base
+# inteira — por isso uma subestacao basta para deixar o cache pronto.
+# ---------------------------------------------------------------------------
+echo "--- warm-up: construindo o cache da UCBT (fora da medicao)"
+UMA="$(python - "$GDB" <<'PY' 2>/dev/null
+import sys
+from bdgd2dss.leitor import BDGD
+try:
+    # `ler` devolve dicionario de colunas, uma por nome pedido. A CTMT e o
+    # cadastro dos alimentadores e traz a subestacao de cada um em `SUB`.
+    col = BDGD(sys.argv[1], verbose=False).ler('CTMT', ['SUB'])
+    ses = sorted({str(s) for s in col['SUB'] if s not in (None, '')})
+    print(ses[0] if ses else '')
+except Exception:
+    print('')
+PY
+)"
+t0=$SECONDS
+if [[ -n "$UMA" ]]; then
+    python -u converter.py "$GDB" --saida "$SAIDA" --se "$UMA" --refazer >/dev/null 2>&1
+else
+    echo "    (nao consegui listar subestacoes; caindo para conversao completa)"
+    python -u converter.py "$GDB" --saida "$SAIDA" >/dev/null 2>&1
+fi
+echo "    cache pronto em $(( (SECONDS - t0) / 60 )) min"
+ls -la "$SAIDA"/_cache_ucbt* 2>/dev/null | sed 's/^/    /'
+echo
+
+# ---------------------------------------------------------------------------
+# 4. A MATRIZ
+#
+# Ordem proposital: a linha 1 (lote 200, jobs 1) e o comportamento de HOJE, e e
+# contra ela que tudo se compara. Vem primeiro porque, se as 2,5 h ja nao
+# existirem, a resposta do job e "nao ha gargalo" e o resto e detalhe.
+#
+# Cada fase usa `--refazer` porque, sem ele, o conversor PULA subestacao que ja
+# tem `resumo.json` — a segunda fase levaria segundos e pareceria um ganho
+# espetacular do paralelismo.
+# ---------------------------------------------------------------------------
+MATRIZ=(
+    "200 1"      # hoje
+    "200 4"
+    "50  8"
+    "25  16"
+    "12  32"
+)
+
+RES="logs/cluster/medicao_${PBS_JOBID:-local}.tsv"
+printf 'lote\tjobs\tsegundos\tpico_GB\testado\n' > "$RES"
+
+for linha in "${MATRIZ[@]}"; do
+    read -r LOTE JOBS <<< "$linha"
+    echo "--- lote=$LOTE jobs=$JOBS  ($(date '+%T'))"
+
+    memarq="$(mktemp)"; echo 0 > "$memarq"
+    amostra_memoria "$memarq" & amostrador=$!
+
+    t0=$SECONDS
+    timeout "$MAXFASE" python -u converter.py "$GDB" \
+        --saida "$SAIDA" --lote "$LOTE" --jobs "$JOBS" --refazer \
+        > "logs/cluster/conv_l${LOTE}_j${JOBS}.log" 2>&1
+    rc=$?
+    dt=$(( SECONDS - t0 ))
+
+    kill "$amostrador" 2>/dev/null; wait "$amostrador" 2>/dev/null
+    pico=$(awk '{printf "%.1f", $1/1048576}' "$memarq"); rm -f "$memarq"
+
+    case $rc in
+        0)   estado=ok ;;
+        124) estado="ESTOUROU ${MAXFASE}s" ;;
+        *)   estado="FALHOU rc=$rc" ;;
+    esac
+
+    # Quantos lotes o conversor de fato montou — e o numero que explica por que
+    # `--jobs` alto pode nao ter efeito nenhum.
+    nlotes=$(grep -om1 '[0-9]\+ lotes em paralelo' \
+             "logs/cluster/conv_l${LOTE}_j${JOBS}.log" | grep -o '^[0-9]\+' || echo '?')
+
+    printf '%s\t%s\t%s\t%s\t%s\n' "$LOTE" "$JOBS" "$dt" "$pico" "$estado" >> "$RES"
+    printf '    %5d s  (%4.1f min)   pico %s GB   lotes=%s   %s\n' \
+           "$dt" "$(echo "$dt" | awk '{print $1/60}')" "$pico" "$nlotes" "$estado"
+    echo
+done
+
+# ---------------------------------------------------------------------------
+# 5. O QUADRO
+# ---------------------------------------------------------------------------
+echo "=============================================================="
+echo " RESULTADO"
+echo "=============================================================="
+column -t -s $'\t' "$RES"
+echo
+base_s=$(awk -F'\t' 'NR==2 {print $3}' "$RES")
+echo "linha de base (lote 200, jobs 1): ${base_s}s"
+awk -F'\t' -v b="$base_s" 'NR>1 && $3>0 {printf "  lote %-4s jobs %-3s -> %5.2fx\n", $1, $2, b/$3}' "$RES"
+echo
+echo "tabela crua: $RES"
+echo "## terminou em $(date '+%d-%m-%Y as %T')"
