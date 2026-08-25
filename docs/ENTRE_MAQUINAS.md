@@ -462,6 +462,83 @@ comparação entre bases, como o limiar de sobrecarga do achado 11.
 
 **Commit.** —
 
+## 2026-08-25 (o critério 11 saiu do zero) — CEAMAZON
+
+**O resultado mais importante do dia, e ele estava nos dados sem ninguém
+olhar.** Nada disto exigiu rodar nada novo — é leitura do que a V1_cluster já
+tinha produzido.
+
+**Medido — a âncora externa PASSA nas seis, e as duas que reprovavam viraram.**
+
+| base | achado 46 (20/08) | V1_cluster (hoje) | referência |
+|---|---:|---:|---:|
+| **Roraima** | **9,83%** ❌ | **5,01%** ✅ | 7,4% |
+| **CPFL Paulista** | **9,08%** ❌ | **3,36%** ✅ | 7,4% |
+| Enel SP | 4,39% | 4,16% ✅ | |
+| Enel CE | 3,50% | 4,44% ✅ | |
+| Light | 1,43% | 3,36% ✅ | |
+| Equatorial PA | 0,88% | 2,79% ✅ | |
+
+`reprova = False` nas seis, contra o relatório de perdas da ANEEL (SGT/STR) —
+a **única referência que não vem da BDGD**.
+
+**E a dispersão desabou: de 0,88–9,83% (fator 11×) para 2,79–5,01% (fator
+1,8×).** As sete bases passaram a concordar entre si e com o agregado nacional.
+
+### As razões contra o `PERD_*` triplicaram, e a bidirecionalidade sumiu
+
+| base | V16 | hoje |
+|---|---:|---:|
+| Roraima | 2,63× | 2,77× |
+| Enel CE | 0,83× | 1,10× |
+| **Equatorial PA** | **0,55×** | **2,10×** |
+| Enel SP | 3,19× | 3,16× |
+| **Light** | **0,74×** | **2,86×** |
+| **CPFL** | **0,88×** | **2,51×** |
+
+**Isso invalida o argumento central do achado 9**, que dizia: *"o modelo
+superestima 1,88× numa base e subestima 0,19× na outra — isso descarta de
+imediato a hipótese de viés sistemático"*. Hoje as seis estão do MESMO LADO.
+
+**Duas explicações foram checadas, e uma caiu:**
+
+- ❌ *Mudança de denominador.* `PARCELAS_POR_BT` já existia em `29b3241`, o
+  código da V16. A base de comparação não mudou. **Verificado, não suposto** —
+  era a hipótese mais provável e estava errada.
+- ✅ *O modelo mudou.* Os achados 53 e 54 **adicionaram perda no ferro** dos
+  transformadores. Perda no ferro é contínua, existe com carga zero, e
+  adicioná-la empurra todas as bases para cima ao mesmo tempo — que é o padrão
+  observado. O achado 55 contribui só 0,45 pp, longe dos ~11 pp da Light.
+
+### A leitura que junta tudo, e é o artigo
+
+| referência | veredito |
+|---|---|
+| `PERD_*` da própria BDGD (critério 3) | **discorda** — 1,10× a 3,16× |
+| Limite físico por energia **medida** | **concorda** — ~1% de violação |
+| Relatório da ANEEL (critério 11) | **concorda** — 0,38× a 0,68× do teto |
+
+**O modelo bate com as duas referências externas e discorda só da declaração
+por alimentador da própria distribuidora.** O `valida_perdas.py` já suspeitava:
+*"o cruzamento com o `PERD_*` é fraco em qualquer composição"*, concordância
+máxima de 39,5%.
+
+Isso desloca o achado da ferramenta para o **dado regulatório**, que é
+contribuição mais forte que "nosso conversor funciona".
+
+**Para a outra máquina.**
+- **O critério 3 talvez não deva ser perseguido como está escrito.** Ele pede
+  concordância com uma referência que o próprio projeto mediu como fraca.
+  Reescrevê-lo como "a divergência com o `PERD_*` está caracterizada" é mais
+  honesto e provavelmente já está perto de fechar.
+- **O critério 11 merece nota nova.** Estava em 0% por "validar a BDGD contra a
+  própria BDGD". Hoje há âncora externa automatizada, medida nas seis, com
+  fonte citada no JSON — e as duas reprovações antigas viraram aprovação.
+- **A dispersão de 11× para 1,8× é resultado publicável por si só**, e ninguém
+  a tinha medido: ela caiu como efeito colateral dos achados 53–55.
+
+**Commit.** —
+
 ## 2026-08-25 (o Python 3.12 escondido) — CEAMAZON + NÓ
 
 **A ferramenta não rodava no cluster, e o motivo não aparecia em teste nenhum
