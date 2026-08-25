@@ -341,6 +341,57 @@ devolve tudo ao estado anterior ao `pull`.
 
 **Commit.** —
 
+## 2026-08-25 (o canário do cluster) — NÓ
+
+**Feito.**
+- Job **34039** submetido na `BIRA_Q3`: Roraima, ciclo completo, `V1_cluster`.
+- Procedência corrigida (`regerar_v10.procedencia`), com 4 testes novos. 552
+  testes no total, zero falhas.
+
+**Medido — o ciclo inteiro roda no nó, e os oito passos passam.**
+
+| passo | | |
+|---|---|---|
+| converter | ok | 0,3 min |
+| ligacao | ok | 0,2 min |
+| ampacidade | ok | 0,1 min |
+| verifica | ok | 0,1 min |
+| energia | ok | 0,7 min |
+| validador | ok | 0,1 min |
+| valida_perdas | ok | 0,0 min |
+| valida_balanco | ok | 0,0 min |
+
+**20/20 sadias**, 100,0% do kW energizado, cobertura 89,9%, razão 2,77×,
+violação real 1,25%. **2 min no total.**
+
+- **`ppn=32` É HONRADO.** O `qstat` mostrou `n02/1*32`. A sintaxe Torque
+  `-l nodes=1:ppn=32` é traduzida corretamente pelo OpenPBS 22.05 — a dúvida
+  que o `medir_lote_jobs.pbs` existia para tirar já está tirada.
+- `PBS_NP` sai **vazio**; o código cai no plano B e acerta 32.
+- A conta é compartilhada **na prática**: o job `34038 danNavier`, de outra
+  pessoa, rodava ao lado do nosso.
+
+**Quebrou.**
+- A linha de procedência saiu `codigo: (sem git) limpo` — e o `limpo` era
+  mentira. `git status --porcelain` não imprime nada quando a árvore está
+  limpa, que era exatamente o que o helper devolvia quando o comando
+  **falhava**. As duas viravam `sujo=False`.
+- **Causa não provada.** A hipótese é que o `git` exista no nó de acesso e não
+  no de execução. Não deu para confirmar: `ssh` de nó para nó exigiria uma
+  chave privada dentro da conta compartilhada, o que é inaceitável.
+- O conserto independe da causa: `sujo` agora é `True` / `False` / **`None`**,
+  e `None` significa "não deu para conferir".
+
+**Para a outra máquina.**
+- **NUNCA rode `gh auth login` na conta `teste`.** Ela é compartilhada e o
+  token ficaria legível por todos. Esperar o usuário próprio.
+- O acesso de fora da UFPA é por **VPN**, e o administrador já disse isso no
+  repasse. É o caminho sancionado — pedir junto com o usuário próprio.
+- Job submetido **sobrevive ao logout**, e `qsub -W depend=afterok:<id>`
+  encadeia. Dá para deixar a fila montada antes de sair do CEAMAZON.
+
+**Commit.** `8dab7d6`
+
 ## 2026-08-25 (o Python 3.12 escondido) — CEAMAZON + NÓ
 
 **A ferramenta não rodava no cluster, e o motivo não aparecia em teste nenhum
