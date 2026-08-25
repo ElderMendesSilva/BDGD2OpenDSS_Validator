@@ -91,6 +91,36 @@ class GravacaoEmDisco(unittest.TestCase):
         self.assertEqual(self._ler()['bases'][0]['nota'], 'ção')
 
 
+class BaseNovaNaoDerrubaARodada(unittest.TestCase):
+    """As 90 bases novas do pais morreram no minuto 1, todas pelo mesmo motivo.
+
+    25/08/2026, cluster Ubiratan: `TypeError: unsupported operand type(s) for
+    +: 'int' and 'NoneType'` na soma da previsao. O `descobrir` devolve `None`
+    para base fora do `APELIDO` — de proposito, porque inventar tempo seria
+    pior — e o `main` nao tratava. Funcionalidade pela metade, invisivel
+    enquanto so as sete conhecidas rodavam.
+    """
+
+    def test_so_conhecidas(self):
+        self.assertEqual(rg.previsao([('RR', '/x', 1.9), ('SP', '/y', 48.2)]),
+                         (50.1, 0))
+
+    def test_so_novas_nao_explode(self):
+        p, sem = rg.previsao([('CERFOX504', '/x', None),
+                              ('COCEL82', '/y', None)])
+        self.assertEqual((p, sem), (0, 2))
+
+    def test_misturado_soma_o_que_da(self):
+        """Previsao parcial vale mais que nenhuma, e muito mais que travar."""
+        p, sem = rg.previsao([('RR', '/x', 1.9), ('CERFOX504', '/y', None),
+                              ('SP', '/z', 48.2)])
+        self.assertAlmostEqual(p, 50.1)
+        self.assertEqual(sem, 1)
+
+    def test_lista_vazia(self):
+        self.assertEqual(rg.previsao([]), (0, 0))
+
+
 class OModoDaBtEntraNoSufixo(unittest.TestCase):
     """Modelo agregado e modelo completo nao podem disputar a mesma pasta.
 

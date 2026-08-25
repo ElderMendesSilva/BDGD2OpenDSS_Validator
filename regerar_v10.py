@@ -208,6 +208,31 @@ class _Tee:
         self.arq.flush()
 
 
+def previsao(bases):
+    """(minutos previstos, quantas nao tem previsao).
+
+    BASE NOVA NAO TEM TEMPO MEDIDO, e o `descobrir` ja devolve `None` para
+    ela — de proposito, porque inventar um numero seria pior que admitir que
+    nao se sabe. O que faltava era ALGUEM TRATAR esse `None`.
+
+    Em 25/08/2026 as 90 bases novas do pais foram submetidas ao cluster e as
+    90 morreram no minuto 1, todas com o mesmo `TypeError: unsupported operand
+    type(s) for +: 'int' and 'NoneType'` — a soma da previsao. O `descobrir`
+    tinha sido escrito para aceitar base nova, o `main` nao. Funcionalidade
+    pela metade, e ela so aparece quando a primeira base de fora das sete
+    entra.
+
+    A previsao parcial VALE: somar as conhecidas e dizer quantas ficaram de
+    fora e melhor que nao prever nada, e muito melhor que travar.
+    """
+    com = [b[2] for b in bases if b[2] is not None]
+    return sum(com), len(bases) - len(com)
+
+
+def _falta(n):
+    return '' if not n else f' (+{n} sem tempo medido)'
+
+
 def sufixo_com_bt(sufixo, bt):
     """O MODO DA BT ENTRA NO SUFIXO, e nao e conveniencia de nome.
 
@@ -573,11 +598,12 @@ def main():
     sys.stdout = _Tee(os.path.join(LOGS, '_console.log'))
     sys.stderr = sys.stdout
     bases = [b for b in BASES if not a.so or b[0] in a.so]
-    prev = sum(b[2] for b in bases)
+    prev, sem_previsao = previsao(bases)
     t0 = time.time()
     print(f'REGERACAO V10 — {len(bases)} bases, inicio '
           f'{time.strftime("%d/%m/%Y %H:%M")}')
-    print(f'conversao prevista: {prev:.0f} min; ciclo completo, ~2,7x isso\n',
+    print(f'conversao prevista: {prev:.0f} min{_falta(sem_previsao)}; '
+          f'ciclo completo, ~2,7x isso\n',
           flush=True)
 
     proc = procedencia()
