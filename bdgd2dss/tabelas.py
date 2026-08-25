@@ -70,8 +70,14 @@ def censo(bdgd, log=None):
         tem = [f'{t} {d["registros"]:,}' for t, d in out.items()
                if d['registros']]
         ausentes = [t for t, d in out.items() if not d['registros']]
-        log(f'  tabelas nao lidas: {", ".join(tem) if tem else "nenhuma com "
-            "dado"}'
-            + (f' | vazias ou ausentes: {", ".join(ausentes)}'
-               if ausentes else ''))
+        # AS PARTES SAEM ANTES DO f-STRING, e nao dentro dele. Expressao de
+        # f-string que quebra linha so passou a ser valida no Python 3.12
+        # (PEP 701); o `requisitos.txt` declara 3.9+ e o no do cluster tem
+        # 3.11.4, onde este modulo nao COMPILAVA — e como `converter.py` o
+        # importa no topo, a ferramenta inteira morria no import, em qualquer
+        # base, antes de ler um byte. Custou um job de diagnostico inteiro.
+        lidas = ', '.join(tem) if tem else 'nenhuma com dado'
+        vazias = ((' | vazias ou ausentes: %s' % ', '.join(ausentes))
+                  if ausentes else '')
+        log(f'  tabelas nao lidas: {lidas}{vazias}')
     return out
