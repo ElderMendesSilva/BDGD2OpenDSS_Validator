@@ -99,7 +99,7 @@ Agora, NO NO:
     for z in *.tgz; do tar xzf "\$z"; done
     rm -f *.tgz *.sha256           # so depois de conferir
 
-    cd ~/BDGD2OpenDSS_Validator
+    cd "$(dirname "$DESTINO")"/BDGD2OpenDSS_Validator   # conta compartilhada: NAO e ~/
     export BDGD2DSS_BASES=$DESTINO
     python doutor.py --bases "\$BDGD2DSS_BASES"
 

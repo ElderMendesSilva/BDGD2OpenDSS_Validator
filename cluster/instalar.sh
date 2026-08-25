@@ -130,6 +130,6 @@ cat <<FIM
   source .venv/bin/activate
   export BDGD2DSS_BASES=/caminho/para/as/gdb
   python doutor.py
-  sbatch --array=0-6 cluster/uma_base.sbatch
+  qsub -v TAG=RR,SUFIXO=V1_cluster cluster/uma_base.pbs   # a Roraima primeiro, sempre
 
 FIM
