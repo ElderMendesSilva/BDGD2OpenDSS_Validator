@@ -70,3 +70,13 @@ __pycache__/
 # primeira vez que uma base foi posta dentro da pasta do projeto.
 BDGDs/
 *.gdb/
+
+# O ambiente virtual. Nao estava aqui, e por isso um `git stash -u` no no do
+# cluster levou o `.venv/` inteiro junto com as alteracoes — o ambiente sumiu e
+# so voltou com `git stash pop`. Descoberto em 25/08/2026.
+.venv/
+venv/
+
+# Saida do cluster/primeiro_contato.sh: reconhecimento de UMA maquina, refeito
+# em segundos, e que nao descreve o repositorio.
+contato.txt
