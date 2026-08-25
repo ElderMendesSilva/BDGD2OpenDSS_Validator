@@ -63,3 +63,10 @@ logs_*/
 
 __pycache__/
 *.py[cod]
+
+# As BDGDs em si. O `.zip` e o `.rar` já caem nas regras acima, mas a `.gdb` é
+# uma PASTA de ~209 arquivos e passava por elas — `git add -A` levaria 320 MB
+# de base para um repositório público sem avisar. Descoberto em 25/08/2026, na
+# primeira vez que uma base foi posta dentro da pasta do projeto.
+BDGDs/
+*.gdb/
