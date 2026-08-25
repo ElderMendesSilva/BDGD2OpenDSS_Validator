@@ -10,6 +10,22 @@
 #
 #PBS -N bdgd2dss
 #PBS -l nodes=1:ppn=32
+# A MEMORIA E PEDIDA PARA QUE O ESCALONADOR ENFILEIRE, e nao por formalidade.
+# Sem esta linha o Ubiratan aceita jobs sem contabilizar RAM nenhuma: em
+# 25/08/2026 as seis bases da V19 cairam TODAS no mesmo no (n02), com
+# `resources_assigned.mem = 0kb`, competindo em silencio por 251 GB. Nenhuma
+# fila do cluster impoe limite de memoria, e nao ha `max_run` por usuario —
+# a unica disciplina e a que o job pede para si mesmo.
+#
+# 96 GB = 32 processos x 3 GB, a mesma conta do `docs/CLUSTER.md`. Num no de
+# 251 GB isso deixa DOIS jobs rodarem por vez e o resto esperar, que e o
+# comportamento correto.
+#
+# Conferido em 25/08/2026 com `qsub -h` (enfileira retido, nao roda) que a
+# forma Torque nao perde o pedido: o OpenPBS 22.05 traduz para
+# `select=1:ncpus=32:mem=100663296KB`. Nao era obvio — `mem` e recurso de
+# CHUNK, e um `-l mem=` ao lado de `select=` pode ser ignorado em silencio.
+#PBS -l mem=96gb
 #PBS -l walltime=12:00:00
 #PBS -q BIRA_Q3
 #PBS -j oe
