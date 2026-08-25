@@ -392,6 +392,76 @@ violação real 1,25%. **2 min no total.**
 
 **Commit.** `8dab7d6`
 
+## 2026-08-25 (as sete da V19 no cluster) — NÓ
+
+**Feito.**
+- As seis restantes da V19 submetidas (`34040`–`34045`), sufixo `V1_cluster`.
+- `uma_base.pbs` passou a pedir `mem=96gb`.
+- `diagnosticos/bt_completude.py` escrito, e a Roraima e a Enel SP medidas.
+- Encadeados e **esperando**: `34048` (diagnóstico do `--bt completo`) e
+  `34049` (completude da BT nas 7), ambos com `depend=afterany`.
+
+**Medido — seis de sete fecharam, e todas batem ou superam o histórico.**
+
+| base | sadias | histórico | ciclo | conversão | doc. |
+|---|---|---|---:|---:|---:|
+| RR | 20/20 | 20/20 | 2 min | 0,3 min | 1,9 |
+| LT | 92/94 | 92/94 | 6 min | 3,8 min | 52,9 |
+| ENCE | 129/129 | 129/129 | 7 min | 5,1 min | 21,6 |
+| EQPA | 119/119 | 118/119 | — | 6,4 min | 40,1 |
+| SP | 155/155 | 155/155 | 10 min | 8,2 min | 48,2 |
+| CPFL | **265/265** | 264/265 | 16 min | 12,9 min | 85,3 |
+| CMIG | em andamento | — | — | — | 148,4 |
+
+**EQPA e CPFL melhoraram** em relação ao registrado. E a conversão está de
+**4× a 14× mais rápida** que o documentado — o achado 36 nunca tinha sido
+remedido.
+
+**Isso obsoleta o `docs/CLUSTER.md`.** Ele diz que a Cemig-D leva 2,5 h e que
+por isso "acima de ~32 núcleos, mais núcleo não compra nada". Se ela sair em
+~35 min, a justificativa inteira para paralelizar o conversor cai.
+
+### A completude da BT — duas de sete, e as duas passam
+
+| | Roraima | Enel SP |
+|---|---:|---:|
+| UCs de BT | 217.665 | **8.258.035** |
+| UC ligável pelo RAMLIG | **99,2%** | **99,7%** |
+| UC na rede (SSDBT ∪ RAMLIG) | 99,6% | **100,0%** |
+| metros de BT por UC | 34,3 | 12,2 |
+
+Os 99,6% da Roraima **batem com a análise do modelo gerado**, feita por caminho
+independente. E os 34,3 contra 12,2 m/UC não são erro: 1,18 UC por ramal contra
+2,05 — rede esparsa contra metrópole vertical.
+
+**Ressalva:** 12,2 m/UC está perto do piso de 10 m que arbitrei. Se alguma das
+cinco restantes cair entre 8 e 12, o corte vira discussão e precisa sair da
+comparação entre bases, como o limiar de sobrecarga do achado 11.
+
+### O que o cluster revelou sobre si mesmo
+
+- **`n01` e `n03` estão `state-unknown,down`.** O cluster tem **um** nó de
+  trabalho, não três. Vale avisar o administrador.
+- **Nenhuma fila impõe limite de memória**, e não há `max_run` por usuário. Os
+  seis jobs começaram juntos no mesmo nó com `resources_assigned.mem = 0kb`.
+  Os "32 núcleos e 192 GB" lembrados eram a especificação pedida, não uma cota
+  aplicada.
+- `qsub -h` enfileira **retido** e não gasta cálculo — é como se testa sintaxe
+  de recurso sem desperdiçar fila.
+
+**Para a outra máquina.**
+- **A decisão sobre `--bt completo` está madura mas não fechada.** O argumento
+  mais forte não é ganhar estudo de tensão: é **remover um grau de liberdade**.
+  Hoje, como o modelo é agregado, alguém escolhe quais parcelas do `PERD_*`
+  cobrar dele — e essa escolha move Light/EQPA/CPFL de 0,19×/0,14×/0,35× para
+  2,07×/1,36×/1,26×. É a mesma estrutura do achado 44, que já custou uma
+  correção. Com a BT modelada a escolha some.
+- Faltam três portas: o achado 45 (o `34048` responde), a completude nas cinco
+  restantes (o `34049`), e ensinar o `regerar_v10.py` a passar `--bt`, que hoje
+  não sabe.
+
+**Commit.** —
+
 ## 2026-08-25 (o Python 3.12 escondido) — CEAMAZON + NÓ
 
 **A ferramenta não rodava no cluster, e o motivo não aparecia em teste nenhum
