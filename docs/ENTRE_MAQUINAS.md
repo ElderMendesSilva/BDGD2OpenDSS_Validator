@@ -462,6 +462,53 @@ comparação entre bases, como o limiar de sobrecarga do achado 11.
 
 **Commit.** —
 
+## 2026-08-25 (as 97 na fila) — CEAMAZON
+
+**Feito.**
+- As **90 bases restantes** submetidas, encadeadas depois dos dois
+  diagnósticos. Com as 7 da V19 já feitas, isso fecha **as 97 BDGDs publicadas
+  da safra 2024-12-31** numa rodada só, sufixo `V1_cluster`.
+- **93 jobs na fila.** A corrente:
+  `34045 CMIG → 34048 diag --bt → 34049 completude BT → 90 bases`.
+
+**Por que encadeado, e não tudo de uma vez.** Há **um** nó de trabalho (n01 e
+n03 estão down) e outra pessoa usa a conta `teste`. Despejar 90 jobs a competir
+com o que já estava rodando entupiria a fila do CEAMAZON inteiro.
+
+**Recursos dimensionados por tamanho de base**, e não fixos:
+
+| `.gdb` | ppn | mem | bases |
+|---|---:|---:|---:|
+| < 1 GB | 4 | 12 GB | 65 |
+| 1–5 GB | 8 | 24 GB | 23 |
+| 5–20 GB | 16 | 48 GB | 2 |
+
+`mem=96gb` numa base de 2 MB deixaria só 2 jobs rodarem por vez em 251 GB. Com
+12 GB nas pequenas, cabem ~20 — e o `mem` declarado é o que faz o PBS
+enfileirar em vez de superalocar.
+
+**Medido.**
+- Modelos gerados: **4,5 GB para as 7 maiores** (45 GB de `.gdb`).
+  Extrapolando para os 127 GB de bases: **~13 GB** de saída contra 11 TB
+  livres. Disco não é restrição.
+- 90 bases, **82 GB** de `.gdb` a processar. Maiores: Neoenergia Coelba (8,6
+  GB), Copel-Dis (7,4), Equatorial GO (5,0).
+
+**Quebrou.**
+- O `while read` descartou a última linha do arquivo de trabalho, porque ela
+  não tinha quebra final — 89 submetidas de 90. A `SULGIPE46` ficou de fora e
+  foi submetida à parte. **Conferido pela contagem da fila, não pela mensagem
+  de sucesso do laço**, que dizia `falhas: 0`.
+
+**Para a outra máquina.**
+- As 97 vão **expor defeitos que as 7 nunca mostraram** — foi o que aconteceu
+  toda vez que uma base nova entrou (achados 7, 38, 42, 49). Isso é bom para o
+  artigo e ruim para o cronograma. Entrar sabendo.
+- Os resultados ficam em `logs/v1_cluster/resumo_v1_cluster.json`, que **mescla
+  por base** em vez de sobrescrever — as 7 já feitas continuam lá.
+
+**Commit.** —
+
 ## 2026-08-25 (o critério 11 saiu do zero) — CEAMAZON
 
 **O resultado mais importante do dia, e ele estava nos dados sem ninguém
