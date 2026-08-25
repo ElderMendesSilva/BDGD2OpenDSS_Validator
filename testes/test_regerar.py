@@ -91,5 +91,59 @@ class GravacaoEmDisco(unittest.TestCase):
         self.assertEqual(self._ler()['bases'][0]['nota'], 'ção')
 
 
+class ProcedenciaNaoMenteQuandoNaoSabe(unittest.TestCase):
+    """Git que nao responde nao pode virar atestado de arvore limpa.
+
+    Job 34039 no Ubiratan, 25/08/2026: a linha saiu `codigo: (sem git) limpo`.
+    O `git` existe no no de acesso e nao no de execucao, e a versao anterior
+    devolvia string vazia tanto para "falhou" quanto para "arvore limpa" —
+    `git status --porcelain` nao imprime nada quando esta tudo commitado. As
+    duas viravam `sujo=False`, e o modelo se declarava reproduzivel sozinho.
+
+    `sujo` agora tem tres valores, e o terceiro e o que faltava:
+    True (suja), False (conferida e limpa), None (nao deu para conferir).
+    """
+
+    def _com_git(self, fake):
+        import subprocess
+        real = subprocess.run
+        subprocess.run = fake
+        try:
+            return rg.procedencia()
+        finally:
+            subprocess.run = real
+
+    def test_git_ausente_nao_afirma_arvore_limpa(self):
+        def explode(*a, **k):
+            raise FileNotFoundError('git')
+        p = self._com_git(explode)
+        self.assertIsNone(p['sujo'],
+                          'sem git, `sujo` e None — nunca False')
+        self.assertFalse(p['git_respondeu'])
+
+    def test_git_que_falha_tambem_nao_afirma(self):
+        """Nao basta o binario existir: `rc != 0` tambem e nao-resposta."""
+        class R:
+            returncode, stdout, stderr = 128, '', 'not a git repository'
+        p = self._com_git(lambda *a, **k: R())
+        self.assertIsNone(p['sujo'])
+        self.assertFalse(p['git_respondeu'])
+
+    def test_arvore_limpa_de_verdade_continua_False(self):
+        """O caso legitimo nao pode ter virado None junto."""
+        class R:
+            returncode, stdout, stderr = 0, '', ''
+        p = self._com_git(lambda *a, **k: R())
+        self.assertIs(p['sujo'], False,
+                      'git respondeu e nao ha pendencia: limpo de verdade')
+        self.assertTrue(p['git_respondeu'])
+
+    def test_arvore_suja_continua_True(self):
+        class R:
+            returncode, stdout, stderr = 0, ' M regerar_v10.py', ''
+        p = self._com_git(lambda *a, **k: R())
+        self.assertIs(p['sujo'], True)
+
+
 if __name__ == '__main__':
     unittest.main()

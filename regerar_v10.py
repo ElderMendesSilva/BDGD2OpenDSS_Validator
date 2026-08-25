@@ -220,15 +220,38 @@ def procedencia():
     import subprocess as sp
 
     def git(*a):
-        try:
-            return sp.run(['git'] + list(a), cwd=AQUI, capture_output=True,
-                          text=True, timeout=30).stdout.strip()
-        except Exception:
-            return ''
+        """(respondeu, saida). `respondeu` diz se o git RODOU, nao se ha saida.
 
-    return {'commit': git('rev-parse', 'HEAD'),
-            'descricao': git('log', '-1', '--pretty=%s'),
-            'sujo': bool(git('status', '--porcelain')),
+        A distincao e o conserto. `git status --porcelain` devolve string
+        vazia quando a arvore esta LIMPA — exatamente o mesmo que a versao
+        anterior devolvia quando o comando FALHAVA. As duas viravam
+        `sujo=False`, e a rodada era carimbada `limpo`: um atestado de
+        reprodutibilidade que ninguem verificou.
+
+        Aconteceu no job 34039, no Ubiratan, em 25/08/2026 — a linha saiu
+        `codigo: (sem git) limpo`. O `git` responde no no de acesso e nao no
+        no de execucao, entao o `except` engolia e o modelo se declarava
+        reproduzivel sozinho.
+        """
+        try:
+            p = sp.run(['git'] + list(a), cwd=AQUI, capture_output=True,
+                       text=True, timeout=30)
+        except Exception:                                        # noqa: BLE001
+            return False, ''
+        return p.returncode == 0, p.stdout.strip()
+
+    ok_commit, commit = git('rev-parse', 'HEAD')
+    ok_status, status = git('status', '--porcelain')
+    _, descricao = git('log', '-1', '--pretty=%s')
+
+    return {'commit': commit,
+            'descricao': descricao,
+            # None NAO e False. `False` afirma "conferi e a arvore esta
+            # limpa"; `None` diz "nao deu para conferir". Quem le o
+            # `_procedencia.json` depois precisa poder separar as duas — a
+            # segunda nao sustenta reivindicacao de reprodutibilidade.
+            'sujo': bool(status) if ok_status else None,
+            'git_respondeu': bool(ok_commit and ok_status),
             'python': sys.version.split()[0],
             'gerado_em': time.strftime('%Y-%m-%d %H:%M:%S')}
 
@@ -517,8 +540,15 @@ def main():
           flush=True)
 
     proc = procedencia()
-    print(f'codigo: {proc["commit"][:10] or "(sem git)"} '
-          f'{"ARVORE SUJA — modelo nao reproduzivel" if proc["sujo"] else "limpo"}'
+    # Tres estados, e nao dois. O terceiro — nao verificado — nao existia, e
+    # por isso se disfarcava do primeiro.
+    if proc['sujo'] is None:
+        estado = 'PROCEDENCIA NAO VERIFICADA — o git nao respondeu neste no'
+    elif proc['sujo']:
+        estado = 'ARVORE SUJA — modelo nao reproduzivel'
+    else:
+        estado = 'limpo'
+    print(f'codigo: {proc["commit"][:10] or "(sem git)"} {estado}'
           f'  | {proc["descricao"][:60]}\n', flush=True)
 
     resumo = []
