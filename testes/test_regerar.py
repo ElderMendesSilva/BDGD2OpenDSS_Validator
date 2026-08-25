@@ -91,6 +91,29 @@ class GravacaoEmDisco(unittest.TestCase):
         self.assertEqual(self._ler()['bases'][0]['nota'], 'ção')
 
 
+class OModoDaBtEntraNoSufixo(unittest.TestCase):
+    """Modelo agregado e modelo completo nao podem disputar a mesma pasta.
+
+    Na Roraima, a mesma subestacao deu 1.852 cargas no agregado e 28.390 no
+    completo. Sao modelos diferentes, com outra perda e outra tensao. Sem marca
+    no sufixo, o segundo grava por cima do primeiro em silencio — o mesmo
+    defeito que o `uma_base.pbs` teve com o sufixo caindo em V18.
+    """
+
+    def test_agregado_nao_ganha_marca(self):
+        """O padrao historico nao pode mudar: renomearia rodada ja existente."""
+        self.assertEqual(rg.sufixo_com_bt('V20', 'agregado'), 'V20')
+
+    def test_completo_e_nenhum_ganham(self):
+        self.assertEqual(rg.sufixo_com_bt('V20', 'completo'), 'V20_btcompleto')
+        self.assertEqual(rg.sufixo_com_bt('V20', 'nenhum'), 'V20_btnenhum')
+
+    def test_os_tres_modos_nunca_colidem(self):
+        s = {rg.sufixo_com_bt('V1_cluster', m)
+             for m in ('agregado', 'completo', 'nenhum')}
+        self.assertEqual(len(s), 3, 'cada modo tem de ter pasta propria')
+
+
 class ProcedenciaNaoMenteQuandoNaoSabe(unittest.TestCase):
     """Git que nao responde nao pode virar atestado de arvore limpa.
 

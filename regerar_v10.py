@@ -208,6 +208,27 @@ class _Tee:
         self.arq.flush()
 
 
+def sufixo_com_bt(sufixo, bt):
+    """O MODO DA BT ENTRA NO SUFIXO, e nao e conveniencia de nome.
+
+    `MODELOS_SP_V20` gerado com `--bt completo` e um modelo COMPLETAMENTE
+    diferente do `MODELOS_SP_V20` agregado — outra contagem de barras, outra
+    perda, outra tensao. Na Roraima o completo deu 28.390 cargas contra 1.852.
+    Os dois disputariam a mesma pasta, e quem rodasse o segundo gravaria por
+    cima do primeiro EM SILENCIO, descobrindo so ao comparar geracoes e achar
+    numeros que nao explicam.
+
+    E o mesmo defeito que o `cluster/uma_base.pbs` ja teve com o sufixo padrao
+    caindo em V18, que era rodada fechada. A marca no nome resolve de uma vez:
+    a pasta diz o que ela e.
+
+    `agregado` nao ganha marca porque e o padrao historico — marca-lo
+    renomearia toda rodada ja existente e quebraria a comparacao entre
+    geracoes, que e justamente o que isto protege.
+    """
+    return sufixo if bt == 'agregado' else f'{sufixo}_bt{bt}'
+
+
 def procedencia():
     """De qual codigo estes modelos sairam.
 
@@ -456,6 +477,13 @@ def _painel():
          'dica': 'a BDGD nao tem indice: cada leitura varre a tabela inteira. '
                  'Maior = menos varreduras e mais memoria. O limite do '
                  'formato e 900'},
+        {'chave': 'bt', 'tipo': 'opcao', 'rotulo': 'Baixa tensao',
+         'padrao': 'agregado', 'valores': ['agregado', 'completo', 'nenhum'],
+         'dica': 'agregado: carga somada no secundario do trafo, correto para '
+                 'estudo de MT.   completo: uma carga por consumidor no PAC '
+                 'real — MUITO maior, e o unico que ve a queda no ramal.   '
+                 'Fora de agregado, o sufixo ganha marca e a rodada anterior '
+                 'fica preservada'},
         {'chave': 'premissas', 'tipo': 'bool',
          'rotulo': 'Aplicar as premissas de modelagem', 'padrao': True,
          'dica': 'religar rede sem tensao e trocar condutor sobrecarregado. '
@@ -471,7 +499,7 @@ def _painel():
     if not v:
         return False
     sys.argv += ['--sufixo', v['sufixo'], '--jobs', str(v['jobs']),
-                 '--max-ctmt', str(v['max_ctmt'])]
+                 '--max-ctmt', str(v['max_ctmt']), '--bt', v['bt']]
     if v['so'].strip():
         sys.argv += ['--so'] + v['so'].split()
     if not v['premissas']:
@@ -495,6 +523,15 @@ def main():
                          'quanto do resultado depende de premissa nossa')
     ap.add_argument('--so', nargs='+', metavar='TAG',
                     help='apenas estas bases (RR ENCE EQPA SP LT CPFL CMIG)')
+    ap.add_argument('--bt', default='agregado',
+                    choices=['agregado', 'completo', 'nenhum'],
+                    help='como a baixa tensao entra no modelo. `agregado` '
+                         '(padrao) soma a carga no secundario do trafo e e '
+                         'correto para estudo de MT. `completo` poe uma Load '
+                         'por unidade consumidora no PAC real e e o unico que '
+                         've a queda no secundario e no ramal — leia a '
+                         'ressalva do achado 45 antes. O SUFIXO GANHA MARCA '
+                         'quando nao e `agregado`, para nao gravar por cima')
     # A saida NUNCA vai por cima: cada rodada tem o seu sufixo, e as anteriores
     # ficam no disco. Sem elas nao ha com o que comparar, e comparar e o unico
     # jeito de saber se a mudanca melhorou ou piorou — foi assim que se
@@ -523,7 +560,11 @@ def main():
     if not a.jobs:
         a.jobs = plataforma.nucleos()
 
-    SUFIXO = a.sufixo
+    SUFIXO = sufixo_com_bt(a.sufixo, a.bt)
+    if SUFIXO != a.sufixo:
+        print(f'--bt {a.bt}: as saidas vao para MODELOS_<BASE>_{SUFIXO}, '
+              f'e nao _{a.sufixo} — a rodada agregada fica preservada.\n',
+              flush=True)
     LOGS = os.path.join(AQUI, 'logs', SUFIXO.lower())
 
     os.makedirs(LOGS, exist_ok=True)
@@ -585,7 +626,7 @@ def main():
         # refazer o que ja terminou; aqui dentro, retomar e sempre melhor.
         ok, reg['min_converter'] = passo(
             'converter', [PY, '-u', 'converter.py', gdb, '--saida', saida,
-                          '--max-ctmt', str(a.max_ctmt)],
+                          '--max-ctmt', str(a.max_ctmt), '--bt', a.bt],
             log, limite=8 * 3600)
         reg['converter_ok'] = ok
         if not ok:
