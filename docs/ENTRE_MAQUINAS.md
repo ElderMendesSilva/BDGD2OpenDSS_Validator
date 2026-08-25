@@ -462,6 +462,100 @@ comparação entre bases, como o limiar de sobrecarga do achado 11.
 
 **Commit.** —
 
+## 2026-08-25 (o `--bt completo` NÃO está consertado) — NÓ
+
+Os dois diagnósticos rodaram. **As respostas são opostas, e a separação entre
+elas é o resultado.**
+
+### O dado da BT está completo nas SETE (job 34049)
+
+| base | UCs de BT | UC ligável pelo RAMLIG | m/UC | veredito |
+|---|---:|---:|---:|---|
+| Cemig-D | **11.348.393** | 99,4% | 57,0 | ok |
+| Enel SP | 8.258.035 | 99,7% | 12,2 | ok |
+| CPFL Paulista | 5.113.963 | 99,9% | 21,0 | ok |
+| Light | 5.019.324 | **100,0%** | 17,4 | ok |
+| Enel CE | 4.082.801 | 98,3% | 33,7 | ok |
+| Equatorial PA | 3.058.583 | **100,0%** | 36,3 | ok |
+| Roraima | 217.665 | 99,2% | 34,3 | ok |
+
+### E o conversor NÃO consegue usá-lo (job 34048)
+
+| base | agregado mortas | completo mortas | perdas completo |
+|---|---:|---:|---:|
+| Roraima | 0,00% | 0,06% ✅ | 35,26% |
+| CPFL Paulista | 0,00% | 0,04% ✅ | 3,54% |
+| Enel SP | 0,00% | 2,27% ✅ | 9,03% |
+| Enel CE | 0,05% | 2,37% | **63,16%** ⚠️ |
+| **Light** | 0,00% | **92,42%** ❌ | 7,47% |
+| Equatorial PA | 84,93% ⚠️ | 60,85% | 10,68% |
+| **Cemig-D** | — | **erro fatal** ❌ | — |
+
+**O achado 45 continua válido.** Não virou história: virou *localizado*.
+
+**A conclusão que junta as duas tabelas: o defeito é NOSSO, não da BDGD.** A
+Light tem **100,0%** de cobertura de RAMLIG e mesmo assim colapsa 92,42% das
+cargas. O dado está lá; o conversor não o usa direito. Isso é boa notícia —
+defeito nosso se conserta.
+
+**Bug novo na Cemig-D**, que nem chega a resolver:
+
+```
+Duplicate new element definition: "Load.UC_e6446f51..._3"
+```
+
+Duas UCs geram o mesmo nome de `Load`: `UC_{COD_ID}_{fase}` **não é único**.
+
+**Ressalva ao meu próprio diagnóstico.** A Equatorial PA aparece com 84,93% de
+mortas no modo **agregado** — o que roda em produção, onde ela deu 119/119
+sadias. É artefato de converter UMA subestação isolada, sem a camada de AT
+(achado 52). A comparação agregado↔completo continua válida porque as duas
+sofrem o mesmo isolamento, mas os números absolutos dessa linha não valem.
+**Um diagnóstico que isola precisa dizer o que o isolamento custa.**
+
+**Para a outra máquina.**
+- **Não rode `--bt completo` em produção.** Três bases passam, uma colapsa, uma
+  dá perda de 63% e uma quebra. A opção existe no ciclo desde hoje, mas
+  habilitar não é autorizar.
+- Os três defeitos parecem independentes: nome duplicado (Cemig), colapso
+  (Light), perda absurda (Enel CE). Cada um é um achado.
+
+**Commit.** —
+
+## 2026-08-25 (as 90 morreram no minuto 1) — NÓ
+
+**As 90 bases novas foram submetidas e as 90 morreram**, todas com o mesmo
+erro, ~3 minutos depois de a corrente liberar:
+
+```
+TypeError: unsupported operand type(s) for +: 'int' and 'NoneType'
+```
+
+Era a **soma da previsão de tempo**. O `descobrir` devolve `None` para base
+fora do `APELIDO` — de propósito, porque inventar tempo seria pior que admitir
+que não se sabe — e ele já ordena as novas por tamanho como melhor palpite.
+**O que faltava era alguém tratar esse `None` no `main`.**
+
+Funcionalidade construída pela metade: a descoberta aceitava base nova, o ciclo
+não. **Invisível enquanto só as sete conhecidas rodavam — e o projeto rodou as
+sete dezenove vezes.**
+
+Consertado em `657f308`, com quatro testes. A previsão agora é parcial e
+honesta: `conversao prevista: 398 min (+90 sem tempo medido)`.
+
+**As 90 foram resubmetidas: 20 rodando em paralelo, 70 na fila.** O
+dimensionamento por tamanho é o que permite 20 em vez de 2.
+
+**Para a outra máquina.**
+- **O monitor disse "TODAS AS 97 FECHARAM" e era mentira.** Ele contava jobs na
+  fila; 91 sumirem em 5 min pareceu conclusão e era falha em massa. Contagem
+  caindo a zero **não é** prova de sucesso — o que prova é o resumo ter as
+  bases dentro. Conferir o resultado, nunca a ausência do processo.
+- O `while read` sem quebra final descartou a última linha na primeira
+  tentativa. Na segunda, a quebra foi escrita de propósito.
+
+**Commit.** —
+
 ## 2026-08-25 (a Cemig fecha, e as SETE passam) — NÓ
 
 **A Cemig-D fechou às 18:21, em 83 min.** `410/413 sadias`, conversão em 58,7
