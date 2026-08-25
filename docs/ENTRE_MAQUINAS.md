@@ -462,6 +462,76 @@ comparação entre bases, como o limiar de sobrecarga do achado 11.
 
 **Commit.** —
 
+## 2026-08-25 (as 97 converteram, e 49 pararam na validação) — NÓ
+
+**AS 97 CONVERTERAM.** 97 pastas de modelo, 97 `resumo_geral.json`, zero falha
+de conversão. O conversor atravessou o país inteiro na primeira tentativa.
+
+**Mas só 48 completaram o ciclo.** 49 pararam entre a conversão e a validação:
+
+```
+nenhum alimentador casou entre modelo e CTMT
+nenhum alimentador casou entre modelo e BDGD
+```
+
+### Causa raiz: a curva de carga padrão não existe nas bases pequenas
+
+```
+DSSException: (#401) Load.bt_1_11_1.Daily:
+             LoadShape object "RES-Tipo02" not found
+```
+
+`bdgd2dss/cargas.py` usa **`RES-Tipo02`** como curva padrão quando o `TIP_CC` da
+UC não está entre as curvas válidas — em **quatro** pontos (linhas 146, 148,
+179, 260). Ele nunca verifica se a própria `RES-Tipo02` existe na base.
+
+**O mecanismo é mais fino do que parece:**
+
+| base | LoadShapes geradas | tem `RES-Tipo02`? | |
+|---|---:|---|---|
+| Castro-Dis | **1** | não | ❌ falhou |
+| Cocel | **59** | não | ✅ passou |
+
+A Cocel também não tem `RES-Tipo02` **e funcionou**, porque as UCs dela acham a
+curva delas entre as 59 e o padrão nunca é acionado. A Castro-Dis tem uma curva
+só, então quase toda UC cai no padrão.
+
+**O padrão só é alcançado quando o catálogo de curvas da base é pobre — e é
+exatamente nesse caso que ele próprio está ausente.** Mais uma constante
+herdada da Enel SP, a mesma classe de `tensoes.TENSAO_KV` e
+`transformadores._FN_PARA_FF`.
+
+Sem curva → `energia.py` falha → `energia_dia.json` sai com
+`alimentadores: {}` → nada casa na validação.
+
+### O padrão é de porte, e é nítido
+
+| | mediana de alimentadores | faixa |
+|---|---:|---|
+| Completaram (48) | **377** | 1 a 2.456 |
+| Pararam (49) | **8** | 1 a 68 |
+
+**As sete bases do projeto são todas grandes.** Este defeito era invisível — e
+é exatamente o que rodar 97 existia para encontrar.
+
+### Segundo defeito: o resumo perde entradas com concorrência
+
+48 bases completaram o ciclo e **45 entraram no `resumo_v1_cluster.json`**. O
+`_gravador` lê, mescla e grava; com 20 jobs em paralelo, um sobrescreve o
+outro. O teste `test_grava_e_depois_mescla` existe mas é **sequencial**.
+
+**Para a outra máquina.**
+- **Consertar o padrão de curva desbloqueia 49 bases de uma vez.** O padrão tem
+  de ser uma curva que EXISTA na base — a mais comum entre as geradas, ou uma
+  curva plana emitida na hora. É o conserto de maior alcance na fila hoje.
+- O resumo precisa de escrita atômica ou trava. Enquanto não tiver, **conferir
+  o disco e não o resumo**: `ls MODELOS_*/validacao_balanco.json | wc -l`.
+- **`kv_mt = 59,8` na Castro-Dis** — tensão de subtransmissão declarada como
+  média. Não causou esta falha (`codigos_tensao_desconhecidos` = 0), mas é
+  suspeito e merece olhada própria.
+
+**Commit.** —
+
 ## 2026-08-25 (o `--bt completo` NÃO está consertado) — NÓ
 
 Os dois diagnósticos rodaram. **As respostas são opostas, e a separação entre
