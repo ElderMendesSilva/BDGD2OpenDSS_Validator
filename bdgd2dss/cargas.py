@@ -305,6 +305,24 @@ def gerar_bt_completa(bdgd, ctmts, sec, caminho_saida, mes=1,
     n = 0
     tot = 0.0
     sem_rede = 0
+    # `COD_ID` DA UCBT_tab NAO E UNICO, e o OpenDSS ABORTA quando descobre:
+    #
+    #     DSSException: (#266) Duplicate new element definition:
+    #                   "Load.UC_e6446f51...._3". Element being redefined.
+    #
+    # Medido na Cemig-D em 25/08/2026, subestacao 1726782: o `--bt completo`
+    # nao chegava a resolver. O erro nao e do OpenDSS — e a BDGD trazendo duas
+    # linhas com o mesmo codigo de unidade consumidora.
+    #
+    # A saida NAO e descartar a segunda: isso perderia energia declarada, em
+    # silencio, e o modelo passaria a entregar menos do que a base diz. Cada
+    # ocorrencia ganha sufixo e TODAS entram; a contagem sai no cabecalho do
+    # arquivo para o defeito de dado ficar visivel em vez de remendado.
+    #
+    # O sufixo e deterministico porque a ordem de leitura e: o mesmo `.gdb`
+    # gera o mesmo arquivo byte a byte, que e requisito do projeto.
+    vistos = collections.Counter()
+    repetidos = 0
     # Mesmo recurso da agregada: a curva mais usada que EXISTE nesta base.
     recurso = curva_padrao(curvas_validas,
                            collections.Counter(txt(v) for v in col['TIP_CC']))
@@ -325,12 +343,21 @@ def gerar_bt_completa(bdgd, ctmts, sec, caminho_saida, mes=1,
             curva = recurso
         kwf = kw / len(fs)
         for f in fs:
-            out.append(f'New Load.UC_{txt(col["COD_ID"][i])}_{f} '
+            nome = f'UC_{txt(col["COD_ID"][i])}_{f}'
+            vistos[nome] += 1
+            if vistos[nome] > 1:
+                nome = f'{nome}__{vistos[nome]}'
+                repetidos += 1
+            out.append(f'New Load.{nome} '
                        f'Bus1={pac}.{f}.4 Phases=1 Model=8 zipv={ZIPV} '
                        f'kv={s["kv_fn"]:.4f} pf=0.92 kW={kwf:.6f}{_daily(curva)}')
             n += 1
         tot += kw
     if sem_rede:
         out.insert(4, f'! {sem_rede} UCs sem transformador conhecido — omitidas.')
+    if repetidos:
+        out.insert(4, f'! {repetidos} cargas com COD_ID repetido na UCBT_tab: '
+                      f'sufixo __N para nao colidir. Nenhuma foi descartada.')
     open(caminho_saida, 'w', encoding='utf-8', newline=escrita.FIM_DE_LINHA).write('\n'.join(out) + '\n')
-    return {'n_cargas_bt': n, 'kW_BT': round(tot, 1), 'sem_trafo': sem_rede}
+    return {'n_cargas_bt': n, 'kW_BT': round(tot, 1), 'sem_trafo': sem_rede,
+            'cod_id_repetido': repetidos}
