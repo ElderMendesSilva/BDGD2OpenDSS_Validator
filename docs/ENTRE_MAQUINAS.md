@@ -212,6 +212,69 @@ terminal do administrador. `ubiratan.ufpa.br` não resolveu.
 
 ---
 
+## Trabalhar em paralelo: o dado tem de viajar, e não só o texto
+
+**Escrito em 25/08/2026, depois da primeira sessão em que as duas máquinas
+trabalharam ao mesmo tempo sem saber uma da outra.** Deu certo por sorte: os
+achados 53–55 nasceram em CASA e o CEAMAZON os usou no mesmo dia para explicar
+a subida das perdas. Mas houve custo real — CASA respondeu "o cluster não está
+testado, rode o canário amanhã" enquanto o canário já tinha rodado, porque o
+repositório local estava 17 commits atrás.
+
+### O gargalo não é este arquivo, é o `.gitignore`
+
+`logs/` e `MODELOS*/` estão ignorados, e é certo que estejam: os modelos são
+gigabytes e se refazem a partir do `.gdb`. Mas isso deixa a máquina sem cluster
+**sem número nenhum para auditar**. Ela consegue ler que a Cemig viola 11,12%,
+e não consegue perguntar *quais alimentadores*.
+
+Diário sozinho não resolve: ele conta o que já foi concluído. Trabalho paralelo
+precisa do que ainda **não** foi concluído — a tabela crua onde a outra máquina
+pode procurar o que ninguém procurou.
+
+### O que o nó publica: `resultados/<sufixo>/`
+
+Pasta **versionada**, ao contrário de `logs/` e `MODELOS*/`. Regra de entrada:
+**cabe em kilobytes e não se refaz sem o cluster.**
+
+| arquivo | um por | o que tem |
+|---|---|---|
+| `<TAG>.json` | base | uma linha por subestação: sadias, perda %, cobertura, violação, NaN, não convergiu, e as contagens de `relatorio_rede.json` (ilhadas, reguladores pendurados, `trafos_pac_invertido`, tabelas não lidas) |
+| `<TAG>_violacoes.csv` | base | **uma linha por alimentador que viola**: CTMT, perda modelada, energia medida, kVA instalado, nº de trafos, carga. É a tabela que permite auditar sem o modelo |
+| `_indice.json` | rodada | as bases da rodada, com carimbo, commit e o que faltou |
+
+**O que NÃO entra:** `.dss`, `BusCoords`, curva de carga, qualquer coisa por
+barra. Se um arquivo passa de ~1 MB, ele está errado de granularidade.
+
+**Por que CSV para as violações e JSON para o resto.** A violação é a tabela
+que alguém vai abrir, ordenar e filtrar — inclusive fora de programa. O resto é
+lido por código.
+
+### A linha que separa as duas máquinas
+
+| | CEAMAZON (alcança o cluster) | CASA (tem as bases, não alcança o nó) |
+|---|---|---|
+| **Roda** | as 97, `--bt`, qualquer coisa que precise de escala | as 7 locais, subestação isolada, ensaio controlado |
+| **Dona de** | `cluster/`, `baixar_bdgds.py`, `regerar_v10.py` | `bdgd2dss/`, `converter.py`, os validadores |
+| **Descobre** | defeito que só aparece em base nova | defeito que se isola num transformador |
+| **Publica** | `resultados/` | achado + teste + correção |
+
+Não é regra rígida, é a divisão que o hardware já impõe. **A regra rígida é
+uma só: antes de mexer num módulo, `git pull --rebase` e olhe se a outra
+máquina anotou trabalho em voo nele.** Foi o que evitou colisão no
+`RES-Tipo02`.
+
+### O ciclo que fecha
+
+1. o nó roda e publica `resultados/`, e faz `push`;
+2. CASA dá `pull`, **abre o CSV de violações e escolhe o pior caso**;
+3. CASA reproduz aquele caso na base local, mede, corrige, testa, `push`;
+4. o nó puxa e roda de novo.
+
+**O passo 2 é o que hoje não existe**, e é o único que precisa de código novo.
+
+---
+
 ## Como preencher: o tutorial
 
 ### Quando escrever
@@ -989,3 +1052,84 @@ a subida das perdas nas seis bases.
   como você anotou. Não o toquei para não colidir com trabalho seu em voo.
 
 **Commit.** `6f94577`
+
+## 2026-08-25 (o ferro da Cemig, e a placa que é de outro transformador) — CASA
+
+Fui atrás da contra-evidência da entrada "a Cemig fecha": violação de 0,95%
+para 11,12% depois dos achados 53–55, com o dedo apontado para o ferro. **O
+dedo estava apontado para o lugar certo, e a causa é da BDGD.**
+
+**Medido — o ferro em WATTS, por classe de kVA.** Percentual não serve para
+comparar bases: o núcleo tem um mínimo que não some quando a potência cai, e
+comparar os 0,700% da Cemig com os 0,298% da Light é comparar um parque de 5 e
+10 kVA com um de 112,5 kVA.
+
+| base | 5 kVA | 10 kVA | 15 kVA | 30 kVA | 45 kVA | 75 kVA | 112,5 kVA | 150 kVA | ≤10 kVA |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| RR | 35 | 50 | 65 | 150 | 195 | 295 | 390 | 485 | 71,2% |
+| ENCE | 35 | 50 | 85 | 150 | 195 | 295 | 390 | 485 | 44,5% |
+| EQPA | 40 | 55 | 60 | 150 | 170 | 255 | 335 | 420 | 62,1% |
+| SP | 70 | 70 | 110 | 170 | 220 | 330 | 440 | 640 | 10,9% |
+| LT | 30 | 45 | 60 | 130 | 170 | 255 | 335 | 420 | 5,2% |
+| CPFL | 50 | 55 | 100 | 170 | 218 | 330 | 440 | 540 | 0,6% |
+| **CMIG** | 35 | **150** | **195** | 150 | 195 | 295 | **150** | 485 | 56,3% |
+
+**A placa crua diz o resto.** Na Cemig, 99,3% dos 10 kVA trazem
+`ferro 150 W / total 695 W`, e 95,0% dos 15 kVA trazem `195 W / 945 W`.
+**Esses são exatamente os pares de 30 kVA e de 45 kVA da própria Cemig** — três
+vezes a potência da classe. E o par de 30 kVA reaparece em 87,1% dos 112,5 kVA.
+
+Os 5 kVA dela dão `35/140`, idêntico à Enel CE. **Um parque velho encareceria
+todas as classes, não uma sim outra não.** Isso é dado, não física.
+
+- **396.706 transformadores — 42% do parque da Cemig** — carregam placa de um
+  transformador 3× maior.
+- Ferro escrito por eles: **64.732 kW**. Pelo valor da classe certa: 23.900 kW.
+  **Excesso ≈ 40.832 kW, 28% do ferro modelado da Cemig.**
+- Não é falha de junção: `UNTRMT.POT_NOM` e o código da `EQTRMT` concordam em
+  **100,0%** na Cemig (só 126 de 952.231 discordam).
+
+**Hipótese não fechada para o mecanismo.** O fator 3 sugere placa do BANCO
+trifásico com código da unidade monofásica. Mas isso não explica o 112,5 kVA
+(3× seriam 337,5, e o par é o de 30). **Não implementei correção nenhuma** — o
+fator é medido, o mecanismo não.
+
+**A guarda que existia não pega isto.** O `_placa` rejeita ferro fora de
+0,05%–2,0%, e 1,500% passa folgado. Uma guarda por PERCENTUAL não pode pegar
+erro de escala, porque o percentual errado continua parecendo percentual. O que
+pegaria é comparar os watts da classe contra as outras bases — que foi o que a
+tabela acima fez.
+
+### O achado maior veio de raspão, e é nas duas maiores bases
+
+Testando se a `EQTRMT` e a `UNTRMT` discordavam do kVA, a Cemig deu 100,0% de
+acordo — e **a Enel SP deu 39,7%**.
+
+| base | casados | discordam | pares mais comuns (EQTRMT → UNTRMT) |
+|---|---:|---:|---|
+| **Enel SP** | 159.061 | **63.170 (39,7%)** | 50→75 (8.115), 25→75 (7.501), 100→125 (6.834) |
+| **Light** | 98.455 | **16.947 (17,2%)** | 112,5→450 (5.516), 150→600 (3.644) |
+| CPFL | 237.390 | 1.083 (0,5%) | 60→150 |
+| EQPA | 227.407 | 360 (0,2%) | 667→600 |
+| RR / ENCE / CMIG | — | 0,0% | — |
+
+Em 39,7% dos transformadores da Enel SP as duas tabelas **discordam da potência
+do transformador**. O `_placa` calcula a percentagem sobre o kVA da `EQTRMT` e
+o `gerar` escreve `Kva=` com o da `UNTRMT`: a percentagem é calculada numa base
+e aplicada noutra, e **ferro e cobre erram juntos**, pela razão entre as duas.
+Na Light os pares 112,5→450 e 150→600 são fator 4 — cheiram a banco.
+
+**Para a outra máquina.**
+- **Estes dois são achados separados e nenhum está corrigido.** O da Enel SP e
+  da Light é o mais fácil de fechar e o de maior alcance: 80 mil
+  transformadores nas duas maiores bases, e o conserto é escolher **uma** das
+  duas potências e usá-la nos dois lugares. Qual das duas é a certa ainda não
+  foi medido.
+- **A Cemig precisa do mecanismo antes da correção.** Multiplicar por 1/3 os
+  10 e 15 kVA fecharia o número e seria chute: o 112,5 kVA não obedece ao
+  fator 3.
+- **O teste que separa tudo isso é local e barato**, e roda nas 7 bases daqui —
+  não precisa de cluster. Os três scripts estão no diretório de rascunho desta
+  sessão e valem ser trazidos para `diagnosticos/` quando alguém tocar nisto.
+
+**Commit.** —
