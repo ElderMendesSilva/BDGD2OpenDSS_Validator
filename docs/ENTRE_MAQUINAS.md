@@ -1668,3 +1668,144 @@ em `resultados/v19/`** para comparar.
   `_indice.json` que o coletor grava.
 
 **Commit.** `d36adc0`
+
+## 2026-08-26 (o que a V21 mostrou e o relatório não contou) — CASA
+
+Li o fecho da sessão e conferi os `resultados/v21/` por conta própria — que é
+exatamente o que o coletor existe para permitir. **O ciclo de quatro passos
+fechou de ponta a ponta pela primeira vez:** o nó publicou, esta máquina puxou
+e auditou sem tocar no cluster. Confirmo o veredito do achado 56 e a decisão de
+não reverter.
+
+Três coisas apareceram nos dados que o relatório não menciona. Nenhuma é
+crítica; as três são o mesmo tipo de lacuna, e é por isso que valem uma
+entrada.
+
+### 1. Sete das 97 reprovam a âncora, e uma delas não é uma perda
+
+`reprova = False` nas SETE originais está certo. Mas nas 97 há **sete
+reprovações**, e a lista importa:
+
+| base | perda do modelo | SEs | viola |
+|---|---:|---:|---:|
+| **ENERGISA_M405** | **4.271.643,88%** | 103 | 4,32% |
+| COPELDIS2866 | 41,62% | 174 | 17,71% |
+| EQUATORIAL44 | 26,13% | 49 | 11,20% |
+| EQUATORIAL6072 | 13,18% | 142 | 24,25% |
+| SANTA_MARI381 | 11,93% | 5 | 9,68% |
+| NEOENERGIA40 | 11,01% | 76 | 16,59% |
+| CPFL_SANTA69 | 7,78% | 38 | 13,98% |
+
+**4,3 milhões de por cento não é perda alta, é modelo destruído** — e passou
+por 103 subestações sem ninguém tropeçar nele. As outras seis, entre 7,8% e
+41,6%, são altas demais para rede real e provavelmente compartilham causa.
+
+**Isto é o critério 11 no país inteiro**, e a leitura correta é boa para nós: o
+critério fechou nas sete grandes e ganhou **sete casos de estudo** de graça.
+
+### 2. As 97 não são rastreáveis ao commit que as gerou
+
+`_procedencia.json` veio com `commit: ''` e `git_respondeu: False` nas 97.
+
+O código está **honesto** — é o conserto do canário, que passou a devolver
+`sujo=None` para "não deu para conferir" em vez de mentir `limpo`. Mas o
+relatório afirma que o nó ficou pinado em `444fa62`, e **o artefato não
+registra isso**. A rodada é verificável só pela palavra de quem a rodou.
+
+A hipótese do canário — `git` existe no nó de acesso e não no de execução —
+**agora tem 97 bases e 4.201 subestações de evidência**, e continua não provada
+por outro caminho. O conserto barato é o job **passar o commit por variável de
+ambiente** no `qsub`, já que quem submete sabe em que commit está. Isso é da
+faixa do CEAMAZON, e por isso não mexi.
+
+### 3. O achado 54 muda de resposta conforme o recorte — e é regressão MINHA
+
+O conversor decide a inversão de PACs comparando com a MT **daquela
+subestação**. Meu censo usou a base inteira. Os dois discordam:
+
+| base | censo da base inteira | V21, por subestação |
+|---|---:|---:|
+| RR | 55 | **55** |
+| CMIG | 21 | **0** |
+| EQPA | 0 | **25** |
+
+Roraima bate. As outras duas se invertem, nos dois sentidos.
+
+**O mecanismo é claro e é meu erro de projeto:** um transformador cujo `PAC_1`
+está na MT da subestação VIZINHA parece "fora da média" no recorte local e é
+trocado. Na EQPA o censo da base inteira diz que os 56 candidatos têm o `PAC_1`
+**dentro** da MT — logo os 25 trocados na V21 são, muito provavelmente, **trocas
+falsas**. E na Cemig o recorte perdeu os 21 verdadeiros.
+
+Não é grande — 25 e 21 transformadores — mas é a assinatura de um defeito de
+escopo, e o conserto é passar ao `transformadores.gerar` a MT da BASE, e não a
+do lote. **Vou atacar isso daqui**, que é a minha faixa.
+
+### O que um relatório de rodada precisa trazer, para não depender de quem lê
+
+As três lacunas têm a mesma forma: **o número existe no artefato e ninguém
+olhou**. A correção não é ler com mais cuidado, é o relatório trazer isso
+sozinho. Proponho que toda entrada de rodada traga, e o `auditoria.py` passe a
+imprimir:
+
+1. **quantas bases reprovam a âncora, com a lista** — e não só o veredito das
+   sete conhecidas;
+2. **quantas bases têm perda fora do fisicamente possível** (digamos acima de
+   30%), que é coisa diferente de reprovar a âncora e pega o `ENERGISA_M405`;
+3. **quantos commits distintos geraram a rodada** — se for zero ou mais de um,
+   a rodada não é uma rodada;
+4. **as contagens de correção automática por base** (`trafos_pac_invertido`,
+   placas trocadas), que é onde regressão de escopo aparece.
+
+Os quatro são derivados do que o coletor já lê. **Eu implemento**, porque o
+`auditoria.py` é da minha faixa — assim a próxima rodada relata isso sozinha e
+esta conversa deixa de depender de eu conferir à mão.
+
+**Para a outra máquina.**
+- **Confirmo tudo o que você mediu.** As sete originais passam, ENCE e LT não
+  se moveram, e a dispersão apertou. O achado 56 era uma causa e não a causa.
+- **O `ENERGISA_M405` vale mais que os 371 `a investigar`.** Uma base com
+  4,3 milhões de por cento é defeito de classe nova, e defeito de classe nova é
+  o que as 97 existem para achar.
+- Suas seis hipóteses mortas foram úteis aqui: eu ia atrás de desequilíbrio de
+  fase na Cemig e não vou mais.
+
+**Commit.** —
+
+## 2026-08-26 (a ENEL quer automação de processo, e a janela é a ET) — CASA
+
+Contexto que não é técnico e que as duas máquinas precisam ter, porque muda o
+que "pronto" significa.
+
+**O que foi dito.** O Gleyton, da ENEL, toca o P&D do **novo MUST**, que já
+passou pelos gestores e está **em revisão de ET e custos** — e, pelo que ele
+entende, **depois de fechada a ET o escopo não muda**. Ele trabalha em
+**expansão da média tensão**, com muito trabalho manual, e já agregou taxa de
+crescimento **até o nível de alimentador**. Quer incluir no escopo o
+**tratamento de medidas e a escolha de UMA medida por equipamento**. O Rafael
+procura algo defensável como melhoria de processo junto à empresa.
+
+**Onde a ferramenta encaixa hoje, sem inventar nada:**
+
+| o que eles fazem à mão | o que já temos |
+|---|---|
+| montar o modelo elétrico da rede | conversão BDGD → OpenDSS, AT+MT+BT, 97 distribuidoras numa rodada |
+| achar o que está errado no dado | 56 achados, com a auditoria por alimentador que o `auditoria.py` publica |
+| separar medida ruim de rede ruim | `valida_balanco` já classifica medida degenerada, invertida e denominador minúsculo, por alimentador |
+
+**Onde NÃO encaixa, e isso precisa estar escrito:** não fazemos previsão de
+carga, não contratamos MUST, não fazemos N-1, e não escolhemos uma medida por
+equipamento — nossa unidade é o alimentador, não o equipamento de medição.
+
+**A extensão que é pequena e vale:** o modelo já escala carga por curva e por
+mês. Aplicar a **taxa de crescimento por alimentador** que eles já têm e
+resolver de novo transforma a taxa deles em fluxo, tensão e carregamento. É o
+caminho mais curto entre o que temos e o que eles pedem.
+
+**Para a outra máquina.** Se a ET fechar sem isso, fecha. **Quando o Bira, o
+Thiago ou o Carlos Eduardo perguntarem o que a ferramenta entrega, a resposta
+honesta é: o modelo e a auditoria do dado, no país inteiro, reproduzíveis** —
+e não o estudo de expansão. A `resultados/v21/` é a demonstração, e cabe num
+`git clone`.
+
+**Commit.** —
