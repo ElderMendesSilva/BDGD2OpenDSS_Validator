@@ -111,6 +111,56 @@ def _agrega_pip(bdgd, ctmts, mes):
     return acc
 
 
+# A curva que a Enel SP usa como residencial tipica. Ela NAO e garantia: e o
+# palpite historico, e so vale se a propria base a tiver publicado.
+PADRAO_HISTORICO = 'RES-Tipo02'
+
+
+def curva_padrao(curvas_validas, uso=None):
+    """A curva de fallback SAI DA BASE, e nao de uma constante.
+
+    O codigo antigo caia em `RES-Tipo02` sempre que o `TIP_CC` da UC nao
+    estivesse entre as curvas validas — sem nunca conferir se a propria
+    `RES-Tipo02` existia. Nas sete bases do projeto ela existe; em 49 das 97
+    do pais, nao.
+
+    O MECANISMO E MAIS FINO DO QUE PARECE, e por isso o defeito sobreviveu a
+    dezenove rodadas. Medido em 25/08/2026:
+
+        base          LoadShapes geradas   tem RES-Tipo02   resultado
+        Cocel                        59             nao      PASSOU
+        Castro-Dis                    1             nao      falhou
+
+    A Cocel tambem nao tem a curva E FUNCIONA, porque as UCs dela acham a
+    propria entre as 59 e o fallback nunca e alcancado. A Castro-Dis tem uma
+    curva so, entao quase toda UC cai nele. **O fallback so e alcancado quando
+    o catalogo da base e pobre — e e exatamente ai que ele proprio falta.**
+
+    Sem curva, o `energia.py` morre com `LoadShape object not found`, o
+    `energia_dia.json` sai com `alimentadores: {}` e nada casa na validacao:
+    49 bases converteram e nao puderam ser validadas.
+
+    `uso` e a contagem de consumidores por curva NA PROPRIA BASE. A mais usada
+    ganha, porque e a que melhor representa quem nao declarou.
+
+    Devolve `None` quando a base nao publicou curva nenhuma — e ai a carga sai
+    SEM `Daily`, que e melhor que apontar para uma curva inexistente.
+    """
+    curvas_validas = curvas_validas or set()
+    if uso:
+        for nome, _ in uso.most_common():
+            if nome in curvas_validas:
+                return nome
+    if PADRAO_HISTORICO in curvas_validas:
+        return PADRAO_HISTORICO
+    return sorted(curvas_validas)[0] if curvas_validas else None
+
+
+def _daily(curva):
+    """` Daily=X` ou nada. Base sem curva gera carga plana, e nao erro."""
+    return f' Daily={curva}' if curva else ''
+
+
 def gerar(bdgd, ctmts, sec, caminho_saida, mes=1, curvas_validas=None,
           fator=1.0, agregado_bt=None, kv_por_ctmt=None, kv_mt_padrao=13.8,
           barras=None, agregado_pip=None):
@@ -136,6 +186,13 @@ def gerar(bdgd, ctmts, sec, caminho_saida, mes=1, curvas_validas=None,
            '! ==========================================================']
     tot_bt = tot_mt = 0.0
     n = fora = 0
+    # A curva de recurso sai da PROPRIA BASE: soma o uso declarado por todos os
+    # transformadores e pega a mais frequente que exista de verdade. O
+    # contador ja esta em memoria — nao custa leitura nenhuma.
+    uso = collections.Counter()
+    for d in bt.values():
+        uso.update(d['cur'] or {})
+    recurso = curva_padrao(curvas_validas, uso)
     for cod, d in bt.items():
         s = sec.get(cod)
         if not s:
@@ -143,16 +200,16 @@ def gerar(bdgd, ctmts, sec, caminho_saida, mes=1, curvas_validas=None,
         kw = d['ene'] / HORAS * fator
         if kw <= 0.001:
             continue
-        curva = d['cur'].most_common(1)[0][0] if d['cur'] else 'RES-Tipo02'
+        curva = d['cur'].most_common(1)[0][0] if d['cur'] else None
         if curva not in curvas_validas:
-            curva = 'RES-Tipo02'
+            curva = recurso
         pernas = s['nos'] or ['1']
         # a barra e a do secundario do trafo, nao o codigo do trafo
         bus = s.get('barra', cod)
         kwf = kw / len(pernas)
         for f in pernas:
             out.append(f'New Load.BT_{cod}_{f} Bus1={bus}.{f}.4 Phases=1 Model=8 '
-                       f'zipv={ZIPV} kv={s["kv_fn"]:.4f} pf=0.92 kW={kwf:.6f} Daily={curva}')
+                       f'zipv={ZIPV} kv={s["kv_fn"]:.4f} pf=0.92 kW={kwf:.6f}{_daily(curva)}')
             n += 1
         tot_bt += kw
 
@@ -176,18 +233,23 @@ def gerar(bdgd, ctmts, sec, caminho_saida, mes=1, curvas_validas=None,
             continue
         curva = d['cur'].most_common(1)[0][0] if d['cur'] else 'IP-Tipo1'
         if curva not in curvas_validas:
-            curva = 'RES-Tipo02'
+            curva = recurso
         pernas = s['nos'] or ['1']
         bus = s.get('barra', cod)
         kwf = kw / len(pernas)
         for f in pernas:
             out.append(f'New Load.IP_{cod}_{f} Bus1={bus}.{f}.4 Phases=1 '
                        f'Model=8 zipv={ZIPV} kv={s["kv_fn"]:.4f} pf=0.92 '
-                       f'kW={kwf:.6f} Daily={curva}')
+                       f'kW={kwf:.6f}{_daily(curva)}')
             n_ip += 1
         tot_ip += kw
 
     out.append('\n! --- cargas de media tensao (UCMT_tab) ---')
+    # `MT-Tipo02` era a constante daqui, e cai no mesmo defeito da BT: e nome
+    # da Enel SP e nao ha garantia de que a base o publique. O recurso sai do
+    # uso real dos consumidores de MT desta base.
+    uso_mt = collections.Counter(txt(v) for v in col['TIP_CC'])
+    recurso_mt = curva_padrao(curvas_validas, uso_mt)
     for i in range(len(col['CTMT'])):
         kw = num(col[f'ENE_{mes:02d}'][i]) / HORAS * fator
         if kw <= 0.001:
@@ -201,12 +263,12 @@ def gerar(bdgd, ctmts, sec, caminho_saida, mes=1, curvas_validas=None,
         fs = [FASES[c] for c in txt(col['FAS_CON'][i], 'ABC').upper() if c in FASES] or ['1', '2', '3']
         curva = txt(col['TIP_CC'][i])
         if curva not in curvas_validas:
-            curva = 'MT-Tipo02'
+            curva = recurso_mt
         kv_ct = kv_por_ctmt.get(txt(col['CTMT'][i]), kv_mt_padrao)
         kv = kv_ct if len(fs) >= 3 else kv_ct / (3 ** 0.5)
         out.append(f'New Load.MT_{pac}_{i} Bus1={pac}.{".".join(fs)} Phases={len(fs)} '
                    f'Conn=wye Model=8 zipv={ZIPV} kv={kv:.4f} pf=0.92 '
-                   f'kW={kw:.4f} Daily={curva}')
+                   f'kW={kw:.4f}{_daily(curva)}')
         tot_mt += kw
         n += 1
 
@@ -243,6 +305,9 @@ def gerar_bt_completa(bdgd, ctmts, sec, caminho_saida, mes=1,
     n = 0
     tot = 0.0
     sem_rede = 0
+    # Mesmo recurso da agregada: a curva mais usada que EXISTE nesta base.
+    recurso = curva_padrao(curvas_validas,
+                           collections.Counter(txt(v) for v in col['TIP_CC']))
     for i in range(len(col['COD_ID'])):
         kw = num(col[f'ENE_{mes:02d}'][i]) / HORAS * fator
         if kw <= 0.001:
@@ -257,12 +322,12 @@ def gerar_bt_completa(bdgd, ctmts, sec, caminho_saida, mes=1,
         fs = [FASES[c] for c in txt(col['FAS_CON'][i], 'A').upper() if c in FASES] or ['1']
         curva = txt(col['TIP_CC'][i])
         if curva not in curvas_validas:
-            curva = 'RES-Tipo02'
+            curva = recurso
         kwf = kw / len(fs)
         for f in fs:
             out.append(f'New Load.UC_{txt(col["COD_ID"][i])}_{f} '
                        f'Bus1={pac}.{f}.4 Phases=1 Model=8 zipv={ZIPV} '
-                       f'kv={s["kv_fn"]:.4f} pf=0.92 kW={kwf:.6f} Daily={curva}')
+                       f'kv={s["kv_fn"]:.4f} pf=0.92 kW={kwf:.6f}{_daily(curva)}')
             n += 1
         tot += kw
     if sem_rede:
