@@ -378,6 +378,58 @@ devolve tudo ao estado anterior ao `pull`.
 
 # O diário
 
+## 2026-08-26 (a Enel CE não é o achado 11 na baixa) — CEAMAZON
+
+Os 63,16% do `--bt completo` na Enel CE (SE IPU) reproduzem, e **a causa é
+diferente da Light**. Perda por grupo, mesma subestação nos dois modos:
+
+| grupo | agregado | completo |
+|---|---:|---:|
+| **TRAFO** (os mesmos 1.244) | 144,3 kW | **367,1 kW** |
+| linha | 164,7 kW (6.129) | 708,2 kW (51.230) |
+| neutro `N_` | — | 85,8 kW (45.101) |
+| **total** | **309,0** | **1.161,1** |
+
+**Os mesmos 1.244 transformadores perdem 2,5× mais.** Ferro é constante, então
+é cobre: o agregado divide a carga igualmente entre as pernas do secundário e o
+completo põe cada UC na fase declarada. **O desequilíbrio real aparece** — e
+isso não é defeito, é o modo completo mostrando o que o agregado esconde.
+
+### Duas hipóteses minhas caíram por medição
+
+1. **Condutor absurdo, como o 593.** Falso. Os dois condutores que fazem 67,8%
+   da perda de BT têm placa **plausível**: 0,732 Ω/km com 150 A e 1,551 Ω/km
+   com 135 A. `condutores_r1_corrigido` está vazio. A diferença de **39×** por
+   quilômetro entre condutores é corrente, não impedância.
+2. **Rede sobrecarregada.** Falso, e por larga margem: **0,1% dos trechos**
+   acima da ampacidade — 1,5 km de 945,9 km.
+
+### O que sobra: espiral de tensão
+
+| | Vmin | Vmed | abaixo de 0,93 |
+|---|---:|---:|---:|
+| Primário (MT) | 0,6659 | **0,8870** | 62,7% |
+| Secundário (BT) | 0,6037 | 0,8256 | 86,8% |
+
+**A MT já chega deprimida** — e no mesmo modelo em agregado ela está sadia. É
+realimentação: a resistência da BT puxa corrente pela MT, a MT afunda, a
+corrente sobe, a perda sobe.
+
+**O número que eu não consigo justificar:** 1.838 kW entregues para **32.243
+UCs** — 57 W por consumidor, sobre **945,9 km** de BT numa subestação só. O
+comprimento confere com a base (33,7 m/UC), mas rede vastíssima com carga
+mínima é a receita da espiral.
+
+**A pergunta certa talvez não seja "por que a perda é alta", e sim "por que a
+carga é tão baixa"** — `ENE_01/730 h` dá 41 kWh/mês por UC. Não investiguei.
+
+**Para a outra máquina.** Light e Enel CE **não têm a mesma doença**: a Light é
+recorte que fragmenta a rede; a Enel CE é rede íntegra que colapsa em tensão.
+Consertar uma não conserta a outra.
+
+**Commit.** —
+
+
 ## 2026-08-26 (o colapso da Light é do RECORTE, não da carga) — CEAMAZON
 
 **A rede de BT da Light não é particionável por alimentador, e é isso que
