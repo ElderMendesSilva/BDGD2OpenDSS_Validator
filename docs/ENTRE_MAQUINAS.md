@@ -378,6 +378,58 @@ devolve tudo ao estado anterior ao `pull`.
 
 # O diário
 
+## 2026-08-26 (CORREÇÃO: o desequilíbrio NÃO é o amplificador) — CEAMAZON
+
+**Corrijo a entrada "a Enel CE não é o achado 11 na baixa".** Escrevi que o
+desequilíbrio de fases explicava o fator 2,5× na perda. **Medi, e é falso.**
+
+Soma de I² por fase na rede secundária da IPU, que é proxy direto da perda:
+
+| fase | I² | % |
+|---|---:|---:|
+| A | 8.928.631 | 38,3% |
+| B | 7.281.704 | 31,3% |
+| C | 7.074.593 | 30,4% |
+
+**1,26×, não 2,5×.** Desequilíbrio comum de rede radial.
+
+A pista que me enganou: 49,4% das UCs da Enel CE declaram `FAS_CON = AN`. Mas
+por transformador a distribuição é **bimodal** — 20,5% com 100% em `AN`, 19,4%
+com zero, **mediana exatamente 0,50**. E essa mediana tem explicação inocente:
+em transformador monofásico de derivação central o conversor põe os dois
+meios-enrolamentos nos nós 1 e 2, então `AN`/`BN` são as **duas metades** e
+meio a meio é o correto. Contagem de UC por fase **não mede desequilíbrio**.
+
+### O que sobra, depois de quatro hipóteses testadas e derrubadas
+
+| hipótese | veredito |
+|---|---|
+| Condutor absurdo (achado 11 na baixa) | ❌ placas plausíveis, `condutores_r1_corrigido` vazio |
+| Rede sobrecarregada | ❌ 0,1% dos trechos acima da ampacidade |
+| Desequilíbrio de fases | ❌ 1,26× |
+| Carga baixa demais | ❌ o agregado usa a MESMA energia e fecha em 6,80% |
+
+**Sobra o comprimento, sozinho.** A perda por km é **normal**: 1,224 kW/km com
+~16,5 A por fase na secundária. O que não é normal são **465,8 km de rede
+secundária** para entregar 1.838 kW — **374 m de secundária por transformador**.
+
+E a separação importa: os **ramais são metade do km e só 16,3% da perda**
+(0,231 kW/km) porque cada um carrega uma UC; a **secundária é 83,7%**
+(1,224 kW/km) porque carrega corrente somada.
+
+**A conclusão é chata e sólida: corrente normal sobre comprimento enorme, e a
+espiral de tensão faz o resto crescer mais que linearmente.** Não há defeito de
+condutor, de carga nem de fase para consertar — há uma rede declarada longa
+demais para os transformadores que a alimentam.
+
+**Para a outra máquina.** Isso reforça o `m/trafo` como métrica: ele não é
+correlação solta, é o mecanismo. E sugere separar `m/trafo` em **secundária** e
+**ramal** — só a primeira prevê perda, e as duas estavam somadas na tabela
+anterior.
+
+**Commit.** —
+
+
 ## 2026-08-26 (metros de BT por transformador prevê se o completo sobrevive) — CEAMAZON
 
 Fui atrás de "por que a carga é tão baixa" e o fio levou a outro lugar. **A
