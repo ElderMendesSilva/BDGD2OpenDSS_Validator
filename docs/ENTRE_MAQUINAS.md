@@ -73,19 +73,26 @@ fica no diário, embaixo.
 
 | | |
 |---|---|
-| Pasta do projeto | ❓ **a preencher** |
-| BDGDs presentes | `/d/Elder/Elder/BDGDs` — as 7, conferido em 24/08/2026 |
-| Ambiente `.venv` | ❓ a confirmar |
-| Chave SSH | ❓ a confirmar |
-| Acesso a `10.107.1.23` | ❓ a confirmar (provavelmente só por VPN) |
+| Pasta do projeto | `D:\Elder\Elder\ENEL\ENEL 2025\BDGD\ENEL 2024 - OUTUBRO\Criticidades\BDGD2OpenDSS` |
+| Sistema | Windows 11, Git Bash + PowerShell |
+| Python | 3.14.3 (do PATH) |
+| Ambiente `.venv` | ❌ **não existe** — roda no Python do PATH, e as dependências estão instaladas nele |
+| BDGDs presentes | as 7. Seis em `D:\Elder\Elder\BDGDs`; a **Enel SP está fora dessa pasta**, dentro de `Criticidades/` |
+| `BDGD2DSS_BASES` | **não definida** — o `descobrir()` acha as 7 pelos caminhos embutidos |
+| Chave SSH | ❌ **nenhuma** (`~/.ssh/` sem `id_*`) |
+| Acesso a `10.107.1.23` | ❌ **não alcança** — ping 100% de perda, TCP 22 estoura. Só por VPN |
+| Memória | 7 GB livres → **`--jobs 2`**, o `doutor.py` avisa |
 | `rsync`, `zip` | ausentes, conferido em 24/08/2026 |
+| `gh` (GitHub CLI) | ❌ ausente |
 
-> **A assimetria é o fato central do projeto hoje.** As bases estão numa
-> máquina e o cluster é alcançado da outra. O `cluster/enviar.sh` empurra a
-> BDGD *da máquina onde roda* para o nó — então, do jeito que está, quem sobe
-> base é o PC de casa, e ele precisa enxergar o nó. Enquanto isso não for
-> testado, o caminho inteiro do cluster está bloqueado por uma pergunta de
-> rede, não de código.
+> **A assimetria deixou de importar, e a resposta foi melhor do que a
+> pergunta.** O plano era o PC de casa empurrar `.gdb` para o nó pelo
+> `cluster/enviar.sh`, e isso exigiria que ele enxergasse `10.107.1.23` — o que
+> ele NÃO faz (testado em 25/08: ping 100% de perda, TCP 22 estoura; só por
+> VPN). Não bloqueia nada: o nó tem internet e 11 TB, e o `baixar_bdgds.py`
+> pega as bases direto do acervo da ANEEL. **Nenhuma base viaja entre
+> máquinas.** O `enviar.sh` continua existindo para o caso de base que não
+> esteja no acervo, e nunca foi usado.
 
 ---
 
@@ -94,22 +101,22 @@ fica no diário, embaixo.
 Quem souber a resposta, responde aqui e apaga a pergunta. **Pergunta
 respondida vira linha na tabela de estado**, não fica acumulando.
 
-1. **O PC de casa alcança `10.107.1.23`?** ⚠️ *Respondida só metade.* O
-   CEAMAZON alcança (2 ms — está dentro da rede). Falta saber do PC de casa,
-   que provavelmente precisa de VPN. Testar: `ssh <usuario>@10.107.1.23`.
+**Nenhuma pergunta aberta em 25/08/2026.** As respondidas ficam abaixo por
+um tempo, porque a resposta importa mais que a pergunta.
+
+1. ~~**O PC de casa alcança `10.107.1.23`?**~~ **RESPONDIDA em 25/08/2026:**
+   não. Ping 100% de perda e TCP 22 estourando o tempo, do PC de casa. Só por
+   VPN. Não bloqueou nada — ver a nota da tabela de estado.
+2. ~~**Como as 6 BDGDs que faltam chegam ao CEAMAZON?**~~ **RESPONDIDA em
+   25/08/2026:** não chegam, e não precisam. O nó baixa do acervo da ANEEL.
+3. ~~**As wheels de `pyogrio` e `opendssdirect.py` existem para 3.14?**~~
+   **RESPONDIDA em 25/08/2026:** existem, `cp314` para tudo. O problema de
+   versão apareceu na ponta oposta — o nó tem 3.11 e o código usava sintaxe de
+   3.12 (ver o diário, "o Python 3.12 escondido").
 4. ~~**Qual é o usuário no Ubiratan?**~~ **RESPONDIDA em 25/08/2026:** é
    `teste`, uma conta **compartilhada** de avaliação, com um diretório
    `~/elder/` reservado. Um usuário só seu foi solicitado ao Carlos Eduardo e
    está pendente.
-5. **O nó tem internet?** O `cluster/LEIA-ME.md` começa por `git clone`, e o
-   `instalar.sh` cai em micromamba via `curl` se o Python do sistema não
-   servir. As duas coisas precisam de saída para a internet, e num cluster isso
-   é frequentemente bloqueado. É o que o `primeiro_contato.sh` mede.
-2. **Como as 6 BDGDs que faltam chegam ao CEAMAZON**, se for esse o caminho?
-   HD externo, rede, ou nuvem. São ~45 GB.
-3. **As wheels de `pyogrio` e `opendssdirect.py` existem para Python 3.14?**
-   O CEAMAZON tem 3.14.3, que é recente. Se não existirem, o `.venv` precisa
-   de um Python mais antigo.
 
 ---
 
@@ -922,3 +929,63 @@ folga é bem maior que a suposta.
   nenhuma conta (ver `CLUSTER.md`, "O modo, e o que ele não faz").
 
 **Commit.** —
+
+## 2026-08-25 (os achados 53, 54 e 55) — CASA
+
+Esta sessão aconteceu **em paralelo** à do CEAMAZON e não sabia dela: o
+repositório local estava 17 commits atrás e só foi atualizado no fim. Os três
+achados abaixo são os que o CEAMAZON já viu como `53–55` e usou para explicar
+a subida das perdas nas seis bases.
+
+**Feito.**
+- Achado 53 fundido (`96e858d`): o transformador de distribuição passa a ter
+  `%noloadloss`, vindo da placa (`PER_FER`/`PER_TOT` da EQTRMT).
+- Achado 54 (`eed1f88`): `PAC_1` e `PAC_2` trocados na BDGD são endireitados
+  pela topologia, e a troca é declarada no `Trafos.dss` e em
+  `relatorio_rede.json['trafos_pac_invertido']`.
+- Achado 55 (`6f94577`): `maxiterations` de 100 para **500** nos três rodapés
+  do MASTER.
+- Respondida a pergunta aberta 1 e reescrita a tabela de estado desta máquina.
+
+**Medido.**
+- **O "ferro 4,9× demais" do commit `576a087` era diagnóstico errado meu.** A
+  razão mediana entre perda medida e placa já era **0,991**; o excesso vinha de
+  **9 transformadores de 4.539** com os PACs invertidos, funcionando como
+  elevadores a 60× a nominal. Eles faziam **86,8%** da perda a vazio da 5003346
+  de Roraima. Corrigidos: 399,5 kW medidos contra 396,0 esperados, **1,009×**.
+- Barra mais alta da 5003346: **9,645 pu → 1,360 pu**. Perda: 17,07% → 6,57%.
+- Censo das 7: invertidos só em duas bases — **55 em Roraima, 21 na Cemig**, de
+  1,87 milhão de transformadores. A Enel SP tem 63 com `PAC_1` fora da MT e
+  ZERO com `PAC_2` dentro (primário pendurado, achado 50, defeito diferente).
+- Teto de iterações: a 5003346 com `--bt completo` precisa de mais de 100 (202
+  ou 123, conforme o ponto de partida). Com 100 o OpenDSS devolvia um ponto que
+  não é solução, e **a perda saía 0,45 pp ABAIXO da real** — o lado que engana.
+- **As 6 da Cemig que não convergiam na V19 NÃO são caso de teto.** Com 2.000
+  iterações a `1726539` continua sem convergir, e a solução fica idêntica até a
+  quarta casa nas três tentativas (553,4 kW, 3,38%). Alguns nós oscilam
+  enquanto o resto já convergiu.
+- Este PC **não alcança** `10.107.1.23`: ping 100% de perda, TCP 22 estoura.
+
+**Quebrou.**
+- Nada. 548 testes verdes no fim.
+
+**Para a outra máquina.**
+- **A contra-evidência da entrada "a Cemig fecha" aponta para cá, e eu concordo
+  com o dedo apontado.** A violação da Cemig foi de 0,95% para 11,12% depois
+  dos achados 53–55. Mas note qual dos três: o 55 contribui 0,45 pp, e o 54
+  mexeu em **21 transformadores** na Cemig inteira. Sobra o **53** — o ferro —,
+  e ele entrou em **952 mil** transformadores dela. Se a hipótese for essa, o
+  teste barato é medir a perda a vazio de um alimentador violador da Cemig
+  contra a placa, exatamente como fiz na 5003346: se a razão der ~1,0 o ferro
+  está certo e a causa é outra; se der muito acima, `_placa` está aceitando
+  placa ruim naquela base. O `_placa` já rejeita fora de 0,05–2,0% de ferro,
+  **mas esse limite foi calibrado sem olhar a Cemig**.
+- Confirmo o que o diário do CEAMAZON registrou: **os achados 48–55 não têm
+  seção no `ACHADOS_GENERALIZACAO.md`.** Eu olhei isso hoje, vi que os recentes
+  moram em docstring de módulo e de teste, e tratei como convenção. Vendo os
+  dois lados: docstring é bom para quem lê o código e péssimo para quem procura
+  um número. **Oito achados sem número procurável é dívida, não convenção.**
+- **O conserto do `RES-Tipo02` desbloqueia 49 bases e é o de maior alcance**,
+  como você anotou. Não o toquei para não colidir com trabalho seu em voo.
+
+**Commit.** `6f94577`
