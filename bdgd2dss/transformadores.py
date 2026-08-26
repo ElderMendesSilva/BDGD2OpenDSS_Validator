@@ -144,6 +144,84 @@ def _perto(v, niveis, tol=TOL_REGRA):
     return melhor
 
 
+# ---------------------------------------------------------------------------
+# ACHADO 56 — a placa que e de outro transformador
+# ---------------------------------------------------------------------------
+# A guarda percentual do `_placa` e CEGA A ESCALA: ela pergunta se o ferro
+# esta entre 0,05% e 2,0% da nominal, e 1,50% passa folgado. Mas 1,50% de
+# 10 kVA sao 150 W, e um transformador de 10 kVA nao dissipa 150 W a vazio —
+# esse e o valor de um de 30 kVA. Percentual errado continua PARECENDO
+# percentual, e e por isso que uma guarda em percentual nunca pega erro de
+# escala.
+#
+# O QUE FOI MEDIDO NA CEMIG
+#
+#     classe    ferro    unidades   fases do primario
+#      10 kVA   150 W     280.574   monofasicas
+#      30 kVA   150 W      27.729   TRIFASICAS
+#      15 kVA   195 W     116.115   monofasicas
+#      45 kVA   195 W      81.843   TRIFASICAS
+#
+# Os 150 W sao o valor certo de um BANCO trifasico de 30 kVA — tres unidades
+# de 10 kVA a 50 W cada. Ele foi copiado para as unidades individuais. A
+# propria Cemig tem o valor certo em 1.507 unidades de 10 kVA com 50 W: o erro
+# e interno a base, e nao uma escolha de engenharia dela.
+#
+# Sao 396.689 transformadores, 42% do parque, com uns 43.000 kW de ferro a
+# mais — perto de 30% do ferro que a base declara.
+#
+# A REGRA E UMA CURVA, E NAO UMA TABELA POR CLASSE
+#
+# Tabela por classe cresce a cada distribuidora e nunca fica pronta — a mesma
+# licao do achado 5. O ferro a vazio segue bem uma potencia da nominal:
+#
+#     W = 10,4 x kVA^0,77
+#
+# Ajustada sobre a mediana das seis bases sadias. Com faixa de METADE a DOBRO
+# em volta dela, o teste separa limpo: das 56 celulas (7 bases x 8 classes),
+# as UNICAS tres fora da faixa sao as tres anomalias da Cemig.
+#
+#      kVA   curva    min    max      RR   ENCE   EQPA     SP     LT   CPFL   CMIG
+#        5      36     18     72      35     35     40     70     30     50     35
+#       10      61     31    122      50     50     55     70     45     60    150!
+#       15      84     42    167      65     85     60    110     60    100    195!
+#       30     143     71    285     150    150    150    170    130    170    150
+#       45     195     97    390     195    195    170    260    170    220    195
+#       75     289    144    578     295    295    255    390    255    330    295
+#    112,5     395    197    790     390    390    335    520    335    440    150!
+#      150     493    246    985     485    485    420    640    420    540    485
+#
+# A faixa de dobro nao e frouxa por descuido: o 5 kVA da Enel SP declara 70 W
+# contra 30 W da Light, e as duas sao defensaveis. Faixa apertada transformaria
+# diferenca de fabricante em defeito. A da Cemig e 2,5x a curva, e sobra.
+#
+# O 112,5 kVA com 150 W e o caso oposto — ferro DE MENOS, 0,38x a curva — e
+# nao obedece ao fator 3. E a mesma placa de 30 kVA num terceiro lugar. A
+# faixa pega os dois lados justamente porque nao presume qual erro veio.
+FERRO_A = 10.4           # W por kVA^FERRO_B, ajustado as seis bases sadias
+FERRO_B = 0.77
+FERRO_FAIXA = 2.0        # aceita de curva/FAIXA a curva*FAIXA
+
+
+def ferro_esperado(kva):
+    """Perda a vazio tipica, em watts, para um transformador de `kva`."""
+    return FERRO_A * (float(kva) ** FERRO_B)
+
+
+def _ferro_fora_de_escala(kva, watts, faixa=FERRO_FAIXA):
+    """A placa declara ferro de um transformador de outro tamanho?
+
+    Devolve True para os dois lados: ferro grande demais (a placa do banco
+    copiada para a unidade) e pequeno demais (a placa da unidade num banco).
+    Nao presumir a direcao e o que faz a guarda pegar o 112,5 kVA da Cemig,
+    que erra PARA BAIXO e nao obedece ao fator 3 dos outros dois.
+    """
+    if not kva or not watts or watts <= 0:
+        return False
+    c = ferro_esperado(kva)
+    return not (c / faixa <= watts <= c * faixa)
+
+
 def _placa(pot_nom, per_fer, per_tot):
     """As perdas da PLACA, em % da nominal: (ferro, cobre) ou None.
 
@@ -200,6 +278,10 @@ def _placa(pot_nom, per_fer, per_tot):
     # distribuicao fica entre 0,1% e 1,5% de ferro e 0,5% e 4% de cobre.
     if not (0.05 <= ferro <= 2.0 and 0.2 <= cobre <= 6.0):
         return None
+    # Achado 56: a guarda acima e CEGA A ESCALA, e por isso deixou passar
+    # 396.689 placas da Cemig. Ver `_ferro_fora_de_escala`.
+    if _ferro_fora_de_escala(kva, f):
+        return None
     return round(ferro, 4), round(cobre, 4)
 
 
@@ -222,6 +304,54 @@ def _linha(tl):
             return v                       # nao explicavel pela regra
         v = alvo
     return v
+
+
+def placas_da_base(e):
+    """Le a EQTRMT inteira e devolve `{UNI_TR_MT: (r, xhl, placa)}` + contagem.
+
+    DUAS PASSADAS, e a segunda e o achado 56. Na primeira cada registro e
+    julgado sozinho; na segunda, quem foi reprovado por escala recebe a placa
+    que a PROPRIA BASE usa naquela classe de kVA.
+
+    Por que a propria base e nao a curva. A Cemig tem 1.507 unidades de 10 kVA
+    com os 50 W corretos, ao lado de 280.574 com os 150 W do banco. O valor
+    certo esta ali dentro, medido no parque daquela distribuidora — a curva e
+    ajuste sobre seis bases e serve para decidir QUEM esta errado, nao para
+    dizer o que colocar no lugar.
+
+    Onde a base nao tem nenhuma placa sadia para aquela classe, o registro
+    fica sem placa e cai no `EQTRMT.R`, que e o comportamento de antes do
+    achado 53. Preferir isso a inventar: `R` ruim e um problema conhecido e
+    medido, e placa inventada nao.
+
+    A CLASSE E O kVA, e nao o codigo da TPOTAPRT. Duas bases podem usar
+    codigos diferentes para 75 kVA, e o que define transformador igual e a
+    potencia.
+    """
+    from . import dominios
+    imp, cru = {}, []
+    catalogo = collections.defaultdict(collections.Counter)
+    for i in range(len(e['UNI_TR_MT'])):
+        cod = txt(e['UNI_TR_MT'][i])
+        kva = dominios.TPOTAPRT.get(txt(e['POT_NOM'][i]))
+        placa = _placa(e['POT_NOM'][i], e['PER_FER'][i], e['PER_TOT'][i])
+        r = num(e['R'][i], 0.5)
+        xhl = num(e['XHL'][i], 2.0)
+        if placa:
+            catalogo[kva][placa] += 1
+        cru.append((cod, kva, r, xhl, placa, num(e['PER_FER'][i])))
+
+    melhor = {k: c.most_common(1)[0][0] for k, c in catalogo.items() if c}
+    n_placa = n_trocada = n_sem = 0
+    for cod, kva, r, xhl, placa, per_fer in cru:
+        if placa is None and kva and _ferro_fora_de_escala(kva, per_fer):
+            placa = melhor.get(kva)
+            n_trocada += bool(placa)
+            n_sem += not placa
+        n_placa += bool(placa)
+        imp[cod] = (r, xhl, placa)
+    return imp, {'com_placa': n_placa, 'placa_trocada': n_trocada,
+                 'sem_substituto': n_sem, 'total': len(cru)}
 
 
 def _inverte_pacs(col, barras_mt):
@@ -306,14 +436,11 @@ def gerar(bdgd, ctmts, caminho_trafos, caminho_aterramento, kv_mt=13.8,
     n = len(col['COD_ID'])
 
     # impedancias e PERDAS por transformador (EQTRMT), quando disponiveis
-    imp = {}
+    imp, censo_placa = {}, {}
     try:
         e = bdgd.ler('EQTRMT', ['UNI_TR_MT', 'R', 'XHL', 'POT_NOM',
                                 'PER_FER', 'PER_TOT'])
-        for i in range(len(e['UNI_TR_MT'])):
-            imp[txt(e['UNI_TR_MT'][i])] = (
-                num(e['R'][i], 0.5), num(e['XHL'][i], 2.0),
-                _placa(e['POT_NOM'][i], e['PER_FER'][i], e['PER_TOT'][i]))
+        imp, censo_placa = placas_da_base(e)
     except Exception:
         pass
 
@@ -426,6 +553,15 @@ def gerar(bdgd, ctmts, caminho_trafos, caminho_aterramento, kv_mt=13.8,
     out.insert(5, f'! {n_placa:,} de {n:,} transformadores com as perdas da '
                   f'PLACA (PER_FER/PER_TOT); o resto usa EQTRMT.R e fica sem '
                   f'ferro. Ver achado 53 em transformadores._placa.')
+    if censo_placa.get('placa_trocada'):
+        # Achado 56. Vai no arquivo porque muda um numero que alguem pode
+        # querer conferir contra a EQTRMT e nao vai encontrar igual.
+        out.insert(6, f'! {censo_placa["placa_trocada"]:,} placas declaravam '
+                      f'ferro de um transformador de OUTRO tamanho e foram '
+                      f'trocadas pela placa que esta base usa na mesma classe '
+                      f'de kVA ({censo_placa.get("sem_substituto", 0):,} sem '
+                      f'substituto na base, essas ficaram sem ferro). Ver '
+                      f'achado 56 em transformadores.placas_da_base.')
     if invertidos:
         # Achado 54. Vai no arquivo, e nao so no relatorio: quem abre o
         # Trafos.dss e ve um COD_ID diferente do que a UNTRMT diz precisa
