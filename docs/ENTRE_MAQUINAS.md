@@ -378,6 +378,60 @@ devolve tudo ao estado anterior ao `pull`.
 
 # O diário
 
+## 2026-08-26 (o colapso da Light é do RECORTE, não da carga) — CEAMAZON
+
+**A rede de BT da Light não é particionável por alimentador, e é isso que
+derruba o `--bt completo`.** Medido na `.gdb` local, base inteira contra o
+recorte da subestação 10385997:
+
+| | barras | âncoras | alcançáveis |
+|---|---:|---:|---:|
+| Base inteira | 5.575.656 | 98.455 | **90,9%** |
+| Só a SE 10385997 | 22.978 | 231 | **11,3%** |
+
+Na BDGD, **88,4% das UCs alcançam um secundário**. No modelo gerado, ~8%. O
+dado tem o vínculo; **o recorte por CTMT o destrói.**
+
+A cadeia `trafo → SSDBT → RAMLIG → UC` **cruza fronteira de alimentador**: os
+trechos que juntariam os pedaços pertencem a CTMTs de outras subestações. Não
+é campo vazio — `CTMT` está 100% preenchido nas quatro camadas.
+
+**Testei o conserto óbvio e ele NÃO funciona.** Ancorar em qualquer
+transformador cujo `PAC_2` caia na rede recortada, e não só nos do mesmo
+alimentador, dá os **mesmos 11,3%** — e revela que "qualquer trafo" são **153**
+âncoras contra 231, ou seja, 78 secundários do próprio alimentador sequer
+aparecem na rede recortada. **O problema não são as âncoras, são os trechos.**
+
+### Três coisas que descartei por medição, e valem para quem vier
+
+1. **Descasamento de fase** — falso. 100% das cargas ligam em nós existentes.
+2. **A guarda do achado 51 disparando demais** — falso. Li 41.586 trechos
+   desabilitados; são **20.793**, porque `_BT_ILHADA.dss` escreve duas linhas
+   por trecho (fases + neutro). A guarda está correta.
+3. **Omitir a carga em ilha** — tentei e **destruí o modelo**: a subestação
+   passou a entregar **0,001 kW** contra 5.329, com perdas em 4,6e13 kW.
+   Revertido em `10489ed`, com o fracasso na mensagem do commit.
+
+### E uma falha no meu próprio diagnóstico de ontem
+
+O `bt_completude.py` deu **`ok` para a Light** porque mede se o PAC do trafo
+**aparece** na rede — e não se ele **alcança** as UCs. Presença não é
+conectividade. Ele precisa passar a medir alcance, senão continua aprovando
+base que o conversor não consegue montar.
+
+### A decisão que não é minha
+
+`--bt completo` por subestação é estruturalmente limitado nesta base. As saídas
+possíveis, e nenhuma é pequena: montar a BT por componente elétrico em vez de
+por CTMT; deixar o recorte vazar para trechos vizinhos; ou declarar que o modo
+completo só vale sobre a concessão inteira.
+
+**O achado é bom para o artigo:** o `CTMT` declarado nos trechos de BT **não
+respeita a topologia elétrica**, e isso é caracterizável nas 97.
+
+**Commit.** —
+
+
 ## 2026-08-25 — CEAMAZON
 
 **Feito.**
