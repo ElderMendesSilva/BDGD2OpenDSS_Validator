@@ -378,6 +378,63 @@ devolve tudo ao estado anterior ao `pull`.
 
 # O diário
 
+## 2026-08-26 (metros de BT por transformador prevê se o completo sobrevive) — CEAMAZON
+
+Fui atrás de "por que a carga é tão baixa" e o fio levou a outro lugar. **A
+perda da Enel CE é aritmeticamente consistente com o comprimento da rede**, e
+não com defeito de condutor:
+
+> 945,9 km de BT ÷ 1.244 trafos = **760 m por transformador**. A 4 kW por
+> trafo sobre 760 m a ~2 Ω/km dá ~496 W cada; ×1.244 = **617 kW**, contra os
+> **595 kW** medidos.
+
+E o recorte não inventa comprimento: base inteira **812 m/trafo**, SE IPU
+**782**. A Enel CE declara mesmo 137.558 km de BT para 169.357 transformadores.
+
+### A tabela que ordena os defeitos
+
+| base | UC/trafo | m/UC | **m/trafo** | `--bt completo` |
+|---|---:|---:|---:|---|
+| Roraima | 7,9 | 34,3 | **270** | ✅ 0,06% mortas |
+| CPFL Paulista | 21,5 | 21,0 | 453 | ✅ 0,04% |
+| Equatorial PA | 13,4 | 36,3 | 488 | — |
+| Enel SP | 51,9 | 12,2 | 632 | ✅ 2,27% |
+| Cemig-D | 11,9 | 57,0 | 680 | 💥 COD_ID duplicado |
+| **Enel CE** | 24,1 | 33,7 | **812** | ❌ perda 63,16% |
+| **Light** | 51,0 | 17,4 | **888** | ❌ **92,42% mortas** |
+
+**As duas que falham são as duas com mais BT por transformador, e a que melhor
+funciona é a com menos.** Cinco pontos não fecham uma lei — **as 97 fechariam**,
+e o dado já está no nó.
+
+### A contradição da Light, que vale sozinha
+
+Ela é a **segunda mais densa** em metros por consumidor (17,4 — é o Rio) e tem
+o **maior comprimento de baixa por transformador do país** (888 m). Rede
+metropolitana com 888 m de secundário por trafo não é crível: ou ela
+subdeclara transformadores, ou superdeclara comprimento de BT, ou o mesmo
+trecho é contado para vários trafos.
+
+**Isso reenquadra o defeito da Light.** Eu vinha tratando o recorte por CTMT
+como a causa; ele é o mecanismo, mas **a anomalia está antes** — uma rede de
+baixa longa demais para os transformadores que a alimentam se fragmenta com
+qualquer corte, porque ela já não é radial em torno deles.
+
+### O que NÃO se confirmou, e vale registrar
+
+- Condutor absurdo estilo achado 11 — **não**: placas plausíveis.
+- Rede sobrecarregada — **não**: 0,1% dos trechos acima da ampacidade.
+- Carga baixa demais como causa — **não é causa**: o agregado usa a MESMA
+  energia (`ENE_01/730 h`) e fecha em 6,80%.
+
+**Para a outra máquina.** `m/trafo` é barato de medir e parece prever
+viabilidade do modo completo. Se as 97 confirmarem, vira critério de entrada —
+e provavelmente vira figura de artigo, porque é métrica de **topologia
+declarada**, não de resultado de simulação.
+
+**Commit.** —
+
+
 ## 2026-08-26 (a Enel CE não é o achado 11 na baixa) — CEAMAZON
 
 Os 63,16% do `--bt completo` na Enel CE (SE IPU) reproduzem, e **a causa é
