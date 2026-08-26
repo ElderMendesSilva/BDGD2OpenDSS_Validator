@@ -1,0 +1,2 @@
+base,sub,ctmt,motivo,pct_tecnica_modelo,pct_total_medido,pct_nao_tecnica_implicita,GWh_injetado,GWh_faturado,ucs,cobertura,viola_limite,medida_degenerada,faturado_maior_que_injetado,declarado_pct,razao_vs_declarado,se_kv_mt,se_trafos,se_km_MT,se_alimentadores,se_convergiu,se_nos_nan,se_veredicto
+LT,18521208,BRI001,a investigar,12.979,8.176,-4.803,73.1322,67.1533,1987,158.8,True,False,False,,,25,996,496.45,4,True,0,OK

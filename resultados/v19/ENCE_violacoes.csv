@@ -1,0 +1,2 @@
+base,sub,ctmt,motivo,pct_tecnica_modelo,pct_total_medido,pct_nao_tecnica_implicita,GWh_injetado,GWh_faturado,ucs,cobertura,viola_limite,medida_degenerada,faturado_maior_que_injetado,declarado_pct,razao_vs_declarado,se_kv_mt,se_trafos,se_km_MT,se_alimentadores,se_convergiu,se_nos_nan,se_veredicto
+ENCE,ICP,ICP01N1,perda modelada absurda: 32.3%,32.264,23.533,-8.731,19.7373,15.0925,4112,137.1,True,False,False,,,13.8,700,461.06,4,True,0,OK

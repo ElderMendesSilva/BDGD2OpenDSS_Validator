@@ -1,0 +1,4 @@
+base,sub,ctmt,motivo,pct_tecnica_modelo,pct_total_medido,pct_nao_tecnica_implicita,GWh_injetado,GWh_faturado,ucs,cobertura,viola_limite,medida_degenerada,faturado_maior_que_injetado,declarado_pct,razao_vs_declarado,se_kv_mt,se_trafos,se_km_MT,se_alimentadores,se_convergiu,se_nos_nan,se_veredicto
+RR,5003488,BF_AL2-01,perda modelada absurda: 236.8%,236.784,39.072,-197.712,12.0981,7.3711,2420,606.0,True,False,False,,,13.8,1454,1414.83,4,True,0,OK
+RR,5003530,SC_AL2-02,perda modelada absurda: 143.9%,143.945,65.087,-78.858,9.8787,3.4489,1138,221.2,True,False,False,,,13.8,2525,1696.12,4,True,0,OK
+RR,5003530,SC_AL2-03,perda modelada absurda: 95.1%,95.078,21.838,-73.24,20.3491,15.9054,3966,435.4,True,False,False,,,13.8,2525,1696.12,4,True,0,OK

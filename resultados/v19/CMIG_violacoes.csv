@@ -1,0 +1,16 @@
+base,sub,ctmt,motivo,pct_tecnica_modelo,pct_total_medido,pct_nao_tecnica_implicita,GWh_injetado,GWh_faturado,ucs,cobertura,viola_limite,medida_degenerada,faturado_maior_que_injetado,declarado_pct,razao_vs_declarado,se_kv_mt,se_trafos,se_km_MT,se_alimentadores,se_convergiu,se_nos_nan,se_veredicto
+CMIG,1726728,URAQ408,perda modelada absurda: 51.5%,51.488,6.819,-44.669,16.9324,15.7777,184,755.0,True,False,False,,,13.8,518,755.66,3,True,0,OK
+CMIG,1726721,CRM12,medida quase sem perda: 2.27% total medido,23.698,2.27,-21.428,33.8868,33.1176,10,1044.0,True,False,False,,,13.8,2321,818.56,5,True,0,OK
+CMIG,1726698,CMN04,no limite: modelo 1.13x o total medido,11.934,10.54,-1.394,15.1244,13.5302,5954,113.2,True,False,False,,,13.8,2824,2089.33,5,True,0,OK
+CMIG,1726872,YAN07,a investigar,11.697,3.143,-8.554,24.8835,24.1013,7727,372.1,True,False,False,,,13.8,6884,3143.02,6,True,0,OK
+CMIG,1726518,BCAD212,no limite: modelo 1.03x o total medido,5.355,5.208,-0.147,11.9645,11.3414,6775,102.8,True,False,False,,,13.8,10155,4207.52,8,True,0,OK
+CMIG,1726518,BCAD209,no limite: modelo 1.13x o total medido,4.99,4.399,-0.591,19.8137,18.9422,3130,113.4,True,False,False,,,13.8,10155,4207.52,8,True,0,OK
+CMIG,1726733,CUG05,no limite: modelo 1.14x o total medido,4.286,3.772,-0.514,8.3887,8.0723,3979,113.6,True,False,False,,,13.8,3229,1814.38,4,True,0,OK
+CMIG,1726602,BHMR27,a investigar,4.177,3.281,-0.896,21.3353,20.6353,69,127.3,True,False,False,,,13.8,1112,186.3,15,True,0,OK
+CMIG,1726534,AVT07,medida quase sem perda: 2.15% total medido,4.023,2.147,-1.876,16.1601,15.8131,6132,187.4,True,False,False,,,69,1756,1231.0,3,True,0,OK
+CMIG,1726650,CEMT07,medida quase sem perda: 2.83% total medido,3.981,2.834,-1.147,11.6103,11.2813,225,140.5,True,False,False,,,13.8,1526,282.26,14,True,0,OK
+CMIG,1726675,CLHU09,medida quase sem perda: 2.93% total medido,3.568,2.932,-0.636,17.4807,16.9681,9526,121.7,True,False,False,,,13.8,8425,4350.91,6,True,0,OK
+CMIG,1726712,ULAE713,no limite: modelo 1.18x o total medido,3.523,2.984,-0.539,33.707,32.7012,9900,118.1,True,False,False,,,13.8,2685,906.43,15,True,0,OK
+CMIG,1726773,IBAD214,no limite: modelo 1.08x o total medido,2.835,2.636,-0.199,19.6735,19.155,6132,107.6,True,False,False,,,13.8,3655,1726.68,8,True,0,OK
+CMIG,1726875,BHSV02,no limite: modelo 1.03x o total medido,2.828,2.738,-0.09,9.5917,9.3291,12,103.3,True,False,False,,,13.8,689,136.37,8,True,0,OK
+CMIG,1726865,UHGF10,no limite: modelo 1.02x o total medido,2.445,2.408,-0.037,18.5323,18.086,7538,101.5,True,False,False,,,13.8,2576,887.94,7,True,0,OK

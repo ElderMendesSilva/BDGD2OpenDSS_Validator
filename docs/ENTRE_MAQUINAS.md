@@ -237,18 +237,47 @@ pode procurar o que ninguém procurou.
 Pasta **versionada**, ao contrário de `logs/` e `MODELOS*/`. Regra de entrada:
 **cabe em kilobytes e não se refaz sem o cluster.**
 
+**Isto existe: `auditoria.py`, escrito em 25/08 e com 24 testes.** Roda depois
+da rodada, no nó, e não precisa de nada além da pasta `MODELOS_*`:
+
+```bash
+python auditoria.py --sufixo V1_cluster
+git add resultados && git commit -m "Resultados da V1_cluster" && git push
+```
+
 | arquivo | um por | o que tem |
 |---|---|---|
-| `<TAG>.json` | base | uma linha por subestação: sadias, perda %, cobertura, violação, NaN, não convergiu, e as contagens de `relatorio_rede.json` (ilhadas, reguladores pendurados, `trafos_pac_invertido`, tabelas não lidas) |
-| `<TAG>_violacoes.csv` | base | **uma linha por alimentador que viola**: CTMT, perda modelada, energia medida, kVA instalado, nº de trafos, carga. É a tabela que permite auditar sem o modelo |
-| `_indice.json` | rodada | as bases da rodada, com carimbo, commit e o que faltou |
+| `<TAG>.json` | base | o `rollup` da base (SEs, sadias, não convergiu, com NaN, trafos, km, e as somas de `chaves_ilhadas`, `reguladores_pendurados`, `trafos_pac_invertido`), o bloco `perdas` com a âncora externa, o bloco `balanco` com a contagem por motivo, e uma linha por subestação |
+| `<TAG>_violacoes.csv` | base | **uma linha por alimentador com `viola_de_verdade`**, ordenada pela pior perda modelada primeiro. 23 colunas: identificação, `motivo`, os percentuais, GWh injetado e faturado, UCs, cobertura, o declarado do `PERD_*` — e o contexto da subestação com prefixo `se_` (`se_trafos`, `se_km_MT`, `se_convergiu`, `se_veredicto`) |
+| `_indice.json` | rodada | as bases, com commit da procedência, sadias, violações e se reprovou na âncora |
+
+**Tamanho medido: 478 KB para as sete bases da V19 inteiras**, contra os
+gigabytes de `MODELOS_*`. O programa avisa se algum arquivo passa de 1 MB, que
+é o sinal de granularidade errada.
 
 **O que NÃO entra:** `.dss`, `BusCoords`, curva de carga, qualquer coisa por
-barra. Se um arquivo passa de ~1 MB, ele está errado de granularidade.
+barra ou por nó.
 
 **Por que CSV para as violações e JSON para o resto.** A violação é a tabela
 que alguém vai abrir, ordenar e filtrar — inclusive fora de programa. O resto é
-lido por código.
+lido por código. A ordem das colunas é fixa de propósito, para que `diff` entre
+duas rodadas signifique alguma coisa.
+
+### A coluna `motivo`, que é o que economiza a primeira hora
+
+Violação não é diagnóstico. O `motivo` classifica cada linha na causa conhecida,
+com limiares **medidos** sobre as 77 violações reais da V19:
+
+| motivo | V19 | o que quer dizer |
+|---|---:|---|
+| `no limite` | 32 | modelo a menos de 1,2× do total medido. Alimentador que perde muito de verdade, não modelo quebrado |
+| `perda modelada absurda` | 27 | perda técnica modelada acima de 15% |
+| `medida quase sem perda` | 6 | total medido abaixo de 3%: quase qualquer perda técnica viola |
+| **`a investigar`** | **12** | **nenhuma causa conhecida se aplica — é aqui que vale gastar tempo** |
+
+Doze é uma lista que uma pessoa trabalha; setenta e sete não é. **Se o
+`a investigar` crescer muito numa rodada nova, é sinal de defeito novo**, e não
+de mais alimentadores ruins.
 
 ### A linha que separa as duas máquinas
 
@@ -271,7 +300,10 @@ máquina anotou trabalho em voo nele.** Foi o que evitou colisão no
 3. CASA reproduz aquele caso na base local, mede, corrige, testa, `push`;
 4. o nó puxa e roda de novo.
 
-**O passo 2 é o que hoje não existe**, e é o único que precisa de código novo.
+**O passo 2 passou a existir em 25/08.** O que falta é o nó rodar o
+`auditoria.py` no fim da rodada — uma linha no `uma_base.pbs`, ou um job
+encadeado com `depend=afterany` sobre as bases. Isso é do lado do CEAMAZON, que
+é dono do `cluster/`, e por isso não foi mexido daqui.
 
 ---
 
@@ -1131,5 +1163,46 @@ Na Light os pares 112,5→450 e 150→600 são fator 4 — cheiram a banco.
 - **O teste que separa tudo isso é local e barato**, e roda nas 7 bases daqui —
   não precisa de cluster. Os três scripts estão no diretório de rascunho desta
   sessão e valem ser trazidos para `diagnosticos/` quando alguém tocar nisto.
+
+**Commit.** —
+
+## 2026-08-25 (o coletor existe, e a V19 já está publicada) — CASA
+
+**Feito.**
+- `auditoria.py` escrito, com 24 testes. Colhe uma rodada e grava
+  `resultados/<sufixo>/` — versionado, ao contrário de `logs/` e `MODELOS*/`.
+- A **V19 local publicada** em `resultados/v19/`: as sete bases, 478 KB. Serve
+  de referência para comparar com a `V1_cluster` sem ninguém ter os modelos.
+- Seção "Trabalhar em paralelo" acima, agora descrevendo o que a ferramenta
+  produz de verdade e não o que eu tinha prometido.
+
+**Medido.**
+- **478 KB para as sete bases**, contra gigabytes de `MODELOS_*`. A maior
+  (Cemig, 413 SEs) dá 164 KB.
+- As **77 violações** das sete, classificadas: 32 `no limite`, 27 `perda
+  modelada absurda`, 6 `medida quase sem perda`, **12 `a investigar`**.
+
+**Quebrou — e as duas quebras estavam no meu próprio código.**
+- **Três dos quatro motivos que escrevi primeiro eram ramo morto.**
+  `medida invertida`, `medida degenerada` e `cobertura magra` nunca disparam
+  na tabela de violações, porque o `viola_de_verdade` já exclui os dois
+  primeiros por construção, e toda linha que viola tem cobertura > 100% —
+  `cobertura` é `100 × modelo / medido`, então violar É ter cobertura alta.
+  Só percebi rodando. Os limiares novos saíram da distribuição real.
+- `denominador minúsculo` também não dispara: o menor GWh injetado entre as 77
+  é **1,20**. Ficou como defesa, e o docstring diz que é defesa.
+- O regex `MODELOS_(.+?)_(.+)$` lia `MODELOS_EQ_PA_V1_cluster` como TAG=`EQ`.
+  A base sumiria da colheita **em silêncio**. Agora a âncora é o sufixo, que o
+  chamador conhece — e de quebra `V1` deixou de arrastar `V19`.
+
+**Para a outra máquina.**
+- **Falta uma linha no `cluster/uma_base.pbs`:** `python auditoria.py --sufixo
+  "$SUFIXO"` depois do `regerar_v10.py`, ou um job encadeado com
+  `depend=afterany` sobre todas as bases — que é melhor, porque roda uma vez só
+  e não 97. **Não mexi**, porque `cluster/` é sua faixa.
+- Depois disso, `git add resultados && git push` e eu passo a enxergar a
+  rodada daqui.
+- **Se o `a investigar` crescer muito numa rodada nova, é defeito novo**, e não
+  mais alimentador ruim. É o número que vale olhar primeiro.
 
 **Commit.** —
