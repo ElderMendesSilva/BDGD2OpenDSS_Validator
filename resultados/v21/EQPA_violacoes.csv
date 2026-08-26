@@ -1,0 +1,11 @@
+base,sub,ctmt,motivo,pct_tecnica_modelo,pct_total_medido,pct_nao_tecnica_implicita,GWh_injetado,GWh_faturado,ucs,cobertura,viola_limite,medida_degenerada,faturado_maior_que_injetado,declarado_pct,razao_vs_declarado,se_kv_mt,se_trafos,se_km_MT,se_alimentadores,se_convergiu,se_nos_nan,se_veredicto
+EQPA,STO,STO09W4,perda modelada absurda: 129.9%,129.874,90.689,-39.185,1.7188,0.16,62,143.2,True,False,False,,,34.5,942,911.73,6,True,0,OK
+EQPA,ORI,ORIOX-02,perda modelada absurda: 53.0%,52.985,7.034,-45.951,26.4958,24.632,5443,753.2,True,False,False,,,13.8,421,147.83,3,True,0,OK
+EQPA,MUI,MUIMI-07,perda modelada absurda: 42.5%,42.525,4.925,-37.6,11.4442,10.8806,3458,863.5,True,False,False,,,13.8,1106,319.96,8,True,0,OK
+EQPA,VCO,VCO09C1,perda modelada absurda: 41.8%,41.776,25.629,-16.147,19.7287,14.6725,9069,163.0,True,False,False,,,34.5,5075,3291.93,7,True,0,OK
+EQPA,MD1,MD101M2,perda modelada absurda: 33.0%,33.013,3.436,-29.577,0.9216,0.8899,888,960.8,True,False,False,,,34.5,397,405.91,4,True,0,OK
+EQPA,BEL,BEL09W3,perda modelada absurda: 18.7%,18.708,4.092,-14.616,11.2229,10.7636,3463,457.2,True,False,False,,,34.5,2502,1552.94,5,True,0,OK
+EQPA,POT,POTPT-01,medida quase sem perda: 2.91% total medido,8.121,2.912,-5.209,17.6456,17.1318,3988,278.9,True,False,False,,,13.8,381,218.33,4,True,0,OK
+EQPA,PAR,PARPR-10,a investigar,8.002,5.201,-2.801,10.9668,10.3964,540,153.8,True,False,False,,,34.5,5973,6614.81,14,True,0,OK
+EQPA,CAS,CASCS-08,a investigar,7.025,5.274,-1.751,20.7679,19.6726,6216,133.2,True,False,False,,,13.8,1599,379.48,10,True,0,OK
+EQPA,MUI,MUIMI-06,no limite: modelo 1.16x o total medido,2.395,2.06,-0.335,24.7377,24.228,4486,116.2,True,False,False,,,13.8,1106,319.96,8,True,0,OK

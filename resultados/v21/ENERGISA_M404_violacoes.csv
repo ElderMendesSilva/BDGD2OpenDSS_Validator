@@ -1,0 +1,11 @@
+base,sub,ctmt,motivo,pct_tecnica_modelo,pct_total_medido,pct_nao_tecnica_implicita,GWh_injetado,GWh_faturado,ucs,cobertura,viola_limite,medida_degenerada,faturado_maior_que_injetado,declarado_pct,razao_vs_declarado,se_kv_mt,se_trafos,se_km_MT,se_alimentadores,se_convergiu,se_nos_nan,se_veredicto
+ENERGISA_M404,100,722703,perda modelada absurda: 35.4%,35.397,9.03,-26.367,5.1516,4.6864,955,392.0,True,False,False,,,34.5,3951,5882.82,7,True,0,OK
+ENERGISA_M404,81,722591,perda modelada absurda: 24.7%,24.739,4.638,-20.101,22.9734,21.9079,131,533.4,True,False,False,,,13.8,2083,1286.36,13,True,0,OK
+ENERGISA_M404,73,748380,a investigar,14.786,3.601,-11.185,6.481,6.2476,174,410.6,True,False,False,,,34.5,448,1286.29,3,True,0,OK
+ENERGISA_M404,33,687958,a investigar,13.553,3.178,-10.375,6.0186,5.8274,336,426.5,True,False,False,,,34.5,1766,3015.82,4,True,0,OK
+ENERGISA_M404,73,748358,a investigar,11.301,3.789,-7.512,3.6719,3.5328,267,298.2,True,False,False,9.289069122372773,1.216591226862709,34.5,448,1286.29,3,True,0,OK
+ENERGISA_M404,97,189960,no limite: modelo 1.08x o total medido,8.046,7.421,-0.625,3.7564,3.4776,581,108.4,True,False,False,,,34.5,1450,1025.11,5,True,0,OK
+ENERGISA_M404,79,949290,medida quase sem perda: 2.58% total medido,6.003,2.583,-3.42,11.3551,11.0618,3332,232.4,True,False,False,,,34.5,3533,2546.92,6,True,0,OK
+ENERGISA_M404,46,748128,a investigar,5.782,3.974,-1.808,18.0576,17.34,4122,145.5,True,False,False,,,34.5,3049,2765.57,4,True,0,OK
+ENERGISA_M404,142623,748402,a investigar,4.437,3.393,-1.044,16.8709,16.2985,5243,130.8,True,False,False,2.0573373535169877,2.1566710935447775,13.8,2730,3086.81,4,True,0,OK
+ENERGISA_M404,17176,687651,no limite: modelo 1.12x o total medido,2.692,2.411,-0.281,18.3478,17.9054,4433,111.7,True,False,False,11.113210702645274,0.24223422663616234,13.8,1419,2189.87,3,True,0,OK

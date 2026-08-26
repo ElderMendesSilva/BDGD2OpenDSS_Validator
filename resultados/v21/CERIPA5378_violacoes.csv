@@ -1,0 +1,3 @@
+base,sub,ctmt,motivo,pct_tecnica_modelo,pct_total_medido,pct_nao_tecnica_implicita,GWh_injetado,GWh_faturado,ucs,cobertura,viola_limite,medida_degenerada,faturado_maior_que_injetado,declarado_pct,razao_vs_declarado,se_kv_mt,se_trafos,se_km_MT,se_alimentadores,se_convergiu,se_nos_nan,se_veredicto
+CERIPA5378,HITI,103_HITI_1,perda modelada absurda: 15.1%,15.125,6.501,-8.624,0.7478,0.6992,268,232.7,True,False,False,,,13.8,433,140.99,3,True,0,OK
+CERIPA5378,TREV,102_TREV_1,a investigar,9.041,4.933,-4.108,2.4527,2.3317,271,183.3,True,False,False,,,13.8,498,250.99,4,True,0,OK
