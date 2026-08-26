@@ -187,6 +187,23 @@ def ilhadas_bt(ramos, ancoras):
     secundario. Devolve os NOMES a suprimir — quem chama decide o que fazer
     com eles, e diz no arquivo quantos foram.
     """
+    vivos = vivas_bt(ramos, ancoras)
+    return {nome for nome, a, z in ramos if a not in vivos and z not in vivos}
+
+
+def vivas_bt(ramos, ancoras):
+    """As barras de BT que ALCANCAM um secundario de transformador.
+
+    Extraida de `ilhadas_bt` porque a carga tambem precisa dela. A guarda do
+    achado 51 desabilitava a LINHA ilhada e deixava a CARGA ligada nela: no
+    modo agregado isso e inocuo, porque a carga fica no secundario do trafo,
+    que nunca e ilha. No `--bt completo` a carga fica na propria rede de BT, e
+    o resultado foi 62.525 cargas de 67.655 com tensao EXATAMENTE ZERO na
+    Light — 92,42% —, medido em 26/08/2026 na subestacao 10385997.
+
+    Carga pendurada em ilha nao e erro do OpenDSS nem carga com tensao baixa:
+    e carga que nao existe eletricamente e que ninguem declarou como omitida.
+    """
     import collections
     adj = collections.defaultdict(set)
     for _, a, z in ramos:
@@ -201,4 +218,4 @@ def ilhadas_bt(ramos, ancoras):
             if y not in vivos:
                 vivos.add(y)
                 fila.append(y)
-    return {nome for nome, a, z in ramos if a not in vivos and z not in vivos}
+    return vivos
