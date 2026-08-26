@@ -378,6 +378,106 @@ devolve tudo ao estado anterior ao `pull`.
 
 # O diário
 
+## 2026-08-26 (fecho da sessão: a V21 e os três bugs do completo) — CEAMAZON
+
+Registro de encerramento. O que rodou, o que ficou provado, o que eu errei e
+onde parar de procurar.
+
+### A V21 rodou as 97, e o achado 56 tem veredito
+
+**97 convertidas, 75 com ciclo completo, `resultados/v21/` commitado
+(`f0f392a`, 195 arquivos, 2,5 MB).**
+
+| Cemig-D | V1_cluster | V21 |
+|---|---:|---:|
+| perda do modelo | 5,354% | **4,630%** |
+| razão vs `PERD_*` | 1,668× | **1,443×** |
+| violação real | **11,12%** | **7,84%** |
+
+**Os três caíram juntos** — o teste que vocês definiram. O achado 56 **era uma
+causa**. Mas 7,84% continua ~7× as outras seis: **não era a causa inteira**, e a
+pista volta ao filtro assimétrico do achado 44. **Não reverti o `d36adc0`.**
+
+**`reprova = False` nas SETE** contra a âncora da ANEEL, e a **dispersão apertou
+de 1,80 para 1,55** (3,11% a 4,84%), como previsto.
+
+**A conferência que mais convence:** ENCE e LT não se moveram **um dígito**
+(4,44 e 3,36 de perda; 0,73 e 0,89 de violação) — e são exatamente as duas com
+**zero placas trocadas**. O efeito apareceu só onde deveria.
+
+Nos CSV das 97: **371 alimentadores `a investigar`**, 15 subestações
+`NAO_CONVERGE[C-API:500]` contra 1.611 `OK`.
+
+### Duas decisões de operação que valem manter
+
+**1. Sufixo novo em vez de apagar.** Vocês pediram para apagar
+`MODELOS_*_V1_cluster/`; usei `V21`. Resolve o mesmo (pasta nova nasce limpa,
+então o `--refazer` que o `regerar_v10` não repassa deixa de importar) **e
+preserva a rodada anterior para comparar**, que é o que o `CLAUDE.md` manda —
+e foi ela que permitiu a tabela acima. Disco não era restrição: 11 TB.
+
+**2. O nó ficou PINADO em `444fa62` a rodada inteira.** Desenvolvi e commitei
+aqui sem dar `pull` lá. Jobs que começam depois de um `pull` rodariam código
+diferente dos que começaram antes, e a V21 deixaria de ser uma rodada.
+
+**3. Commitei os resultados do CEAMAZON, não do nó.** O nó não tem identidade
+git; configurá-la marcaria com o nome do Elder os commits de todos que usam a
+conta `teste`. E `push` de lá exigiria credencial do GitHub numa conta
+compartilhada. Vieram por `scp`.
+
+### `--bt completo`: um bug fechado, dois diagnosticados
+
+**Fechado — `COD_ID` repetido na UCBT_tab** (`eea5975`). Era o que abortava a
+Cemig. Sufixo `__N`, **nenhuma carga descartada**, contagem no cabeçalho. Seis
+testes.
+
+**Light — não é a carga, é o RECORTE.** Base inteira: 90,9% das barras de BT
+alcançam um secundário e **88,4% das UCs**. Recortada pela SE: **11,3%**. O
+`CTMT` está 100% preenchido; a cadeia é que cruza fronteira de alimentador.
+
+**Enel CE — não é defeito, é comprimento.** 465,8 km de rede secundária para
+1.838 kW: **374 m de secundária por transformador**. Perda por km **normal**
+(1,224 kW/km, ~16,5 A por fase).
+
+### Seis hipóteses minhas que morreram, e por que registrá-las
+
+Cada uma parecia óbvia e custou medição. Quem vier não precisa repetir:
+
+| hipótese | veredito |
+|---|---|
+| Descasamento de fase (Light) | ❌ 100% das cargas em nós existentes |
+| Guarda do achado 51 disparando demais | ❌ li 41.586, são 20.793 — o arquivo escreve 2 linhas por trecho |
+| Âncora errada no `ilhadas_bt` | ❌ ancorar em qualquer trafo dá os mesmos 11,3% |
+| Condutor absurdo na Enel CE | ❌ placas plausíveis, `condutores_r1_corrigido` vazio |
+| Rede sobrecarregada | ❌ 0,1% dos trechos acima da ampacidade |
+| **Desequilíbrio de fases** | ❌ **1,26×**, não 2,5× — eu tinha escrito como conclusão e estava errado |
+
+**E uma tentativa de conserto que desfiz:** omitir as cargas em ilha **destruiu
+o modelo** — 0,001 kW entregues contra 5.329, perdas em 4,6e13 kW. Revertida,
+com o fracasso escrito no `10489ed`.
+
+### O que fica na mesa, em ordem de valor
+
+1. **Os 7,84% da Cemig.** Maior desvio não explicado que resta. O achado 56
+   levou de 11,12; o resto é outra coisa.
+2. **Os 371 `a investigar`.** É o passo 2 do ciclo que vocês desenharam — abrir
+   o CSV, ordenar, escolher o pior caso. **A tabela existe agora.**
+3. **`m/trafo` como métrica.** Prevê se o completo sobrevive, e é topologia
+   declarada, não resultado de simulação. **Precisa ser separada em secundária
+   e ramal** — a tabela que publiquei soma as duas, e só a secundária prevê.
+4. **22 bases sem ciclo completo** (75 de 97), contra 49 antes do conserto da
+   curva. Não investiguei quais nem por quê.
+5. **`--bt completo` continua inviável em produção.** Um bug a menos, dois
+   diagnosticados e nenhum deles com conserto pequeno.
+
+**Uma falha no meu próprio instrumento:** o `bt_completude.py` deu `ok` para a
+Light porque mede se o PAC do trafo **aparece** na rede, não se **alcança** as
+UCs. Presença não é conectividade — precisa passar a medir alcance, senão segue
+aprovando base que o conversor não monta.
+
+**Commit.** —
+
+
 ## 2026-08-26 (CORREÇÃO: o desequilíbrio NÃO é o amplificador) — CEAMAZON
 
 **Corrijo a entrada "a Enel CE não é o achado 11 na baixa".** Escrevi que o
