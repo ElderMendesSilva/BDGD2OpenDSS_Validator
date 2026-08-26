@@ -1249,3 +1249,107 @@ Na Light os pares 112,5→450 e 150→600 são fator 4 — cheiram a banco.
   mais alimentador ruim. É o número que vale olhar primeiro.
 
 **Commit.** —
+
+## 2026-08-25 (achado 56 e o que a V21 tem de responder) — CASA
+
+**A `main` está pronta para a V21.** 606 testes verdes, com a sua correção da
+curva de recurso e o achado 56 juntos. Segue o que mudou e o que a rodada
+precisa medir.
+
+### Achado 56: a guarda da placa era cega à escala
+
+A guarda do achado 53 pergunta se o ferro está entre 0,05% e 2,0% da nominal.
+**1,50% passa folgado — e 1,50% de 10 kVA são 150 W**, que não é o ferro de um
+10 kVA, é o de um 30 kVA. Percentual errado continua *parecendo* percentual.
+
+| classe | ferro | unidades | fases do primário |
+|---|---:|---:|---|
+| 10 kVA | 150 W | 280.574 | **monofásicas** |
+| 30 kVA | 150 W | 27.729 | trifásicas |
+| 15 kVA | 195 W | 116.115 | **monofásicas** |
+| 45 kVA | 195 W | 81.843 | trifásicas |
+
+150 W é o valor certo de um banco trifásico de 30 kVA — três unidades de
+10 kVA a 50 W — e desceu para as unidades individuais. **Testei a hipótese
+inversa e ela caiu:** supus que o código desse a potência por fase, e que então
+os 280.574 seriam trifásicos. São monofásicos, todos. A própria Cemig tem o
+valor certo em 1.507 unidades de 10 kVA com 50 W, e os 5 kVA dela batem com
+todo mundo — não é parque velho, é erro interno à base.
+
+**A regra é uma curva, não uma tabela por classe** (lição do achado 5):
+`W = 10,4 × kVA^0,77`, faixa de metade a dobro. Das 56 células (7 bases ×
+8 classes), as únicas três fora da faixa são as três da Cemig — incluindo o
+112,5 kVA, que erra **para baixo** e não obedece ao fator 3.
+
+Placa reprovada recebe a placa que **a própria base** usa naquela classe. A
+maioria não manda: 280.574 erradas contra 1.507 certas, e quem decide é a
+curva. Classe sem placa sadia fica sem ferro e cai no `EQTRMT.R`.
+
+**O efeito está contido onde deveria:**
+
+| base | registros | placas trocadas | % | sem substituto |
+|---|---:|---:|---:|---:|
+| CMIG | 952.375 | **431.988** | 45,4% | 326 |
+| SP | 236.523 | 19.982 | 8,4% | 1.372 |
+| CPFL | 237.390 | 6.887 | 2,9% | 41 |
+| EQPA | 227.407 | 3.252 | 1,4% | 23 |
+| RR | 27.700 | 134 | 0,5% | 65 |
+| ENCE / LT | — | **0** | 0,0% | 9 / 1 |
+
+### ⚠️ O EFEITO NO MODELO NÃO FOI MEDIDO
+
+Tentei e não fechei. Gerei a 1726728 (URAQ408, a pior violação da Cemig na
+V19) com o achado 56, mas a linha de base na `main` não completou — perdi as
+tentativas para o diretório temporário sendo limpo por baixo do conversor e
+para um processo velho meu. **A V21 é a medição.**
+
+**Fundi mesmo assim, e o argumento é este:** a evidência no nível da placa é
+forte e o risco está contido — duas bases não são tocadas e três mudam menos
+de 3%. Se a V21 disser que piorou, `git revert` do `d36adc0` desfaz sozinho.
+
+### A V21 tem de REGERAR AS 97, e isso resolve o seu `/tmp/refazer.txt`
+
+**O achado 56 muda a saída do conversor**, então as 48 que completaram o ciclo
+também estão velhas. Não são 49 a refazer, são **97** — e aí o problema de o
+`regerar_v10 --refazer` não repassar a flag some, porque a pasta sai limpa de
+qualquer jeito. Apagar `MODELOS_*_V1_cluster/` antes é mais simples do que
+montar a lista.
+
+### O que olhar quando fechar, em ordem
+
+1. **A Cemig.** É o alvo do achado 56. Na V1_cluster ela deu **violação real
+   11,12%**, perda **5,35%**, razão vs `PERD_*` **1,27×** e cobertura 76,7% —
+   a violação é dez vezes a das outras seis. Se o ferro era a causa, os três
+   números caem juntos. **Se não caírem, o achado 56 não era a causa** e a
+   pista volta a ser o "filtro assimétrico" do achado 44.
+2. **As sete continuam passando na âncora da ANEEL?** `reprova=False` nas sete
+   é o que fechou o critério 11; o achado 56 tira perda, e tirar demais
+   reprovaria pelo outro lado.
+3. **A dispersão.** Estava em fator 1,8 (2,79% a 5,35%). Deve apertar.
+4. **A contagem de `a investigar`** nos CSV de violação. Cresceu muito? Defeito
+   novo, e não mais alimentador ruim.
+
+### Rode o coletor no fim — é uma linha
+
+```bash
+python auditoria.py --sufixo "$SUFIXO"
+git add resultados && git commit -m "Resultados da V21" && git push
+```
+
+Melhor como job encadeado com `depend=afterany` sobre todas as bases: roda uma
+vez, e não 97. Não mexi no `cluster/` porque é sua faixa. **A V19 local já está
+em `resultados/v19/`** para comparar.
+
+**Para a outra máquina.**
+- **Há um `git stash` seu nesta máquina** — "tarefa bdgd_minima em andamento",
+  6 arquivos, `.gitignore` e `testes/fixture.py` entre eles. Ele foi aplicado
+  por acidente hoje e devolvido ao stash intacto. **Não rode `git stash` dentro
+  de script encadeado**: um `stash push`/`pop` meu em segundo plano pegou o
+  stash errado e deixou a árvore com conflito `UU`. Foi assim que quase se
+  perdeu.
+- Confirmo a sua leitura sobre base pequena concordar melhor: a Castro-Dis com
+  0,97× e 100% de cobertura contra 76,7% da Cemig é forte, e **as 97 respondem
+  isso de graça** — é só correlacionar razão com número de alimentadores no
+  `_indice.json` que o coletor grava.
+
+**Commit.** `d36adc0`
