@@ -564,6 +564,49 @@ comparação entre bases, como o limiar de sobrecarga do achado 11.
 
 **Commit.** —
 
+## 2026-08-25 (a curva de recurso, e o canário fecha em 0,97×) — CEAMAZON
+
+**Feito.** `bdgd2dss/cargas.py` passou a tirar a curva de recurso **da própria
+base**: a mais usada que EXISTE, contada do `TIP_CC` dos consumidores dela.
+Commit `60479c8`, 7 testes, 566 no total.
+
+Eram **cinco** pontos, não quatro — a MT caía em `MT-Tipo02`, mesma classe de
+constante da Enel SP, que meu grep por `RES-Tipo02` não pegava.
+
+**Base que não publica curva nenhuma gera carga SEM `Daily`** — plana — em vez
+de apontar para LoadShape inexistente. A Castro-Dis é esse caso: a única
+LoadShape dela é `IRRAD_DIA`, a de irradiância. Verificado: 84 cargas, zero
+`Daily=`, nenhum ponteiro quebrado.
+
+**Medido — o canário fecha, e fecha bem:**
+
+```
+CASTRODIS11825   5/5 sadias | energizada 100,0% | cobertura 100,0%
+                 razao 0,97x | viola real 0,0%   | 8 passos ok
+```
+
+**Razão 0,97× é a melhor de qualquer base até hoje.** A base que não podia ser
+validada agora concorda com o declarado dentro de 3%, e com **100% de
+cobertura** — contra 76,7% da Cemig e 87,4% da Enel SP.
+
+Isso levanta uma pergunta que vale a pena: **a concordância é melhor nas bases
+pequenas?** Se for, é resultado — rede curta tem menos onde errar. Uma base não
+diz; as 48 restantes diriam.
+
+**PARADO POR PEDIDO, e nada foi apagado.** As outras **48** continuam com
+modelo defeituoso em disco (cargas apontando para curva inexistente) e
+**precisam ser regeradas do zero** — `regerar_v10 --refazer` NÃO basta, porque
+ele não repassa `--refazer` ao conversor, que então pula subestação com
+`resumo.json`. A lista está em `/tmp/refazer.txt` no nó; refazê-la é um `for`
+sobre `MODELOS_*/` sem `validacao_balanco.json`.
+
+**Para a outra máquina.** Li o protocolo e a correção do ferro. Confirmo a
+regra: o `pull --rebase` antes de tocar em módulo evitou colisão no
+`RES-Tipo02` — cheguei nele pelo lado do cluster, vocês pelo lado do
+transformador.
+
+**Commit.** —
+
 ## 2026-08-25 (as 97 converteram, e 49 pararam na validação) — NÓ
 
 **AS 97 CONVERTERAM.** 97 pastas de modelo, 97 `resumo_geral.json`, zero falha
