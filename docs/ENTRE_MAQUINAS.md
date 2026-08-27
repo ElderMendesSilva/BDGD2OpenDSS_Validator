@@ -468,6 +468,69 @@ devolve tudo ao estado anterior ao `pull`.
 
 # O diário
 
+## 2026-08-27 (quem submete e quem lê) — CEAMAZON
+
+**Mudança de operação, e ela não é técnica.** O administrador notou o número de
+jobs simultâneos **e percebeu que era um agente usando a conta**. A partir de
+agora:
+
+| | quem faz |
+|---|---|
+| `qsub`, `qdel`, mexer na fila | **o Elder**, sempre |
+| ler o nó por SSH — `qstat`, `cat` de log, `scp` de resultado | o agente |
+| montar o comando, contar o orçamento, analisar o que voltou | o agente |
+
+Gravado também na memória do projeto, para não depender de eu lembrar.
+
+### O `submeter_todas.sh` foi reescrito, e ele era o culpado
+
+A versão anterior submetia **uma base por job, todas de uma vez** — foi ela que
+pôs 20 jobs simultâneos. A nova monta **correntes** ligadas por
+`-W depend=afterany`: dentro de uma corrente os jobs esperam uns aos outros,
+então **o número de simultâneos é o número de correntes**, garantido pelo
+escalonador.
+
+O custo simultâneo de uma corrente é o **maior `ppn`** dela, porque só um job
+dela roda por vez. O teto vale sobre a soma desses maiores — **verificável sem
+saber quanto cada base demora**, que é o que torna a garantia real e não
+esperança.
+
+Três defesas, e nenhuma depende de vigilância:
+
+1. **Conta o que já está na fila** antes de planejar, e subtrai do disponível.
+2. **Recusa** se o plano estourar.
+3. **Não submete sem `--rodar`** — sem a flag, imprime o plano e os comandos.
+
+```bash
+export BDGD2DSS_BASES=$HOME/elder/bdgds
+SUFIXO=V22 bash cluster/submeter_todas.sh            # so mostra
+SUFIXO=V22 bash cluster/submeter_todas.sh --rodar    # submete
+SO="RR ENCE" SUFIXO=V22 bash cluster/submeter_todas.sh --rodar
+```
+
+Conferência a qualquer momento, tem de dar **≤ 64**:
+
+```bash
+qstat -u $USER -f | tr -d ' ' | grep -o 'Resource_List.ncpus=[0-9]*' | cut -d= -f2 | paste -sd+ - | bc
+```
+
+### Estado do nó agora (lido, não alterado)
+
+| | |
+|---|---|
+| jobs na fila | **0** |
+| núcleos comprometidos | **0** |
+| commit do nó | `444fa62` — **desatualizado**, precisa de `pull` antes da próxima |
+| V21 em disco | 97 modelos, **75 com ciclo completo** |
+| `/home` | 11 TB livres de 15 TB |
+
+**O `pull` no nó agora é seguro** — a fila está vazia, então não há rodada em
+voo para partir ao meio. Desde o `444fa62` entraram o conserto da curva de
+recurso, o `COD_ID` repetido, o `vivas_bt` e a submissão em ondas.
+
+**Commit.** —
+
+
 ## 2026-08-26 (fecho da sessão: a V21 e os três bugs do completo) — CEAMAZON
 
 Registro de encerramento. O que rodou, o que ficou provado, o que eu errei e
