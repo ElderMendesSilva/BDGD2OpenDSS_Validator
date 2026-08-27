@@ -230,6 +230,31 @@ def _painel():
     return True
 
 
+SEM_AMOSTRA = 'SEM AMOSTRA — nenhum alimentador com medida utilizavel'
+
+
+def mediana_ou_motivo(v, casas=2):
+    """Mediana formatada, ou o motivo de nao haver uma.
+
+    O NIVEL 3 estourava com `StatisticsError: no median for empty data` quando
+    TODA a medicao da base era degenerada. E o estouro acontecia ANTES do
+    `json.dump`, entao a base perdia tambem o dado bruto que ela ja tinha
+    calculado: sem `validacao_balanco.json`, o ciclo nao fecha e a base some do
+    resumo, como se nao tivesse rodado.
+
+    MEDIDO NA V21, em 26/08/2026: **21 das 97 bases do pais** morriam assim —
+    todas cooperativas pequenas, todas com `faturado >= injetado` em 100% dos
+    alimentadores.
+
+    NAO HAVER MEDIANA NAO E FALHA DO PROGRAMA, E RESULTADO. A base declara
+    energia faturada maior que a injetada, que e defeito de cadastro e nao de
+    modelo. O achado 10 ja separava `medida degenerada` de violacao real; o que
+    faltava era o caso em que a base INTEIRA e degenerada — e ai o certo e
+    dizer que nao ha amostra, gravar o que se mediu, e seguir.
+    """
+    return ('%.*f%%' % (casas, statistics.median(v))) if v else SEM_AMOSTRA
+
+
 def main():
     if len(sys.argv) == 1 and not _painel():
         return
@@ -277,13 +302,16 @@ def main():
     print(f'   {"APROVA" if not real else "REPROVA"}: '
           f'{"nenhum alimentador com medida utilizavel tem perda tecnica maior que a total medida" if not real else "ha modelo fisicamente impossivel"}')
     print('\nNIVEL 2 — RESIDUO (perda nao tecnica implicita)')
-    print(f'   mediana {statistics.median(res):6.2f}%   '
-          f'p10 {sorted(res)[len(res)//10]:6.2f}%   '
-          f'p90 {sorted(res)[9*len(res)//10]:6.2f}%')
+    if res:
+        print(f'   mediana {statistics.median(res):6.2f}%   '
+              f'p10 {sorted(res)[len(res)//10]:6.2f}%   '
+              f'p90 {sorted(res)[9*len(res)//10]:6.2f}%')
+    else:
+        print('   ' + SEM_AMOSTRA)
     print('\nNIVEL 3 — COBERTURA (quanto da perda total o modelo explica)')
-    print(f'   mediana {statistics.median(cob):6.1f}%')
-    print(f'\n   perda total medida: mediana {statistics.median(tot):6.2f}%')
-    print(f'   tecnica do modelo:  mediana {statistics.median(tec):6.2f}%')
+    print('   mediana ' + mediana_ou_motivo(cob, 1))
+    print('\n   perda total medida: mediana ' + mediana_ou_motivo(tot))
+    print('   tecnica do modelo:  mediana ' + mediana_ou_motivo(tec))
 
     if real:
         print(f'\nos 10 piores com medida utilizavel '
