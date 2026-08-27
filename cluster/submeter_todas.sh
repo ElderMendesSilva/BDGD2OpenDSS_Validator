@@ -191,7 +191,39 @@ while read -r _ n mx itens; do
         printf "  corrente %-2s  %-18s ppn=%-3s mem=%-4s -> %s\n" "$n" "$TAG" "$PPN" "${MEM}gb" "$id"
         ANT="$id"
     done
+    # A PONTA de cada corrente e o que o coletor tem de esperar.
+    CAUDAS="${CAUDAS:-}:$ANT"
 done < <(grep '^CHAIN' /tmp/plano_ondas.txt)
+
+# --- o coletor, encadeado nas PONTAS -----------------------------------------
+# Ele depende do ULTIMO job de cada corrente, e nao dos 97: sao 8 dependencias
+# em vez de 97, e o efeito e o mesmo — quando a ponta de uma corrente termina,
+# tudo o que vinha antes dela ja terminou, porque a corrente e sequencial.
+#
+# `afterany` e nao `afterok` de proposito: o coletor tem de rodar mesmo que uma
+# base falhe. Uma rodada com 96 de 97 ainda vale, e sem isto o PBS apagaria o
+# coletor quando a primeira base reprovasse.
+#
+# `ppn=4` porque ele so le JSON. Cabe no orcamento por definicao: quando ele
+# roda, as correntes ja acabaram.
+ID_COLETOR=$(qsub -W "depend=afterany${CAUDAS}" -N "colet_$SUFIXO" -q "$FILA" \
+    -l nodes=1:ppn=4 -l mem=12gb -l walltime=02:00:00 -j oe -o logs/cluster/ \
+    -v "PROJETO=$PWD,SUFIXO=$SUFIXO" - <<'PBS'
+#!/bin/bash
+set -uo pipefail
+cd "${PBS_O_WORKDIR:-$PROJETO}"
+source .venv/bin/activate
+export BDGD2DSS_MODO=cluster
+echo "## coletor da $SUFIXO — $(date)"
+python -u auditoria.py --sufixo "$SUFIXO"
+echo
+echo "## resultados/$(echo "$SUFIXO" | tr 'A-Z' 'a-z')/"
+du -sh "resultados/$(echo "$SUFIXO" | tr 'A-Z' 'a-z')" 2>/dev/null
+echo "## fim $(date)"
+PBS
+)
+echo
+echo "  coletor (espera as $CORRENTES pontas) -> $ID_COLETOR"
 
 echo
 echo "acompanhe com:  qstat -an -u \$USER"
