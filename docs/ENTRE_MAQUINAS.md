@@ -468,6 +468,96 @@ devolve tudo ao estado anterior ao `pull`.
 
 # O diário
 
+## 2026-08-27 (a V22 fecha: 96 de 97, rastreável, e as 7 reprovações têm nome) — CEAMAZON
+
+**Submetida pelo Elder**, com o `submeter_todas.sh` em ondas. Eu li, contei o
+orçamento e entreguei o comando; não submeti nada.
+
+### O orçamento foi cumprido, medido e não prometido
+
+| | |
+|---|---|
+| Correntes (jobs simultâneos) | **8** |
+| Núcleos no pico | **64 de 64** |
+| Memória no pico | **192 GB de 192** |
+| Jobs submetidos | 97, com **89 retidos** pelo escalonador |
+
+Contra os **20 jobs e ~80 núcleos** da V21 que renderam a chamada. Quem segurou
+foi o PBS, por `depend=afterany`, e não vigilância.
+
+**A corrente 6 foi o caminho crítico, como estimado** — CMIG, as duas Energisa
+e a Copel. As outras sete fecharam em ~1 h e esperaram ~2 h por ela.
+
+### Dois ganhos reais, e os dois são de robustez
+
+| | V21 | **V22** |
+|---|---:|---:|
+| Ciclo completo | 75 de 97 | **96 de 97** |
+| Commits distintos | **0** (não rastreável) | **1** |
+
+A única que não fecha é a **`CERCOS5377`**, que declara 1 alimentador e
+**zero subestações** — não há o que modelar, e o conversor reporta certo.
+
+O commit atravessou do nó de acesso até dentro dos jobs, com
+`commit_origem = submissao` dizendo honestamente que não veio do `git` local.
+
+### O que NÃO mudou, e isso importa
+
+**As sete bases conhecidas deram números IDÊNTICOS à V21** — perda e violação
+iguais na segunda casa:
+
+| base | perda V21 | perda V22 | viola V21 | viola V22 |
+|---|---:|---:|---:|---:|
+| RR | 4,84 | 4,84 | 0,00 | 0,00 |
+| ENCE | 4,44 | 4,44 | 0,73 | 0,73 |
+| EQPA | 3,11 | 3,11 | 1,63 | 1,63 |
+| SP | 4,09 | 4,09 | 3,05 | 3,05 |
+| LT | 3,36 | 3,36 | 0,89 | 0,89 |
+| CPFL | 3,29 | 3,29 | 1,05 | 1,05 |
+| CMIG | 4,63 | 4,63 | **7,84** | **7,84** |
+
+Faz sentido: entre as duas, só o **achado 57** toca modelo, e só a inversão de
+PAC de EQPA e CMIG — 21 transformadores de 952 mil na Cemig não movem agregado.
+O 58 é relato, e os meus consertos (curva de recurso, `COD_ID`, base
+degenerada) atingem bases pequenas ou o `--bt completo`.
+
+**Os 7,84% da Cemig continuam de pé.** Regenerar não os move, como o
+`PLANO_V1.md` já dizia de outra coisa.
+
+### As 7 que reprovam a âncora não são 7 bases ruins
+
+**Corrijo o que eu disse antes de a rodada fechar.** Vi `perda acima de 30%: 0`
+na saída do coletor e reportei que os dois casos impossíveis tinham sumido.
+**Estava errado:** aquele coletor rodou com **88 de 97**, e a `COPELDIS2866`
+não estava entre elas. Continuam 2, e continuam 7 reprovações.
+
+| base | perda bruta | contaminação | **sem implausíveis** |
+|---|---:|---:|---:|
+| ENERGISA_M405 | **1.550.975%** | **100,00%** | **3,09%** |
+| COPELDIS2866 | 41,62% | 92,55% | 3,11% |
+| EQUATORIAL44 | 26,13% | 89,93% | 2,64% |
+| EQUATORIAL6072 | 13,15% | 68,30% | 4,42% |
+| SANTA_MARI381 | 11,93% | 58,20% | 5,35% |
+| NEOENERGIA40 | 11,01% | 27,77% | 8,93% |
+| CPFL_SANTA69 | 7,78% | 39,61% | 5,18% |
+
+**Todas as sete ficam entre 2,64% e 8,93% quando os alimentadores implausíveis
+saem** — dentro da faixa das que passam. É o achado 58 provando o ponto dele
+nas 97: não são bases ruins, são **punhados de alimentadores impossíveis
+sequestrando o agregado**. A M405 é o caso limite com **100% de contaminação**.
+
+**Para a outra máquina.**
+- **O alvo deixou de ser "consertar 7 bases" e passou a ser "explicar N
+  alimentadores".** Os `_violacoes.csv` já dão a lista, e o `pct_modelo_sem_
+  implausiveis` já dá o número que sobra depois.
+- **O coletor precisa esperar a fila.** Rodá-lo cedo produz um relatório
+  plausível e errado, e foi assim que eu reportei "0 impossíveis". O
+  encadeamento nas 8 pontas (`6841942`) resolve — não valeu para a V22 porque
+  ela foi submetida com o commit anterior.
+
+**Commit.** —
+
+
 ## 2026-08-27 (quem submete e quem lê) — CEAMAZON
 
 **Mudança de operação, e ela não é técnica.** O administrador notou o número de
