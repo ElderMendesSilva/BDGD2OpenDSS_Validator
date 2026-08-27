@@ -1,0 +1,6 @@
+base,sub,ctmt,motivo,pct_tecnica_modelo,pct_total_medido,pct_nao_tecnica_implicita,GWh_injetado,GWh_faturado,ucs,cobertura,viola_limite,medida_degenerada,faturado_maior_que_injetado,declarado_pct,razao_vs_declarado,se_kv_mt,se_trafos,se_km_MT,se_alimentadores,se_convergiu,se_nos_nan,se_veredicto
+ENCE,PRB,PRB01P2,denominador minusculo: 0.002 GWh injetados,802.854,3.029,-799.825,0.0016,0.0016,1,26502.8,True,False,False,,,13.8,223,106.35,7,True,0,OK
+ENCE,ITC,ITC01I1,denominador minusculo: 0.006 GWh injetados,76.591,21.079,-55.512,0.0059,0.0047,4,363.4,True,False,False,,,13.8,967,747.35,4,True,0,OK
+ENCE,ICP,ICP01N1,perda modelada absurda: 33.4%,33.424,23.533,-9.891,19.7373,15.0925,4112,142.0,True,False,False,,,13.8,700,461.06,4,True,0,OK
+ENCE,JGB,JGB01M5,no limite: modelo 1.09x o total medido,33.017,30.288,-2.729,30.1508,21.0186,10356,109.0,True,False,False,,,13.8,3743,2675.6,6,True,0,OK
+ENCE,PBU,PBU01P3,no limite: modelo 1.03x o total medido,20.501,19.936,-0.565,16.0059,12.8149,9049,102.8,True,False,False,,,13.8,2436,1800.89,3,True,0,OK

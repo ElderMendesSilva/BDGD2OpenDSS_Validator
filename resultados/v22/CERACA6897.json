@@ -1,0 +1,158 @@
+{
+ "base": "CERACA6897",
+ "pasta": "MODELOS_CERACA6897_V22",
+ "procedencia": {
+  "commit": "6757c680bf80940827c5af65352959a29d87b769",
+  "commit_origem": "submissao",
+  "descricao": "O planejador usa o python do .venv: no no nao existe python",
+  "sujo": null,
+  "git_respondeu": false,
+  "python": "3.11.4",
+  "gerado_em": "2026-08-27 18:41:47",
+  "base": "CERACA6897"
+ },
+ "bdgd": "Ceraca_6897_2024-12-31_V11_20250909-1754.gdb",
+ "dist": "6897",
+ "bt": "agregado",
+ "mes": 1,
+ "dia": "DU",
+ "subestacoes_na_bdgd": 5,
+ "subestacoes_geradas": 5,
+ "alimentadores": 5,
+ "rollup": {
+  "ses": 5,
+  "sadias": 5,
+  "nao_convergiu": 0,
+  "com_nan": 0,
+  "trafos": 3894,
+  "km_MT": 1463.2,
+  "chaves_ilhadas": 5,
+  "reguladores_pendurados": 0,
+  "trafos_pac_invertido": 0,
+  "kW_morto": 0,
+  "kW_nominal": 13586.7
+ },
+ "perdas": {
+  "agregado": null,
+  "referencia_externa": null,
+  "populacao": null,
+  "modelo_implausivel": null,
+  "parcelas": null
+ },
+ "balanco": {
+  "alimentadores": 4,
+  "viola_de_verdade": 0,
+  "pct_viola": 0.0,
+  "por_motivo": {}
+ },
+ "tabelas_nao_lidas": {
+  "EQSE": {
+   "registros": 1867,
+   "motivo": "detalhe de equipamento da chave; COR_NOM identico ao da UNSEMT (23.962/23.962 em RR). ELO_FSV e MEI_ISO sao dados de protecao e patrimonio, fora do fluxo de potencia"
+  },
+  "UNCRBT": {
+   "registros": 0,
+   "motivo": "capacitor de BAIXA tensao; zero registros nas sete"
+  },
+  "UNREBT": {
+   "registros": null,
+   "motivo": "regulador de BAIXA tensao; a camada nao existe em base nenhuma"
+  },
+  "UNSEBT": {
+   "registros": 0,
+   "motivo": "chave de BAIXA tensao; so vale com a rede de BT modelada (criterio 5, em aberto), e falta em tres das sete bases"
+  }
+ },
+ "subestacoes": [
+  {
+   "se": "MH01",
+   "veredicto": "OK",
+   "convergiu": true,
+   "iteracoes": 2,
+   "nos_nan": 0,
+   "perdas_pct": 6.07,
+   "V_MT_min": 0.97,
+   "cargas_sem_tensao": 0,
+   "ramos_isolados": 0,
+   "causa": "OK",
+   "alimentadores": 1,
+   "trafos": 744,
+   "km_MT": 261.59,
+   "chaves_ilhadas": 1,
+   "reguladores_pendurados": 0,
+   "trafos_pac_invertido": 0
+  },
+  {
+   "se": "PZO2",
+   "veredicto": "OK",
+   "convergiu": true,
+   "iteracoes": 3,
+   "nos_nan": 0,
+   "perdas_pct": 5.17,
+   "V_MT_min": 0.949,
+   "cargas_sem_tensao": 0,
+   "ramos_isolados": 5,
+   "causa": "OK",
+   "alimentadores": 1,
+   "trafos": 1340,
+   "km_MT": 526.83,
+   "chaves_ilhadas": 0,
+   "reguladores_pendurados": 0,
+   "trafos_pac_invertido": 0
+  },
+  {
+   "se": "PZO7",
+   "veredicto": "OK",
+   "convergiu": true,
+   "iteracoes": 2,
+   "nos_nan": 0,
+   "perdas_pct": 5.6,
+   "V_MT_min": 0.961,
+   "cargas_sem_tensao": 0,
+   "ramos_isolados": 4,
+   "causa": "OK",
+   "alimentadores": 1,
+   "trafos": 1350,
+   "km_MT": 508.41,
+   "chaves_ilhadas": 4,
+   "reguladores_pendurados": 0,
+   "trafos_pac_invertido": 0
+  },
+  {
+   "se": "SECER",
+   "veredicto": "OK",
+   "convergiu": true,
+   "iteracoes": 2,
+   "nos_nan": 0,
+   "perdas_pct": -0.0,
+   "V_MT_min": 1.0,
+   "cargas_sem_tensao": 0,
+   "ramos_isolados": 0,
+   "causa": "OK",
+   "alimentadores": 1,
+   "trafos": 2,
+   "km_MT": 0.0,
+   "chaves_ilhadas": 0,
+   "reguladores_pendurados": 0,
+   "trafos_pac_invertido": 0
+  },
+  {
+   "se": "SN",
+   "veredicto": "OK",
+   "convergiu": true,
+   "iteracoes": 2,
+   "nos_nan": 0,
+   "perdas_pct": 5.52,
+   "V_MT_min": 0.974,
+   "cargas_sem_tensao": 0,
+   "ramos_isolados": 0,
+   "causa": "OK",
+   "alimentadores": 1,
+   "trafos": 458,
+   "km_MT": 166.39,
+   "chaves_ilhadas": 0,
+   "reguladores_pendurados": 0,
+   "trafos_pac_invertido": 0
+  }
+ ]
+}

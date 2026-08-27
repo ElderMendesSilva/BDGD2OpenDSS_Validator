@@ -1,0 +1,28 @@
+base,sub,ctmt,motivo,pct_tecnica_modelo,pct_total_medido,pct_nao_tecnica_implicita,GWh_injetado,GWh_faturado,ucs,cobertura,viola_limite,medida_degenerada,faturado_maior_que_injetado,declarado_pct,razao_vs_declarado,se_kv_mt,se_trafos,se_km_MT,se_alimentadores,se_convergiu,se_nos_nan,se_veredicto
+EQUATORIAL37,URI,URI09F7,perda modelada absurda: 129621.1%,129621.143,5.578,-129615.565,15.0511,14.2115,5853,2323668.8,True,False,False,,,34.5,664,840.81,4,True,0,OK
+EQUATORIAL37,BCP,BCP09N1,perda modelada absurda: 5778.3%,5778.258,15.659,-5762.599,26.0955,22.0092,9880,36900.1,True,False,False,,,13.8,4231,3386.48,7,True,0,OK
+EQUATORIAL37,FTN,FTN09F1,perda modelada absurda: 393.0%,393.039,27.497,-365.542,6.1851,4.4844,2491,1429.4,True,False,False,,,34.5,5007,3622.98,6,True,0,OK
+EQUATORIAL37,SBN,SBN01C1,perda modelada absurda: 179.1%,179.093,26.232,-152.861,6.9605,5.1346,3641,682.7,True,False,False,,,34.5,1796,1491.08,5,True,0,OK
+EQUATORIAL37,IPS,IPS01C4,no limite: modelo 1.07x o total medido,107.269,99.974,-7.295,13.8209,0.0036,1,107.3,True,False,False,,,13.8,349,70.09,8,True,0,OK
+EQUATORIAL37,CXS,CXS09L4,perda modelada absurda: 80.9%,80.876,9.287,-71.589,8.6307,7.8292,4540,870.9,True,False,False,,,13.8,4103,3134.67,13,True,0,OK
+EQUATORIAL37,IPA,IPA09L3,perda modelada absurda: 80.6%,80.616,18.613,-62.003,26.4712,21.5442,8642,433.1,True,False,False,,,34.5,2891,1754.07,12,True,0,OK
+EQUATORIAL37,PDT,PDT09L1,perda modelada absurda: 78.2%,78.206,16.146,-62.06,31.5461,26.4528,12285,484.4,True,False,False,,,34.5,3502,2650.17,8,True,0,OK
+EQUATORIAL37,MNS,MNS09F2,perda modelada absurda: 69.2%,69.234,26.295,-42.939,29.2343,21.5471,10582,263.3,True,False,False,,,34.5,838,656.38,3,True,0,OK
+EQUATORIAL37,GJU,GJU09F2,perda modelada absurda: 67.4%,67.4,6.83,-60.57,26.2846,24.4894,10497,986.8,True,False,False,,,34.5,4305,3708.43,8,True,0,OK
+EQUATORIAL37,PDT,PDT09L3,perda modelada absurda: 62.3%,62.339,12.787,-49.552,24.7446,21.5806,11717,487.5,True,False,False,,,34.5,3502,2650.17,8,True,0,OK
+EQUATORIAL37,BDC,BDC09F3,perda modelada absurda: 55.1%,55.12,35.286,-19.834,11.5293,7.461,4363,156.2,True,False,False,,,34.5,3627,3045.64,10,True,0,OK
+EQUATORIAL37,TMO,TMO01C1,perda modelada absurda: 45.9%,45.869,16.488,-29.381,13.7447,11.4785,5567,278.2,True,False,False,,,34.5,1810,996.87,12,True,0,OK
+EQUATORIAL37,TMA,TMA09L1,perda modelada absurda: 45.1%,45.141,30.593,-14.548,35.4808,24.6262,13420,147.6,True,False,False,,,13.8,1877,1042.91,4,True,0,OK
+EQUATORIAL37,FTN,FTN01C1,perda modelada absurda: 43.6%,43.629,18.779,-24.85,8.2965,6.7385,2596,232.3,True,False,False,,,34.5,5007,3622.98,6,True,0,OK
+EQUATORIAL37,SNO,SNO09L2,perda modelada absurda: 39.9%,39.85,17.279,-22.571,32.3945,26.797,12956,230.6,True,False,False,,,34.5,5444,4200.88,5,True,0,OK
+EQUATORIAL37,CXS,CXS09L2,perda modelada absurda: 36.0%,36.043,29.004,-7.039,13.9923,9.934,6534,124.3,True,False,False,,,13.8,4103,3134.67,13,True,0,OK
+EQUATORIAL37,CDO,CDO01C9,perda modelada absurda: 32.7%,32.693,16.329,-16.364,5.8513,4.8958,2751,200.2,True,False,False,,,13.8,875,292.95,9,True,0,OK
+EQUATORIAL37,RSO,RSO09S1,perda modelada absurda: 32.4%,32.436,26.084,-6.352,40.7349,30.1095,18258,124.4,True,False,False,,,13.8,1988,1488.33,7,True,0,OK
+EQUATORIAL37,BJD,BJD09F2,perda modelada absurda: 29.3%,29.277,14.776,-14.501,22.6478,19.3015,8912,198.1,True,False,False,,,34.5,1178,1195.68,3,True,0,OK
+EQUATORIAL37,FTN,FTN09F2,perda modelada absurda: 23.9%,23.877,17.984,-5.893,6.5737,5.3915,2770,132.8,True,False,False,,,34.5,5007,3622.98,6,True,0,OK
+EQUATORIAL37,MNS,MNS09F3,perda modelada absurda: 21.5%,21.465,11.377,-10.088,16.7683,14.8606,7482,188.7,True,False,False,,,34.5,838,656.38,3,True,0,OK
+EQUATORIAL37,IAQ,IAQ01C5,perda modelada absurda: 20.8%,20.814,13.551,-7.263,9.238,7.9862,4141,153.6,True,False,False,,,13.8,316,107.96,5,True,0,OK
+EQUATORIAL37,BRN,BRN01C3,no limite: modelo 1.15x o total medido,14.672,12.77,-1.902,11.386,9.932,3991,114.9,True,False,False,,,13.8,1719,911.42,6,True,0,OK
+EQUATORIAL37,STI,STI01C8,a investigar,7.72,4.859,-2.861,20.5776,19.5777,9081,158.9,True,False,False,,,13.8,2529,1671.84,12,True,0,OK
+EQUATORIAL37,SNO,SNO01C1,a investigar,5.888,4.351,-1.537,1.4587,1.3952,602,135.3,True,False,False,,,34.5,5444,4200.88,5,True,0,OK
+EQUATORIAL37,SJR,SJR01C2,medida quase sem perda: 2.12% total medido,3.136,2.116,-1.02,22.1853,21.7158,8379,148.2,True,False,False,,,13.8,896,286.88,6,True,0,OK

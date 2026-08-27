@@ -1,0 +1,211 @@
+{
+ "base": "CERMC6610",
+ "pasta": "MODELOS_CERMC6610_V22",
+ "procedencia": {
+  "commit": "6757c680bf80940827c5af65352959a29d87b769",
+  "commit_origem": "submissao",
+  "descricao": "O planejador usa o python do .venv: no no nao existe python",
+  "sujo": null,
+  "git_respondeu": false,
+  "python": "3.11.4",
+  "gerado_em": "2026-08-27 15:54:18",
+  "base": "CERMC6610"
+ },
+ "bdgd": "Cermc_6610_2024-12-31_V11_20250807-1042.gdb",
+ "dist": "6610",
+ "bt": "agregado",
+ "mes": 1,
+ "dia": "DU",
+ "subestacoes_na_bdgd": 6,
+ "subestacoes_geradas": 6,
+ "alimentadores": 6,
+ "rollup": {
+  "ses": 6,
+  "sadias": 6,
+  "nao_convergiu": 0,
+  "com_nan": 0,
+  "trafos": 475,
+  "km_MT": 157.6,
+  "chaves_ilhadas": 3,
+  "reguladores_pendurados": 0,
+  "trafos_pac_invertido": 0,
+  "kW_morto": 0,
+  "kW_nominal": 3089.2
+ },
+ "perdas": {
+  "agregado": {
+   "pct_modelo": 3.388724962918126,
+   "pct_declarado": 4.580765222391738,
+   "razao": 0.7397726795412544,
+   "n": 6,
+   "contaminacao_pct": 0.0,
+   "pct_modelo_sem_implausiveis": 3.388724962918126,
+   "implausiveis": 0,
+   "teto_implausivel": 20.0
+  },
+  "referencia_externa": {
+   "pct_modelo": 3.388724962918126,
+   "referencia_pct": 7.4,
+   "razao": 0.45793580579974674,
+   "reprova": false,
+   "de_agente": false,
+   "motivo": "",
+   "fonte": "ANEEL SGT/STR, \"Perdas de Energia Eletrica na Distribuicao 2025/2024\", Figura 3 (p.4) e Figura 6 (p.5)"
+  },
+  "populacao": {
+   "no_modelo": 6,
+   "comparados": 6,
+   "fora": 0,
+   "sem_declaracao": 0,
+   "sem_energia_no_modelo": 0,
+   "sem_os_dois": 0,
+   "cobertura_pct": 100.0,
+   "declarado_e_morto_pct": 0.0,
+   "fecha": true
+  },
+  "modelo_implausivel": {
+   "n": 0,
+   "de": 6,
+   "teto": 20.0,
+   "pior_pct": 7.624,
+   "fatia_da_perda_pct": 0.0
+  },
+  "parcelas": [
+   "PERD_A4"
+  ]
+ },
+ "balanco": {
+  "alimentadores": 6,
+  "viola_de_verdade": 0,
+  "pct_viola": 0.0,
+  "por_motivo": {}
+ },
+ "tabelas_nao_lidas": {
+  "EQSE": {
+   "registros": 549,
+   "motivo": "detalhe de equipamento da chave; COR_NOM identico ao da UNSEMT (23.962/23.962 em RR). ELO_FSV e MEI_ISO sao dados de protecao e patrimonio, fora do fluxo de potencia"
+  },
+  "UNCRBT": {
+   "registros": 0,
+   "motivo": "capacitor de BAIXA tensao; zero registros nas sete"
+  },
+  "UNREBT": {
+   "registros": null,
+   "motivo": "regulador de BAIXA tensao; a camada nao existe em base nenhuma"
+  },
+  "UNSEBT": {
+   "registros": 0,
+   "motivo": "chave de BAIXA tensao; so vale com a rede de BT modelada (criterio 5, em aberto), e falta em tres das sete bases"
+  }
+ },
+ "subestacoes": [
+  {
+   "se": "0001",
+   "veredicto": "OK",
+   "convergiu": true,
+   "iteracoes": 2,
+   "nos_nan": 0,
+   "perdas_pct": 1.75,
+   "V_MT_min": 0.95,
+   "cargas_sem_tensao": 0,
+   "ramos_isolados": 0,
+   "causa": "OK",
+   "alimentadores": 1,
+   "trafos": 39,
+   "km_MT": 15.24,
+   "chaves_ilhadas": 1,
+   "reguladores_pendurados": 0,
+   "trafos_pac_invertido": 0
+  },
+  {
+   "se": "0002",
+   "veredicto": "OK",
+   "convergiu": true,
+   "iteracoes": 2,
+   "nos_nan": 0,
+   "perdas_pct": 6.98,
+   "V_MT_min": 0.953,
+   "cargas_sem_tensao": 0,
+   "ramos_isolados": 2,
+   "causa": "OK",
+   "alimentadores": 1,
+   "trafos": 64,
+   "km_MT": 32.29,
+   "chaves_ilhadas": 0,
+   "reguladores_pendurados": 0,
+   "trafos_pac_invertido": 0
+  },
+  {
+   "se": "0003",
+   "veredicto": "OK",
+   "convergiu": true,
+   "iteracoes": 2,
+   "nos_nan": 0,
+   "perdas_pct": 7.31,
+   "V_MT_min": 0.953,
+   "cargas_sem_tensao": 0,
+   "ramos_isolados": 2,
+   "causa": "OK",
+   "alimentadores": 1,
+   "trafos": 58,
+   "km_MT": 19.48,
+   "chaves_ilhadas": 0,
+   "reguladores_pendurados": 0,
+   "trafos_pac_invertido": 0
+  },
+  {
+   "se": "0005",
+   "veredicto": "OK",
+   "convergiu": true,
+   "iteracoes": 2,
+   "nos_nan": 0,
+   "perdas_pct": 6.17,
+   "V_MT_min": 0.943,
+   "cargas_sem_tensao": 0,
+   "ramos_isolados": 4,
+   "causa": "OK",
+   "alimentadores": 1,
+   "trafos": 220,
+   "km_MT": 68.82,
+   "chaves_ilhadas": 1,
+   "reguladores_pendurados": 0,
+   "trafos_pac_invertido": 0
+  },
+  {
+   "se": "0006",
+   "veredicto": "OK",
+   "convergiu": true,
+   "iteracoes": 2,
+   "nos_nan": 0,
+   "perdas_pct": 3.06,
+   "V_MT_min": 0.954,
+   "cargas_sem_tensao": 0,
+   "ramos_isolados": 0,
+   "causa": "OK",
+   "alimentadores": 1,
+   "trafos": 19,
+   "km_MT": 4.85,
+   "chaves_ilhadas": 0,
+   "reguladores_pendurados": 0,
+   "trafos_pac_invertido": 0
+  },
+  {
+   "se": "0007",
+   "veredicto": "OK",
+   "convergiu": true,
+   "iteracoes": 2,
+   "nos_nan": 0,
+   "perdas_pct": 1.9,
+   "V_MT_min": 0.948,
+   "cargas_sem_tensao": 0,
+   "ramos_isolados": 2,
+   "causa": "OK",
+   "alimentadores": 1,
+   "trafos": 75,
+   "km_MT": 16.9,
+   "chaves_ilhadas": 1,
+   "reguladores_pendurados": 0,
+   "trafos_pac_invertido": 0
+  }
+ ]
+}
