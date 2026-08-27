@@ -47,6 +47,26 @@ echo "bases    : ${SO:-todas as encontradas}"
 echo "modo     : $([[ $RODAR == sim ]] && echo 'SUBMETER' || echo 'so mostrar (use --rodar para submeter)')"
 echo
 
+# --- de qual codigo esta rodada sai -----------------------------------------
+# O COMMIT E LIDO AQUI, no no de acesso, porque no no de CALCULO o `git` nao
+# responde. A V21 inteira saiu com `commit` vazio — 97 modelos e ZERO commits
+# distintos, isto e, rodada nao rastreavel: nao da para dizer de qual codigo
+# aqueles numeros sairam. Quem sabe e quem submete.
+#
+# Vai por `-v`, e o `regerar_v10.procedencia` so usa este valor se o git de la
+# falhar — nunca por cima do que o git diz, porque a variavel pode estar velha
+# e o git nunca esta.
+COMMIT=$(git rev-parse HEAD 2>/dev/null || echo '')
+DESCRICAO=$(git log -1 --pretty=%s 2>/dev/null | tr -cd '[:alnum:] .:-' | cut -c1-60)
+if [[ -n "$(git status --porcelain 2>/dev/null | head -1)" ]]; then
+    echo '!! ARVORE SUJA: ha alteracao nao commitada neste repositorio.'
+    echo '   O modelo que sair daqui NAO seria reproduzivel pelo commit.'
+    git status --short | head -5
+    exit 1
+fi
+echo "commit   : ${COMMIT:0:10}  $DESCRICAO"
+echo
+
 # --- o que ja esta rodando NOSSO conta contra o orcamento -------------------
 EM_USO=$(qstat -u "$USER" -f 2>/dev/null \
          | tr -d ' ' | grep -o 'Resource_List.ncpus=[0-9]*' \
@@ -137,7 +157,7 @@ while read -r _ n mx itens; do
         id=$(qsub -N "b_$TAG" -q "$FILA" \
              -l nodes=1:ppn="$PPN" -l mem="${MEM}gb" -l walltime="$WALLTIME" \
              $DEP \
-             -v "TAG=$TAG,SUFIXO=$SUFIXO,PROJETO=$PWD,BDGD2DSS_BASES=$BDGD2DSS_BASES" \
+             -v "TAG=$TAG,SUFIXO=$SUFIXO,PROJETO=$PWD,BDGD2DSS_BASES=$BDGD2DSS_BASES,BDGD2DSS_COMMIT=$COMMIT,BDGD2DSS_DESCRICAO=$DESCRICAO" \
              cluster/uma_base.pbs)
         printf "  corrente %-2s  %-18s ppn=%-3s mem=%-4s -> %s\n" "$n" "$TAG" "$PPN" "${MEM}gb" "$id"
         ANT="$id"

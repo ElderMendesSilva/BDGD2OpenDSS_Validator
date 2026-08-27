@@ -197,6 +197,45 @@ class ProcedenciaNaoMenteQuandoNaoSabe(unittest.TestCase):
         p = self._com_git(lambda *a, **k: R())
         self.assertIs(p['sujo'], True)
 
+    def test_sem_git_o_commit_vem_de_quem_submeteu(self):
+        """A V21 saiu com 97 modelos e ZERO commits distintos.
+
+        O `git` responde no no de acesso e nao no de calculo, entao o commit
+        saia vazio e a rodada inteira ficava sem rastro. Quem sabe de qual
+        codigo ela saiu e quem submete: o `submeter_todas.sh` le
+        `git rev-parse HEAD` la e passa por `-v`.
+        """
+        def explode(*a, **k):
+            raise FileNotFoundError('git')
+        os.environ['BDGD2DSS_COMMIT'] = 'abc123def4567890'
+        try:
+            p = self._com_git(explode)
+        finally:
+            os.environ.pop('BDGD2DSS_COMMIT', None)
+        self.assertEqual(p['commit'], 'abc123def4567890')
+        self.assertEqual(p['commit_origem'], 'submissao')
+        self.assertIsNone(p['sujo'], 'commit de fora NAO atesta arvore limpa')
+
+    def test_a_variavel_nunca_passa_por_cima_do_git(self):
+        """O git nunca esta velho; a variavel pode estar."""
+        class R:
+            returncode, stdout, stderr = 0, 'ddd444', ''
+        os.environ['BDGD2DSS_COMMIT'] = 'NAO-USAR'
+        try:
+            p = self._com_git(lambda *a, **k: R())
+        finally:
+            os.environ.pop('BDGD2DSS_COMMIT', None)
+        self.assertEqual(p['commit'], 'ddd444')
+        self.assertEqual(p['commit_origem'], 'git')
+
+    def test_sem_git_e_sem_variavel_o_commit_e_declarado_ausente(self):
+        def explode(*a, **k):
+            raise FileNotFoundError('git')
+        os.environ.pop('BDGD2DSS_COMMIT', None)
+        p = self._com_git(explode)
+        self.assertEqual(p['commit'], '')
+        self.assertEqual(p['commit_origem'], 'ausente')
+
 
 if __name__ == '__main__':
     unittest.main()

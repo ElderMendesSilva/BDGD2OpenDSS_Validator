@@ -290,7 +290,26 @@ def procedencia():
     ok_status, status = git('status', '--porcelain')
     _, descricao = git('log', '-1', '--pretty=%s')
 
+    # O COMMIT VEM DE FORA QUANDO O GIT NAO RESPONDE NO NO DE EXECUCAO.
+    #
+    # O `git` existe no no de acesso e nao no de calculo, entao TODA a V21 saiu
+    # com `commit` vazio: 97 modelos e **zero commits distintos**, ou seja
+    # rodada nao rastreavel. Nao da para dizer de qual codigo aqueles numeros
+    # sairam, e isso derruba a reivindicacao de reprodutibilidade inteira.
+    #
+    # Quem sabe o commit e QUEM SUBMETE, no no de acesso, onde o git responde.
+    # `cluster/submeter_todas.sh` le `git rev-parse HEAD` ali e passa por `-v`;
+    # aqui so se aceita o valor quando o git local falhou — jamais por cima do
+    # que o git diz, porque a variavel pode estar velha e o git nunca esta.
+    origem = 'git'
+    if not ok_commit:
+        de_fora = os.environ.get('BDGD2DSS_COMMIT', '').strip()
+        if de_fora:
+            commit, origem = de_fora, 'submissao'
+            descricao = descricao or os.environ.get('BDGD2DSS_DESCRICAO', '')
+
     return {'commit': commit,
+            'commit_origem': origem if commit else 'ausente',
             'descricao': descricao,
             # None NAO e False. `False` afirma "conferi e a arvore esta
             # limpa"; `None` diz "nao deu para conferir". Quem le o
