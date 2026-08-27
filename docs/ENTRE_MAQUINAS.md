@@ -41,6 +41,13 @@ git commit -m "Diario: <o que mudou nesta sessao>"
 git push
 ```
 
+**Antes de submeter qualquer coisa no cluster, some os `ppn` do que já está
+rodando e pare em 64:**
+
+```bash
+qstat -an -u $USER | tail -n +6 | wc -l
+```
+
 **Se você não fizer mais nada além disso, o sistema já funciona.** O resto
 deste documento é sobre escrever a entrada bem.
 
@@ -201,14 +208,97 @@ PYTHON=/opt/spack/opt/spack/linux-oracle8-x86_64/gcc-12.2.0/python-3.11.4-cnmrti
 
 O Python do sistema é **3.6.8**, velho demais — a ferramenta pede 3.9+.
 
-**`ppn=32` do `uma_base.pbs` está justificado.** O nó tem 128 núcleos e 256 GB,
-então 32 processos × 3 GB = 96 GB cabem com folga. A regra de memória do
-projeto não é o gargalo aqui.
+**O nó tem 128 núcleos e 256 GB — e o que é NOSSO é metade disso.** O que cabe
+fisicamente não é o que nos foi alocado: o orçamento combinado é de **64
+núcleos e 192 GB**, somados sobre todos os nossos jobs ao mesmo tempo (ver a
+seção do orçamento, abaixo). Um `uma_base.pbs` com `ppn=32` e `mem=96gb`
+consome metade dele, então **cabem dois, e não mais**.
+
+Uma versão anterior desta linha dizia que `ppn=32` "cabia com folga" porque o
+nó tem 128 núcleos. Estava lendo a capacidade da máquina como se fosse a nossa
+cota, e foi assim que a V21 acabou com 20 jobs simultâneos.
 
 **Atenção a um erro de digitação que circulou:** o repasse do administrador diz
 `10.107.1.123` em dois lugares e `10.107.1.23` em outro. **O certo é
 `10.107.1.23`** — foi o que respondeu ao ping (2 ms) e o que aparece no
 terminal do administrador. `ubiratan.ufpa.br` não resolveu.
+
+---
+
+## ⚠️ O orçamento do cluster: 64 núcleos e 192 GB. Sempre.
+
+**Escrito em 26/08/2026, depois de uma chamada do administrador.** Ele pediu,
+com todas as letras, cuidado com **a quantidade de jobs** e com **comandos de
+remoção** emitidos por agente — *"para não travar o Cluster, por favor"*.
+
+**O orçamento não é uma sugestão e não é por job. É o teto da SOMA de tudo o
+que estivermos rodando ao mesmo tempo:**
+
+| | teto |
+|---|---:|
+| núcleos, somados sobre todos os nossos jobs simultâneos | **64** |
+| memória, somada sobre todos os nossos jobs simultâneos | **192 GB** |
+
+### A regra operacional é uma só: Σ ppn ≤ 64
+
+O dimensionamento por tamanho de base usa **3 GB por núcleo**, então a memória
+segue sozinha se os núcleos forem respeitados. Basta contar `ppn`.
+
+| classe da base | `ppn` | `mem` | quantos cabem ao mesmo tempo |
+|---|---:|---:|---:|
+| < 1 GB | 4 | 12 GB | **16** |
+| 1–5 GB | 8 | 24 GB | **8** |
+| 5–20 GB | 16 | 48 GB | **4** |
+| `uma_base.pbs` como está hoje | 32 | 96 GB | **2** |
+
+Misturando classes, some os `ppn` e pare em 64.
+
+### O que a V21 fez, e que é o motivo da chamada
+
+**20 jobs simultâneos**, quase todos da classe pequena: **≈80 núcleos e
+≈240 GB**. Um quarto acima do orçamento nos dois eixos, ao lado de outra pessoa
+usando a mesma conta.
+
+E o cluster **não nos impede**: o diário já registrava que nenhuma fila impõe
+limite de memória e que não há `max_run` por usuário. O `resources_assigned.mem`
+saiu `0kb` para os seis primeiros jobs. **A ausência de trava não é permissão** —
+os "32 núcleos e 192 GB" que circularam eram a especificação combinada, e o
+número certo é 64, mas o erro não foi de leitura: foi rodar sem contar.
+
+### Como cumprir sem depender de vigilância
+
+**Encadeie em ondas, e deixe o PBS ser o guarda.** Em vez de submeter N jobs
+soltos, monte `64 / ppn` correntes, cada uma ligada por
+`qsub -W depend=afterany:<id>`. O número de jobs simultâneos passa a ser o
+número de correntes, garantido pelo escalonador, sem processo nenhum vigiando.
+
+`qsub -h` também serve para enfileirar retido sem gastar cálculo — é como se
+testa sintaxe de recurso. Mas soltar os retidos exige alguém contando, e é
+justamente o que falhou.
+
+**Antes de submeter em lote, confira o que já está rodando:**
+
+```bash
+qstat -an -u $USER | tail -n +6 | wc -l
+```
+
+### Remoção: nenhum agente apaga nada no nó
+
+O administrador citou o `rm` por nome. A conta `teste` é **compartilhada**, e
+`~/elder/` é o nosso canto — não o resto.
+
+1. **Rodada velha não é apagada, é aposentada.** Move para
+   `~/elder/lixeira/<data>/` e **uma pessoa** apaga depois, olhando.
+2. **Rodada nova ganha sufixo novo**, e não sobrescreve a anterior. Foi o que
+   o CEAMAZON fez na V21 — **contra a minha recomendação de apagar a
+   `V1_cluster`**, e ele estava certo: o `CLAUDE.md` manda guardar a rodada
+   corrente e a anterior, e foi a anterior que permitiu medir o efeito do
+   achado 56. Disco não era restrição (11 TB livres).
+3. **Nunca `rm -rf` com glob** numa conta compartilhada. `MODELOS_*` parece
+   nosso e pode não ser.
+4. **Nada de destrutivo sai de agente direto para o nó.** Se for preciso
+   apagar, o agente escreve o comando, uma pessoa lê e executa.
+
 
 ---
 
@@ -1906,3 +1996,51 @@ regenerar a subestação dele e dissecar.
 - Não gaste medição nas duas hipóteses acima. Estão mortas com 75 bases.
 
 **Commit.** `dec7e0f`
+
+## 2026-08-26 (chamada do administrador: o orçamento é 64 núcleos e 192 GB) — CASA
+
+**O administrador do Ubiratan chamou a atenção**, e a chamada é justa. Ele
+pediu três coisas: cuidado com **comandos de remoção** emitidos por agente,
+cuidado com **a quantidade de jobs**, e *"para não travar o Cluster, por
+favor"*. O Elder pediu desculpas por nós.
+
+**O que fizemos.** A V21 rodou **20 jobs simultâneos**, quase todos da classe
+pequena: **≈80 núcleos e ≈240 GB**. O orçamento combinado é de **64 núcleos e
+192 GB** — um quarto acima nos dois eixos, ao lado de outra pessoa usando a
+mesma conta `teste`.
+
+**Por que passou.** Este documento já registrava que nenhuma fila impõe limite
+de memória e que não há `max_run` por usuário; e a seção dos fatos do cluster
+dizia que `ppn=32` "cabia com folga" porque o nó tem 128 núcleos. **Estava
+lendo a capacidade da máquina como se fosse a nossa cota.** Corrigi a linha, e
+o orçamento virou seção própria com a aritmética.
+
+**A regra é uma só: Σ `ppn` ≤ 64.** O dimensionamento usa 3 GB por núcleo,
+então a memória segue sozinha. Cabem 16 bases pequenas, ou 8 médias, ou 4
+grandes, ou **2** do `uma_base.pbs` como ele está hoje. E o jeito de cumprir
+sem vigilância é **encadear em ondas** — `64 / ppn` correntes ligadas por
+`depend=afterany`, deixando o PBS ser o guarda em vez de um processo contando.
+
+**Sobre o `rm`, e esta parte é minha.** Eu recomendei, por escrito na entrada
+"achado 56 e o que a V21 tem de responder", **apagar `MODELOS_*_V1_cluster/`**
+antes de rodar. Você não apagou: usou sufixo novo, citando o `CLAUDE.md`. **A
+sua escolha estava certa e a minha não** — e não só por prudência: foi a
+`V1_cluster` preservada que permitiu medir o efeito do achado 56, que é o
+número que fechou aquele achado. Disco nunca foi restrição, com 11 TB livres.
+
+Fica a regra: **rodada velha é aposentada em `~/elder/lixeira/<data>/`, e quem
+apaga é uma pessoa.** Nada de destrutivo sai de agente direto para o nó, e
+nunca `rm -rf` com glob numa conta compartilhada — `MODELOS_*` parece nosso e
+pode não ser.
+
+**Para a outra máquina.**
+- **Antes de submeter em lote, conte o que já está rodando.** Entrou no ritual
+  de chegada, no topo do documento.
+- O `uma_base.pbs` pede `ppn=32` e `mem=96gb`: com o orçamento certo, **dois
+  desses saturam tudo**. Se a próxima rodada for em lote, ele precisa das
+  classes menores, e o submissor precisa das correntes. É da sua faixa; não
+  mexi no `cluster/`.
+- **A ausência de trava não é permissão.** O cluster deixou passar 240 GB sem
+  reclamar; quem reclamou foi uma pessoa.
+
+**Commit.** —
