@@ -356,13 +356,14 @@ def _uma_se(C, se, k):
     n_ch, abertas, ch_ilhadas, barras_chave = chaves.gerar(
         b, ctmts, os.path.join(d, 'Chaves.dss'),
         os.path.join(d, 'Controles.dss'), barras=barras)
-    # `barras` e a rede de media desta subestacao, e ela e que decide de que
-    # lado do transformador esta a media (achado 54). `barras_chave` entra
-    # junto porque um trafo pode estar pendurado numa chave.
+    # ACHADO 57. Quem decide a inversao de PACs e a rede de media da BASE
+    # INTEIRA, decidida uma vez em `main` — e nao a desta subestacao. Com o
+    # recorte local, um trafo cujo PAC_1 esta na media da subestacao VIZINHA
+    # parecia estar fora dela e era trocado por engano.
     n_tr, sec, tr_invertidos = transformadores.gerar(
         b, ctmts, os.path.join(d, 'Trafos.dss'),
         os.path.join(d, '_ATERRAMENTO.dss'), a.kv_mt, kv_por_ctmt,
-        barras_mt=barras | barras_chave)
+        invertidos=C['tr_invertidos'])
     # Conjunto de pontos de conexao que a rede realmente tem. Um shunt
     # (carga, banco, PVSystem) num PAC ausente daqui cria a barra sozinho,
     # a ilha fica sem fonte e a solucao devolve NaN — foi o que travava a
@@ -782,6 +783,10 @@ def main():
         a.excel = os.path.abspath(cand) if os.path.isdir(cand) else None
 
     ctmt_info = ler_ctmt(b, a.kv_mt, log)
+    # ACHADO 57: pergunta sobre a REDE, feita a rede INTEIRA e uma vez so.
+    # O que viaja para os trabalhadores sao dezenas de COD_ID, e nao os
+    # milhoes de nos de media que a resposta consumiu.
+    tr_invertidos = transformadores.pacs_invertidos(b, log)
     kv_por_ctmt = {k: v['kv'] for k, v in ctmt_info.items()}
     ses = collections.defaultdict(list)
     for cod, c in ctmt_info.items():
@@ -943,6 +948,7 @@ def main():
          'nomes_curva': nomes_curva, 'ses': ses, 'tmp': tmp,
          'vaos_lig': vaos_lig, 'lotes': lotes,
          'ordem': {s_: i for i, s_ in enumerate(alvo, 1)},
+         'tr_invertidos': tr_invertidos,
          'b': None, 'co_cache': None, 'ctmts_lote': None}
 
     # A ORDEM DA SAIDA E A DE `alvo`, e nao a de quem terminou primeiro. O
