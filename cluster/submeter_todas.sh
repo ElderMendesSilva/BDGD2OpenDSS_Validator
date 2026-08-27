@@ -32,6 +32,13 @@ cd "$(dirname "${BASH_SOURCE[0]}")/.."
 FILA="${FILA:-BIRA_Q3}"
 SUFIXO="${SUFIXO:-V1_cluster}"
 ORCAMENTO="${ORCAMENTO:-64}"          # nucleos somados; NAO aumente sem combinar
+# TETO DE `ppn` POR JOB. Nao e economia, e paralelismo: o orcamento e fixo em
+# 64, entao ppn menor por base significa MAIS correntes rodando ao mesmo tempo.
+# E a conversao roda em processo unico (o `regerar_v10` nao repassa `--jobs` ao
+# `converter.py`), entao nucleo extra por base fica ocioso justamente na fase
+# longa. Medido: a Cemig usou ~3 GB na conversao, cabe folgado em 24 GB.
+#   TAMPA=16 -> 4 correntes    TAMPA=8 -> 8 correntes    TAMPA=4 -> 16
+TAMPA="${TAMPA:-8}"
 WALLTIME="${WALLTIME:-12:00:00}"
 RODAR="no"
 [[ "${1:-}" == "--rodar" ]] && RODAR="sim"
@@ -44,6 +51,7 @@ echo "=============================================================="
 echo "sufixo   : $SUFIXO"
 echo "fila     : $FILA"
 echo "bases    : ${SO:-todas as encontradas}"
+echo "tampa ppn: $TAMPA  (menor = mais correntes ao mesmo tempo)"
 echo "modo     : $([[ $RODAR == sim ]] && echo 'SUBMETER' || echo 'so mostrar (use --rodar para submeter)')"
 echo
 
@@ -82,12 +90,13 @@ echo "disponivel para esta submissao  : $DISPONIVEL"
 echo
 
 # --- planeja: classifica por tamanho e distribui em correntes ---------------
-python - "$DISPONIVEL" <<'PY' > /tmp/plano_ondas.txt
+python - "$DISPONIVEL" "$TAMPA" > /tmp/plano_ondas.txt <<'PY'
 import os, sys
 sys.path.insert(0, ".")
 import regerar_v10 as r
 
 teto = int(sys.argv[1])
+tampa = int(sys.argv[2])
 so = {x for x in os.environ.get("SO", "").split() if x}
 
 bases = []
@@ -100,6 +109,8 @@ for tag, cam, _ in r.BASES:
     elif gb <  5: ppn, mem = 8, 24
     elif gb < 20: ppn, mem = 16, 48
     else:         ppn, mem = 32, 96
+    ppn = min(ppn, tampa)
+    mem = ppn * 3
     bases.append((tag, ppn, mem, gb))
 
 # CORRENTE = fila sequencial. O custo simultaneo de uma corrente e o MAIOR ppn
@@ -107,18 +118,24 @@ for tag, cam, _ in r.BASES:
 # maiores — e isso e verificavel sem saber quanto cada base demora.
 bases.sort(key=lambda x: -x[1])
 correntes = []           # cada uma: [maior_ppn, [(tag, ppn, mem), ...]]
+
+# ABRIR CORRENTE VEM ANTES DE REAPROVEITAR, e a ordem inverteu um defeito real:
+# procurando primeiro uma corrente cujo maior `ppn` coubesse, a PRIMEIRA
+# engolia as 97 bases e o plano saia com UMA corrente e 16 nucleos de pico —
+# seguro, e desperdicando tres quartos do orcamento numa fila indiana que
+# levaria dias. Enquanto houver teto, cada base ganha corrente propria.
 for tag, ppn, mem, gb in bases:
-    posto = next((c for c in correntes if c[0] >= ppn), None)
-    if posto is None:
-        if sum(c[0] for c in correntes) + ppn <= teto:
-            correntes.append([ppn, []])
-            posto = correntes[-1]
-        else:
-            posto = min(correntes, key=lambda c: len(c[1])) if correntes else None
-            if posto is None:
-                print("ERRO: nem a menor base cabe no teto de %d" % teto)
-                raise SystemExit(1)
-    posto[1].append((tag, ppn, mem))
+    if sum(c[0] for c in correntes) + ppn <= teto:
+        correntes.append([ppn, [(tag, ppn, mem)]])
+        continue
+    # Teto cheio: entra na corrente MENOS CARREGADA que ja aguente este `ppn`
+    # sem crescer. Crescer o maior de uma corrente subiria o pico, e o pico e
+    # justamente o que o orcamento limita.
+    cabem = [c for c in correntes if c[0] >= ppn]
+    if not cabem:
+        print("ERRO: base %s pede ppn=%d e nenhuma corrente aguenta" % (tag, ppn))
+        raise SystemExit(1)
+    min(cabem, key=lambda c: sum(t[1] for t in c[1]))[1].append((tag, ppn, mem))
 
 print("CORRENTES %d" % len(correntes))
 print("PICO %d" % sum(c[0] for c in correntes))
