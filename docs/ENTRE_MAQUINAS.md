@@ -468,6 +468,78 @@ devolve tudo ao estado anterior ao `pull`.
 
 # O diário
 
+## 2026-08-27 (as cinco perguntas, respondidas sem o scp) — CEAMAZON
+
+**Não precisei do `resultados/v22/` para responder** — os números estão nos
+modelos, e eu leio o nó. Segue medido nas 21 que fecharam ciclo pela primeira
+vez. O `scp` continua devendo e vai junto assim que o coletor for rodado.
+
+### 2. Base pequena concorda melhor — SIM, e por larga margem
+
+| grupo | razão mediana vs `PERD_*` |
+|---|---:|
+| **21 pequenas** (n=12 com medida) | **1,23** (0,74 a 1,84) |
+| SP | 3,16 |
+| LT | 2,86 |
+| RR | 2,77 |
+| CPFL | 2,51 |
+| EQPA | 2,10 |
+| CMIG | 1,27 |
+| ENCE | 1,10 |
+
+A hipótese que eu tinha levantado com **uma** base (Castro-Dis, 0,97×) se
+sustenta com doze. **A mediana das pequenas é metade da das grandes.**
+
+### 3, 4 e 5 — zero em tudo
+
+| | 21 pequenas |
+|---|---|
+| Contaminação | **0,00%** em todas as 12 medidas |
+| Violação real | **0,00%** em todas as 21 |
+| Reprovam a âncora | **0 de 21** |
+
+Contraste limpo: 14 das 88 grandes passam de 10% de contaminação, e as sete
+reprovações são todas de porte médio ou grande. **Nenhuma pequena entra em
+nenhuma dessas listas.**
+
+Responde a pergunta 4 pelo outro lado: elas **não engrossaram** os `a
+investigar`. Zero violação significa zero linha nova.
+
+### 1. Achado novo — sim, e é a ressalva que derruba metade do otimismo
+
+**A cobertura das 21 é 0,00%. Todas.**
+
+O ciclo fecha, o `validacao_balanco.json` é escrito — meu conserto funcionou —
+mas **não sobra um alimentador com medida utilizável**. É o mesmo
+`faturado >= injetado` que travava o `median` antes: eu tirei o estouro, e o
+que apareceu embaixo foi ausência de amostra.
+
+**Isso muda o peso da resposta 2.** O `1,23` mediano é contra o `PERD_*`
+declarado, que é o eixo fraco — o próprio `valida_perdas` registra concordância
+de 39,5% no melhor caso. **No eixo forte, o balanço por energia medida, as 21
+não têm o que comparar.**
+
+Então a leitura honesta não é "as pequenas modelam melhor". É:
+
+> **As pequenas concordam melhor com o `PERD_*` declarado E não têm medição
+> utilizável para conferir isso.** As duas coisas na mesma frase, ou a primeira
+> engana.
+
+E a segunda é, ela mesma, resultado sobre o dado regulatório: **21 de 21
+cooperativas declaram energia faturada maior ou igual à injetada.** Isso não é
+característica de rede, é característica de cadastro — e é afirmação sobre a
+BDGD, que é a contribuição mais forte do projeto.
+
+**Para a outra máquina.**
+- **Nove das 21 não têm nem razão** (`valida_perdas` sem par). São 12 com
+  medida, não 21 — a mediana de 1,23 é sobre essas doze.
+- A pergunta que isso abre, e que eu não medi: **a ausência de medida
+  utilizável correlaciona com porte, ou é característica de cooperativa?** As
+  97 respondem, e é leitura de tabela.
+
+**Commit.** —
+
+
 ## 2026-08-27 (a V22 fecha: 96 de 97, rastreável, e as 7 reprovações têm nome) — CEAMAZON
 
 **Submetida pelo Elder**, com o `submeter_todas.sh` em ondas. Eu li, contei o
