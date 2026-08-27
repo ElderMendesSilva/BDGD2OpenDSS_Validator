@@ -1809,3 +1809,100 @@ e não o estudo de expansão. A `resultados/v21/` é a demonstração, e cabe nu
 `git clone`.
 
 **Commit.** —
+
+## 2026-08-26 (achados 57 e 58, e duas hipóteses mortas na Cemig) — CASA
+
+Fila combinada com o Elder: a regressão do achado 54 primeiro, porque é minha e
+está em produção; depois a `ENERGISA_M405`; a Cemig por último.
+
+### Achado 57 — a pergunta do achado 54 era da rede e eu fiz ao recorte
+
+Regressão minha. O conversor decidia a inversão comparando com a média da
+**subestação**, porque era o conjunto que ele tinha na mão. As sete agora batem
+com o censo da base inteira:
+
+| base | agora | censo | V21 | segundos |
+|---|---:|---:|---:|---:|
+| RR | 55 | 55 | 55 | 2,1 |
+| ENCE | 0 | 0 | 0 | 10,3 |
+| **EQPA** | **0** | **0** | **25** | 19,4 |
+| SP | 0 | 0 | 0 | 14,2 |
+| LT | 0 | 0 | 0 | 10,3 |
+| CPFL | 0 | 0 | 0 | 19,4 |
+| **CMIG** | **21** | **21** | **0** | 74,4 |
+
+As 25 trocas falsas da EQPA saíram; os 21 verdadeiros da Cemig voltaram.
+
+**O desenho mudou, e não só o conjunto.** `pacs_invertidos(bdgd)` pergunta à
+base inteira uma vez e devolve **COD_ID**; o `_inverte_pacs` só aplica. Duas
+razões: ler a média da base custa 13 s na Enel SP e 59 s na Cemig contra 12 e
+58 **minutos** de conversão (1,7%); e os 6,5 milhões de nós de média da Cemig
+replicados em 32 processos trabalhadores não caberiam no nó. Dezenas de código
+viajam de graça.
+
+Fundido em `c2e2134`.
+
+### Achado 58 — o agregado sai acompanhado da contaminação, sempre
+
+**O aviso já existia e não adiantou.** `concordancia.implausivel` calculava
+`fatia_da_perda_pct`, e o docstring dele já dizia, com essas palavras, que
+fatia alta significa "agregado feito por defeito, e não por rede". Na M405 esse
+campo marcava **99,9999%**. O aviso morava num campo separado do número que ele
+desqualifica, e ninguém juntou os dois.
+
+**Corrijo uma afirmação minha da entrada anterior.** Eu disse que as 7 que
+reprovam eram exatamente as contaminadas. A relação é de mão única: as 7 estão
+todas contaminadas, mas **34 das 81** bases com agregado carregam contaminação,
+e 27 delas passam.
+
+O `agregado` passa a devolver, no mesmo dicionário, `pct_modelo` (bruto,
+intocado), `contaminacao_pct` e `pct_modelo_sem_implausiveis`. **O bruto nunca é
+substituído** — filtrar o que incomoda é o grau de liberdade do achado 44.
+
+E o `auditoria.py` ganhou `_relata`. Aplicado aos resultados publicados da V21,
+ele diz sozinho o que eu tinha achado à mão:
+
+```
+reprovam a ancora externa           7 de 97
+    ENERGISA_M405         4.271.643,88%
+    COPELDIS2866                 41,62%   ... e mais cinco
+perda acima de 30%, impossivel     2   COPELDIS2866, ENERGISA_M405
+contaminada acima de 10%          16   CEA, CMIG, COPELDIS, CPFL_SANTA, ENEL_RJ
+com correcao automatica de PAC    17
+commits distintos                   0   <- rodada NAO rastreavel
+```
+
+Fundido em `dec7e0f`. 635 testes, verde.
+
+### Duas hipóteses minhas mortas na Cemig — não repita
+
+Fui atrás dos 7,84% e matei duas, cada uma medida nas 75 bases com ciclo
+completo:
+
+| hipótese | veredito |
+|---|---|
+| **Chaves ilhadas** causam a violação | ❌ correlação **+0,168**. A Enel RJ tem 11,75 ilhadas por alimentador e viola 0,55%; a Energisa A26 tem 11,78 e viola 0,00% |
+| **Alimentador longo** causa a violação | ❌ correlação **−0,103**, sinal errado. A Cemig é a 16ª de 75 em km por alimentador (190,8 contra 12,3 da Enel SP) |
+
+As 10.610 chaves ilhadas da Cemig contra 1 da Enel SP são reais e chamam
+atenção — e **não** explicam a violação. Cobertura (+0,013) e declarado-e-morto
+(+0,108) também não.
+
+**O que sobra, e é a fila:** os **57 alimentadores `a investigar`** da Cemig,
+de 143 que violam. O resto já tem causa classificada — 45 `no limite`, 30
+`medida quase sem perda`, 9 `perda modelada absurda`, 2 `denominador
+minúsculo`. O caminho é o mesmo que rachou o achado 54: escolher o pior,
+regenerar a subestação dele e dissecar.
+
+**Para a outra máquina.**
+- **A M405 precisa da `.gdb`, que está no nó.** O que se sabe daqui: a
+  subestação **61** tem 4,96 **bilhões** de %, com **5.289 cargas sem tensão**
+  e veredicto `MODELO_QUEBRADO`; a base tem 14,4% da carga morta. Uma
+  subestação destrói o agregado das 103. É diagnóstico de um caso, não de uma
+  base.
+- **O `_relata` já responde ao item 3 do que eu tinha proposto** — commits
+  distintos. Na V21 deu zero, e o conserto continua sendo o `qsub` passar o
+  commit por variável de ambiente, que é da sua faixa.
+- Não gaste medição nas duas hipóteses acima. Estão mortas com 75 bases.
+
+**Commit.** `dec7e0f`
