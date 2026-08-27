@@ -45,6 +45,18 @@ RODAR="no"
 
 : "${BDGD2DSS_BASES:?defina onde estao as .gdb}"
 
+# O PYTHON E O DO `.venv`, e nao o do sistema. O nó tem `python3` 3.6.8 e nao
+# tem `python` nenhum: chamar `python` cru dava `command not found`, e chamar
+# `python3` daria 3.6.8, que nao roda o projeto (o `requisitos.txt` pede 3.9+)
+# nem tem numpy/pyogrio. O `uma_base.pbs` resolve com `source .venv/bin/
+# activate`; aqui basta o caminho, porque e uma chamada so.
+PY_VENV="$PWD/.venv/bin/python"
+if [[ ! -x "$PY_VENV" ]]; then
+    echo "!! nao achei $PY_VENV"
+    echo "   rode antes: bash cluster/instalar.sh"
+    exit 1
+fi
+
 echo "=============================================================="
 echo " SUBMISSAO EM ONDAS — orcamento de $ORCAMENTO nucleos"
 echo "=============================================================="
@@ -90,7 +102,7 @@ echo "disponivel para esta submissao  : $DISPONIVEL"
 echo
 
 # --- planeja: classifica por tamanho e distribui em correntes ---------------
-python - "$DISPONIVEL" "$TAMPA" > /tmp/plano_ondas.txt <<'PY'
+"$PY_VENV" - "$DISPONIVEL" "$TAMPA" > /tmp/plano_ondas.txt <<'PY'
 import os, sys
 sys.path.insert(0, ".")
 import regerar_v10 as r
