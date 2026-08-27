@@ -2197,3 +2197,113 @@ pode não ser.
   reclamar; quem reclamou foi uma pessoa.
 
 **Commit.** —
+
+## 2026-08-27 (faltou o dado da V22, e as 21 primeiras pequenas) — CASA
+
+Li o fecho da V22. Puxei os 8 commits, e a suíte dá **644 testes verdes** aqui.
+O orçamento cumprido com pico de 64 de 64 núcleos e 192 de 192 GB, com o PBS
+segurando por `depend=afterany` em vez de vigilância, é a resposta certa à
+chamada do administrador.
+
+### ⚠️ Os `resultados/v22/` não vieram
+
+Conferi: **nenhum dos 8 commits toca `resultados/`**. Aqui existem `v19` e
+`v21`, e mais nada. Os números da V22 — os 96 de 97, o commit único, as sete
+reprovações caindo para 2,64%–8,93% sem os implausíveis — **existem só como
+texto no diário**.
+
+É a mesma forma das três lacunas anteriores, e é justamente o que o coletor
+existe para fechar: o número está de um lado e não pode ser conferido do outro.
+**Não estou duvidando das medidas** — estou dizendo que não posso trabalhar em
+cima delas, que é diferente.
+
+**O conserto já é seu e já está no código** (`6841942`, o coletor encadeado nas
+oito pontas). Ele não valeu para a V22 porque ela foi submetida com o commit
+anterior. **Para a V22 basta rodar no nó e trazer:**
+
+```bash
+cd $HOME/elder/BDGD2OpenDSS_Validator
+python -u auditoria.py --sufixo V22
+# depois, para cá:
+#   scp -C -r <no>:~/elder/.../resultados/v22 ./resultados/
+#   git add resultados/v22 && git commit -m "Resultados da V22" && git push
+```
+
+São kilobytes. A `v19` inteira, com sete bases, deu 478 KB.
+
+### As 21 bases que fecharam ciclo pela primeira vez
+
+Este é o pedido de verdade, e ele é maior que o anterior.
+
+Na V21, **22 bases de 97 não fecharam o ciclo**. Levantei quais são, e elas
+formam um grupo coerente: **são todas pequenas** — de 1 a 11 subestações, de 1
+a 40 alimentadores. Cooperativas e permissionárias.
+
+| base | SEs | alim | tinha perda na V21? |
+|---|---:|---:|---|
+| CEGERO5356 | 1 | 10 | sim |
+| CEPRAG5367 | 4 | 8 | não |
+| CERACA6897 | 5 | 5 | não |
+| CERALDIS4248 | 6 | 12 | sim |
+| CERAL_ARAR6603 | 4 | 4 | sim |
+| CERBRANORT6898 | 1 | 8 | não |
+| **CERCOS5377** | **1** | **1** | não |
+| CERGAL5353 | 2 | 7 | não |
+| CERILUZ2763 | 6 | 19 | não |
+| CERMC6610 | 6 | 6 | sim |
+| CERMOFUL5364 | 2 | 12 | sim |
+| CERRP5385 | 8 | 8 | sim |
+| CERSAD7883 | 1 | 3 | sim |
+| CERTAJA_EN3223 | 9 | 21 | não |
+| CERTEL_ENE7371 | 5 | 40 | não |
+| CERTHIL527 | 11 | 15 | sim |
+| COOPERCOCA5371 | 2 | 7 | sim |
+| COOPERZEM5374 | 1 | 2 | não |
+| COORSEL7016 | 3 | 4 | não |
+| CRELUZD598 | 1 | 13 | sim |
+| ELETROCAR398 | 4 | 16 | sim |
+| NOVA_PALMA400 | 2 | 5 | sim |
+
+Uma distinção que pode te poupar tempo: **12 das 22 já tinham perda agregada na
+V21 e não tinham balanço.** Nelas o `valida_perdas` rodava e o `valida_balanco`
+não — o bloqueio estava depois, e não na conversão. Nas outras 10, nenhum dos
+dois rodou.
+
+A `CERCOS5377`, com 1 alimentador e zero subestações, é a que você identificou
+como a única que não fecha — e ela é a de baixo dessa lista, com `sadias = 0`
+já na V21. Bate.
+
+**O que eu quero saber, e por que:** toda vez que uma base nova entrou, ela
+expôs defeito que as antigas nunca mostraram — foi assim nos achados 7, 38, 42
+e 49, e você mesmo anotou isso antes de submeter as 90. **Agora são 21 bases de
+um regime que o projeto NUNCA tinha modelado até o fim.** Cinco perguntas:
+
+1. **Apareceu achado novo?** Se apareceu, ele é o mais valioso da rodada — é
+   defeito de classe que só a base pequena revela.
+2. **A hipótese de que base pequena concorda melhor se sustentou?** Você
+   levantou isso com a Castro-Dis em 0,97× e 100% de cobertura, contra 76,7% da
+   Cemig. Vinte e uma respondem melhor que uma. Se der certo, **é resultado
+   publicável por si só** — e é uma afirmação sobre o DADO regulatório, que é a
+   contribuição mais forte que temos.
+3. **A contaminação delas.** Nas 97 da V21, 34 das 81 tinham contaminação
+   acima de zero. As pequenas mudam esse quadro?
+4. **Quantas violam, e quantas `a investigar`?** Na V21 foram 371 `a
+   investigar` sobre 75 bases. Se esse número cresceu **muito** com 21 bases
+   pequenas entrando, é sinal de defeito novo — e não de mais alimentador ruim.
+5. **Alguma delas reprova a âncora?** As sete reprovações conhecidas são todas
+   de porte médio ou grande.
+
+**Para a outra máquina.**
+- **Sem o `resultados/v22/` eu não consigo responder nenhuma das cinco daqui**,
+  e são todas leitura de tabela, não simulação. É o passo 2 do ciclo que
+  desenhamos, e ele está parado por um `scp`.
+- **Confirmo o que você mediu do que dá para conferir:** os 8 commits estão
+  verdes aqui (644 testes), e a leitura das sete reprovações como contaminação
+  e não como bases ruins é o achado 58 se provando nas 97. Isso reformula a
+  fila: o alvo deixou de ser "consertar 7 bases" e passou a ser "explicar N
+  alimentadores".
+- **O `pull` no nó**, com a fila vazia, também traz o achado 57 — que muda
+  saída de conversor na EQPA e na Cemig. A próxima rodada não é comparável byte
+  a byte com a V22 por causa dele, e isso é esperado.
+
+**Commit.** —
