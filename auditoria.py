@@ -59,6 +59,13 @@ MODELO_ABSURDO = 15.0    # perda tecnica modelada acima disto, 31 das 77
 MEDIDA_SEM_PERDA = 3.0   # total medido abaixo disto, 11 das 77
 GWH_MINUSCULO = 0.5      # denominador pequeno faz qualquer perda virar %
 
+# Achado 58: acima disto, o agregado da base fala mais do defeito de alguns
+# alimentadores do que da rede. Nas 97 da V21, 34 das 81 bases com agregado
+# tinham contaminacao acima de zero, e 5 acima de 50% -- inclusive a
+# ENERGISA_M405, com 99,9999% e perda publicada de 4.271.643,88%.
+CONTAMINACAO_ALTA = 10.0   # % da perda vinda de alimentador implausivel
+PERDA_IMPOSSIVEL = 30.0    # % de perda agregada que rede nenhuma tem
+
 # As colunas do CSV, nesta ordem. Explicita e nao derivada do dicionario:
 # ordem estavel e o que permite comparar dois CSV de rodadas diferentes com
 # `diff`, e um dicionario reordenado por acaso destruiria isso.
@@ -319,6 +326,42 @@ def pastas_da_rodada(sufixo, raiz='.'):
     return achadas
 
 
+def _relata(indice):
+    """O que a rodada tem de contar SOZINHA, sem depender de quem le.
+
+    As tres lacunas achadas na V21 tinham a mesma forma: o numero existia no
+    artefato e ninguem olhou. Ler com mais cuidado nao e conserto -- o
+    conserto e o relatorio trazer isto por conta propria.
+    """
+    def _f(x, c):
+        v = x.get(c)
+        return v if isinstance(v, (int, float)) else 0.0
+
+    rep = [x for x in indice if x.get('reprova_ancora')]
+    imp = [x for x in indice if _f(x, 'perda_modelo_pct') > PERDA_IMPOSSIVEL]
+    con = [x for x in indice if _f(x, 'contaminacao_pct') > CONTAMINACAO_ALTA]
+    corr = [x for x in indice if _f(x, 'trafos_pac_invertido') > 0]
+    commits = {x.get('commit') for x in indice if x.get('commit')}
+
+    print('\n--- o que esta rodada precisa contar ---')
+    print(f'  reprovam a ancora externa        {len(rep):4} de {len(indice)}')
+    for x in sorted(rep, key=lambda y: -_f(y, 'perda_modelo_pct'))[:8]:
+        print(f'      {x["base"]:<18}{_f(x, "perda_modelo_pct"):16,.2f}%')
+    # Perda impossivel NAO e o mesmo que reprovar. Reprovar e ficar acima do
+    # teto da ANEEL, que rede ruim faz; isto aqui e um numero que rede nenhuma
+    # tem, e denuncia modelo destruido em vez de rede ruim.
+    print(f'  perda acima de {PERDA_IMPOSSIVEL:.0f}%, impossivel  {len(imp):4}'
+          + (f'   {", ".join(x["base"] for x in imp[:5])}' if imp else ''))
+    print(f'  contaminada acima de {CONTAMINACAO_ALTA:.0f}%        {len(con):4}'
+          + (f'   {", ".join(x["base"] for x in con[:5])}' if con else ''))
+    print(f'  com correcao automatica de PAC   {len(corr):4}')
+    # Zero commit distinto quer dizer rodada nao rastreavel; mais de um quer
+    # dizer que ela nao e UMA rodada. Os dois sao defeito.
+    print(f'  commits distintos                {len(commits):4}'
+          + ('   <- rodada NAO rastreavel' if not commits else
+             '   <- NAO e uma rodada so' if len(commits) > 1 else ''))
+
+
 def main(argv=None):
     ap = argparse.ArgumentParser(
         description='Colhe uma rodada e publica resultados/<sufixo>/ '
@@ -361,9 +404,24 @@ def main(argv=None):
             'pct_viola': b['pct_viola'],
             'perda_modelo_pct': (resumo['perdas'].get('agregado') or {})
                                 .get('pct_modelo'),
+            # Achado 58. `contaminacao_pct` nasceu no `agregado`; antes dele
+            # a mesma grandeza ja existia em `modelo_implausivel`, separada do
+            # numero que ela contamina — que foi o defeito. Ler as duas deixa o
+            # relato valer tambem para rodada gerada antes da mudanca, e a V21
+            # e uma delas.
+            'contaminacao_pct':
+                (resumo['perdas'].get('agregado') or {}).get('contaminacao_pct')
+                if (resumo['perdas'].get('agregado') or {})
+                .get('contaminacao_pct') is not None
+                else (resumo['perdas'].get('modelo_implausivel') or {})
+                .get('fatia_da_perda_pct'),
+            'perda_sem_implausiveis_pct':
+                (resumo['perdas'].get('agregado') or {})
+                .get('pct_modelo_sem_implausiveis'),
             'reprova_ancora': (resumo['perdas'].get('referencia_externa') or {})
                               .get('reprova'),
             'commit': (resumo['procedencia'] or {}).get('commit'),
+            'trafos_pac_invertido': r.get('trafos_pac_invertido'),
         })
         print(f'{tag:<8}{r["ses"]:6,}{r["sadias"]:8,}{r["nao_convergiu"]:10,}'
               f'{b["viola_de_verdade"]:8,}'
@@ -376,6 +434,7 @@ def main(argv=None):
     print(f'\n{len(pastas)} bases em {destino}/  ({total_mb*1000:.0f} KB)')
     for x in avisos:
         print(f'  AVISO {x}')
+    _relata(indice)
     print('\nO CSV de violacoes e a tabela para trabalhar sem o modelo: '
           'ordene por pct_tecnica_modelo e olhe as linhas com motivo '
           '"a investigar".')

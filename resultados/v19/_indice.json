@@ -11,8 +11,11 @@
    "viola_de_verdade": 15,
    "pct_viola": 0.82,
    "perda_modelo_pct": 2.6227510264519194,
+   "contaminacao_pct": null,
+   "perda_sem_implausiveis_pct": null,
    "reprova_ancora": false,
-   "commit": "66bf4a960331f289765d43302ff1dfaeb647d68a"
+   "commit": "66bf4a960331f289765d43302ff1dfaeb647d68a",
+   "trafos_pac_invertido": 0
   },
   {
    "base": "CPFL",
@@ -24,8 +27,11 @@
    "viola_de_verdade": 13,
    "pct_viola": 0.86,
    "perda_modelo_pct": 1.6257852143067522,
+   "contaminacao_pct": null,
+   "perda_sem_implausiveis_pct": null,
    "reprova_ancora": false,
-   "commit": "66bf4a960331f289765d43302ff1dfaeb647d68a"
+   "commit": "66bf4a960331f289765d43302ff1dfaeb647d68a",
+   "trafos_pac_invertido": 0
   },
   {
    "base": "ENCE",
@@ -37,8 +43,11 @@
    "viola_de_verdade": 1,
    "pct_viola": 0.15,
    "perda_modelo_pct": 3.8320012039880624,
+   "contaminacao_pct": null,
+   "perda_sem_implausiveis_pct": null,
    "reprova_ancora": false,
-   "commit": "66bf4a960331f289765d43302ff1dfaeb647d68a"
+   "commit": "66bf4a960331f289765d43302ff1dfaeb647d68a",
+   "trafos_pac_invertido": 0
   },
   {
    "base": "EQPA",
@@ -50,8 +59,11 @@
    "viola_de_verdade": 1,
    "pct_viola": 0.16,
    "perda_modelo_pct": 1.089784254621884,
+   "contaminacao_pct": null,
+   "perda_sem_implausiveis_pct": null,
    "reprova_ancora": false,
-   "commit": "66bf4a960331f289765d43302ff1dfaeb647d68a"
+   "commit": "66bf4a960331f289765d43302ff1dfaeb647d68a",
+   "trafos_pac_invertido": 0
   },
   {
    "base": "LT",
@@ -63,8 +75,11 @@
    "viola_de_verdade": 1,
    "pct_viola": 0.07,
    "perda_modelo_pct": 1.3999492174653114,
+   "contaminacao_pct": null,
+   "perda_sem_implausiveis_pct": null,
    "reprova_ancora": false,
-   "commit": "66bf4a960331f289765d43302ff1dfaeb647d68a"
+   "commit": "66bf4a960331f289765d43302ff1dfaeb647d68a",
+   "trafos_pac_invertido": 0
   },
   {
    "base": "RR",
@@ -76,8 +91,11 @@
    "viola_de_verdade": 3,
    "pct_viola": 3.75,
    "perda_modelo_pct": 7.624453469498476,
+   "contaminacao_pct": null,
+   "perda_sem_implausiveis_pct": null,
    "reprova_ancora": true,
-   "commit": "66bf4a960331f289765d43302ff1dfaeb647d68a"
+   "commit": "66bf4a960331f289765d43302ff1dfaeb647d68a",
+   "trafos_pac_invertido": 0
   },
   {
    "base": "SP",
@@ -89,8 +107,11 @@
    "viola_de_verdade": 43,
    "pct_viola": 2.73,
    "perda_modelo_pct": 4.35021353675293,
+   "contaminacao_pct": null,
+   "perda_sem_implausiveis_pct": null,
    "reprova_ancora": false,
-   "commit": "66bf4a960331f289765d43302ff1dfaeb647d68a"
+   "commit": "66bf4a960331f289765d43302ff1dfaeb647d68a",
+   "trafos_pac_invertido": 0
   }
  ]
 }
