@@ -354,23 +354,21 @@ def placas_da_base(e):
                  'sem_substituto': n_sem, 'total': len(cru)}
 
 
-def _inverte_pacs(col, barras_mt):
-    """Achado 54 — os dois PACs do transformador trocados de lugar.
+def pacs_invertidos(bdgd, log=None):
+    """Quais transformadores tem `PAC_1` e `PAC_2` trocados. UMA vez por BASE.
 
-    `PAC_1` e o lado de MEDIA e `PAC_2` o de BAIXA. Em alguns registros isso
-    esta invertido, e o efeito e violento: a rede de media entra pelo
-    enrolamento de 0,12 kV e o transformador funciona como ELEVADOR. Medido
-    na 5003346 de Roraima, com a carga toda desligada:
+    Achado 54. `PAC_1` e o lado de MEDIA e `PAC_2` o de BAIXA. Em alguns
+    registros isso vem invertido, e o efeito e violento: a rede de media entra
+    pelo enrolamento de 0,12 kV e o transformador funciona como ELEVADOR.
+    Medido na 5003346 de Roraima, com a carga toda desligada:
 
-        1018862858   declara Kv=7,9674 no enrolamento 1
-                     a barra dele esta a 480,1 kV       ->  60,3x
-        1019437451   declara Kv=13,8
-                     a barra dele esta a 493,9 kV       ->  35,8x
+        1018862858   declara Kv=7,9674, e a barra dele esta a 480,1 kV  60,3x
+        1019437451   declara Kv=13,8,   e a barra dele esta a 493,9 kV  35,8x
 
     Os dois lados sobem juntos, na relacao exata do transformador — nao e
-    ruido de convergencia, e topologia trocada. E a perda a vazio escala com
-    V^2, entao NOVE transformadores assim, de 4.539, respondiam por 86,8% da
-    perda a vazio da subestacao inteira: 2.711 kW de 3.124 kW.
+    ruido de convergencia, e topologia trocada. A perda a vazio escala com V^2,
+    entao NOVE transformadores assim, de 4.539, respondiam por 86,8% da perda a
+    vazio da subestacao inteira: 2.711 kW de 3.124 kW.
 
     A REGRA NAO USA O NOME. O PAC costuma denunciar-se — em Roraima 33 deles
     tem `PAC_1` terminado em "-BT" — mas nem todos: o 1002409124, que sozinho
@@ -378,12 +376,34 @@ def _inverte_pacs(col, barras_mt):
     TOPOLOGIA: se o `PAC_2` e um no da rede de media e o `PAC_1` nao e, os
     dois estao trocados.
 
-    As DUAS condicoes sao necessarias, e o censo mostra por que. Em Roraima
-    59 tem `PAC_2` na MT, 57 tem `PAC_1` fora dela, e 55 tem as duas coisas —
-    os conjuntos praticamente coincidem, que e a assinatura de uma troca de
-    verdade. Na Enel SP 63 tem `PAC_1` fora da MT e ZERO tem `PAC_2` dentro:
-    la sao primarios pendurados, defeito diferente, e exigir as duas
-    condicoes impede que virem troca.
+    ---------------------------------------------------------------------
+    ACHADO 57 — POR QUE ISTO E DA BASE, E NAO DA SUBESTACAO
+    ---------------------------------------------------------------------
+    A primeira versao comparava com a MT da SUBESTACAO que estava sendo
+    convertida, porque era o conjunto que o `converter` tinha na mao. Isso
+    torna a resposta dependente do RECORTE, e a V21 mostrou os dois lados do
+    estrago:
+
+        base    censo da base inteira    V21, por subestacao
+        RR                 55                     55
+        CMIG               21                      0
+        EQPA                0                     25
+
+    Roraima bate. As outras duas se invertem. Um transformador cujo `PAC_1`
+    esta na media da subestacao VIZINHA parece "fora da media" no recorte
+    local e era trocado — na EQPA, 25 trocas que a base inteira desmente. E na
+    Cemig o recorte perdeu os 21 verdadeiros.
+
+    Uma pergunta sobre a REDE tem de ser feita a rede inteira. Ler a media da
+    base custa 13 s na Enel SP e 59 s na Cemig, uma vez por rodada, contra 12
+    e 58 MINUTOS de conversao.
+
+    E por isso que esta funcao devolve CODIGOS, e nao o conjunto de nos: sao
+    dezenas de codigos, que viajam de graca para os processos trabalhadores;
+    os 6,5 milhoes de nos de media da Cemig, replicados em 32 processos, nao
+    caberiam no no.
+
+    O CENSO DAS SETE, com o escopo certo:
 
         base      trafos    PAC_2 na MT   PAC_1 fora   INVERTIDOS
         RR        27.700         59           57            55
@@ -394,41 +414,83 @@ def _inverte_pacs(col, barras_mt):
         CPFL     237.390         19            9             0
         CMIG     952.231         97          668            21
 
-    A EQPA e a CPFL sao os outros contraexemplos uteis: 56 e 19 com `PAC_2`
-    na MT e NENHUM invertido, porque o `PAC_1` deles tambem esta la.
+    As DUAS condicoes sao necessarias. Na Enel SP 63 tem `PAC_1` fora da MT e
+    ZERO tem `PAC_2` dentro: la sao primarios pendurados, defeito diferente
+    (achado 50), e exigir as duas impede que virem troca. A EQPA e a CPFL sao
+    o contraexemplo do outro lado: 56 e 19 com `PAC_2` na MT e nenhum
+    invertido, porque o `PAC_1` deles TAMBEM esta la.
 
-    Sao 76 em 1,87 milhao de transformadores — raro. Mas raro nao e
-    inofensivo: os nove de UMA subestacao de Roraima faziam 86,8% da perda a
-    vazio dela, e a barra mais alta do modelo caiu de 9,645 pu para 1,360 pu
-    quando eles foram endireitados.
-
-    So os PACs sao trocados. `FAS_CON_P` e `FAS_CON_S` ja descrevem o lado
-    certo — no 1018862858, `FAS_CON_P='B'` e monofasico, como o lado de media
-    de um trafo de 5 kVA tem de ser, e `FAS_CON_S='BN'` traz o neutro da
-    baixa. Trocar tambem as fases desfaria isso.
-
-    Devolve a lista de pares `(b1, b2)` ja na ordem certa e os codigos dos
-    que foram invertidos.
+    Sao 76 em 1,87 milhao — raro, e nada inofensivo.
     """
-    pares, invertidos = [], []
-    n = len(col['COD_ID'])
+    alvo = set()
+    try:
+        u = bdgd.ler('UNTRMT', colunas=['COD_ID', 'PAC_1', 'PAC_2'])
+    except Exception:
+        return set()
+    n = len(u['COD_ID'])
+    for c in ('PAC_1', 'PAC_2'):
+        alvo.update(no(x) for x in u[c])
+    alvo.discard('')
+    if not alvo:
+        return set()
+
+    # So os PACs de transformador entram no conjunto. Guardar os 6,5 milhoes
+    # de nos de media da Cemig custaria centenas de MB para responder a uma
+    # pergunta sobre 1,9 milhao deles.
+    na_mt = set()
+    for camada in ('SSDMT', 'UNSEMT', 'UNREMT'):
+        try:
+            d = bdgd.ler(camada, colunas=['PAC_1', 'PAC_2'])
+        except Exception:
+            continue
+        for c in ('PAC_1', 'PAC_2'):
+            for x in d[c]:
+                k = no(x)
+                if k in alvo:
+                    na_mt.add(k)
+
+    inv = set()
     for i in range(n):
+        b1, b2 = no(u['PAC_1'][i]), no(u['PAC_2'][i])
+        if b1 and b2 and b2 in na_mt and b1 not in na_mt:
+            inv.add(txt(u['COD_ID'][i]))
+    if log and inv:
+        log(f'  ACHADO 54: {len(inv):,} transformadores com PAC_1 e PAC_2 '
+            f'TROCADOS na BDGD; os lados serao endireitados')
+    return inv
+
+
+def _inverte_pacs(col, invertidos):
+    """Aplica a decisao ja tomada por `pacs_invertidos`.
+
+    So os PACs trocam. `FAS_CON_P` e `FAS_CON_S` ja descrevem o lado certo —
+    no 1018862858, `FAS_CON_P='B'` e monofasico, como o lado de media de um
+    trafo de 5 kVA tem de ser, e `FAS_CON_S='BN'` traz o neutro da baixa.
+    Trocar tambem as fases desfaria isso.
+
+    Devolve a lista de pares `(b1, b2)` ja na ordem certa e os codigos dos que
+    foram invertidos NESTA subestacao — que e o que entra no relatorio.
+    """
+    pares, tocados = [], []
+    invertidos = invertidos or set()
+    for i in range(len(col['COD_ID'])):
+        cod = txt(col['COD_ID'][i])
         b1, b2 = no(col['PAC_1'][i]), no(col['PAC_2'][i])
-        if barras_mt and b1 and b2 and b2 in barras_mt and b1 not in barras_mt:
+        if b1 and b2 and cod in invertidos:
             b1, b2 = b2, b1
-            invertidos.append(txt(col['COD_ID'][i]))
+            tocados.append(cod)
         pares.append((b1, b2))
-    return pares, invertidos
+    return pares, tocados
 
 
 def gerar(bdgd, ctmts, caminho_trafos, caminho_aterramento, kv_mt=13.8,
-          kv_por_ctmt=None, barras_mt=None):
+          kv_por_ctmt=None, invertidos=None):
     """`kv_por_ctmt` da a tensao primaria de cada alimentador; `kv_mt` e o
     padrao para quem nao estiver no mapa.
 
-    `barras_mt` sao os nos que a rede de media realmente tem. Sem eles a
-    deteccao do achado 54 fica desligada e o conversor escreve o que a BDGD
-    disser, como antes."""
+    `invertidos` sao os COD_ID que `pacs_invertidos` apontou como tendo os
+    dois PACs trocados — decisao tomada UMA vez sobre a base inteira (achado
+    57). Sem ela o conversor escreve o que a BDGD disser, como antes."""
     kv_por_ctmt = kv_por_ctmt or {}
     cols = ['COD_ID', 'PAC_1', 'PAC_2', 'CTMT', 'POT_NOM', 'TEN_LIN_SE',
             'FAS_CON_P', 'FAS_CON_S']
@@ -449,7 +511,7 @@ def gerar(bdgd, ctmts, caminho_trafos, caminho_aterramento, kv_mt=13.8,
     # logo abaixo conta trafos por barra SECUNDARIA, e com os lados trocados
     # ela contaria pela barra de media — um alimentador inteiro viraria um
     # banco so.
-    pares, invertidos = _inverte_pacs(col, barras_mt)
+    pares, invertidos = _inverte_pacs(col, invertidos)
 
     # quantos trafos por barra secundaria (deteccao de banco)
     banco = collections.Counter()
@@ -567,10 +629,10 @@ def gerar(bdgd, ctmts, caminho_trafos, caminho_aterramento, kv_mt=13.8,
         # Trafos.dss e ve um COD_ID diferente do que a UNTRMT diz precisa
         # saber que a troca foi nossa e por que.
         out.insert(6, f'! {len(invertidos):,} transformadores com PAC_1 e '
-                      f'PAC_2 TROCADOS na BDGD (PAC_2 na rede de media, '
-                      f'PAC_1 fora dela): os lados foram endireitados aqui. '
-                      f'Sem isso o trafo vira elevador. Ver achado 54 em '
-                      f'transformadores._inverte_pacs.')
+                      f'PAC_2 TROCADOS na BDGD (PAC_2 na rede de media da '
+                      f'BASE, PAC_1 fora dela): os lados foram endireitados '
+                      f'aqui. Sem isso o trafo vira elevador. Ver achados 54 '
+                      f'e 57 em transformadores.pacs_invertidos.')
         for c in sorted(invertidos):
             out.append(f'! PACs invertidos na BDGD, endireitados: {c}')
     open(caminho_trafos, 'w', encoding='utf-8', newline=escrita.FIM_DE_LINHA).write('\n'.join(out) + '\n')
