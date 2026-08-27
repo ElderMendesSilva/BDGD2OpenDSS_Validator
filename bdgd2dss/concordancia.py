@@ -78,21 +78,62 @@ def sensibilidade(pares, cortes=CORTES, teto_decl=40.0):
     return out
 
 
-def agregado(pares):
+def agregado(pares, teto=TETO_MODELO):
     """Perda total dos dois lados, em percentual da energia de cada lado.
 
     Sem corte: e a medida que nao depende de escolha nenhuma.
+
+    ---------------------------------------------------------------------
+    ACHADO 58 — O AGREGADO SAI ACOMPANHADO, SEMPRE
+    ---------------------------------------------------------------------
+    O aviso de contaminacao ja existia, em `implausivel`, e o docstring dele
+    ja dizia que fatia alta significa agregado feito por defeito e nao por
+    rede. Nao adiantou: o aviso morava num campo separado, e ninguem juntou os
+    dois. A `ENERGISA_M405` da V21 publicou perda de **4.271.643,88%** com
+    99,9999% dela vinda de 17 alimentadores de 395 — e atravessou 103
+    subestacoes sem ninguem tropecar.
+
+    E nao e uma base. Nas 97 da V21, **34 das 81** com agregado carregam
+    contribuicao de alimentador implausivel:
+
+        ENERGISA_M405   99,9999%      Roraima          24,34%
+        Equatorial 37     35,37%      CEA              18,59%
+        Enel RJ           34,30%      Cemig-D          11,49%
+        Copel-Dis         92,55%      Enel SP           1,35%
+
+    Roraima PASSA na ancora com 4,84%, e um quarto dessa perda vem de
+    alimentador que o proprio validador marca como impossivel.
+
+    POR QUE PUBLICAR OS DOIS, E NUNCA TROCAR UM PELO OUTRO. Filtrar o que
+    incomoda e exatamente o grau de liberdade do achado 44 — escolher a
+    composicao ate o numero ficar bonito. Entao o bruto continua sendo
+    `pct_modelo`, o contrafactual entra como `pct_modelo_sem_implausiveis`, e
+    a `contaminacao_pct` fica ENTRE os dois, no mesmo dicionario. Quem le um
+    tropeca no outro; quem quiser comparar entre bases escolhe, e a escolha
+    fica registrada.
     """
     pm = em = pd = ed = 0.0
+    pm_s = em_s = 0.0                    # o mesmo, sem os implausiveis
+    n_imp = 0
     for m, d, kwh_m, kwh_d in pares:
-        pm += m / 100.0 * kwh_m
+        e_m = m / 100.0 * kwh_m
+        pm += e_m
         em += kwh_m
         pd += d / 100.0 * kwh_d
         ed += kwh_d
+        if m > teto:
+            n_imp += 1
+        else:
+            pm_s += e_m
+            em_s += kwh_m
     a = 100.0 * pm / em if em else None
     b = 100.0 * pd / ed if ed else None
+    a_s = 100.0 * pm_s / em_s if em_s else None
     return {'pct_modelo': a, 'pct_declarado': b,
-            'razao': (a / b) if (a and b) else None, 'n': len(pares)}
+            'razao': (a / b) if (a and b) else None, 'n': len(pares),
+            'contaminacao_pct': (100.0 * (pm - pm_s) / pm) if pm else None,
+            'pct_modelo_sem_implausiveis': a_s,
+            'implausiveis': n_imp, 'teto_implausivel': teto}
 
 
 def implausivel(pares, teto=TETO_MODELO):
