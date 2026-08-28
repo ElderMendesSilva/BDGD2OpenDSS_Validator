@@ -116,7 +116,18 @@ def motivo_da_violacao(v):
 
     `a investigar` e o rotulo que se quer POUCO. Sao esses que valem a hora de
     quem abre o CSV.
+
+    `veredicto_se` e o quinto defensivo, e o mais importante: um modelo que a
+    propria verificacao ja marcou quebrado (`NAO_CONVERGE`, `POTENCIA_NAN`)
+    pode escrever qualquer numero em `pct_tecnica_modelo` — a ENERGISA_M405,
+    sub 61, saiu com 2.217.133.917,57% porque o `valida_balanco` nao sabe
+    olhar o veredicto da SE, so o balanco de energia. Isso nao e cadastro nem
+    condutor: e sintoma de outro defeito, ja detectado, e nao deve competir
+    com `perda modelada absurda` pela hora de quem le o CSV.
     """
+    veredicto_se = v.get('veredicto_se')
+    if veredicto_se not in (None, 'OK'):
+        return f'modelo quebrado na SE: {veredicto_se}'
     if v.get('faturado_maior_que_injetado'):
         return 'medida invertida: faturado > injetado'
     if v.get('medida_degenerada'):
@@ -193,7 +204,7 @@ def colher_base(pasta, base):
         d = decl.get(str(v.get('ctmt')), {})
         linhas.append({
             'base': base, 'sub': sub, 'ctmt': v.get('ctmt'),
-            'motivo': motivo_da_violacao(v),
+            'motivo': motivo_da_violacao(dict(v, veredicto_se=w.get('veredicto'))),
             'pct_tecnica_modelo': v.get('pct_tecnica_modelo'),
             'pct_total_medido': v.get('pct_total_medido'),
             'pct_nao_tecnica_implicita': v.get('pct_nao_tecnica_implicita'),
