@@ -111,12 +111,32 @@ teto = int(sys.argv[1])
 tampa = int(sys.argv[2])
 so = {x for x in os.environ.get("SO", "").split() if x}
 
+# O TAMANHO VEM DE CACHE, e a razao e a regra de 28/08/2026: o head node nao
+# pode mais ser usado para processar. Varrer 97 `.gdb` — 127 GB e ~20 mil
+# arquivos — para dimensionar job e I/O pesado, e acontecia a CADA execucao,
+# inclusive nas que so mostram o plano.
+#
+# `.gdb` nao muda de tamanho depois de baixada, entao medir uma vez basta. Base
+# nova e medida e entra no cache; o resto so e lido.
+import json
+CACHE = "medicoes/tamanho_bases.json"
+try:
+    tam = json.load(open(CACHE, encoding="utf-8"))
+except Exception:
+    tam = {}
+novas = 0
+
 bases = []
 for tag, cam, _ in r.BASES:
     if so and tag not in so:
         continue
-    gb = sum(os.path.getsize(os.path.join(d, f))
-             for d, _, fs in os.walk(cam) for f in fs) / 2**30
+    if cam in tam:
+        gb = tam[cam]
+    else:
+        gb = sum(os.path.getsize(os.path.join(d, f))
+                 for d, _, fs in os.walk(cam) for f in fs) / 2**30
+        tam[cam] = gb
+        novas += 1
     if   gb <  1: ppn, mem = 4, 12
     elif gb <  5: ppn, mem = 8, 24
     elif gb < 20: ppn, mem = 16, 48
@@ -149,6 +169,10 @@ for tag, ppn, mem, gb in bases:
         raise SystemExit(1)
     min(cabem, key=lambda c: sum(t[1] for t in c[1]))[1].append((tag, ppn, mem))
 
+if novas:
+    os.makedirs("medicoes", exist_ok=True)
+    json.dump(tam, open(CACHE, "w", encoding="utf-8"), indent=1)
+print("MEDIDAS %d" % novas)
 print("CORRENTES %d" % len(correntes))
 print("PICO %d" % sum(c[0] for c in correntes))
 for i, (mx, itens) in enumerate(correntes, 1):
@@ -157,6 +181,8 @@ PY
 
 CORRENTES=$(awk '/^CORRENTES/{print $2}' /tmp/plano_ondas.txt)
 PICO=$(awk '/^PICO/{print $2}' /tmp/plano_ondas.txt)
+MEDIDAS=$(awk '/^MEDIDAS/{print $2}' /tmp/plano_ondas.txt)
+[[ "${MEDIDAS:-0}" != "0" ]] && echo "bases medidas agora (as demais vieram do cache): $MEDIDAS"
 
 echo "plano: $CORRENTES correntes, pico de $PICO nucleos simultaneos (teto $ORCAMENTO)"
 echo

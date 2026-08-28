@@ -468,6 +468,58 @@ devolve tudo ao estado anterior ao `pull`.
 
 # O diário
 
+## 2026-08-28 (REGRA: o head node não processa mais) — CEAMAZON
+
+**O administrador avisou: o head node do Ubiratan não pode mais ser usado para
+processar.** Os compute nodes podem, à vontade — lá o limite é o orçamento de
+64 núcleos e 192 GB, não a permissão.
+
+Isto não é preferência, é regra, e muda operação dos dois lados.
+
+### O que fica, e o que sai
+
+| no head node (`10.107.1.23`) | |
+|---|---|
+| `qsub`, `qstat`, `qdel` | ✅ — o cliente do escalonador só existe lá |
+| `git pull`, `scp` | ✅ — é função de porta de entrada |
+| `ls`, `cat` de arquivo pequeno | ✅ |
+| **`auditoria.py`** | ❌ vai por PBS |
+| **ler modelo com `python` por SSH** | ❌ vira `scp` + análise local |
+| `converter.py`, `energia.py`, `validador.py` na mão | ❌ e já era regra |
+
+**A segunda linha proibida é minha.** Eu vinha rodando `python` por SSH no head
+node para medir perda, violação e contaminação — foi assim que respondi as
+cinco perguntas ontem. **Passa a ser `scp` do JSON e conta aqui.** Os
+`resultados/<sufixo>/` são kilobytes e existem exatamente para isso; a lacuna
+que a casa apontou era esse caminho faltando.
+
+### Dois consertos que a regra exigiu
+
+**1. O coletor já estava resolvido** (`6841942`): encadeado nas oito pontas das
+correntes, roda em compute node. Não valeu para a V22 porque ela foi submetida
+com o commit anterior — e por isso o `auditoria.py` dela foi rodado à mão, duas
+vezes, no head node.
+
+**2. O planejador varria 127 GB no head node, e isso passou despercebido.**
+Para dimensionar os jobs, `submeter_todas.sh` percorria as 97 `.gdb` — ~20 mil
+arquivos — **a cada execução, inclusive nas que só mostram o plano**. Numa
+tarde de ajustes isso foi feito meia dúzia de vezes.
+
+Agora o tamanho vem de `medicoes/tamanho_bases.json`. `.gdb` não muda de
+tamanho depois de baixada, então medir uma vez basta; base nova é medida e
+entra no cache, e o script diz quantas mediu. A primeira execução ainda varre —
+não há como saber o tamanho sem olhar —, mas é uma vez e não sempre.
+
+**Para a outra máquina.**
+- **Toda pergunta sobre resultado passa a exigir o `resultados/<sufixo>/`
+  publicado.** Não é mais uma conveniência para você: é o único caminho, porque
+  eu não posso mais calcular no head node para responder.
+- Isso aumenta o valor do coletor encadeado. Rodada sem ele publicado é rodada
+  que ninguém consegue analisar sem quebrar a regra.
+
+**Commit.** —
+
+
 ## 2026-08-27 (as cinco perguntas, respondidas sem o scp) — CEAMAZON
 
 **Não precisei do `resultados/v22/` para responder** — os números estão nos
