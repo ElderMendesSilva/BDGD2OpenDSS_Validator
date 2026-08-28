@@ -97,20 +97,57 @@ de alimentador/condutor, fora do que `resultados/` guarda.
   - **18 — denominador minúsculo:** artefato de fórmula, não defeito de rede.
   - **~130 — cauda espalhada em 22 bases pequenas**, sem concentração.
 
-### Pendência para o cluster
+## Plano da V24 — a partir daqui o trabalho é na CEAMAZON
 
-Confirmar os 16 casos de COPELDIS2866 exige o modelo aberto, que não está
-nesta máquina. Ao rodar a próxima rodada (ou uma isolada de COPELDIS2866):
+**Corte:** 28/08/2026. A partir deste commit o Elder opera na máquina do
+cluster. O código está pronto: `correcao-se-quebrada` mesclada, suíte em 660
+testes verdes, coletor encadeado no submissor e cache de tamanho no lugar.
 
-1. ~~Mesclar `correcao-se-quebrada` antes de submeter~~ — **feito em
-   28/08/2026.** Falta só o push de `main`.
-2. Depois do ciclo, abrir os 5 piores CTMT de COPELDIS2866 e checar topologia
-   por barra — o candidato mais provável é malha fechada por engano ou chave
-   mal tratada que a convergência não pega:
-   `71080/832100009`, `72857/874280005`, `72866/884720043`,
+### Antes de submeter
+
+- `git pull` no nó e conferir que o HEAD é este commit; a rodada carrega um
+  único commit e ele vai na procedência.
+- Fila vazia e cota disponível dentro de 64 núcleos / 192 GB.
+- Sufixo novo (`V24`); rodada antiga é aposentada, não apagada.
+- Na primeira execução do planejador, `MEDIDAS <n>` diz quantas `.gdb` ele
+  mediu. Se `medicoes/tamanho_bases.json` não existir ainda, essa primeira
+  varredura acontece uma vez — é esperado.
+
+### Durante
+
+O `auditoria.py` roda encadeado por PBS nas pontas das correntes. **Não rodar
+à mão no head node**, que foi o desvio da V22.
+
+### Depois do ciclo
+
+1. `python analise/investigar_violacoes.py resultados/v24`. Comparar com a
+   V22: as 17 linhas de modelo quebrado devem sair da competição com defeito
+   real, e o total de violações reais deve ficar perto de 1.609.
+2. `python diagnosticos/perfil_violacao.py --resultados resultados/v24 --so
+   COPELDIS2866 --motivo "perda modelada absurda"`. Compara os 16 suspeitos
+   contra o resto **da mesma base** em km, trafos, kVA, R1 e CNOM ponderados,
+   e mede enriquecimento por condutor — o mesmo método que sustentou o 593 da
+   Enel SP, agora sem caminho fixo no código.
+3. Se nenhum atributo separar os grupos, **isso é resultado, não fracasso**:
+   significa que a causa não está nos atributos de alimentador, e o próximo
+   passo é topologia por barra nestes cinco CTMT — o candidato mais provável
+   é malha fechada por engano ou chave mal tratada, que a convergência não
+   pega: `71080/832100009`, `72857/874280005`, `72866/884720043`,
    `72205/815480008`, `72240/818000004`.
-3. Rodar `analise/investigar_violacoes.py resultados/<sufixo-novo>` de novo
-   e comparar contagem por causa com a tabela acima.
+
+### O que pensar antes de agir sobre o resultado
+
+- **Comparação com a V22 pelo campo `motivo` não é linha a linha.** A
+  correção muda o rótulo das 17 linhas de SE quebrada de propósito. Diferença
+  ali é o efeito esperado, não regressão.
+- **Convergir não é prova.** As 16 de COPELDIS2866 estão em SE com veredicto
+  `OK` e mesmo assim publicam perda de milhões por cento.
+- **Não corrigir o conversor pelo caso isolado.** Defeito achado vira teste na
+  suíte antes de qualquer correção ampla, e correção que muda saída espera a
+  rodada fechar, em ramo separado.
+- **As outras 242 continuam sem causa.** COPELDIS2866 é o caso mais concreto,
+  não o único; 43 são prováveis Enel SP/condutor 593, 51 são borderline, 18
+  são artefato de fórmula e ~130 são cauda espalhada em 22 bases.
 
 ## Ciclo de trabalho
 
