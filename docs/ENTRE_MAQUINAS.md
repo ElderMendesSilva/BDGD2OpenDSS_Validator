@@ -123,6 +123,53 @@ de alimentador/condutor, fora do que `resultados/` guarda.
   - **18 — denominador minúsculo:** artefato de fórmula, não defeito de rede.
   - **~130 — cauda espalhada em 22 bases pequenas**, sem concentração.
 
+## V23 submetida — 28/08/2026, 18:36 (CEAMAZON)
+
+97 jobs (`34475`–`34571`) mais o coletor (`34572`), commit único `e49363c`,
+árvore limpa. Sufixo `V23`; a V24 do plano abaixo virou esta rodada.
+
+`ORCAMENTO=160`, `ORCAMENTO_GB=480`, `TAMPA=32`, `RAMPA=90` → 13 correntes,
+pico exato nos dois tetos. A rampa funcionou na primeira: corrente 1 em `R`
+imediato, correntes 2–13 em `W` com largada a cada 90s (18:37:36 … 18:54:07),
+85 jobs em `H` presos por dependência.
+
+**Previsão: ~1,9 h, fechando por volta de 20:35.**
+
+### O que a V22 ensinou sobre tempo (medido nos logs, não estimado)
+
+Extraído de `logs/v22/*.log` pelo carimbo da primeira e da última etapa:
+
+| medida | valor |
+|---|---|
+| trabalho somado nas 97 bases | 9,8 h |
+| relógio real da V22 (8 correntes) | 3,8 h |
+| **CMIG sozinha** | **150 min — 25% de todo o trabalho** |
+| mediana por base | 0,5 min |
+| 2ª mais longa (NEOENERGIA47) | 39 min |
+
+**A distribuição é brutalmente desigual**, e isso muda como se planeja rodada:
+metade das bases termina em meio minuto, e uma única base carrega um quarto do
+esforço. Subir o número de correntes não ataca isso — é Amdahl. Com `TAMPA=8`
+a previsão era 3,1 h, quase toda ela esperando a Cemig.
+
+**O gargalo era `TAMPA`, não o orçamento.** O `regerar` passa `--jobs` e o
+`plataforma.nucleos()` respeita a fatia do PBS corretamente — então a Cemig
+convertia suas 341 subestações de 8 em 8 só porque `TAMPA=8` a limitava. A 16
+núcleos ela cai para ~86 min e o caminho crítico vai de 3,1 h para 1,9 h. Foi
+o maior ganho da noite, e custou uma variável de ambiente.
+
+Nenhuma base alcançou o patamar de 32 (`.gdb` ≥ 20 GB): o maior `ppn` atribuído
+foi 16, então `TAMPA=32` operou de fato como `TAMPA=16`.
+
+### A conferir quando a V23 fechar
+
+1. Tempo real contra a previsão de 1,9 h, e a Cemig contra os ~86 min. É isso
+   que transforma `TAMPA` em padrão medido em vez de escolha desta rodada.
+2. `resources_used.mem` e `.cput` dos 97 jobs: a reserva é conservadora de
+   propósito (24 GB para ~3 GB usados na conversão), e só a medição diz quanta
+   folga dá para devolver.
+3. Os passos 1 a 3 do plano abaixo, que continuam valendo.
+
 ## Plano da V24 — a partir daqui o trabalho é na CEAMAZON
 
 **Corte:** 28/08/2026. A partir deste commit o Elder opera na máquina do
