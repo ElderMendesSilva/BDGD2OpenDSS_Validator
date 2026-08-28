@@ -72,6 +72,43 @@ afirmação sobre a BDGD.
 Pergunta aberta: a ausência de medida utilizável acompanha porte ou é traço de
 cooperativa? As 97 respondem por leitura de tabela.
 
+## Catalogação das 1.626 violações da V22, por causa
+
+`analise/investigar_violacoes.py` (main, commit `fa3210d`) separa cada
+violação por sinal de SE contra a taxa de FUNDO da rodada — não contra zero.
+Resultado: nenhum sinal de topologia de SE se destaca do fundo. O defeito é
+de alimentador/condutor, fora do que `resultados/` guarda.
+
+- **17 linhas** já são sintoma de modelo marcado quebrado pela verificação
+  (`POTENCIA_NAN`, `NAO_CONVERGE`) — correção em `correcao-se-quebrada`
+  (commit `a4698e6`), ainda **não mesclada em `main`**: espera a V22 fechar.
+- Das 1.609 reais, **258 sem nenhum sinal de SE**. Catalogadas:
+  - **43 — Enel SP:** provável mesmo achado já documentado (condutor 593).
+  - **51 — COPELDIS2866, "no limite" (razão 1,01–1,20):** dentro da margem
+    que já se trata como "passou raspando"; não necessariamente defeito.
+  - **16 — COPELDIS2866, perda absurda (15,8% a 10.309.528,9%):** achado
+    NOVO, ainda não documentado. GWh injetado real (6,9–56,6) e milhares de
+    UCs por linha — não é artefato de denominador pequeno — e a SE está com
+    veredicto `OK`, convergida, sem chave ilhada nem regulador pendurado.
+    Convergência não garante plausibilidade física.
+  - **18 — denominador minúsculo:** artefato de fórmula, não defeito de rede.
+  - **~130 — cauda espalhada em 22 bases pequenas**, sem concentração.
+
+### Pendência para o cluster
+
+Confirmar os 16 casos de COPELDIS2866 exige o modelo aberto, que não está
+nesta máquina. Ao rodar a próxima rodada (ou uma isolada de COPELDIS2866):
+
+1. Mesclar `correcao-se-quebrada` antes de submeter, para o CSV não misturar
+   os 17 casos de modelo quebrado com os defeitos reais.
+2. Depois do ciclo, abrir os 5 piores CTMT de COPELDIS2866 e checar topologia
+   por barra — o candidato mais provável é malha fechada por engano ou chave
+   mal tratada que a convergência não pega:
+   `71080/832100009`, `72857/874280005`, `72866/884720043`,
+   `72205/815480008`, `72240/818000004`.
+3. Rodar `analise/investigar_violacoes.py resultados/<sufixo-novo>` de novo
+   e comparar contagem por causa com a tabela acima.
+
 ## Ciclo de trabalho
 
 1. Nó roda e publica resultados rastreáveis.
