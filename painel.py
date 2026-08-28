@@ -227,7 +227,8 @@ class Painel(tk.Tk):
     def _sel(self):
         s = self.tv.selection()
         if not s:
-            messagebox.showinfo('Selecione', 'Escolha uma subestacao na lista.')
+            messagebox.showinfo('Selecione', 'Escolha uma subestacao na lista.',
+                                parent=self)
             return None
         return self.tv.item(s[0], 'values')[0]
 
@@ -247,7 +248,7 @@ class Painel(tk.Tk):
     def carregar(self):
         p = self.pasta.get()
         if not os.path.isdir(p):
-            messagebox.showerror('Pasta', 'Pasta inexistente.')
+            messagebox.showerror('Pasta', 'Pasta inexistente.', parent=self)
             return
         self.tv.delete(*self.tv.get_children())
         ses = sorted(d for d in os.listdir(p)
@@ -276,6 +277,13 @@ class Painel(tk.Tk):
                 se, res.get('alimentadores', ''), v.get('V_MT_mediana', ''),
                 v.get('perdas_pct', ''), causa, v.get('causa_detalhe', '')),
                 tags=(causa,) if causa in CORES else ())
+        if not ses:
+            messagebox.showwarning(
+                'Nenhum modelo',
+                f'A pasta existe, mas nao contem subestacoes com MASTER-*.dss.\n\n'
+                f'Esperado: pasta de MODELOS (ex.: MODELOS_V13), nao a .gdb.\n\n'
+                f'Caminho: {p}',
+                parent=self)
         self._diz(f'{len(ses)} subestacoes em {p}')
         self._sumario()
 
@@ -407,7 +415,8 @@ class Painel(tk.Tk):
                 'Falta o energia_dia.json',
                 'Este cruzamento compara a energia do dia simulado com a da '
                 'BDGD.\n\nRode antes:\n    python energia.py '
-                f'"{os.path.basename(p)}"')
+                f'"{os.path.basename(p)}"',
+                parent=self)
             return
         v = interativo.formulario('painel_bdgd', 'BDGD de origem', [
             {'chave': 'gdb', 'tipo': 'pasta', 'rotulo': 'BDGD (.gdb)',
