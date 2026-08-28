@@ -81,13 +81,10 @@ de alimentador/condutor, fora do que `resultados/` guarda.
 
 - **17 linhas** já são sintoma de modelo marcado quebrado pela verificação
   (`POTENCIA_NAN`, `NAO_CONVERGE`) — correção em `correcao-se-quebrada`
-  (commit `a4698e6`), ainda **não mesclada em `main`**: espera a V22 fechar.
-
-  **Bloqueio, 28/08/2026 (CEAMAZON):** a branch não existe em `origin` nem
-  nesta máquina — `git fetch` não a traz e `a4698e6` é desconhecido aqui.
-  Ficou local na CASA, sem push. **A CASA precisa dar
-  `git push -u origin correcao-se-quebrada`**; sem isso a próxima rodada não
-  pode sair, porque o passo 1 da pendência abaixo depende dela.
+  (commit `a4698e6`), **mesclada em `main` em 28/08/2026** (CEAMAZON), com a
+  suíte em 647 testes verdes. O `motivo_da_violacao` passa a checar o
+  veredicto da SE antes de qualquer número, e o passo 1 da pendência abaixo
+  está cumprido: a próxima rodada já sai com o CSV limpo desse sintoma.
 - Das 1.609 reais, **258 sem nenhum sinal de SE**. Catalogadas:
   - **43 — Enel SP:** provável mesmo achado já documentado (condutor 593).
   - **51 — COPELDIS2866, "no limite" (razão 1,01–1,20):** dentro da margem
@@ -105,8 +102,8 @@ de alimentador/condutor, fora do que `resultados/` guarda.
 Confirmar os 16 casos de COPELDIS2866 exige o modelo aberto, que não está
 nesta máquina. Ao rodar a próxima rodada (ou uma isolada de COPELDIS2866):
 
-1. Mesclar `correcao-se-quebrada` antes de submeter, para o CSV não misturar
-   os 17 casos de modelo quebrado com os defeitos reais.
+1. ~~Mesclar `correcao-se-quebrada` antes de submeter~~ — **feito em
+   28/08/2026.** Falta só o push de `main`.
 2. Depois do ciclo, abrir os 5 piores CTMT de COPELDIS2866 e checar topologia
    por barra — o candidato mais provável é malha fechada por engano ou chave
    mal tratada que a convergência não pega:
