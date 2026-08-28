@@ -107,6 +107,23 @@ class OMotivoClassifica(unittest.TestCase):
                                    'pct_total_medido': 3.28})
         self.assertEqual(m, 'a investigar')
 
+    def test_se_quebrada_vem_antes_de_qualquer_numero(self):
+        """ENERGISA_M405, sub 61: veredicto POTENCIA_NAN e a violacao saia
+        como `perda modelada absurda: 2217133917.6%` — o defeito e do
+        `valida_balanco` nao saber olhar a SE, nao do alimentador."""
+        m = au.motivo_da_violacao({'veredicto_se': 'POTENCIA_NAN[C-API]',
+                                   'pct_tecnica_modelo': 2217133917.57,
+                                   'pct_total_medido': 1.0})
+        self.assertEqual(m, 'modelo quebrado na SE: POTENCIA_NAN[C-API]')
+
+    def test_se_ok_ou_ausente_nao_muda_a_classificacao(self):
+        for veredicto in (None, 'OK'):
+            m = au.motivo_da_violacao({'veredicto_se': veredicto,
+                                       'GWh_injetado': 20.0,
+                                       'pct_tecnica_modelo': 51.5,
+                                       'pct_total_medido': 6.8})
+            self.assertTrue(m.startswith('perda modelada absurda'), m)
+
     def test_campo_ausente_nao_derruba(self):
         for v in ({}, {'pct_tecnica_modelo': None},
                   {'pct_total_medido': 'x', 'GWh_injetado': ''},
@@ -228,6 +245,20 @@ class OQueSaiEmDisco(unittest.TestCase):
                            encoding='utf-8'))
         self.assertEqual(i['sufixo'], 'TESTE')
         self.assertEqual([b['base'] for b in i['bases']], ['XX'])
+
+    def test_se_quebrada_relabeled_de_ponta_a_ponta(self):
+        """O mesmo caso, mas pelo caminho inteiro: `verificacao.json` ->
+        `colher_base` -> `motivo_da_violacao` -> linha do CSV."""
+        r = _Rodada(
+            validacao_balanco=[_balanco('QUEBRADO', sub='S1',
+                                        pct_tecnica_modelo=2217133917.57)],
+            verificacao=[{'se': 'S1', 'veredicto': 'POTENCIA_NAN[C-API]'}])
+        with open(os.path.join(self._colhe(r), 'XX_violacoes.csv'),
+                  encoding='utf-8') as fh:
+            linha = next(csv.DictReader(fh))
+        self.assertEqual(linha['motivo'],
+                         'modelo quebrado na SE: POTENCIA_NAN[C-API]')
+        self.assertEqual(linha['se_veredicto'], 'POTENCIA_NAN[C-API]')
 
     def test_por_motivo_conta_por_CLASSE(self):
         """`denominador minusculo: 0,003 GWh` e `... 0,014 GWh` sao o mesmo
