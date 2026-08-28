@@ -82,6 +82,12 @@ de alimentador/condutor, fora do que `resultados/` guarda.
 - **17 linhas** já são sintoma de modelo marcado quebrado pela verificação
   (`POTENCIA_NAN`, `NAO_CONVERGE`) — correção em `correcao-se-quebrada`
   (commit `a4698e6`), ainda **não mesclada em `main`**: espera a V22 fechar.
+
+  **Bloqueio, 28/08/2026 (CEAMAZON):** a branch não existe em `origin` nem
+  nesta máquina — `git fetch` não a traz e `a4698e6` é desconhecido aqui.
+  Ficou local na CASA, sem push. **A CASA precisa dar
+  `git push -u origin correcao-se-quebrada`**; sem isso a próxima rodada não
+  pode sair, porque o passo 1 da pendência abaixo depende dela.
 - Das 1.609 reais, **258 sem nenhum sinal de SE**. Catalogadas:
   - **43 — Enel SP:** provável mesmo achado já documentado (condutor 593).
   - **51 — COPELDIS2866, "no limite" (razão 1,01–1,20):** dentro da margem
