@@ -1,0 +1,271 @@
+{
+  "total_violacoes": 1626,
+  "por_motivo": {
+    "perda modelada absurda: #": 542,
+    "a investigar": 371,
+    "no limite: modelo # o total medido": 397,
+    "medida quase sem perda: # total medido": 262,
+    "denominador minusculo: # GWh injetados": 54
+  },
+  "concentracao_por_base": [
+    {
+      "base": "COPELDIS2866",
+      "GWh": 7672.6,
+      "pct_acumulado": 23.5
+    },
+    {
+      "base": "NEOENERGIA385",
+      "GWh": 4947.8,
+      "pct_acumulado": 38.7
+    },
+    {
+      "base": "EQUATORIAL6072",
+      "GWh": 4505.6,
+      "pct_acumulado": 52.5
+    },
+    {
+      "base": "CMIG",
+      "GWh": 2374.8,
+      "pct_acumulado": 59.8
+    },
+    {
+      "base": "CEEE_EQUAT5707",
+      "GWh": 1973.7,
+      "pct_acumulado": 65.9
+    },
+    {
+      "base": "CELESCDIS5697",
+      "GWh": 1392.3,
+      "pct_acumulado": 70.1
+    },
+    {
+      "base": "NEOENERGIA47",
+      "GWh": 1342.4,
+      "pct_acumulado": 74.2
+    },
+    {
+      "base": "SP",
+      "GWh": 1247.7,
+      "pct_acumulado": 78.1
+    },
+    {
+      "base": "NEOENERGIA43",
+      "GWh": 722.9,
+      "pct_acumulado": 80.3
+    },
+    {
+      "base": "CPFL_SANTA69",
+      "GWh": 681.4,
+      "pct_acumulado": 82.4
+    },
+    {
+      "base": "EQUATORIAL38",
+      "GWh": 661.5,
+      "pct_acumulado": 84.4
+    },
+    {
+      "base": "EQUATORIAL37",
+      "GWh": 487.9,
+      "pct_acumulado": 85.9
+    },
+    {
+      "base": "NEOENERGIA40",
+      "GWh": 484.9,
+      "pct_acumulado": 87.4
+    },
+    {
+      "base": "ENERGISA_M405",
+      "GWh": 472.8,
+      "pct_acumulado": 88.8
+    },
+    {
+      "base": "CPFL",
+      "GWh": 386.2,
+      "pct_acumulado": 90.0
+    },
+    {
+      "base": "EDP_ES380",
+      "GWh": 373.1,
+      "pct_acumulado": 91.2
+    },
+    {
+      "base": "EQUATORIAL44",
+      "GWh": 367.0,
+      "pct_acumulado": 92.3
+    },
+    {
+      "base": "ENERGISA_P6600",
+      "GWh": 223.6,
+      "pct_acumulado": 93.0
+    },
+    {
+      "base": "ENERGISA_T32",
+      "GWh": 221.3,
+      "pct_acumulado": 93.7
+    },
+    {
+      "base": "LT",
+      "GWh": 215.3,
+      "pct_acumulado": 94.3
+    },
+    {
+      "base": "CEA_EQUATO31",
+      "GWh": 210.3,
+      "pct_acumulado": 95.0
+    },
+    {
+      "base": "EDP_SP391",
+      "GWh": 197.0,
+      "pct_acumulado": 95.6
+    },
+    {
+      "base": "ENERGISA_R369",
+      "GWh": 191.4,
+      "pct_acumulado": 96.2
+    },
+    {
+      "base": "RGE396",
+      "GWh": 162.4,
+      "pct_acumulado": 96.7
+    },
+    {
+      "base": "ENERGISA_M6585",
+      "GWh": 147.2,
+      "pct_acumulado": 97.1
+    },
+    {
+      "base": "EQPA",
+      "GWh": 145.6,
+      "pct_acumulado": 97.6
+    },
+    {
+      "base": "ENEL_RJ383",
+      "GWh": 119.5,
+      "pct_acumulado": 97.9
+    },
+    {
+      "base": "CPFL_PIRAT2937",
+      "GWh": 113.7,
+      "pct_acumulado": 98.3
+    },
+    {
+      "base": "ENERGISA_M404",
+      "GWh": 112.7,
+      "pct_acumulado": 98.6
+    },
+    {
+      "base": "SANTA_MARI381",
+      "GWh": 94.4,
+      "pct_acumulado": 98.9
+    },
+    {
+      "base": "ENCE",
+      "GWh": 65.9,
+      "pct_acumulado": 99.1
+    },
+    {
+      "base": "ENERGISA_S5216",
+      "GWh": 60.8,
+      "pct_acumulado": 99.3
+    },
+    {
+      "base": "EFLUL86",
+      "GWh": 42.0,
+      "pct_acumulado": 99.4
+    },
+    {
+      "base": "NEOENERGIA5160",
+      "GWh": 41.1,
+      "pct_acumulado": 99.5
+    },
+    {
+      "base": "DEMEI95",
+      "GWh": 30.3,
+      "pct_acumulado": 99.6
+    },
+    {
+      "base": "FORCEL83",
+      "GWh": 28.7,
+      "pct_acumulado": 99.7
+    },
+    {
+      "base": "ENERGISA_S6587",
+      "GWh": 28.5,
+      "pct_acumulado": 99.8
+    },
+    {
+      "base": "CHESP103",
+      "GWh": 27.7,
+      "pct_acumulado": 99.9
+    },
+    {
+      "base": "DMED51",
+      "GWh": 11.4,
+      "pct_acumulado": 99.9
+    },
+    {
+      "base": "CEDRI5366",
+      "GWh": 6.3,
+      "pct_acumulado": 100.0
+    },
+    {
+      "base": "CRERAL2783",
+      "GWh": 3.3,
+      "pct_acumulado": 100.0
+    },
+    {
+      "base": "CERIPA5378",
+      "GWh": 3.2,
+      "pct_acumulado": 100.0
+    },
+    {
+      "base": "CERPRO5384",
+      "GWh": 2.7,
+      "pct_acumulado": 100.0
+    },
+    {
+      "base": "CERVAM5375",
+      "GWh": 2.3,
+      "pct_acumulado": 100.0
+    },
+    {
+      "base": "CERNHE6609",
+      "GWh": 1.3,
+      "pct_acumulado": 100.0
+    },
+    {
+      "base": "CEREJ5352",
+      "GWh": 1.3,
+      "pct_acumulado": 100.0
+    },
+    {
+      "base": "COOPERNORT5345",
+      "GWh": 0.1,
+      "pct_acumulado": 100.0
+    }
+  ],
+  "taxa_de_fundo_pct": {
+    "nao_convergiu": 0.7,
+    "chaves_ilhadas": 62.8,
+    "reguladores_pendurados": 7.4,
+    "trafos_pac_invertido": 1.0
+  },
+  "modelo_quebrado": {
+    "linhas": 17,
+    "bases": [
+      "CEEE_EQUAT5707",
+      "COPELDIS2866",
+      "ENERGISA_M405",
+      "EQUATORIAL6072",
+      "NEOENERGIA385"
+    ]
+  },
+  "com_sinal_de_topologia": {
+    "linhas": 1351,
+    "nota": "sinal presente NAO prova causa — comparar com a taxa de fundo antes de agir; ver taxa_de_fundo_pct"
+  },
+  "sem_sinal_de_topologia": {
+    "linhas": 258,
+    "nota": "candidato a defeito de alimentador/condutor — precisa do .gdb, que nao esta em resultados/"
+  }
+}
