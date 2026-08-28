@@ -28,6 +28,32 @@ ninguém analisa sem quebrar a regra.
 
 ## Regras do cluster
 
+### Orçamento: 160 núcleos e 480 GB (revisto em 28/08/2026)
+
+O administrador liberou os nós de cálculo — só o head node saiu de cena. Os
+três nós somam **768 núcleos e 753 GB**, e com isso o gargalo deixa de ser
+permissão e passa a ser **memória**: o dimensionamento pede 3 GB por núcleo,
+então usar os 768 núcleos exigiria 2.304 GB, o triplo do que existe.
+
+Por isso o `submeter_todas.sh` passou a ter **dois tetos**, e o menor manda:
+`ORCAMENTO=160` núcleos e `ORCAMENTO_GB=480`. Isso dá **20 correntes** em vez
+das 8 da V22 — ~2,5x mais paralelo — usando 21% dos núcleos e 64% da memória,
+o que deixa folga real para o resto do laboratório, que divide o mesmo cluster.
+
+Contar só núcleo não bastava: sem o teto de GB, subir `ORCAMENTO` estouraria a
+memória em silêncio.
+
+### Motor de partida (`RAMPA=90`)
+
+As correntes começam todas pela leitura da `.gdb`. Vinte delas abrindo 127 GB
+no mesmo instante disputam o mesmo disco, e a fase mais longa de cada job vira
+a mais lenta de todas. A **cabeça** de cada corrente agora larga escalonada
+(`qsub -a`), uma a cada 90s: a carga sobe ao longo de ~28 min em vez de saltar.
+Não custa relógio no fim, porque só a cabeça espera — os demais jobs já
+estavam presos por dependência. `RAMPA=0` desliga.
+
+
+
 - Orçamento total: **64 núcleos e 192 GB**, incluindo jobs já na fila.
 - `submeter_todas.sh` usa correntes com `depend=afterany`; só submeter com
   `--rodar`. Sem essa flag, o comando deve apenas mostrar o plano.
