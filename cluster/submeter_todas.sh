@@ -62,6 +62,15 @@ WALLTIME="${WALLTIME:-12:00:00}"
 # CABECA de cada corrente: o resto ja esperava dependencia de qualquer jeito.
 # Com 20 correntes e 90s, a carga sobe ao longo de ~28 min. RAMPA=0 desliga.
 RAMPA="${RAMPA:-90}"
+# GB POR NUCLEO. Tres e o medido no modo agregado: a maior subestacao das sete
+# bases — REN na Equatorial PA, 108 mil barras — segura ~3 GB.
+#
+# O MODO COMPLETO PRECISA DE MAIS, e nao por conforto. Ele multiplica os
+# elementos por ~15 (Roraima: 1.852 cargas no agregado, 28.390 no completo).
+# Uma base que morre por cota de memoria seria registrada como "falhou no
+# completo" — falso positivo exatamente na medida que o experimento quer
+# fazer. Custa nada errar para cima quando ha teto sobrando.
+GB_POR_NUCLEO="${GB_POR_NUCLEO:-3}"
 RODAR="no"
 [[ "${1:-}" == "--rodar" ]] && RODAR="sim"
 
@@ -105,6 +114,7 @@ echo "fila     : $FILA"
 echo "bases    : ${SO:-todas as encontradas}"
 echo "tampa ppn: $TAMPA  (menor = mais correntes ao mesmo tempo)"
 echo "modo da bt: ${BT:-agregado (padrao)}"
+echo "gb/nucleo : $GB_POR_NUCLEO"
 echo "modo     : $([[ $RODAR == sim ]] && echo 'SUBMETER' || echo 'so mostrar (use --rodar para submeter)')"
 echo
 
@@ -143,7 +153,7 @@ echo "disponivel para esta submissao  : $DISPONIVEL"
 echo
 
 # --- planeja: classifica por tamanho e distribui em correntes ---------------
-"$PY_VENV" - "$DISPONIVEL" "$TAMPA" "$ORCAMENTO_GB" > /tmp/plano_ondas.txt <<'PY'
+"$PY_VENV" - "$DISPONIVEL" "$TAMPA" "$ORCAMENTO_GB" "$GB_POR_NUCLEO" > /tmp/plano_ondas.txt <<'PY'
 import os, sys
 sys.path.insert(0, ".")
 import regerar_v10 as r
@@ -151,6 +161,7 @@ import regerar_v10 as r
 teto = int(sys.argv[1])
 tampa = int(sys.argv[2])
 teto_gb = int(sys.argv[3])
+gb_por_nucleo = int(sys.argv[4])
 so = {x for x in os.environ.get("SO", "").split() if x}
 
 # O TAMANHO VEM DE CACHE, e a razao e a regra de 28/08/2026: o head node nao
@@ -182,7 +193,7 @@ for tag, cam in escolhidas:
     elif gb < 20: ppn, mem = 16, 48
     else:         ppn, mem = 32, 96
     ppn = min(ppn, tampa)
-    mem = ppn * 3
+    mem = ppn * gb_por_nucleo
     bases.append((tag, ppn, mem, gb))
 
 # CORRENTE = fila sequencial. O custo simultaneo de uma corrente e o MAIOR ppn
@@ -219,7 +230,7 @@ for x in os.environ.get("SOZINHA", "").split():
     sozinha.append(tag)
     if n.isdigit():
         ppn_fixo[tag] = int(n)
-exclusivas = [(t, ppn_fixo.get(t, p), ppn_fixo.get(t, p) * 3 if t in ppn_fixo
+exclusivas = [(t, ppn_fixo.get(t, p), ppn_fixo.get(t, p) * gb_por_nucleo if t in ppn_fixo
                else m, g) for t, p, m, g in bases if t in sozinha]
 bases = [b for b in bases if b[0] not in sozinha]
 
