@@ -21,9 +21,21 @@ export BDGD2DSS_MODO=cluster
 echo "## perfil de violacao — $(date)"
 echo "## base=$BASE  sufixo=$SUFIXO  motivo=${MOTIVO:-<todos>}"
 
-ARGS=(--bases "$BDGD2DSS_BASES"
-      --resultados "resultados/$(echo "$SUFIXO" | tr 'A-Z' 'a-z')"
-      --so "$BASE")
+# ONDE ESTAO OS RESULTADOS depende de quando este job roda. Logo apos a
+# rodada eles estao em `saida_cluster/`, onde o coletor do no escreve; depois
+# que a maquina de analise os traz e commita, passam a existir tambem em
+# `resultados/`, que e versionado. Procurar nos dois faz o job servir aos dois
+# momentos — encadeado no coletor, ou rodado dias depois.
+MIN=$(echo "$SUFIXO" | tr 'A-Z' 'a-z')
+PASTA="saida_cluster/$MIN"
+[[ -d "$PASTA" ]] || PASTA="resultados/$MIN"
+if [[ ! -d "$PASTA" ]]; then
+    echo "nao achei saida_cluster/$MIN nem resultados/$MIN" >&2
+    exit 1
+fi
+echo "## lendo de $PASTA"
+
+ARGS=(--bases "$BDGD2DSS_BASES" --resultados "$PASTA" --so "$BASE")
 [[ -n "${MOTIVO:-}" ]] && ARGS+=(--motivo "$MOTIVO")
 
 python diagnosticos/perfil_violacao.py "${ARGS[@]}"

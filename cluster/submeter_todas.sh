@@ -336,10 +336,20 @@ cd "${PBS_O_WORKDIR:-$PROJETO}"
 source .venv/bin/activate
 export BDGD2DSS_MODO=cluster
 echo "## coletor da $SUFIXO — $(date)"
-python -u auditoria.py --sufixo "$SUFIXO"
+# A SAIDA DO NO NAO PODE CAIR EM `resultados/`, e isso custou tres rodadas.
+# `resultados/` e VERSIONADO — sao kilobytes e valem historico — e o coletor
+# do no escreve exatamente ali. O resultado e um impasse que se repete:
+# enquanto os arquivos sao nao-rastreados, `git pull` recusa sobrescreve-los;
+# depois de commitados aqui, o coletor os deixa MODIFICADOS e a guarda de
+# arvore suja recusa submeter. Nao ha lado certo dessa moeda.
+#
+# Entao o no escreve em `saida_cluster/`, que e ignorado pelo git, e a maquina
+# que analisa traz por `scp` e commita em `resultados/`. Produtor e repositorio
+# deixam de disputar o mesmo caminho.
+python -u auditoria.py --sufixo "$SUFIXO" --saida saida_cluster
 echo
-echo "## resultados/$(echo "$SUFIXO" | tr 'A-Z' 'a-z')/"
-du -sh "resultados/$(echo "$SUFIXO" | tr 'A-Z' 'a-z')" 2>/dev/null
+echo "## saida_cluster/$(echo "$SUFIXO" | tr 'A-Z' 'a-z')/  (traga por scp)"
+du -sh "saida_cluster/$(echo "$SUFIXO" | tr 'A-Z' 'a-z')" 2>/dev/null
 echo "## fim $(date)"
 PBS
 )

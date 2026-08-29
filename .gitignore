@@ -80,3 +80,8 @@ venv/
 # Saida do cluster/primeiro_contato.sh: reconhecimento de UMA maquina, refeito
 # em segundos, e que nao descreve o repositorio.
 contato.txt
+
+# Saida do coletor NO NO. `resultados/` e versionado e o no escreve nele: o
+# choque travou o `git pull` em tres rodadas seguidas. O no escreve aqui, a
+# maquina que analisa traz por `scp` e commita em `resultados/`.
+saida_cluster/
