@@ -113,7 +113,29 @@ def uma_base(gdb, passo=700_000):
     r.update(n_uc=n_uc, sem_pac=sem_pac,
              pct_uc_no_ramlig=round(100.0 * em_ramlig / max(1, n_uc), 1),
              pct_uc_na_rede=round(100.0 * em_rede / max(1, n_uc), 1),
-             m_bt_por_uc=round(1000.0 * (km_ssdbt + km_ramlig) / max(1, n_uc), 1))
+             m_bt_por_uc=round(1000.0 * (km_ssdbt + km_ramlig) / max(1, n_uc), 1),
+             # METROS DE BT POR TRANSFORMADOR, que e o que preve se o modo
+             # completo sobrevive. Medido em 26/08/2026 sobre sete bases:
+             #
+             #   Roraima 270 m ok | CPFL 453 ok | Enel SP 632 ok (2,3% mortas)
+             #   Enel CE 812 FALHA (perda 63%) | Light 888 FALHA (92% mortas)
+             #
+             # As duas que falham sao as duas com MAIS baixa por trafo, e a que
+             # melhor funciona e a com menos. Cinco pontos nao fecham uma lei;
+             # as 97 fechariam, e medir isto nao custa simulacao nenhuma.
+             #
+             # E metrica de TOPOLOGIA DECLARADA, nao de resultado: por isso vale
+             # como criterio de ENTRADA, decidido antes de gastar a rodada.
+             #
+             # 888 m de secundario por trafo em rede metropolitana tambem nao e
+             # crivel por si — ou faltam trafos declarados, ou sobra
+             # comprimento, ou o mesmo trecho e contado para varios. Ou seja: o
+             # numero alto e suspeita de DADO, e nao so de modelo.
+             # `n_trafos` e nao `n_tr`: a leitura do UNTRMT pode ter caido no
+             # `except` acima, e ali a variavel local nem chega a existir.
+             m_bt_por_trafo=(round(1000.0 * (km_ssdbt + km_ramlig)
+                                   / r['n_trafos'], 1)
+                             if r.get('n_trafos') else None))
     return r
 
 
@@ -188,8 +210,9 @@ def main(argv=None):
         json.dump({'medido_em': time.strftime('%Y-%m-%d %H:%M:%S'),
                    'bases': saida}, f, ensure_ascii=False, indent=1)
 
-    cab = ('%-26s %10s %10s %9s %8s %8s %8s  %s'
-           % ('base', 'UCs', 'RAMLIG', 'SSDBT km', 'UC/ram%', 'UC/rede%', 'm/UC', 'veredito'))
+    cab = ('%-26s %10s %10s %9s %8s %8s %8s %9s  %s'
+           % ('base', 'UCs', 'RAMLIG', 'SSDBT km', 'UC/ram%', 'UC/rede%', 'm/UC',
+              'm/trafo', 'veredito'))
     print('\n' + '=' * len(cab))
     print(cab)
     print('=' * len(cab))
@@ -197,10 +220,11 @@ def main(argv=None):
         if 'erro' in r:
             print('%-26s %s' % (r['base'][:26], r['erro']))
             continue
-        print('%-26s %10s %10s %9s %7s%% %7s%% %8s  %s'
+        print('%-26s %10s %10s %9s %7s%% %7s%% %8s %9s  %s'
               % (r['base'][:26], f"{r['n_uc']:,}", f"{r['n_ramlig']:,}",
                  f"{r['km_ssdbt']:,.0f}", r['pct_uc_no_ramlig'],
-                 r['pct_uc_na_rede'], r['m_bt_por_uc'], r['veredito']))
+                 r['pct_uc_na_rede'], r['m_bt_por_uc'],
+                 r.get('m_bt_por_trafo'), r['veredito']))
     print('\njson: %s' % a.saida_json)
     return 0
 

@@ -1,0 +1,42 @@
+#!/bin/bash
+# Mede a COMPLETUDE DA BAIXA TENSAO das 97 bases, sem simular nada.
+#
+#     bash cluster/submeter_bt_completude.sh --rodar
+#
+# POR QUE ISTO VEM ANTES DE QUALQUER RODADA `--bt completo`. Modelar a baixa so
+# aumenta a fidelidade se a baixa DECLARADA estiver la. Rede de BT incompleta e
+# pior que rede de BT ausente: o modelo agregado ADMITE que nao tem a baixa,
+# enquanto o completo com dado faltando parece te-la e entrega numero errado
+# com cara de numero certo.
+#
+# E o que se procura aqui ja tem candidato medido. Em 26/08/2026, sobre sete
+# bases, METROS DE BT POR TRANSFORMADOR previu quais sobrevivem ao modo
+# completo:
+#
+#     Roraima 270 m ok | CPFL 453 ok | Enel SP 632 ok (2,3% mortas)
+#     Enel CE 812 FALHA (perda 63%)  | Light 888 FALHA (92% mortas)
+#
+# Sete pontos nao fecham uma lei. As 97 fecham — e o custo e ler tabela, nao
+# resolver circuito: nenhuma conversao, nenhum OpenDSS, nenhuma rodada.
+#
+# O numero alto tambem e suspeita de DADO por si so: 888 m de secundario por
+# transformador em rede metropolitana nao e crivel. Ou faltam transformadores
+# declarados, ou sobra comprimento, ou o mesmo trecho e contado varias vezes.
+#
+# Le a `.gdb`, entao e job — o head node nao processa (regra de 28/08/2026).
+set -uo pipefail
+cd "${PBS_O_WORKDIR:-$PROJETO}"
+source .venv/bin/activate
+export BDGD2DSS_MODO=cluster
+
+echo "## completude da BT nas 97 bases — $(date)"
+echo "## bases em: ${BDGD2DSS_BASES:-<nao definido>}"
+
+python diagnosticos/bt_completude.py \
+    --bases "$BDGD2DSS_BASES" \
+    --saida-json medicoes/bt_completude_97.json
+rc=$?
+
+echo "## fim $(date)  (rc=$rc)"
+echo "## saida em medicoes/bt_completude_97.json"
+exit $rc
