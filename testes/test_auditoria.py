@@ -328,5 +328,51 @@ class OTetoDeTamanho(unittest.TestCase):
         self.assertEqual(avisos, [])
 
 
+class ATensaoViajaJuntoDoResultado(OQueSaiEmDisco):
+    """`V_MT_min` sozinho nao distingue colapso de ponta solta.
+
+    V23, COPELDIS2866: 71 subestacoes com perda modelada de ate 10.309.528%,
+    todas com veredicto `OK` — convergidas, sem NaN. O que as separava das
+    outras 103 era tensao: mediana do `V_MT_min` em 0,082 pu contra 0,938 pu.
+    Carga de potencia constante a 0,08 pu puxa ~12x a corrente nominal, e a
+    perda joule vai a ~150x. E fisica, nao cadastro.
+
+    Mas o MINIMO pode ser uma barra ruim no fim de um ramal. So a MEDIANA diz
+    se a rede inteira caiu, e ela nao vinha em `resultados/` — a pergunta
+    exigia abrir o modelo, que e o que `resultados/` existe para evitar.
+    """
+
+    def test_a_mediana_e_as_criticas_saem_por_subestacao(self):
+        r = _Rodada(validacao=[{'modelo': 'S1', 'V_MT_min': 0.038,
+                                'V_MT_mediana': 0.081,
+                                'barras_criticas': 412}])
+        with open(os.path.join(self._colhe(r), 'XX.json'),
+                  encoding='utf-8') as fh:
+            s = json.load(fh)['subestacoes'][0]
+        self.assertEqual((s['V_MT_min'], s['V_MT_mediana'],
+                          s['barras_criticas']), (0.038, 0.081, 412))
+
+    def test_a_tensao_entra_na_linha_do_CSV(self):
+        """Quem abre o CSV tem de poder ordenar por tensao sem o modelo."""
+        r = _Rodada(
+            validacao_balanco=[_balanco('CRITICA', sub='S1',
+                                        pct_tecnica_modelo=99999.0)],
+            validacao=[{'modelo': 'S1', 'V_MT_min': 0.038,
+                        'V_MT_mediana': 0.081, 'barras_criticas': 412}])
+        with open(os.path.join(self._colhe(r), 'XX_violacoes.csv'),
+                  encoding='utf-8') as fh:
+            linha = next(csv.DictReader(fh))
+        self.assertEqual(linha['se_V_MT_mediana'], '0.081')
+        self.assertEqual(linha['se_barras_criticas'], '412')
+
+    def test_campo_ausente_nao_derruba_a_colheita(self):
+        """Rodada antiga nao tem os campos novos, e nao pode quebrar."""
+        r = _Rodada(validacao=[{'modelo': 'S1'}])
+        with open(os.path.join(self._colhe(r), 'XX.json'),
+                  encoding='utf-8') as fh:
+            s = json.load(fh)['subestacoes'][0]
+        self.assertIsNone(s['V_MT_mediana'])
+
+
 if __name__ == '__main__':
     unittest.main()

@@ -77,6 +77,7 @@ COLUNAS = [
     'declarado_pct', 'razao_vs_declarado',
     'se_kv_mt', 'se_trafos', 'se_km_MT', 'se_alimentadores',
     'se_convergiu', 'se_nos_nan', 'se_veredicto',
+    'se_V_MT_min', 'se_V_MT_mediana', 'se_barras_criticas',
 ]
 
 
@@ -179,7 +180,16 @@ def colher_base(pasta, base):
             'iteracoes': v.get('iteracoes', capi.get('iteracoes')),
             'nos_nan': v.get('nos_nan', capi.get('nan_nos')),
             'perdas_pct': v.get('perdas_pct'),
+            # O MINIMO SOZINHO NAO DISTINGUE COLAPSO DE PONTA SOLTA, e a
+            # diferenca decide a leitura: `V_MT_min=0,04 pu` pode ser uma
+            # barra ruim no fim de um ramal — ou a rede inteira caida. So a
+            # MEDIANA responde, e sem ela a pergunta exige abrir o modelo.
+            # Medido na V23: nas SEs com perda absurda a mediana do minimo e
+            # 0,25 pu contra 0,91 pu nas demais, entao o sinal existe e vale
+            # carregar.
             'V_MT_min': v.get('V_MT_min'),
+            'V_MT_mediana': v.get('V_MT_mediana'),
+            'barras_criticas': v.get('barras_criticas'),
             'cargas_sem_tensao': v.get('cargas_sem_tensao'),
             'ramos_isolados': v.get('ramos_isolados'),
             'causa': v.get('causa'),
@@ -222,6 +232,9 @@ def colher_base(pasta, base):
             'se_convergiu': vv.get('converge'),
             'se_nos_nan': vv.get('nos_nan'),
             'se_veredicto': w.get('veredicto'),
+            'se_V_MT_min': vv.get('V_MT_min'),
+            'se_V_MT_mediana': vv.get('V_MT_mediana'),
+            'se_barras_criticas': vv.get('barras_criticas'),
         })
     # Maior perda modelada primeiro: quem abre o CSV quer o pior caso na
     # primeira linha, e nao a ordem em que a rodada calhou de gravar.
