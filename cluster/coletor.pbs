@@ -1,0 +1,28 @@
+#!/bin/bash
+# Colhe uma rodada inteira em `saida_cluster/<sufixo>/`.
+#
+# Recebe `SUFIXO` JA CARIMBADO — quem chama resolve `sufixo_com_bt` antes, e
+# isso e deliberado: o carimbo `_btcompleto` mora em `regerar_v10`, e
+# reimplementa-lo aqui criaria duas verdades que divergiriam na primeira
+# mudanca. Foi exatamente esse descompasso que perdeu a colheita da BT1 — os
+# modelos sairam em `MODELOS_*_BT1_btcompleto` e o coletor procurou por
+# `MODELOS_*_BT1`, achou nada e publicou vazio.
+#
+# A SAIDA NAO CAI EM `resultados/`, que e versionado e que o `git pull` do no
+# precisa poder sobrescrever. O no escreve aqui; a maquina que analisa traz por
+# `scp` e commita em `resultados/`.
+set -uo pipefail
+cd "${PBS_O_WORKDIR:-$PROJETO}"
+source .venv/bin/activate
+export BDGD2DSS_MODO=cluster
+
+echo "## coletor da $SUFIXO — $(date)"
+python -u auditoria.py --sufixo "$SUFIXO" --saida saida_cluster
+rc=$?
+
+MIN=$(echo "$SUFIXO" | tr 'A-Z' 'a-z')
+echo
+echo "## saida_cluster/$MIN/  (traga por scp)"
+du -sh "saida_cluster/$MIN" 2>/dev/null
+echo "## fim $(date)  (rc=$rc)"
+exit $rc

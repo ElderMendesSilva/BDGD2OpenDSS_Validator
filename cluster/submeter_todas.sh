@@ -74,6 +74,19 @@ GB_POR_NUCLEO="${GB_POR_NUCLEO:-3}"
 RODAR="no"
 [[ "${1:-}" == "--rodar" ]] && RODAR="sim"
 
+# --coletar: submete SO o coletor, sem reprocessar base nenhuma. Existe pelo
+# caso da BT1, em que as dez bases rodaram bem e a colheita saiu vazia por um
+# sufixo errado: sem isto a saida seria rodar o `auditoria.py` a mao no no de
+# acesso, que e o que a regra de 28/08/2026 proibe.
+if [[ "${1:-}" == "--coletar" ]]; then
+    mkdir -p logs/cluster
+    SUF_COL=$(.venv/bin/python -c "import sys;sys.path.insert(0,'.');import regerar_v10 as r;print(r.sufixo_com_bt(sys.argv[1], sys.argv[2] or 'agregado'))" "$SUFIXO" "${BT:-}")
+    echo "coletando MODELOS_*_$SUF_COL  ->  saida_cluster/$(echo "$SUF_COL" | tr 'A-Z' 'a-z')/"
+    ID=$(qsub -N "colet_$SUF_COL" -q "$FILA"          -l nodes=1:ppn=4 -l mem=12gb -l walltime=02:00:00          -j oe -o logs/cluster/          -v "PROJETO=$PWD,SUFIXO=$SUF_COL" cluster/coletor.pbs)
+    echo "coletor submetido: $ID"
+    exit 0
+fi
+
 # --medir: manda MEDIR as `.gdb` num no de calculo e sai. Existe porque o
 # planejador, que roda aqui no no de acesso, se RECUSA a medir — ver a regra
 # de 28/08/2026 em `bdgd2dss/tamanhos.py`. Sem esta saida a regra travaria o
@@ -338,32 +351,13 @@ done < <(grep '^CHAIN' /tmp/plano_ondas.txt)
 #
 # `ppn=4` porque ele so le JSON. Cabe no orcamento por definicao: quando ele
 # roda, as correntes ja acabaram.
-ID_COLETOR=$(qsub -W "depend=afterany${CAUDAS}" -N "colet_$SUFIXO" -q "$FILA" \
-    -l nodes=1:ppn=4 -l mem=12gb -l walltime=02:00:00 -j oe -o logs/cluster/ \
-    -v "PROJETO=$PWD,SUFIXO=$SUFIXO" - <<'PBS'
-#!/bin/bash
-set -uo pipefail
-cd "${PBS_O_WORKDIR:-$PROJETO}"
-source .venv/bin/activate
-export BDGD2DSS_MODO=cluster
-echo "## coletor da $SUFIXO — $(date)"
-# A SAIDA DO NO NAO PODE CAIR EM `resultados/`, e isso custou tres rodadas.
-# `resultados/` e VERSIONADO — sao kilobytes e valem historico — e o coletor
-# do no escreve exatamente ali. O resultado e um impasse que se repete:
-# enquanto os arquivos sao nao-rastreados, `git pull` recusa sobrescreve-los;
-# depois de commitados aqui, o coletor os deixa MODIFICADOS e a guarda de
-# arvore suja recusa submeter. Nao ha lado certo dessa moeda.
-#
-# Entao o no escreve em `saida_cluster/`, que e ignorado pelo git, e a maquina
-# que analisa traz por `scp` e commita em `resultados/`. Produtor e repositorio
-# deixam de disputar o mesmo caminho.
-python -u auditoria.py --sufixo "$SUFIXO" --saida saida_cluster
-echo
-echo "## saida_cluster/$(echo "$SUFIXO" | tr 'A-Z' 'a-z')/  (traga por scp)"
-du -sh "saida_cluster/$(echo "$SUFIXO" | tr 'A-Z' 'a-z')" 2>/dev/null
-echo "## fim $(date)"
-PBS
-)
+# O SUFIXO DO COLETOR NAO E O CRU. O `regerar` carimba `_btcompleto` quando o
+# modo nao e agregado, entao os modelos saem em `MODELOS_<TAG>_BT1_btcompleto`.
+# Resolver isso AQUI, e nao dentro do job, evita depender de variavel do
+# script de fora sobreviver ao heredoc — foi o que quebrou na primeira versao.
+SUF_COL=$("$PY_VENV" -c "import sys;sys.path.insert(0,'.');import regerar_v10 as r;print(r.sufixo_com_bt(sys.argv[1], sys.argv[2] or 'agregado'))" "$SUFIXO" "${BT:-}")
+
+ID_COLETOR=$(qsub -W "depend=afterany${CAUDAS}" -N "colet_$SUF_COL" -q "$FILA"     -l nodes=1:ppn=4 -l mem=12gb -l walltime=02:00:00 -j oe -o logs/cluster/     -v "PROJETO=$PWD,SUFIXO=$SUF_COL" cluster/coletor.pbs)
 echo
 echo "  coletor (espera as $CORRENTES pontas) -> $ID_COLETOR"
 
