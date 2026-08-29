@@ -253,6 +253,14 @@ def colher_base(pasta, base):
         'procedencia': proc,
         'bdgd': rede.get('gdb'), 'dist': rede.get('dist'),
         'bt': rede.get('bt'), 'mes': rede.get('mes'), 'dia': rede.get('dia'),
+        # DE ONDE VEIO O CLIMA e procedencia, nao curiosidade: irradiancia e
+        # temperatura comandam o derating do painel, entao geracao distribuida
+        # medida com clima errado e numero plausivel e falso — o achado 4.
+        # `sintetico` e honesto mas ~23% otimista; `medido` vem da NASA POWER
+        # na coordenada da propria base; `medido_forcado` e clima de OUTRA
+        # distribuidora aplicado a mao. So o resumo do modelo sabia disso, e
+        # `resultados/` existe para nao precisar abrir modelo.
+        'clima_fonte': rede.get('clima_fonte'),
         'subestacoes_na_bdgd': rede.get('subestacoes_na_bdgd'),
         'subestacoes_geradas': rede.get('subestacoes_geradas'),
         'alimentadores': rede.get('alimentadores'),

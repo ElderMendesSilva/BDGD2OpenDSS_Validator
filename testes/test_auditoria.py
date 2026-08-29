@@ -351,6 +351,30 @@ class OTetoDeTamanho(unittest.TestCase):
         self.assertEqual(avisos, [])
 
 
+class AProcedenciaDoClimaViajaJunto(OQueSaiEmDisco):
+    """Clima errado nao quebra: imprime numero plausivel — o achado 4.
+
+    Irradiancia e temperatura comandam o derating do painel. O conversor ja
+    escolhe entre `medido` (NASA POWER na coordenada da propria base) e
+    `sintetico` (honesto, mas ~23% otimista), e registra qual usou — mas so no
+    resumo do modelo. Quem le `resultados/` nao tinha como saber, e uma
+    conclusao sobre geracao distribuida depende disso.
+    """
+
+    def test_a_fonte_do_clima_sai_no_resumo_da_base(self):
+        r = _Rodada(relatorio_rede={'gdb': 'x.gdb', 'dist': '390',
+                                    'clima_fonte': 'sintetico'})
+        with open(os.path.join(self._colhe(r), 'XX.json'),
+                  encoding='utf-8') as fh:
+            self.assertEqual(json.load(fh)['clima_fonte'], 'sintetico')
+
+    def test_modelo_antigo_sem_o_campo_nao_derruba(self):
+        r = _Rodada(relatorio_rede={'gdb': 'x.gdb'})
+        with open(os.path.join(self._colhe(r), 'XX.json'),
+                  encoding='utf-8') as fh:
+            self.assertIsNone(json.load(fh)['clima_fonte'])
+
+
 class ATensaoViajaJuntoDoResultado(OQueSaiEmDisco):
     """`V_MT_min` sozinho nao distingue colapso de ponta solta.
 
