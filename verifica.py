@@ -117,10 +117,14 @@ def _capi(master):
         p = dss.CktElement.Powers()[0::2]
         gd += -sum(p[:dss.CktElement.NumPhases()])
         i = dss.PVsystems.Next()
+    def _kv(b):
+        dss.Circuit.SetActiveBus(b)
+        return dss.Bus.kVBase()
+    mt = _barras_mt(dss.Circuit.AllBusNames(), _kv)
     r = _mede(v, nomes, dss.Circuit.TotalPower()[0],
               dss.Circuit.Losses()[0] / 1000,
               bool(dss.Solution.Converged()), dss.Solution.Iterations(),
-              carga, gd)
+              carga, gd, mt_bus=mt)
     if r['nan_nos']:
         b = nomes[r['_i0']].split('.')[0]
         dss.Circuit.SetActiveBus(b)
@@ -190,8 +194,10 @@ def _com(master):
         p = list(c.ActiveCktElement.Powers)[0::2]
         gd += -sum(p[:c.ActiveCktElement.NumPhases])
         i = c.PVSystems.Next
+    mt = _barras_mt(list(c.AllBusNames), lambda b: c.Buses(b).kVBase)
     r = _mede(v, nomes, c.TotalPower[0], c.Losses[0] / 1000,
-              bool(c.Solution.Converged), c.Solution.Iterations, carga, gd)
+              bool(c.Solution.Converged), c.Solution.Iterations, carga, gd,
+              mt_bus=mt)
     if r['nan_nos']:
         b = nomes[r['_i0']].split('.')[0]
         bb = c.Buses(b)
@@ -219,7 +225,25 @@ def _com(master):
 LIMIAR_TENSAO = 0.5
 
 
-def _mede(v, nomes, p_total, perdas_kw, convergiu, iteracoes, carga=0.0, gd=0.0):
+def _barras_mt(nomes_barras, kvbase):
+    """Nomes das barras de media, pelo mesmo criterio do `validador`.
+
+    `kvbase(nome)` devolve a tensao de base daquela barra. Acima de 1 kV e
+    media ou alta; abaixo e secundario. Falha de leitura numa barra nao pode
+    custar a medida inteira, entao ela apenas fica de fora.
+    """
+    mt = set()
+    for b in nomes_barras:
+        try:
+            if (kvbase(b) or 0) > 1:
+                mt.add(b.lower())
+        except Exception:                                    # noqa: BLE001
+            pass
+    return mt
+
+
+def _mede(v, nomes, p_total, perdas_kw, convergiu, iteracoes, carga=0.0,
+          gd=0.0, mt_bus=None):
     """As perdas saem sobre a energia INJETADA, nao sobre a fonte.
 
     Com geracao distribuida a fonte deixa de ser o denominador certo. Medido
@@ -230,6 +254,11 @@ def _mede(v, nomes, p_total, perdas_kw, convergiu, iteracoes, carga=0.0, gd=0.0)
     """
     maus = [i for i, x in enumerate(v) if math.isnan(x)]
     bons = [x for x in v if not math.isnan(x) and x > 0.01]
+    # Sem `mt_bus` (motor que nao soube dizer quais barras sao de MT) cai em
+    # todas as barras vivas: pior medida, mas nunca medida ausente.
+    bons_mt = bons if mt_bus is None else [
+        x for nome, x in zip(nomes, v)
+        if not math.isnan(x) and x > 0.01 and nome.split('.')[0].lower() in mt_bus]
     p_fonte = None if math.isnan(p_total) else round(-p_total, 1)
     perdas = None if math.isnan(perdas_kw) else round(perdas_kw, 1)
     inj = None if p_fonte is None else p_fonte + gd
@@ -250,7 +279,18 @@ def _mede(v, nomes, p_total, perdas_kw, convergiu, iteracoes, carga=0.0, gd=0.0)
          # pode ser uma barra ruim no fim de um ramal, e isso acontece tambem
          # em rede sadia. Medido na V23: nas subestacoes com perda modelada
          # absurda a mediana do `V_MT_min` era 0,25 pu contra 0,91 pu.
-         'V_mediana': round(statistics.median(bons), 4) if bons else None,
+         # SO MT, e a distincao custou um falso positivo e 24 falsos negativos
+         # na V24. `AllBusMagPu` mistura media e baixa; a mediana sobre tudo
+         # media outra coisa que nao a rede de distribuicao. Medido: 24
+         # subestacoes com a MT em menos de 0,5 pu passaram como `OK` porque os
+         # nos de BT puxaram a mediana para cima, e a CELESCDIS/RCP foi
+         # reprovada com a MT em 0,887 porque os de BT a puxaram para baixo.
+         #
+         # O criterio e o mesmo do `validador`: `kVBase > 1`. Duas medidas com
+         # o mesmo nome tinham de ser o mesmo numero — se o relatorio diz
+         # `V_MT_mediana` e o veredicto olha outra coisa, quem le nao tem como
+         # conferir o que foi decidido.
+         'V_mediana': round(statistics.median(bons_mt), 4) if bons_mt else None,
          'V_min': round(min(bons), 4) if bons else None}
     if maus:
         r['_i0'] = maus[0]
