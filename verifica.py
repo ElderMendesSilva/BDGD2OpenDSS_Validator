@@ -29,6 +29,7 @@ import argparse
 import glob
 import json
 import math
+import statistics
 import os
 import sys
 
@@ -202,6 +203,22 @@ def _com(master):
 
 
 # -------------------------------------------------------------------- comum
+# ABAIXO DISTO O MODELO NAO DESCREVE REDE NENHUMA, e o corte nao e arbitrario.
+# O histograma do `V_MT_min` das 4.189 subestacoes da V23 e BIMODAL: 503 abaixo
+# de 0,10 pu, uma massa grande acima de 0,75 pu, e um VALE entre 0,45 e 0,55 —
+# as duas faixas mais vazias da distribuicao inteira (31 e 21 subestacoes).
+# Cortar no fundo do vale e o que torna a classificacao menos sensivel ao
+# limiar escolhido: mover o corte de 0,45 para 0,55 muda pouca coisa.
+#
+# Fisicamente 0,5 pu tambem se sustenta sozinho: nenhum alimentador de
+# distribuicao opera a metade da tensao nominal — a protecao atuaria antes.
+#
+# Na V23 isto alcanca 981 subestacoes (23,4% da frota) em 38 bases. E muito, e
+# e para ser: sao modelos que hoje saem `OK` e alimentam a estatistica como se
+# fossem bons.
+LIMIAR_TENSAO = 0.5
+
+
 def _mede(v, nomes, p_total, perdas_kw, convergiu, iteracoes, carga=0.0, gd=0.0):
     """As perdas saem sobre a energia INJETADA, nao sobre a fonte.
 
@@ -229,6 +246,11 @@ def _mede(v, nomes, p_total, perdas_kw, convergiu, iteracoes, carga=0.0, gd=0.0)
          'perdas_pct': (None if (perdas is None or not inj or inj <= 1)
                         else round(100 * perdas / inj, 2)),
          'V_media': round(sum(bons) / len(bons), 4) if bons else None,
+         # A MEDIANA, e nao o minimo, e o que diz se a REDE caiu: minimo baixo
+         # pode ser uma barra ruim no fim de um ramal, e isso acontece tambem
+         # em rede sadia. Medido na V23: nas subestacoes com perda modelada
+         # absurda a mediana do `V_MT_min` era 0,25 pu contra 0,91 pu.
+         'V_mediana': round(statistics.median(bons), 4) if bons else None,
          'V_min': round(min(bons), 4) if bons else None}
     if maus:
         r['_i0'] = maus[0]
@@ -268,6 +290,20 @@ def veredicto(cap, com):
     for m, rot in ((cap, 'C-API'), (com, 'COM')):
         if m and (m.get('P_kW') is None or m.get('perdas_kW') is None):
             return f'POTENCIA_NAN[{rot}]'
+    # CONVERGIR NAO E ATESTADO DE PLAUSIBILIDADE FISICA, e ate aqui o veredicto
+    # so sabia perguntar se a conta fechou. Medido na V23: 71 subestacoes da
+    # COPELDIS2866 saiam `OK` com perda modelada de ate 10.309.528%, e o que as
+    # separava das outras 103 da mesma base era tensao — mediana do `V_MT_min`
+    # em 0,08 pu contra 0,94 pu. A fisica explica o numero inteiro: carga de
+    # potencia constante a 0,08 pu puxa ~12x a corrente nominal, e a perda
+    # joule vai a ~150x. Nao e cadastro: e modelo resolvido no chao.
+    #
+    # Vem DEPOIS de convergencia e NaN de proposito. Aqueles sao defeitos mais
+    # graves e mais especificos, e este nao pode roubar o rotulo deles.
+    for m, rot in ((cap, 'C-API'), (com, 'COM')):
+        vm = m.get('V_mediana') if m else None
+        if vm is not None and vm < LIMIAR_TENSAO:
+            return f'TENSAO_IMPLAUSIVEL[{rot}:{vm:.2f}]'
     # sobrou o NaN que nao atinge nada: a subestacao serve, e o numero
     # continua dito — silenciar seria trocar um extremo pelo outro
     n = max((m.get('nan_nos') or 0) for m in (cap, com) if m)
