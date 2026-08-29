@@ -140,7 +140,17 @@ def gerar_bt(bdgd, mapa_cnd, ctmts, caminho_saida, camada='SSDBT', col=None):
         d = mapa_cnd.get(txt(col['TIP_CND'][i]))
         lc = _linecode(mapa_cnd, col['TIP_CND'][i], nf)
         nd = nos(fas)
-        cod = txt(col['COD_ID'][i])
+        # O NOME LEVA A CAMADA, e sem isso o modelo completo nao compila.
+        # `COD_ID` e unico DENTRO de uma tabela, nao entre tabelas: a SSDMT, a
+        # SSDBT e a RAMLIG numeram cada uma a partir do seu proprio espaco, e
+        # `Line.662` existe nas tres. No modo agregado nada disso e emitido e o
+        # choque nao aparece; no completo, o OpenDSS recebe `New Line.662` duas
+        # vezes, avisa "Duplicate new element definition" e o modelo morre.
+        #
+        # Medido na BT1, 29/08/2026: as DEZ bases sairam `NAO_COMPILA`, da de
+        # 32 m/trafo a de 955 — o defeito era do nome, nao da topologia, e por
+        # isso o experimento nao mediu nada do que queria medir.
+        cod = f"{camada}_{txt(col['COD_ID'][i])}"
         out.append(f'New Line.{cod} Bus1={b1}{nd} Bus2={b2}{nd} '
                    f'LineCode={lc} Length={comp:.2f} Units=m')
         r1 = (d or {}).get('r1', 0.4) * K_NEUTRO
@@ -167,8 +177,8 @@ def ilhadas_bt(ramos, ancoras):
     MEDIDO em Roraima com `--bt completo`: a subestacao 1019465324 devolvia
     `perda = NaN`, e os culpados eram QUATRO linhas. Uma delas:
 
-        New Line.1019529892   Bus1=6358977.1.2.3  Bus2=6358869.1.2.3
-        New Line.N_1019529892 Bus1=6358977.4      Bus2=6358869.4
+        New Line.SSDBT_1019529892   Bus1=6358977.1.2.3 Bus2=6358869.1.2.3
+        New Line.N_SSDBT_1019529892 Bus1=6358977.4     Bus2=6358869.4
 
     Nada mais no modelo toca `6358977` nem `6358869`. Sao duas barras
     penduradas uma na outra, sem fonte e sem caminho para a terra.

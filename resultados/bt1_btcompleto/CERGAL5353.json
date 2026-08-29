@@ -1,0 +1,109 @@
+{
+ "base": "CERGAL5353",
+ "pasta": "MODELOS_CERGAL5353_BT1_btcompleto",
+ "procedencia": {
+  "commit": "6f97612b04d0ae4e63ba65bff5508a55c4fefc98",
+  "commit_origem": "submissao",
+  "descricao": "GB por nucleo vira ajustavel: o modo completo nao pode morre",
+  "sujo": null,
+  "git_respondeu": false,
+  "python": "3.11.4",
+  "gerado_em": "2026-08-29 14:38:09",
+  "base": "CERGAL5353"
+ },
+ "bdgd": "Cergal_5353_2024-12-31_V11_20250410-1549.gdb",
+ "dist": "5353",
+ "bt": "completo",
+ "mes": 1,
+ "dia": "DU",
+ "clima_fonte": "sintetico",
+ "subestacoes_na_bdgd": 2,
+ "subestacoes_geradas": 2,
+ "alimentadores": 7,
+ "rollup": {
+  "ses": 2,
+  "sadias": 0,
+  "nao_convergiu": 0,
+  "com_nan": 0,
+  "trafos": 769,
+  "km_MT": 262.4,
+  "chaves_ilhadas": 0,
+  "reguladores_pendurados": 0,
+  "trafos_pac_invertido": 0,
+  "kW_morto": 0,
+  "kW_nominal": 0
+ },
+ "perdas": {
+  "agregado": null,
+  "referencia_externa": null,
+  "populacao": null,
+  "modelo_implausivel": null,
+  "parcelas": null
+ },
+ "balanco": {
+  "alimentadores": 0,
+  "viola_de_verdade": 0,
+  "pct_viola": null,
+  "por_motivo": {}
+ },
+ "tabelas_nao_lidas": {
+  "EQSE": {
+   "registros": 1563,
+   "motivo": "detalhe de equipamento da chave; COR_NOM identico ao da UNSEMT (23.962/23.962 em RR). ELO_FSV e MEI_ISO sao dados de protecao e patrimonio, fora do fluxo de potencia"
+  },
+  "UNCRBT": {
+   "registros": 0,
+   "motivo": "capacitor de BAIXA tensao; zero registros nas sete"
+  },
+  "UNREBT": {
+   "registros": null,
+   "motivo": "regulador de BAIXA tensao; a camada nao existe em base nenhuma"
+  },
+  "UNSEBT": {
+   "registros": 0,
+   "motivo": "chave de BAIXA tensao; so vale com a rede de BT modelada (criterio 5, em aberto), e falta em tres das sete bases"
+  }
+ },
+ "subestacoes": [
+  {
+   "se": "JAGUA",
+   "veredicto": "NAO_COMPILA[C-API]",
+   "convergiu": null,
+   "iteracoes": null,
+   "nos_nan": null,
+   "perdas_pct": null,
+   "V_MT_min": null,
+   "V_MT_mediana": null,
+   "barras_criticas": null,
+   "cargas_sem_tensao": null,
+   "ramos_isolados": null,
+   "causa": "MODELO_QUEBRADO",
+   "alimentadores": 1,
+   "trafos": 188,
+   "km_MT": 68.56,
+   "chaves_ilhadas": 0,
+   "reguladores_pendurados": 0,
+   "trafos_pac_invertido": 0
+  },
+  {
+   "se": "SUB01",
+   "veredicto": "NAO_COMPILA[C-API]",
+   "convergiu": null,
+   "iteracoes": null,
+   "nos_nan": null,
+   "perdas_pct": null,
+   "V_MT_min": null,
+   "V_MT_mediana": null,
+   "barras_criticas": null,
+   "cargas_sem_tensao": null,
+   "ramos_isolados": null,
+   "causa": "MODELO_QUEBRADO",
+   "alimentadores": 6,
+   "trafos": 581,
+   "km_MT": 193.81,
+   "chaves_ilhadas": 0,
+   "reguladores_pendurados": 0,
+   "trafos_pac_invertido": 0
+  }
+ ]
+}

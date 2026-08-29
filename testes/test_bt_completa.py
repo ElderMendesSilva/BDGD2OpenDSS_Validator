@@ -88,5 +88,50 @@ class CodIdRepetidoNaoColide(unittest.TestCase):
         self.assertEqual(r['cod_id_repetido'], 0)
 
 
+class ONomeDaLinhaLevaACamada(unittest.TestCase):
+    """`COD_ID` e unico DENTRO da tabela, nao entre tabelas.
+
+    BT1, 29/08/2026: as DEZ bases do experimento sairam `NAO_COMPILA`, da de
+    32 m/trafo a de 955. O erro do OpenDSS era `Duplicate new element
+    definition: "Line.662"` — a SSDMT, a SSDBT e a RAMLIG numeram cada uma a
+    partir do seu proprio espaco, e o mesmo `662` existe nas tres.
+
+    No modo agregado nada de BT e emitido e o choque nao aparece; foi por isso
+    que o defeito so surgiu quando o modo completo finalmente rodou no cluster.
+    E ele custou o experimento inteiro: o resultado media o nome, nao a
+    topologia que a hipotese queria testar.
+    """
+
+    def test_a_linha_e_o_neutro_carregam_o_nome_da_camada(self):
+        from bdgd2dss import linhas
+        col = {'COD_ID': ['662'], 'PAC_1': ['b1'], 'PAC_2': ['b2'],
+               'CTMT': ['c'], 'FAS_CON': ['ABC'], 'TIP_CND': ['x'],
+               'COMP': [100.0]}
+        saida = os.path.join(tempfile.mkdtemp(), 'bt.dss')
+        linhas.gerar_bt(None, {}, ['c'], saida, camada='SSDBT', col=col)
+        with open(saida, encoding='utf-8') as fh:
+            txt = fh.read()
+        self.assertIn('New Line.SSDBT_662 ', txt)
+        self.assertIn('New Line.N_SSDBT_662 ', txt)
+        self.assertNotIn('New Line.662 ', txt)
+
+    def test_camadas_diferentes_nao_colidem_no_mesmo_COD_ID(self):
+        """O caso exato que derrubou a BT1."""
+        from bdgd2dss import linhas
+        col = {'COD_ID': ['662'], 'PAC_1': ['b1'], 'PAC_2': ['b2'],
+               'CTMT': ['c'], 'FAS_CON': ['ABC'], 'TIP_CND': ['x'],
+               'COMP': [100.0]}
+        d = tempfile.mkdtemp()
+        nomes = []
+        for cam in ('SSDBT', 'RAMLIG'):
+            p = os.path.join(d, cam + '.dss')
+            linhas.gerar_bt(None, {}, ['c'], p, camada=cam, col=dict(col))
+            with open(p, encoding='utf-8') as fh:
+                nomes += [l.split()[1] for l in fh if l.startswith('New Line.')]
+        self.assertEqual(len(nomes), len(set(nomes)),
+                         'mesmo COD_ID em camadas diferentes nao pode gerar '
+                         'o mesmo nome de elemento')
+
+
 if __name__ == '__main__':
     unittest.main()
