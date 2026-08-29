@@ -116,6 +116,29 @@ class OMotivoClassifica(unittest.TestCase):
                                    'pct_total_medido': 1.0})
         self.assertEqual(m, 'modelo quebrado na SE: POTENCIA_NAN[C-API]')
 
+    def test_ponta_solta_e_sadia_e_nao_esconde_a_violacao(self):
+        """`OK_PONTA_SOLTA[n]` e aprovacao, nao defeito.
+
+        O `verifica` o cria para o NaN que nao atinge carga nem geracao, e diz
+        no proprio comentario que a subestacao serve. Trata-lo como quebrado
+        esconderia a violacao real de uma subestacao boa. Nenhuma no pais tem
+        esse rotulo na V23 — e por isso o teste existe: o modo de falha que
+        nunca ocorreu e o que passa despercebido quando ocorrer.
+        """
+        m = au.motivo_da_violacao({'veredicto_se': 'OK_PONTA_SOLTA[2]',
+                                   'GWh_injetado': 20.0,
+                                   'pct_tecnica_modelo': 51.5,
+                                   'pct_total_medido': 6.8})
+        self.assertTrue(m.startswith('perda modelada absurda'), m)
+
+    def test_tensao_implausivel_conta_como_modelo_quebrado(self):
+        """O veredicto novo entra pela mesma porta dos antigos."""
+        m = au.motivo_da_violacao({'veredicto_se': 'TENSAO_IMPLAUSIVEL[C-API:0.08]',
+                                   'pct_tecnica_modelo': 10309528.9,
+                                   'pct_total_medido': 1.0})
+        self.assertEqual(m, 'modelo quebrado na SE: '
+                            'TENSAO_IMPLAUSIVEL[C-API:0.08]')
+
     def test_se_ok_ou_ausente_nao_muda_a_classificacao(self):
         for veredicto in (None, 'OK'):
             m = au.motivo_da_violacao({'veredicto_se': veredicto,

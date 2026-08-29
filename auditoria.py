@@ -126,8 +126,14 @@ def motivo_da_violacao(v):
     condutor: e sintoma de outro defeito, ja detectado, e nao deve competir
     com `perda modelada absurda` pela hora de quem le o CSV.
     """
+    # `OK_PONTA_SOLTA[n]` E SADIO, e tratar todo rotulo != 'OK' como quebrado
+    # o condenaria. O `verifica` o cria de proposito para o NaN que nao atinge
+    # carga nem geracao — "a subestacao serve, e o numero continua dito" — e
+    # marca-lo aqui esconderia a violacao REAL de uma subestacao boa sob um
+    # rotulo de defeito. Nao acontece na V23 (nenhuma no pais), e e justamente
+    # por isso que precisa de teste: falha que nunca ocorreu e a que passa.
     veredicto_se = v.get('veredicto_se')
-    if veredicto_se not in (None, 'OK'):
+    if veredicto_se and not str(veredicto_se).startswith('OK'):
         return f'modelo quebrado na SE: {veredicto_se}'
     if v.get('faturado_maior_que_injetado'):
         return 'medida invertida: faturado > injetado'
