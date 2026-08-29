@@ -170,6 +170,56 @@ foi 16, então `TAMPA=32` operou de fato como `TAMPA=16`.
    folga dá para devolver.
 3. Os passos 1 a 3 do plano abaixo, que continuam valendo.
 
+## V24 no ar — 29/08/2026, ~00h (CEAMAZON)
+
+97 jobs (`34603`–`34699`), coletor `34700`, commit unico `c089797`. Configuracao
+nova: `SOZINHA=CMIG` alem de `TAMPA=32`, `ORCAMENTO=160`, `RAMPA=90`.
+
+**A Cemig ficou sozinha na corrente 1 e largou no instante zero.** Na V23 a
+corrente dela levou ~141 min — 113 dela mais uma cauda de seis bases — enquanto
+a segunda mais longa levou 66; a rodada inteira esperava aquela cauda. Previsao
+agora: **~1h55**, contra 2h26 medidos na V23.
+
+### Encadeados no coletor, sem disputar nucleo com a rodada
+
+- **`34701` centroides** -> `medicoes/centroides.json`. Primeiro de dois passos
+  do clima (ver abaixo).
+- **`34702` completude da BT** -> `medicoes/bt_completude_97.json`, agora com
+  `m_bt_por_trafo`.
+
+### O que ler quando fechar
+
+1. **Quantas SEs o `TENSAO_IMPLAUSIVEL` reprova de fato**, e se 0,5 pu continua
+   no vale quando medido na MEDIANA. Era a lacuna que motivou a rodada.
+2. Como as 71 da COPELDIS2866 se reclassificam. O total de violacoes e o de SEs
+   sadias devem CAIR — e reclassificacao, nao regressao. Se nao cair, o
+   veredicto nao esta pegando o que mediu.
+3. `m_bt_por_trafo` nas 97: confirma ou derruba o previsor de viabilidade do
+   `--bt completo` (Roraima 270 ok ... Light 888 falha). Se nao confirmar,
+   tambem e resultado — a causa esta noutro lugar e a BT segue bloqueada.
+4. `clima_fonte` por base, que agora vem no resultado.
+
+## Clima por base: dois passos, e por que dois
+
+`dados/clima/` tinha **UMA** base (`370_01.json`). As outras 96 rodam no perfil
+SINTETICO — comportamento correto, porque o conversor recusa aplicar clima de
+outra distribuidora (achado 4), mas ~23% otimista. **Enquanto for assim, nenhuma
+conclusao sobre geracao distribuida se sustenta.**
+
+Baixar exige duas coisas que nao moram juntas: a coordenada, que sai da `.gdb`
+no cluster, e a internet, que o no de calculo nao tem.
+
+    1. no no  (PBS):  .gdb -> medicoes/centroides.json      <- job 34701
+    2. na casa:       centroides.json -> dados/clima/*.json
+
+O passo 2 e `python baixar_clima.py --rodar`, depois de trazer o JSON por `scp`.
+Ele pula quem ja tem cache, entao repetir o comando e barato: falha de rede numa
+base nao custa as outras. O cache e por DIST, nao por tag. `dados/` e versionado,
+entao basta commitar e o no passa a usar clima real no `pull` seguinte.
+
+Padrao: **janeiro de 2024**, o mes que a conversao usa. Comparar estacoes exige
+repetir com `--mes`.
+
 ## Achado da V23: convergir nao atesta plausibilidade fisica
 
 **71 subestacoes da COPELDIS2866 saiam `OK`** — convergidas, sem NaN, sem
