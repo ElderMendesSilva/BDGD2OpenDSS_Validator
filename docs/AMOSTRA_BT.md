@@ -77,43 +77,38 @@ No agregado ela já pede 48 GB; no completo pode passar dos 251 GB de um nó
 inteiro — ou seja, pode ser **impossível**, não apenas lenta. Isso se descobre
 com ela isolada, não no meio de uma rodada de 30.
 
-### BT3 — as 17 pequenas (< 500 mil UCs)
+### BT3 — as 5 intermediárias, com METADE do teto
 
-Somam **800 mil UCs**, cinco vezes a BT2: cerca de meia hora. Já cobrem os
-quatro quadrantes e quatro das sete bases de dado incompleto. **Se houver
-ordenação, ela aparece aqui** — e aí a BT4 vira confirmação de escala, não
-descoberta.
+A BT2 mudou a prioridade. Varrer `m/trafo` em bases pequenas já foi feito e não
+mostrou nada: as 17 pequenas confirmariam o óbvio. O que ninguém sabe é **onde
+a escala começa a quebrar** — entre as centenas de milhares de UCs que
+funcionam e os milhões que falham.
 
-    SUFIXO=BT3 BT=completo TAMPA=8 GB_POR_NUCLEO=12 \
-    SO="CERALDIS4248 CASTRODIS11825 CERPRO5384 CERVAM5375 CERILUZ2763 \
-        CERRP5385 RR CETRIL5379 DMED51 CERAL_ARAR6603 CERGAPA5355 \
-        CERTAJA_EN3223 ELETROCAR398 CERSUL5368 CEA_EQUATO31 DEMEI95 \
-        MUX_ENERGI401"
+Por isso a BT3 são as cinco bases da faixa intermediária, entre 900 mil e 2
+milhões de UCs. Elas somam **6,7 M**, cerca de 44 vezes a BT2:
 
-| tag | m/trafo | m/UC | UCs | papel |
+| base | UCs | m/trafo | m/UC | papel |
 |---|---:|---:|---:|---|
-| CERALDIS4248 | 32 | 18,7 | 1.160 | espaço |
-| CASTRODIS11825 | 68 | 20,9 | 2.472 | espaço |
-| CERPRO5384 | 126 | 49,5 | 2.172 | espaço |
-| CERVAM5375 | 180 | 30,3 | 4.857 | dado incompleto |
-| CERILUZ2763 | 213 | 78,3 | 15.433 | espaço |
-| CERRP5385 | 244 | 24,3 | 16.427 | dado incompleto |
-| **RR** | 270 | 34,3 | 217.665 | **original** (funciona) |
-| CETRIL5379 | 310 | 34,7 | 36.125 | espaço |
-| DMED51 | 369 | 12,8 | 94.221 | espaço |
-| CERAL_ARAR6603 | 384 | 44,1 | 8.427 | espaço |
-| CERGAPA5355 | 421 | 92,5 | 4.169 | espaço |
-| CERTAJA_EN3223 | 423 | 84,0 | 27.587 | espaço |
-| ELETROCAR398 | 434 | 29,1 | 40.996 | espaço |
-| CERSUL5368 | 447 | 63,4 | 19.832 | dado incompleto |
-| CEA_EQUATO31 | 574 | 32,1 | 257.314 | dado incompleto |
-| DEMEI95 | 812 | 17,6 | 37.629 | espaço |
-| MUX_ENERGI401 | 835 | 17,1 | 13.300 | espaço |
+| ENERGISA_R369 | 934.877 | 165 | 25,9 | dado incompleto |
+| AMAZONAS_E7019 | 941.962 | 205 | 21,3 | dado incompleto |
+| ENERGISA_S6587 | 1.066.358 | 326 | 17,1 | espaço |
+| NEOENERGIA40 | 1.814.910 | 899 | 34,8 | espaço |
+| CEEE_EQUAT5707 | 1.972.986 | 531 | 25,3 | dado incompleto |
 
-**As duas últimas são o teste crítico.** DEMEI95 (812 m/trafo, 17,6 m/UC) e
-MUX_ENERGI401 (835, 17,1) têm a assinatura da Light — secundário longo em rede
-densa — em bases pequenas o bastante para rodar em minutos. Se a hipótese vale,
-elas falham; se passarem, a Light falha por outro motivo.
+A faixa de `m/trafo` (165 a 899) segue coberta, então se a topologia importasse
+em alguma escala, aqui ela apareceria junto com o efeito de tamanho.
+
+**Orçamento pela METADE do da V24**, por decisão explícita de não monopolizar um
+cluster compartilhado: `ORCAMENTO=80` e `ORCAMENTO_GB=240`, contra 160/480. Com
+menos correntes abertas as bases enfileiram e a rodada demora mais — e isso é
+aceito de propósito. Uma rodada lenta que não incomoda o laboratório vale mais
+que uma rápida que rende telefonema.
+
+    SUFIXO=BT3 BT=completo TAMPA=8 GB_POR_NUCLEO=12     ORCAMENTO=80 ORCAMENTO_GB=240     SO="ENERGISA_R369 AMAZONAS_E7019 ENERGISA_S6587 NEOENERGIA40 CEEE_EQUAT5707"
+
+Três das cinco têm dado incompleto pelo diagnóstico (`BT NÃO CHEGA NO TRAFO`).
+Se elas falharem e as outras duas passarem, a causa é **dado**, não escala — e
+o critério de entrada se resolve sem simular nada.
 
 ### BT4 — as 13 grandes, depois
 
