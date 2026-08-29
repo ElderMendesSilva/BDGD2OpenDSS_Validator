@@ -65,6 +65,24 @@ RAMPA="${RAMPA:-90}"
 RODAR="no"
 [[ "${1:-}" == "--rodar" ]] && RODAR="sim"
 
+# --medir: manda MEDIR as `.gdb` num no de calculo e sai. Existe porque o
+# planejador, que roda aqui no no de acesso, se RECUSA a medir — ver a regra
+# de 28/08/2026 em `bdgd2dss/tamanhos.py`. Sem esta saida a regra travaria o
+# projeto: base nova entraria e nao haveria como dimensionar o job dela.
+if [[ "${1:-}" == "--medir" ]]; then
+    : "${BDGD2DSS_BASES:?defina onde estao as .gdb}"
+    mkdir -p logs/cluster
+    ID=$(qsub -N medir_bases -q "$FILA" \
+         -l nodes=1:ppn=1 -l mem=4gb -l walltime=00:30:00 \
+         -j oe -o logs/cluster/ \
+         -v "PROJETO=$PWD,BDGD2DSS_BASES=$BDGD2DSS_BASES" \
+         cluster/medir_bases.pbs)
+    echo "medicao submetida: $ID"
+    echo "quando terminar, o planejador ja le do cache:"
+    echo "    bash cluster/submeter_todas.sh"
+    exit 0
+fi
+
 : "${BDGD2DSS_BASES:?defina onde estao as .gdb}"
 
 # O PYTHON E O DO `.venv`, e nao o do sistema. O nó tem `python3` 3.6.8 e nao
@@ -141,25 +159,23 @@ so = {x for x in os.environ.get("SO", "").split() if x}
 #
 # `.gdb` nao muda de tamanho depois de baixada, entao medir uma vez basta. Base
 # nova e medida e entra no cache; o resto so e lido.
-import json
-CACHE = "medicoes/tamanho_bases.json"
+from bdgd2dss import tamanhos as tm
+
+# A MEDICAO RECUSA RODAR AQUI, e essa e a regra de 28/08/2026 virando codigo.
+# Este script roda no NO DE ACESSO, que nao processa. Medir as `.gdb` e ~20 mil
+# chamadas de `stat`, e antes a unica protecao era o cache — que some se alguem
+# apagar o arquivo ou se chegar base nova. `tamanhos` levanta `PrecisaDeNo` em
+# vez de varrer, e diz como medir num no de calculo.
+escolhidas = [(tag, cam) for tag, cam, _ in r.BASES if not so or tag in so]
 try:
-    tam = json.load(open(CACHE, encoding="utf-8"))
-except Exception:
-    tam = {}
-novas = 0
+    tam, novas = tm.tamanhos([c for _, c in escolhidas])
+except tm.PrecisaDeNo as e:
+    print("ERRO: %s" % e)
+    raise SystemExit(1)
 
 bases = []
-for tag, cam, _ in r.BASES:
-    if so and tag not in so:
-        continue
-    if cam in tam:
-        gb = tam[cam]
-    else:
-        gb = sum(os.path.getsize(os.path.join(d, f))
-                 for d, _, fs in os.walk(cam) for f in fs) / 2**30
-        tam[cam] = gb
-        novas += 1
+for tag, cam in escolhidas:
+    gb = tam[cam]
     if   gb <  1: ppn, mem = 4, 12
     elif gb <  5: ppn, mem = 8, 24
     elif gb < 20: ppn, mem = 16, 48
@@ -197,9 +213,6 @@ for tag, ppn, mem, gb in bases:
         raise SystemExit(1)
     min(cabem, key=lambda c: sum(t[1] for t in c[1]))[1].append((tag, ppn, mem))
 
-if novas:
-    os.makedirs("medicoes", exist_ok=True)
-    json.dump(tam, open(CACHE, "w", encoding="utf-8"), indent=1)
 print("MEDIDAS %d" % novas)
 print("CORRENTES %d" % len(correntes))
 print("PICO %d" % sum(c[0] for c in correntes))

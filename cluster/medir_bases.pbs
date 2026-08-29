@@ -1,0 +1,27 @@
+#!/bin/bash
+# Mede o tamanho de cada `.gdb` e grava `medicoes/tamanho_bases.json`.
+#
+# POR QUE ISTO E UM JOB, e nao duas linhas no submissor. A regra de 28/08/2026
+# diz que o head node do Ubiratan nao processa. Medir as bases e ~20 mil
+# chamadas de `stat` sobre o sistema de arquivos compartilhado — leve em CPU,
+# nada leve em I/O de metadado, e num no que todo o laboratorio usa para entrar.
+#
+# O planejador (`submeter_todas.sh`) roda no no de acesso e por isso RECUSA
+# medir; quem mede e este job. Submeta com:
+#
+#     bash cluster/submeter_todas.sh --medir
+#
+# Um nucleo e 4 GB bastam: o trabalho e esperar o disco responder, nao calcular.
+set -uo pipefail
+cd "${PBS_O_WORKDIR:-$PROJETO}"
+source .venv/bin/activate
+export BDGD2DSS_MODO=cluster
+
+echo "## medicao das .gdb — $(date)"
+echo "## bases em: ${BDGD2DSS_BASES:-<nao definido>}"
+
+python cluster/medir_bases.py
+rc=$?
+
+echo "## fim $(date)  (rc=$rc)"
+exit $rc
