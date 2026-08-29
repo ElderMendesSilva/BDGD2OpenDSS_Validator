@@ -1,0 +1,4 @@
+base,sub,ctmt,motivo,pct_tecnica_modelo,pct_total_medido,pct_nao_tecnica_implicita,GWh_injetado,GWh_faturado,ucs,cobertura,viola_limite,medida_degenerada,faturado_maior_que_injetado,declarado_pct,razao_vs_declarado,se_kv_mt,se_trafos,se_km_MT,se_alimentadores,se_convergiu,se_nos_nan,se_veredicto,se_V_MT_min,se_V_MT_mediana,se_barras_criticas
+CERPRO5384,R04,1_R04_1,denominador minusculo: 0.139 GWh injetados,23.882,22.345,-1.537,0.1386,0.1076,37,106.9,True,False,False,,,13.8,36,24.71,1,True,0,OK,1.0,1.0,0
+CERPRO5384,R03,1_R03_1,a investigar,13.195,7.272,-5.923,0.6614,0.6133,136,181.4,True,False,False,,,13.8,111,59.5,1,True,0,OK,0.995,0.996,0
+CERPRO5384,R02,1_R02_1,no limite: modelo 1.17x o total medido,8.243,7.051,-1.192,1.9212,1.7857,364,116.9,True,False,False,,,13.8,142,100.34,1,True,0,OK,0.982,0.99,233

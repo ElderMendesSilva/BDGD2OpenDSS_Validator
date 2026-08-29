@@ -1,0 +1,4 @@
+base,sub,ctmt,motivo,pct_tecnica_modelo,pct_total_medido,pct_nao_tecnica_implicita,GWh_injetado,GWh_faturado,ucs,cobertura,viola_limite,medida_degenerada,faturado_maior_que_injetado,declarado_pct,razao_vs_declarado,se_kv_mt,se_trafos,se_km_MT,se_alimentadores,se_convergiu,se_nos_nan,se_veredicto,se_V_MT_min,se_V_MT_mediana,se_barras_criticas
+CRERAL2783,014,7_014_7,a investigar,5.555,3.454,-2.101,1.8967,1.8312,275,160.8,True,False,False,4.185946609389383,1.3270594487611787,13.8,124,73.06,1,True,0,OK,0.982,0.99,0
+CRERAL2783,005,1_005_1,a investigar,4.839,3.344,-1.495,0.8679,0.8388,42,144.7,True,False,False,4.451567593353298,1.087032803281519,23.9,22,10.89,1,True,0,OK,0.998,0.998,0
+CRERAL2783,007,7_007_7,no limite: modelo 1.03x o total medido,4.71,4.593,-0.117,0.5269,0.5027,75,102.6,True,False,False,4.263685104525484,1.1046782031348414,13.8,30,15.22,1,True,0,OK,0.996,0.998,0

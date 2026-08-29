@@ -1,0 +1,2 @@
+base,sub,ctmt,motivo,pct_tecnica_modelo,pct_total_medido,pct_nao_tecnica_implicita,GWh_injetado,GWh_faturado,ucs,cobertura,viola_limite,medida_degenerada,faturado_maior_que_injetado,declarado_pct,razao_vs_declarado,se_kv_mt,se_trafos,se_km_MT,se_alimentadores,se_convergiu,se_nos_nan,se_veredicto,se_V_MT_min,se_V_MT_mediana,se_barras_criticas
+DEMEI95,IJUI,2_IJUI_1,no limite: modelo 1.20x o total medido,2.74,2.285,-0.455,30.3115,29.619,8070,119.9,True,False,False,,,25,515,82.38,4,True,0,OK,0.987,0.992,0
