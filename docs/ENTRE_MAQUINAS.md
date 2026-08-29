@@ -170,6 +170,41 @@ foi 16, então `TAMPA=32` operou de fato como `TAMPA=16`.
    folga dá para devolver.
 3. Os passos 1 a 3 do plano abaixo, que continuam valendo.
 
+## Achado da V23: convergir nao atesta plausibilidade fisica
+
+**71 subestacoes da COPELDIS2866 saiam `OK`** — convergidas, sem NaN, sem
+chave ilhada — publicando perda modelada de ate **10.309.528%**. O que as
+separava das outras 103 **da mesma base** nao era cadastro nem condutor: era
+tensao. Mediana do `V_MT_min` em **0,082 pu contra 0,938 pu**.
+
+A fisica fecha a conta sozinha. Carga de potencia constante a 0,08 pu puxa
+~12x a corrente nominal para entregar a mesma potencia, e a perda joule, que
+vai com o quadrado da corrente, sobe ~150x.
+
+Generaliza: nas **4.189 subestacoes das 97 bases**, 0,254 pu contra 0,906 pu.
+E nao e artefato de trecho desconectado — os `ramos_isolados` sao MAIORES no
+grupo sadio (1.500 contra 870).
+
+O `veredicto()` checava compilacao, NaN e convergencia, e nada mais. Agora ha
+`TENSAO_IMPLAUSIVEL`, mesclado em `main`.
+
+### RESSALVA IMPORTANTE, e ela e o motivo da V24
+
+**O limiar de 0,5 pu foi escolhido sobre o `V_MT_min`; o veredicto aplica
+sobre a MEDIANA.** Sao grandezas diferentes — a mediana e sempre >= o minimo —
+e o vale bimodal do histograma (0,45–0,55 pu, as duas faixas mais vazias das
+4.189) foi medido no minimo.
+
+Consequencia: **as "981 subestacoes (23,4%)" citadas nas mensagens de commit
+`8b7d92d` e `48be37e` sao a contagem de `V_MT_min < 0,5`, nao a de
+`V_mediana < 0,5`.** O alcance real e MENOR e ainda desconhecido, porque a V23
+nao coletou a mediana. O commit `2548b7d` fecha essa lacuna no coletor.
+
+Usar a mediana continua sendo a decisao certa — minimo baixo pode ser uma
+barra ruim em ponta de ramal, o que acontece em rede sadia, e ha teste para
+esse caso. Mas o CORTE precisa ser reconferido sobre a distribuicao da
+mediana, e so a V24 a produz.
+
 ## Plano da V24 — a partir daqui o trabalho é na CEAMAZON
 
 **Corte:** 28/08/2026. A partir deste commit o Elder opera na máquina do
