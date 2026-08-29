@@ -170,6 +170,51 @@ foi 16, então `TAMPA=32` operou de fato como `TAMPA=16`.
    folga dá para devolver.
 3. Os passos 1 a 3 do plano abaixo, que continuam valendo.
 
+## O experimento da BT completa — BT1 falhou por defeito nosso, BT2 rodando
+
+**A pergunta.** O diario de 26/08 achou um previsor da viabilidade do `--bt
+completo`: metros de BT por transformador. Roraima 270 ok, CPFL 453 ok, Enel SP
+632 ok, Enel CE 812 FALHA, Light 888 FALHA. **Cinco pontos nao fecham uma lei.**
+
+**O que as 97 mostraram** (`medicoes/bt_completude_97.json`, job 34702): o
+`m/trafo` mediano e 414, a faixa vai de 32 a 976, e **12 bases passam de 800** —
+com 97 pontos a Light e a 5a e a Enel CE a 8a, deixando de ser extremas. Pior
+para a versao simples: a Equatorial GO tem 918 m/trafo com 68 m/UC (rural,
+plausivel) enquanto a Light tem 888 com 17 m/UC (metropolitana, implausivel).
+`m/trafo` sozinho nao separa — e a combinacao com a densidade.
+
+**O teste, com 10 bases e nao 97.** Escolhidas pela FAIXA de `m/trafo` e todas
+abaixo de 60 mil UCs, somando 151 mil: CERALDIS4248 (32), CERPRO5384 (126),
+CERIS5382 (241), CERTHIL527 (340), ELETROCAR398 (434), CEREJ5352 (538),
+COOPERA5370 (642), CERGAL5353 (727), MUX_ENERGI401 (835), CERCOS5377 (955).
+
+### BT1 nao mediu nada, e por que isso e informacao
+
+As DEZ sairam `NAO_COMPILA` — da de 32 m/trafo a de 955. Falhar em toda a faixa
+e assinatura de defeito, nao de fenomeno. O erro:
+
+    Duplicate new element definition: "Line.662"
+
+`COD_ID` e unico DENTRO de uma tabela, nao entre tabelas. SSDMT, SSDBT e RAMLIG
+numeram cada uma do seu proprio espaco, e o mesmo `662` existe nas tres. O modo
+agregado nao emite BT, entao a colisao nunca aparecia: surgiu na primeira vez
+que o completo rodou de verdade. Corrigido em `c6df04c` — o nome passa a levar a
+camada (`Line.SSDBT_662`) — com teste que reproduz a colisao.
+
+**A hipotese continua sem teste.** Nao foi refutada nem confirmada: o
+instrumento estava quebrado. Os resultados da BT1 ficam em
+`resultados/bt1_btcompleto/` como evidencia do defeito, nao como medida.
+
+### O que ler na BT2
+
+1. Se ainda houver `NAO_COMPILA`, e OUTRO nome colidindo — procurar em cargas e
+   transformadores, que usam o mesmo padrao de `COD_ID`.
+2. Se compilar: **cargas sem tensao** (reprovou a Light com 92%) e **perda
+   modelada** (reprovou a Enel CE com 63%), cruzadas contra o `m/trafo`.
+3. Se as de baixo `m/trafo` passarem e as de cima falharem, ha criterio de
+   entrada medido. Se nao houver ordem, a causa esta noutro lugar e a BT
+   completa segue bloqueada — o que TAMBEM e resultado.
+
 ## V24 no ar — 29/08/2026, ~00h (CEAMAZON)
 
 97 jobs (`34603`–`34699`), coletor `34700`, commit unico `c089797`. Configuracao
