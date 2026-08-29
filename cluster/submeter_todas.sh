@@ -104,6 +104,7 @@ echo "sufixo   : $SUFIXO"
 echo "fila     : $FILA"
 echo "bases    : ${SO:-todas as encontradas}"
 echo "tampa ppn: $TAMPA  (menor = mais correntes ao mesmo tempo)"
+echo "modo da bt: ${BT:-agregado (padrao)}"
 echo "modo     : $([[ $RODAR == sim ]] && echo 'SUBMETER' || echo 'so mostrar (use --rodar para submeter)')"
 echo
 
@@ -202,8 +203,24 @@ bases.sort(key=lambda x: -x[1])
 # Nao e regra geral, e sim conhecimento medido sobre ESTAS bases. O conserto
 # principiado seria ordenar por tempo aferido (LPT), e para isso o coletor
 # precisa passar a registrar duracao por base — que ele ainda nao faz.
-sozinha = [x for x in os.environ.get("SOZINHA", "").split() if x]
-exclusivas = [b for b in bases if b[0] in sozinha]
+# `SOZINHA="CMIG"` da corrente exclusiva; `SOZINHA="CMIG:32"` da corrente
+# exclusiva E fixa o `ppn`, ignorando a TAMPA. A tampa existe para trocar
+# nucleo por paralelismo entre bases, e na base que roda SOZINHA no caminho
+# critico essa troca nao faz sentido: nao ha com quem paralelizar.
+#
+# O RETORNO E DECRESCENTE E ESTA MEDIDO. A Cemig: 8 nucleos 150 min, 16
+# nucleos 113 min (V23) e 114 (V24). Isso da 1,32x ao dobrar, o que implica
+# ~51% do tempo dela em trabalho que NAO paraleliza — leitura da `.gdb` e
+# escrita dos `.dss`, ambos de processo unico. Pela mesma conta, 32 nucleos
+# devem dar ~95 min e 64 apenas ~88. Vale o primeiro dobro; o segundo, nao.
+sozinha, ppn_fixo = [], {}
+for x in os.environ.get("SOZINHA", "").split():
+    tag, _, n = x.partition(":")
+    sozinha.append(tag)
+    if n.isdigit():
+        ppn_fixo[tag] = int(n)
+exclusivas = [(t, ppn_fixo.get(t, p), ppn_fixo.get(t, p) * 3 if t in ppn_fixo
+               else m, g) for t, p, m, g in bases if t in sozinha]
 bases = [b for b in bases if b[0] not in sozinha]
 
 correntes = []           # cada uma: [maior_ppn, [(tag, ppn, mem), ...], maior_mem]
@@ -290,7 +307,7 @@ while read -r _ n mx itens; do
         id=$(qsub -N "b_$TAG" -q "$FILA" \
              -l nodes=1:ppn="$PPN" -l mem="${MEM}gb" -l walltime="$WALLTIME" \
              $DEP $LARGADA \
-             -v "TAG=$TAG,SUFIXO=$SUFIXO,PROJETO=$PWD,BDGD2DSS_BASES=$BDGD2DSS_BASES,BDGD2DSS_COMMIT=$COMMIT,BDGD2DSS_DESCRICAO=$DESCRICAO" \
+             -v "TAG=$TAG,SUFIXO=$SUFIXO,PROJETO=$PWD,BDGD2DSS_BASES=$BDGD2DSS_BASES,BDGD2DSS_COMMIT=$COMMIT,BDGD2DSS_DESCRICAO=$DESCRICAO,BT=${BT:-}" \
              cluster/uma_base.pbs)
         printf "  corrente %-2s  %-18s ppn=%-3s mem=%-4s -> %s\n" "$n" "$TAG" "$PPN" "${MEM}gb" "$id"
         ANT="$id"

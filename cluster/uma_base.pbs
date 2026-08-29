@@ -80,6 +80,14 @@ python doutor.py --bases "$BDGD2DSS_BASES" || exit 1
 # --jobs 0 deixa o codigo decidir: o menor entre os nucleos que o PBS deu e a
 # memoria livre dividida por processo. Passar numero na mao aqui e a forma mais
 # facil de fazer o no paginar e ficar mais lento do que com metade.
-python -u regerar_v10.py --sufixo "$SUFIXO" --so "$TAG" --jobs 0
+# O MODO DA BT VIAJA COM O JOB. Sem isto, `--bt completo` so existia rodando o
+# `regerar` a mao — e o modo completo e justamente o que precisa de cluster,
+# porque multiplica os elementos por ~15 (Roraima: 1.852 cargas no agregado,
+# 28.390 no completo). O `regerar` marca o sufixo quando o modo nao e agregado,
+# entao a pasta do completo nunca grava por cima da do agregado.
+ARGS_BT=()
+[[ -n "${BT:-}" ]] && ARGS_BT=(--bt "$BT")
+
+python -u regerar_v10.py --sufixo "$SUFIXO" --so "$TAG" --jobs 0 "${ARGS_BT[@]}"
 
 echo "## $TAG terminou em $(date '+%d-%m-%Y as %T')"
