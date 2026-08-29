@@ -1,0 +1,195 @@
+{
+ "base": "CERNHE6609",
+ "pasta": "MODELOS_CERNHE6609_V23",
+ "procedencia": {
+  "commit": "e49363c76d878171916dab31d15e92649c15c32d",
+  "commit_origem": "submissao",
+  "descricao": "Orcamento vai a 160 nucleos com teto de memoria e as corrent",
+  "sujo": null,
+  "git_respondeu": false,
+  "python": "3.11.4",
+  "gerado_em": "2026-08-28 18:52:57",
+  "base": "CERNHE6609"
+ },
+ "bdgd": "Cernhe_6609_2024-12-31_V11_20250721-1040.gdb",
+ "dist": "6609",
+ "bt": "agregado",
+ "mes": 1,
+ "dia": "DU",
+ "subestacoes_na_bdgd": 5,
+ "subestacoes_geradas": 5,
+ "alimentadores": 9,
+ "rollup": {
+  "ses": 5,
+  "sadias": 5,
+  "nao_convergiu": 0,
+  "com_nan": 0,
+  "trafos": 1422,
+  "km_MT": 905.5,
+  "chaves_ilhadas": 7,
+  "reguladores_pendurados": 0,
+  "trafos_pac_invertido": 0,
+  "kW_morto": 0,
+  "kW_nominal": 2535.9
+ },
+ "perdas": {
+  "agregado": {
+   "pct_modelo": 7.3661915808028935,
+   "pct_declarado": 4.183091381726076,
+   "razao": 1.7609444567676096,
+   "n": 9,
+   "contaminacao_pct": 0.0,
+   "pct_modelo_sem_implausiveis": 7.3661915808028935,
+   "implausiveis": 0,
+   "teto_implausivel": 20.0
+  },
+  "referencia_externa": {
+   "pct_modelo": 7.3661915808028935,
+   "referencia_pct": 7.4,
+   "razao": 0.9954312947030937,
+   "reprova": false,
+   "de_agente": false,
+   "motivo": "",
+   "fonte": "ANEEL SGT/STR, \"Perdas de Energia Eletrica na Distribuicao 2025/2024\", Figura 3 (p.4) e Figura 6 (p.5)"
+  },
+  "populacao": {
+   "no_modelo": 9,
+   "comparados": 9,
+   "fora": 0,
+   "sem_declaracao": 0,
+   "sem_energia_no_modelo": 0,
+   "sem_os_dois": 0,
+   "cobertura_pct": 100.0,
+   "declarado_e_morto_pct": 0.0,
+   "fecha": true
+  },
+  "modelo_implausivel": {
+   "n": 0,
+   "de": 9,
+   "teto": 20.0,
+   "pior_pct": 13.092,
+   "fatia_da_perda_pct": 0.0
+  },
+  "parcelas": [
+   "PERD_A4"
+  ]
+ },
+ "balanco": {
+  "alimentadores": 9,
+  "viola_de_verdade": 1,
+  "pct_viola": 11.11,
+  "por_motivo": {
+   "a investigar": 1
+  }
+ },
+ "tabelas_nao_lidas": {
+  "EQSE": {
+   "registros": 3818,
+   "motivo": "detalhe de equipamento da chave; COR_NOM identico ao da UNSEMT (23.962/23.962 em RR). ELO_FSV e MEI_ISO sao dados de protecao e patrimonio, fora do fluxo de potencia"
+  },
+  "UNCRBT": {
+   "registros": 0,
+   "motivo": "capacitor de BAIXA tensao; zero registros nas sete"
+  },
+  "UNREBT": {
+   "registros": null,
+   "motivo": "regulador de BAIXA tensao; a camada nao existe em base nenhuma"
+  },
+  "UNSEBT": {
+   "registros": 0,
+   "motivo": "chave de BAIXA tensao; so vale com a rede de BT modelada (criterio 5, em aberto), e falta em tres das sete bases"
+  }
+ },
+ "subestacoes": [
+  {
+   "se": "BOFI",
+   "veredicto": "OK",
+   "convergiu": true,
+   "iteracoes": 2,
+   "nos_nan": 0,
+   "perdas_pct": 5.45,
+   "V_MT_min": 0.8,
+   "cargas_sem_tensao": 0,
+   "ramos_isolados": 12,
+   "causa": "OK",
+   "alimentadores": 3,
+   "trafos": 401,
+   "km_MT": 221.46,
+   "chaves_ilhadas": 2,
+   "reguladores_pendurados": 0,
+   "trafos_pac_invertido": 0
+  },
+  {
+   "se": "NHE",
+   "veredicto": "OK",
+   "convergiu": true,
+   "iteracoes": 2,
+   "nos_nan": 0,
+   "perdas_pct": 9.33,
+   "V_MT_min": 0.896,
+   "cargas_sem_tensao": 0,
+   "ramos_isolados": 13,
+   "causa": "OK",
+   "alimentadores": 3,
+   "trafos": 707,
+   "km_MT": 457.22,
+   "chaves_ilhadas": 3,
+   "reguladores_pendurados": 0,
+   "trafos_pac_invertido": 0
+  },
+  {
+   "se": "NHER3",
+   "veredicto": "OK",
+   "convergiu": true,
+   "iteracoes": 2,
+   "nos_nan": 0,
+   "perdas_pct": 6.52,
+   "V_MT_min": 0.889,
+   "cargas_sem_tensao": 0,
+   "ramos_isolados": 3,
+   "causa": "REGULADOR_SATURADO",
+   "alimentadores": 1,
+   "trafos": 144,
+   "km_MT": 79.9,
+   "chaves_ilhadas": 2,
+   "reguladores_pendurados": 0,
+   "trafos_pac_invertido": 0
+  },
+  {
+   "se": "NOV1",
+   "veredicto": "OK",
+   "convergiu": true,
+   "iteracoes": 2,
+   "nos_nan": 0,
+   "perdas_pct": 10.27,
+   "V_MT_min": 0.995,
+   "cargas_sem_tensao": 0,
+   "ramos_isolados": 2,
+   "causa": "OK",
+   "alimentadores": 1,
+   "trafos": 145,
+   "km_MT": 127.44,
+   "chaves_ilhadas": 0,
+   "reguladores_pendurados": 0,
+   "trafos_pac_invertido": 0
+  },
+  {
+   "se": "VFOR",
+   "veredicto": "OK",
+   "convergiu": true,
+   "iteracoes": 2,
+   "nos_nan": 0,
+   "perdas_pct": 13.37,
+   "V_MT_min": 0.999,
+   "cargas_sem_tensao": 0,
+   "ramos_isolados": 0,
+   "causa": "OK",
+   "alimentadores": 1,
+   "trafos": 25,
+   "km_MT": 19.51,
+   "chaves_ilhadas": 0,
+   "reguladores_pendurados": 0,
+   "trafos_pac_invertido": 0
+  }
+ ]
+}

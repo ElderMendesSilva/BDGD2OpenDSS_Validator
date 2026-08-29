@@ -1,0 +1,17 @@
+base,sub,ctmt,motivo,pct_tecnica_modelo,pct_total_medido,pct_nao_tecnica_implicita,GWh_injetado,GWh_faturado,ucs,cobertura,viola_limite,medida_degenerada,faturado_maior_que_injetado,declarado_pct,razao_vs_declarado,se_kv_mt,se_trafos,se_km_MT,se_alimentadores,se_convergiu,se_nos_nan,se_veredicto
+CPFL,CCA,CCA14,denominador minusculo: 0.192 GWh injetados,337.715,21.251,-316.464,0.1918,0.151,14,1589.2,True,False,False,,,13.8,199,79.66,4,True,0,OK
+CPFL,AUX,AUX33,perda modelada absurda: 250.9%,250.939,19.713,-231.226,69.9021,56.1225,12887,1273.0,True,False,False,,,34.5,4718,2439.49,13,True,0,OK
+CPFL,CAF,CAF32,perda modelada absurda: 107.6%,107.608,24.635,-82.973,14.9224,11.2463,3555,436.8,True,False,False,,,34.5,1367,905.03,5,True,0,OK
+CPFL,AUX,AUX32,perda modelada absurda: 106.7%,106.717,22.589,-84.128,36.7398,28.4406,7727,472.4,True,False,False,,,34.5,4718,2439.49,13,True,0,OK
+CPFL,PMP,PMP31,perda modelada absurda: 105.6%,105.644,21.103,-84.541,27.2997,21.5386,4396,500.6,True,False,False,,,34.5,1771,1130.39,7,True,0,OK
+CPFL,GPE,GPE41,perda modelada absurda: 95.9%,95.898,23.476,-72.422,25.8743,19.8001,4997,408.5,True,False,False,,,13.8,1076,682.11,5,True,0,OK
+CPFL,ITB,ITB31,perda modelada absurda: 68.6%,68.579,26.606,-41.973,40.7604,29.9156,7961,257.8,True,False,False,,,13.2,2831,1380.17,10,True,0,OK
+CPFL,SPD,SPD31,perda modelada absurda: 62.5%,62.481,17.829,-44.652,14.8519,12.204,3044,350.5,True,False,False,,,13.8,1942,881.02,10,True,0,OK
+CPFL,USG,USG11,perda modelada absurda: 38.2%,38.223,13.707,-24.516,9.112,7.863,651,278.9,True,False,False,,,11.9,230,115.57,1,True,0,OK
+CPFL,IAC,IAC31,no limite: modelo 1.15x o total medido,38.134,33.243,-4.891,60.6353,40.4781,8985,114.7,True,False,False,,,34.5,2194,1297.81,3,True,0,OK
+CPFL,JAB,JAB06,denominador minusculo: 0.104 GWh injetados,37.096,18.838,-18.258,0.1042,0.0845,5,196.9,True,False,False,,,13.8,630,206.97,5,True,0,OK
+CPFL,BLV,BLV33,perda modelada absurda: 36.8%,36.775,15.648,-21.127,22.5556,19.026,1447,235.0,True,False,False,,,34.5,1423,737.94,13,True,0,OK
+CPFL,TRM,TRM24,perda modelada absurda: 33.9%,33.88,15.057,-18.823,28.7492,24.4203,6729,225.0,True,False,False,,,13.2,1505,585.26,14,True,0,OK
+CPFL,KIB,KIB01,denominador minusculo: 0.013 GWh injetados,23.774,15.376,-8.398,0.0134,0.0113,2,154.6,True,False,False,,,13.8,2,3.89,2,True,0,OK
+CPFL,CRA,CRA14,perda modelada absurda: 18.7%,18.673,10.794,-7.879,33.2982,29.7042,4249,173.0,True,False,False,,,13.8,805,293.76,11,True,0,OK
+CPFL,BLV,BLV31,no limite: modelo 1.10x o total medido,16.522,15.062,-1.46,1.2001,1.0193,28,109.7,True,False,False,,,34.5,1423,737.94,13,True,0,OK

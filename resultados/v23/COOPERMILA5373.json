@@ -1,0 +1,139 @@
+{
+ "base": "COOPERMILA5373",
+ "pasta": "MODELOS_COOPERMILA5373_V23",
+ "procedencia": {
+  "commit": "e49363c76d878171916dab31d15e92649c15c32d",
+  "commit_origem": "submissao",
+  "descricao": "Orcamento vai a 160 nucleos com teto de memoria e as corrent",
+  "sujo": null,
+  "git_respondeu": false,
+  "python": "3.11.4",
+  "gerado_em": "2026-08-28 18:52:39",
+  "base": "COOPERMILA5373"
+ },
+ "bdgd": "Coopermila_5373_2024-12-31_V11_20250915-1648.gdb",
+ "dist": "5373",
+ "bt": "agregado",
+ "mes": 1,
+ "dia": "DU",
+ "subestacoes_na_bdgd": 2,
+ "subestacoes_geradas": 2,
+ "alimentadores": 2,
+ "rollup": {
+  "ses": 2,
+  "sadias": 2,
+  "nao_convergiu": 0,
+  "com_nan": 0,
+  "trafos": 367,
+  "km_MT": 176.3,
+  "chaves_ilhadas": 0,
+  "reguladores_pendurados": 0,
+  "trafos_pac_invertido": 0,
+  "kW_morto": 0,
+  "kW_nominal": 2336.2
+ },
+ "perdas": {
+  "agregado": {
+   "pct_modelo": 3.85964618047108,
+   "pct_declarado": 3.8899999939818404,
+   "razao": 0.9921969630957017,
+   "n": 2,
+   "contaminacao_pct": 0.0,
+   "pct_modelo_sem_implausiveis": 3.85964618047108,
+   "implausiveis": 0,
+   "teto_implausivel": 20.0
+  },
+  "referencia_externa": {
+   "pct_modelo": 3.85964618047108,
+   "referencia_pct": 7.4,
+   "razao": 0.5215738081717676,
+   "reprova": false,
+   "de_agente": false,
+   "motivo": "",
+   "fonte": "ANEEL SGT/STR, \"Perdas de Energia Eletrica na Distribuicao 2025/2024\", Figura 3 (p.4) e Figura 6 (p.5)"
+  },
+  "populacao": {
+   "no_modelo": 2,
+   "comparados": 2,
+   "fora": 0,
+   "sem_declaracao": 0,
+   "sem_energia_no_modelo": 0,
+   "sem_os_dois": 0,
+   "cobertura_pct": 100.0,
+   "declarado_e_morto_pct": 0.0,
+   "fecha": true
+  },
+  "modelo_implausivel": {
+   "n": 0,
+   "de": 2,
+   "teto": 20.0,
+   "pior_pct": 6.34,
+   "fatia_da_perda_pct": 0.0
+  },
+  "parcelas": [
+   "PERD_A4"
+  ]
+ },
+ "balanco": {
+  "alimentadores": 2,
+  "viola_de_verdade": 0,
+  "pct_viola": 0.0,
+  "por_motivo": {}
+ },
+ "tabelas_nao_lidas": {
+  "EQSE": {
+   "registros": 303,
+   "motivo": "detalhe de equipamento da chave; COR_NOM identico ao da UNSEMT (23.962/23.962 em RR). ELO_FSV e MEI_ISO sao dados de protecao e patrimonio, fora do fluxo de potencia"
+  },
+  "UNCRBT": {
+   "registros": 0,
+   "motivo": "capacitor de BAIXA tensao; zero registros nas sete"
+  },
+  "UNREBT": {
+   "registros": null,
+   "motivo": "regulador de BAIXA tensao; a camada nao existe em base nenhuma"
+  },
+  "UNSEBT": {
+   "registros": 0,
+   "motivo": "chave de BAIXA tensao; so vale com a rede de BT modelada (criterio 5, em aberto), e falta em tres das sete bases"
+  }
+ },
+ "subestacoes": [
+  {
+   "se": "MILA",
+   "veredicto": "OK",
+   "convergiu": true,
+   "iteracoes": 2,
+   "nos_nan": 0,
+   "perdas_pct": 2.68,
+   "V_MT_min": 0.981,
+   "cargas_sem_tensao": 0,
+   "ramos_isolados": 2,
+   "causa": "OK",
+   "alimentadores": 1,
+   "trafos": 126,
+   "km_MT": 64.21,
+   "chaves_ilhadas": 0,
+   "reguladores_pendurados": 0,
+   "trafos_pac_invertido": 0
+  },
+  {
+   "se": "MILA2",
+   "veredicto": "OK",
+   "convergiu": true,
+   "iteracoes": 2,
+   "nos_nan": 0,
+   "perdas_pct": 6.29,
+   "V_MT_min": 0.987,
+   "cargas_sem_tensao": 0,
+   "ramos_isolados": 2,
+   "causa": "OK",
+   "alimentadores": 1,
+   "trafos": 241,
+   "km_MT": 112.06,
+   "chaves_ilhadas": 0,
+   "reguladores_pendurados": 0,
+   "trafos_pac_invertido": 0
+  }
+ ]
+}

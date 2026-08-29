@@ -1,0 +1,2 @@
+base,sub,ctmt,motivo,pct_tecnica_modelo,pct_total_medido,pct_nao_tecnica_implicita,GWh_injetado,GWh_faturado,ucs,cobertura,viola_limite,medida_degenerada,faturado_maior_que_injetado,declarado_pct,razao_vs_declarado,se_kv_mt,se_trafos,se_km_MT,se_alimentadores,se_convergiu,se_nos_nan,se_veredicto
+CERVAM5375,03,1_03_1,a investigar,13.054,6.207,-6.847,2.2527,2.1128,151,210.3,True,False,False,3.8900001198584606,3.355783958298432,13.8,76,48.52,1,True,0,OK
