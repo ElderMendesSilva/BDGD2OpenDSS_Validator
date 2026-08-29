@@ -1,0 +1,2 @@
+base,sub,ctmt,motivo,pct_tecnica_modelo,pct_total_medido,pct_nao_tecnica_implicita,GWh_injetado,GWh_faturado,ucs,cobertura,viola_limite,medida_degenerada,faturado_maior_que_injetado,declarado_pct,razao_vs_declarado,se_kv_mt,se_trafos,se_km_MT,se_alimentadores,se_convergiu,se_nos_nan,se_veredicto,se_V_MT_min,se_V_MT_mediana,se_barras_criticas
+CEREJ5352,MFR,1_MFR_1,a investigar,5.977,4.407,-1.57,1.2704,1.2144,366,135.6,True,False,False,,,13.8,71,50.41,1,True,0,OK,1.0,1.001,0
