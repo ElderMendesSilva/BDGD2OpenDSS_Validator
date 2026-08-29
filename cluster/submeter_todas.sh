@@ -82,7 +82,7 @@ if [[ "${1:-}" == "--coletar" ]]; then
     mkdir -p logs/cluster
     SUF_COL=$(.venv/bin/python -c "import sys;sys.path.insert(0,'.');import regerar_v10 as r;print(r.sufixo_com_bt(sys.argv[1], sys.argv[2] or 'agregado'))" "$SUFIXO" "${BT:-}")
     echo "coletando MODELOS_*_$SUF_COL  ->  saida_cluster/$(echo "$SUF_COL" | tr 'A-Z' 'a-z')/"
-    ID=$(qsub -N "colet_$SUF_COL" -q "$FILA"          -l nodes=1:ppn=4 -l mem=12gb -l walltime=02:00:00          -j oe -o logs/cluster/          -v "PROJETO=$PWD,SUFIXO=$SUF_COL" cluster/coletor.pbs)
+    ID=$(qsub -N "colet_$SUF_COL" -q "$FILA"          -l nodes=1:ppn=4 -l mem=12gb -l walltime=02:00:00          -j oe -o logs/cluster/          -v "PROJETO=$PWD,SUF_COLETA=$SUF_COL" cluster/coletor.pbs)
     echo "coletor submetido: $ID"
     exit 0
 fi
@@ -357,7 +357,7 @@ done < <(grep '^CHAIN' /tmp/plano_ondas.txt)
 # script de fora sobreviver ao heredoc — foi o que quebrou na primeira versao.
 SUF_COL=$("$PY_VENV" -c "import sys;sys.path.insert(0,'.');import regerar_v10 as r;print(r.sufixo_com_bt(sys.argv[1], sys.argv[2] or 'agregado'))" "$SUFIXO" "${BT:-}")
 
-ID_COLETOR=$(qsub -W "depend=afterany${CAUDAS}" -N "colet_$SUF_COL" -q "$FILA"     -l nodes=1:ppn=4 -l mem=12gb -l walltime=02:00:00 -j oe -o logs/cluster/     -v "PROJETO=$PWD,SUFIXO=$SUF_COL" cluster/coletor.pbs)
+ID_COLETOR=$(qsub -W "depend=afterany${CAUDAS}" -N "colet_$SUF_COL" -q "$FILA"     -l nodes=1:ppn=4 -l mem=12gb -l walltime=02:00:00 -j oe -o logs/cluster/     -v "PROJETO=$PWD,SUF_COLETA=$SUF_COL" cluster/coletor.pbs)
 echo
 echo "  coletor (espera as $CORRENTES pontas) -> $ID_COLETOR"
 

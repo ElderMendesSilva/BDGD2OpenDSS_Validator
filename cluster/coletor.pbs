@@ -1,7 +1,7 @@
 #!/bin/bash
 # Colhe uma rodada inteira em `saida_cluster/<sufixo>/`.
 #
-# Recebe `SUFIXO` JA CARIMBADO — quem chama resolve `sufixo_com_bt` antes, e
+# Recebe `SUF_COLETA` JA CARIMBADO — quem chama resolve `sufixo_com_bt` antes, e
 # isso e deliberado: o carimbo `_btcompleto` mora em `regerar_v10`, e
 # reimplementa-lo aqui criaria duas verdades que divergiriam na primeira
 # mudanca. Foi exatamente esse descompasso que perdeu a colheita da BT1 — os
@@ -16,11 +16,16 @@ cd "${PBS_O_WORKDIR:-$PROJETO}"
 source .venv/bin/activate
 export BDGD2DSS_MODO=cluster
 
-echo "## coletor da $SUFIXO — $(date)"
-python -u auditoria.py --sufixo "$SUFIXO" --saida saida_cluster
+# O NOME DA VARIAVEL NAO PODE SER `SUFIXO`, e isso custou duas colheitas. O
+# PBS repassa o ambiente de quem submete, e o comando de submissao carrega
+# `SUFIXO=BT1` — colidindo com o `-v SUFIXO=BT1_btcompleto`, e a herdada
+# venceu. O job imprimia o sufixo cru e nao achava pasta nenhuma.
+SUF_COLETA="${SUF_COLETA:?quem submete resolve o carimbo e passa por -v}"
+echo "## coletor de $SUF_COLETA — $(date)"
+python -u auditoria.py --sufixo "$SUF_COLETA" --saida saida_cluster
 rc=$?
 
-MIN=$(echo "$SUFIXO" | tr 'A-Z' 'a-z')
+MIN=$(echo "$SUF_COLETA" | tr 'A-Z' 'a-z')
 echo
 echo "## saida_cluster/$MIN/  (traga por scp)"
 du -sh "saida_cluster/$MIN" 2>/dev/null
