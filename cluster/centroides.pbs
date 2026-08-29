@@ -1,0 +1,25 @@
+#!/bin/bash
+# Onde fica cada base, geograficamente. Primeiro de dois passos do clima.
+#
+#     bash cluster/submeter_centroides.sh --rodar
+#
+# A coordenada sai da `.gdb`, que so existe aqui; o download da NASA POWER
+# precisa de internet, que o no de calculo nao tem. Por isso o fluxo se parte:
+# este job publica `medicoes/centroides.json`, e a maquina de casa o transforma
+# em `dados/clima/*.json` com o `baixar_clima.py`.
+#
+# Um nucleo e 24 GB: le geometria de 97 `.gdb` em sequencia, nao resolve nada.
+set -uo pipefail
+cd "${PBS_O_WORKDIR:-$PROJETO}"
+source .venv/bin/activate
+export BDGD2DSS_MODO=cluster
+
+echo "## centroides das bases — $(date)"
+echo "## bases em: ${BDGD2DSS_BASES:-<nao definido>}"
+
+python cluster/centroides.py --saida medicoes/centroides.json
+rc=$?
+
+echo "## fim $(date)  (rc=$rc)"
+echo "## traga com: scp teste@10.107.1.23:~/elder/BDGD2OpenDSS_Validator/medicoes/centroides.json medicoes/"
+exit $rc
