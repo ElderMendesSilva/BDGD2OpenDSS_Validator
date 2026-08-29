@@ -188,7 +188,31 @@ for tag, cam in escolhidas:
 # dela, porque so um job dela roda por vez. O teto vale sobre a soma desses
 # maiores — e isso e verificavel sem saber quanto cada base demora.
 bases.sort(key=lambda x: -x[1])
+
+# CORRENTE EXCLUSIVA PARA A BASE QUE DITA O RELOGIO. Medido na V23: a corrente
+# da Cemig levou ~141 min (113 dela, mais ENERGISA_M405 e cinco pequenas atras)
+# e a segunda mais longa, 66. A rodada inteira esperava aquela cauda — trabalho
+# que cabia folgado em qualquer outra corrente.
+#
+# Quem esta em `SOZINHA` nao divide corrente com ninguem, e essas correntes sao
+# as PRIMEIRAS: como a rampa atrasa pela posicao, a corrente 1 larga sem espera
+# nenhuma. Junto, isso tira a cauda de tras da base mais longa E a faz comecar
+# no instante zero.
+#
+# Nao e regra geral, e sim conhecimento medido sobre ESTAS bases. O conserto
+# principiado seria ordenar por tempo aferido (LPT), e para isso o coletor
+# precisa passar a registrar duracao por base — que ele ainda nao faz.
+sozinha = [x for x in os.environ.get("SOZINHA", "").split() if x]
+exclusivas = [b for b in bases if b[0] in sozinha]
+bases = [b for b in bases if b[0] not in sozinha]
+
 correntes = []           # cada uma: [maior_ppn, [(tag, ppn, mem), ...], maior_mem]
+for tag, ppn, mem, gb in exclusivas:
+    if sum(c[0] for c in correntes) + ppn > teto or        sum(c[2] for c in correntes) + mem > teto_gb:
+        print("ERRO: SOZINHA=%s nao cabe no orcamento" % tag)
+        raise SystemExit(1)
+    correntes.append([ppn, [(tag, ppn, mem)], mem])
+EXCLUSIVAS = len(correntes)
 
 # ABRIR CORRENTE VEM ANTES DE REAPROVEITAR, e a ordem inverteu um defeito real:
 # procurando primeiro uma corrente cujo maior `ppn` coubesse, a PRIMEIRA
@@ -207,7 +231,7 @@ for tag, ppn, mem, gb in bases:
     # Teto cheio: entra na corrente MENOS CARREGADA que ja aguente este `ppn`
     # sem crescer. Crescer o maior de uma corrente subiria o pico, e o pico e
     # justamente o que o orcamento limita.
-    cabem = [c for c in correntes if c[0] >= ppn]
+    cabem = [c for c in correntes[EXCLUSIVAS:] if c[0] >= ppn]
     if not cabem:
         print("ERRO: base %s pede ppn=%d e nenhuma corrente aguenta" % (tag, ppn))
         raise SystemExit(1)
