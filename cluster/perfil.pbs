@@ -1,0 +1,34 @@
+#!/bin/bash
+# O que distingue os alimentadores que violam, DENTRO da mesma base.
+#
+# Roda o `diagnosticos/perfil_violacao.py`, que le a `.gdb` — e por isso e job,
+# nao comando no no de acesso (regra de 28/08/2026: o head node nao processa).
+#
+# Submeta pelo submissor, que encadeia este job DEPOIS do coletor:
+#
+#     SUFIXO=V24 BASE=COPELDIS2866 bash cluster/submeter_perfil.sh
+#
+# Variaveis esperadas: SUFIXO, BASE, e opcionalmente MOTIVO (prefixo do rotulo
+# a filtrar, por exemplo "modelo quebrado na SE: TENSAO_IMPLAUSIVEL").
+#
+# Um nucleo basta: o trabalho e ler tabela e somar, nao resolver circuito. A
+# memoria e o que a `.gdb` maior pede para abrir de uma vez.
+set -uo pipefail
+cd "${PBS_O_WORKDIR:-$PROJETO}"
+source .venv/bin/activate
+export BDGD2DSS_MODO=cluster
+
+echo "## perfil de violacao — $(date)"
+echo "## base=$BASE  sufixo=$SUFIXO  motivo=${MOTIVO:-<todos>}"
+
+ARGS=(--bases "$BDGD2DSS_BASES"
+      --resultados "resultados/$(echo "$SUFIXO" | tr 'A-Z' 'a-z')"
+      --so "$BASE")
+[[ -n "${MOTIVO:-}" ]] && ARGS+=(--motivo "$MOTIVO")
+
+python diagnosticos/perfil_violacao.py "${ARGS[@]}"
+rc=$?
+
+echo "## fim $(date)  (rc=$rc)"
+echo "## saida em medicoes/perfil_violacao_${BASE}.json"
+exit $rc
