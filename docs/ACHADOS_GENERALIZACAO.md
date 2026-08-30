@@ -345,6 +345,43 @@ bases que declaram valor próprio a comparação segue valendo. O que muda é qu
 **o `PERD_*` não serve como árbitro universal** — precisa ser filtrado por
 plausibilidade (achado 8) e por originalidade (este) antes de virar referência.
 
+### 10. O viés de ~1,4x sobrevive aos filtros, e a suspeita é o FERRO
+
+Aplicados os filtros dos achados 8 e 9 à comparação nacional:
+
+| filtro | bases | razão modelo/declarado |
+|---|---:|---:|
+| todas | 81 | 1,59x |
+| só declaração original | 53 | 1,50x |
+| só declaração plausível (≥ 2%) | 60 | 1,43x |
+| **original E plausível** | **38** | **1,42x** |
+| ... e sem os alimentadores implausíveis do nosso lado | 38 | **1,33x** |
+
+**O viés é real.** Não era artefato de declaração padrão nem de valor absurdo:
+em 35 das 38 bases filtradas o modelo fica acima, com mediana de 4,57% contra
+3,15%.
+
+**A suspeita principal é a perda de ferro dos transformadores**, e ela explica
+as três observações de uma vez:
+
+- **É constante e independente do comprimento** — depende do número de
+  transformadores, não de quilômetros. Casa com a razão não crescer com o km
+  (4,24x / 2,70x / 2,42x / 3,38x por quartil).
+- **A magnitude bate.** O achado 53 mediu o ferro em 1,45% a 3,60% da carga
+  viva — na Cemig, 3,60%, que é da ordem de TODO o modelo dela (4,63%).
+- **Cresce onde a carga é baixa.** Ferro constante sobre carga menor dá
+  percentual maior — e os alimentadores suspeitos do achado 7 têm METADE da
+  densidade de carga do resto da base.
+
+**Mas o teste que fiz não confirma.** Ordenando as 38 bases filtradas por kW
+nominal por transformador, a razão vai de 1,44x (menos carga por trafo) a 1,30x
+(mais carga) — direção certa, magnitude fraca demais para concluir.
+
+**O teste que decide** é somar `PER_FER` da própria BDGD e comparar essa parcela
+contra a perda total modelada. Se o ferro responder por ~30% do nosso número, o
+viés está explicado e a questão passa a ser de CONVENÇÃO: o `PERD_*` da
+distribuidora provavelmente não inclui perda a vazio. Lê `.gdb`, então é job.
+
 ## Validação externa e contaminação
 
 A âncora nacional de 7,4% de perda técnica total da ANEEL é apenas um teste de
