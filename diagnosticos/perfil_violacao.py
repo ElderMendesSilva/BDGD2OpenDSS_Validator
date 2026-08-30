@@ -179,19 +179,20 @@ def main(argv=None):
 
     gdb = a.gdb
     if not gdb:
-        candidatos = []
-        for d in a.bases.split(os.pathsep):
-            candidatos += sorted(glob.glob(os.path.join(os.path.expanduser(d),
-                                                        '*.gdb')))
-        # a TAG nem sempre e prefixo do nome da .gdb; tenta os dois sentidos
-        chave = a.so.rstrip('0123456789').upper()
-        casam = [g for g in candidatos
-                 if chave[:5] in os.path.basename(g).upper().replace('_', '')]
-        if len(casam) != 1:
+        # QUEM SABE O MAPA TAG -> .gdb E O `regerar`, e nao um palpite sobre o
+        # nome do arquivo. Adivinhar por prefixo falha justamente nas bases
+        # conhecidas, que tem APELIDO: a Cemig-D e `CMIG`, a Enel CE e `ENCE`,
+        # a Light e `LT` — nenhum deles aparece no nome da `.gdb`. Foi assim
+        # que o perfil da CMIG morreu com "0 candidatas" em 30/08/2026.
+        os.environ.setdefault('BDGD2DSS_BASES', a.bases or '')
+        import regerar_v10 as rg
+        gdb = next((c for t, c, _ in rg.descobrir(a.bases) if t == a.so), None)
+        if not gdb:
+            achadas = ', '.join(sorted(t for t, _, _ in rg.descobrir(a.bases)))
             raise SystemExit(
-                f'nao consegui escolher a .gdb para {a.so} '
-                f'({len(casam)} candidatas). Passe --gdb explicitamente.')
-        gdb = casam[0]
+                f'nao achei a base {a.so} em {a.bases}.\n'
+                f'   encontradas: {achadas or "nenhuma"}\n'
+                f'   ou passe --gdb com o caminho.')
     print(f'lendo {os.path.basename(gdb)}', flush=True)
 
     at = atributos(gdb)

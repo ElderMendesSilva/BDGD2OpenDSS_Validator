@@ -95,5 +95,34 @@ class Enriquecimento(unittest.TestCase):
         self.assertIsNone(e[0]['enriquecimento'])
 
 
+class AGdbVemDoMapaCanonico(unittest.TestCase):
+    """Adivinhar a `.gdb` pelo nome falha justamente nas bases conhecidas.
+
+    30/08/2026: o perfil da Cemig morreu com `0 candidatas`. A busca casava a
+    TAG contra o nome do arquivo, e as sete bases com APELIDO nao seguem esse
+    padrao — `CMIG` para `Cemig-D_...`, `ENCE` para `Enel_CE_...`, `LT` para
+    `Light_...`. Justamente as bases que mais se investiga.
+
+    Quem sabe o mapa e o `regerar`, que ja o usa para nomear toda pasta de
+    modelo. Perguntar a ele em vez de chutar remove a classe inteira de erro.
+    """
+
+    def test_o_apelido_das_sete_nao_e_prefixo_do_arquivo(self):
+        """O motivo de existir deste teste, escrito como fato verificavel."""
+        import regerar_v10 as rg
+        for chave, (tag, _) in rg.APELIDO.items():
+            arquivo = chave.replace('_', '').upper()
+            if tag in ('CMIG', 'ENCE', 'LT'):
+                self.assertNotIn(tag, arquivo,
+                                 f'{tag} nao aparece em {chave} — por isso '
+                                 f'casar por nome nao serve')
+
+    def test_descobrir_devolve_tag_e_caminho(self):
+        """O contrato do qual o perfil passa a depender."""
+        import regerar_v10 as rg
+        import inspect
+        self.assertIn('pasta', inspect.signature(rg.descobrir).parameters)
+
+
 if __name__ == '__main__':
     unittest.main()
