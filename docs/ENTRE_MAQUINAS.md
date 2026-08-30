@@ -123,6 +123,62 @@ de alimentador/condutor, fora do que `resultados/` guarda.
   - **18 — denominador minúsculo:** artefato de fórmula, não defeito de rede.
   - **~130 — cauda espalhada em 22 bases pequenas**, sem concentração.
 
+## ESTADO EM 30/08/2026 — leia isto primeiro
+
+O detalhe das rodadas está abaixo, em ordem inversa. Os **achados** estão em
+`docs/ACHADOS_GENERALIZACAO.md`, que é o documento do artigo — não aqui.
+
+### Onde o projeto está
+
+- **V24 é a rodada corrente**: 97/97 bases, 4.201 subestações, 97,8% `OK`,
+  1.626 violações (6,13% dos 26.520 alimentadores). Publicada em
+  `resultados/v24/`.
+- **Clima real nas 97**, da NASA POWER na coordenada de cada base. A V24 ainda
+  rodou no sintético e ficou registrada como tal.
+- **BT completa: causa identificada, não resolvida.** É fragmentação, não
+  escala nem `m/trafo` — as mesmas 370 subestações dão 99% de convergência no
+  agregado e 62% no completo. Ver achado 3 e `docs/AMOSTRA_BT.md`.
+- **Suíte em 752.**
+
+### A cadeia de investigação dos achados 6 a 11
+
+Vale ler na ordem, porque **quatro conclusões minhas caíram no teste seguinte**
+e isso é parte do resultado:
+
+1. As violações pareciam erro absurdo. Medido: são excesso **moderado e
+   sistemático**, razão 1,56x, não-técnica negativa em todos (achado 6).
+2. O perfil mostrou que os suspeitos são **longos, finos e pouco carregados**,
+   em **6 de 6 bases**. Concluí que o modelo estava certo (achado 7).
+3. **Errado.** O `PERD_*` declarado pela distribuidora concorda com a energia
+   medida dela, e quem destoa somos nós, em 2,7x (achado 7b).
+4. **Mas o `PERD_*` não serve de árbitro:** 16 bases declaram exatamente 3,89%
+   — valor padrão, não medição (achado 9) — e 7 declaram valores fisicamente
+   impossíveis, uma delas 0,13% (achado 8).
+5. Filtrando por originalidade e plausibilidade, o viés **sobrevive**: 1,42x em
+   38 bases (achado 10).
+6. O **ferro** dos transformadores é parcela grande da nossa perda, suficiente
+   para explicá-lo — o que torna a divergência possivelmente de **convenção
+   contábil**, não de erro (achado 11).
+
+### A próxima rodada (V25) e por que ela é necessária
+
+Duas coisas só se resolvem com uma rodada nova, e as duas já estão no código:
+
+- **`perdas_trafos_pct`** por subestação, que fecha o achado 11. Hoje o modelo
+  publica só a perda total, então a comparação com o `PERD_*` na mesma base
+  contábil é impossível com o que `resultados/` guarda.
+- **O `TENSAO_IMPLAUSIVEL` da V24 está errado.** Ele usava a mediana de TODOS
+  os nós vivos, MT e BT juntos, enquanto o relatório publicava só a de MT.
+  Custou 24 falsos negativos e 1 falso positivo. Corrigido em `17c2ae9`, mas o
+  número de capa da V24 (60 subestações) foi medido com a métrica errada.
+
+Comando, mesma configuração que deu 1h54 na V24:
+
+    SUFIXO=V25 TAMPA=32 SOZINHA=CMIG:32 BDGD2DSS_BASES=~/elder/bdgds         bash cluster/submeter_todas.sh --rodar
+
+A V25 sai com **clima real**, o que também a torna a primeira comparável contra
+a V24 para medir o efeito do clima na geração distribuída.
+
 ## V23 submetida — 28/08/2026, 18:36 (CEAMAZON)
 
 97 jobs (`34475`–`34571`) mais o coletor (`34572`), commit único `e49363c`,
