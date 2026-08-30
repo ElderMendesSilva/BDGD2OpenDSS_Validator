@@ -310,6 +310,41 @@ modelo. São dois fenômenos distintos que a razão sozinha confunde:
 E há 8 bases onde o nosso modelo fica ABAIXO do declarado (0,74x a 0,89x), o
 que impede tratar o viés como constante universal.
 
+### 9. O `PERD_*` de um quinto das bases é um valor PADRÃO, não uma medição
+
+Investigado em 30/08, seguindo a pista das 8 bases onde o nosso modelo fica
+abaixo do declarado: cinco delas declaravam **exatamente 3,89%**.
+
+Nas 81 bases com `PERD_*` agregado há apenas **60 valores distintos**, e:
+
+| valor declarado | bases |
+|---|---:|
+| **3,89%** | **16** |
+| 0,34% | 2 |
+| 3,72% | 2 |
+| 1,42% | 2 |
+| 0,29% | 2 |
+
+**28 das 81 bases (35%) declaram um valor que se repete em outra**, e 16
+declaram o mesmo 3,89%. Distribuidoras distintas, em estados distintos, com
+redes de porte distinto, não medem a mesma perda técnica com duas casas
+decimais. **É um valor padrão.**
+
+E o perfil delas confirma: as 16 têm **433 km de MT medianos contra 10.471** das
+demais, e **4 subestações contra 20**. São as pequenas — cooperativas e permis-
+sionárias, que provavelmente preenchem o campo com uma referência regulatória
+em vez de um cálculo próprio.
+
+**Isso derruba o argumento central do achado 7b.** Eu havia escrito que "as duas
+declarações da distribuidora são consistentes entre si, logo quem destoa é o
+nosso modelo". Se o `PERD_*` é uma constante preenchida por padrão, ela não
+corrobora coisa nenhuma — concordar com ela ou não é irrelevante.
+
+**O que isso NÃO faz:** não absolve o modelo. O viés de ~1,6x continua, e nas 65
+bases que declaram valor próprio a comparação segue valendo. O que muda é que
+**o `PERD_*` não serve como árbitro universal** — precisa ser filtrado por
+plausibilidade (achado 8) e por originalidade (este) antes de virar referência.
+
 ## Validação externa e contaminação
 
 A âncora nacional de 7,4% de perda técnica total da ANEEL é apenas um teste de
