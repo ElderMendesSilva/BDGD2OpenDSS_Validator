@@ -204,20 +204,45 @@ O produto `R1 x km`, que é o que governa a perda joule, é **15,8x maior** nos
 suspeitos. Eles são alimentadores **longos, de condutor mais fino e com metade
 da densidade de carga** — rurais e extensos.
 
-**Isso resolve a ambiguidade do achado 6 a favor do modelo.** A pergunta era se
-o modelo superestima ou a medição subestima. Uma perda técnica de 8,66% num
-alimentador de 349 km com R1 = 1,31 Ω/km não é superestimativa: é o que a
-física manda. O modelo está calculando certo.
+**Eu concluí daqui que o modelo estava certo e a medição errada. CORRIJO
+ABAIXO — a conclusão não sobreviveu ao teste seguinte.**
 
-**A consequência inverte a leitura da ferramenta.** Esses 366 casos não são
-falsos positivos do validador — são alimentadores onde a **energia medida ou
-declarada é inconsistente com a física da rede declarada**. A distribuidora
-declara um comprimento e um condutor que implicam certa perda, e reporta uma
-energia que implica perda menor. As duas afirmações são dela, e não fecham.
+### 7b. A correção: existe uma TERCEIRA declaração, e ela não nos favorece
 
-**É esse o produto do auditor**, e é um achado mais forte que "o modelo diverge
-da medição": ele aponta contradição interna no dado regulatório, medida contra
-os próprios atributos que a BDGD publica.
+A BDGD traz `PERD_*`, a perda técnica que a **própria distribuidora declara por
+alimentador**. Nos 68 casos sem causa que a têm:
+
+| origem | perda |
+|---|---:|
+| nosso modelo | **9,50%** |
+| declarada pela distribuidora (`PERD_*`) | **3,41%** |
+| total medida (`ENE_01`) | **5,26%** |
+
+**As duas declarações dela são consistentes entre si** — técnica 3,41% abaixo da
+total 5,26%, como manda a definição. **Quem destoa é o nosso modelo**, em 2,7x.
+
+E o erro **não cresce com o comprimento**, o que descarta a explicação mais
+óbvia (carga concentrada na ponta em vez de distribuída). Por quartil de km:
+4,24x, 2,70x, 2,42x, 3,38x. O modelo roda alto em toda a faixa, não só nas
+longas. Na Cemig inteira a razão modelo/declarado é 1,44x; nas violações, ~3x.
+
+**O que continua de pé:** o perfil dos suspeitos — longos, de condutor fino e
+pouco carregados — replicado em 6 de 6 bases. Isso é medida, não interpretação.
+
+**O que caiu:** a afirmação de que o modelo está certo. Com três números e
+nenhuma verdade de campo, não há como decidir por evidência interna.
+
+**O que fica em aberto, e é a próxima investigação real:**
+
+1. Nosso modelo superestima a perda — e aí a causa está na alocação de carga ou
+   na impedância que atribuímos, e é bug nosso.
+2. As duas declarações da distribuidora subestimam **juntas** — o que é
+   possível sem conluio: se ela calcula `PERD_*` com as mesmas premissas
+   otimistas com que faz o balanço, a consistência entre elas não prova nada.
+
+**Consistência mútua não é corroboração quando as duas saem da mesma fonte e do
+mesmo método.** É por isso que a validação externa por distribuidora, já listada
+como pendência, deixa de ser desejável e passa a ser necessária.
 
 ### O padrão é NACIONAL: replicou em 6 de 6 bases, nos três atributos
 
