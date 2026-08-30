@@ -421,6 +421,50 @@ transformadores** não declaram `PER_FER` — 0,00%. Ao contrário do `PERD_*`
 (achados 8 e 9), a placa dos transformadores é preenchida de forma consistente
 em todo o país. Nem toda tabela da BDGD tem o mesmo problema.
 
+### 12. A fragmentação é característica POR DISTRIBUIDORA, e a Light é o extremo
+
+Investigado em 30/08 sobre a V24, seguindo o achado 3 (a BT completa falha por
+fragmentação, e ela já existe na MT).
+
+**Chave aberta não explica.** São **11,66 milhões** de ramos isolados contra
+**90 mil** chaves ilhadas — 130 para 1. E 1.333 subestações têm ZERO chaves
+ilhadas e ainda assim ramos isolados, com mediana de 55.
+
+**Está concentrado, mas não é anedota.** As 200 piores subestações (5% de
+4.190) concentram **50%** do total. Normalizado por km, a distribuição tem
+cauda longa: mediana 0,28, p90 **17,9**, p99 **71,4** — e **22,5% das
+subestações passam de 5 ramos isolados por km**.
+
+**E é característica da BASE, não do conversor.** Mediana de ramos isolados por
+km, por distribuidora:
+
+| | bases |
+|---|---:|
+| mediana abaixo de 0,1 (praticamente zero) | **40 de 76** |
+| mediana acima de 10 | **3** |
+
+| base | isolados/km |
+|---|---:|
+| CASTRODIS11825, CEDRAP5381, CEDRI5366, CEREJ5352… | **0,000** |
+| ENERGISA_M404 | 2,20 |
+| EQUATORIAL37 | 7,12 |
+| EDP_SP391 | 26,45 |
+| **Light** | **45,84** |
+
+**O conversor é o mesmo para as 97.** Se o defeito fosse do código, apareceria
+de forma uniforme; ele aparece em quarenta bases como zero absoluto e na Light
+como 45,8 por km. O gatilho está no dado, ou em como o dado de cada
+distribuidora interage com uma premissa nossa.
+
+**Isso fecha o círculo com a BT.** A Light é a pior em fragmentação de MT e é
+justamente a que falha no `--bt completo` com 92% de cargas mortas. São o mesmo
+fenômeno, não dois problemas.
+
+**Ressalva:** "está no dado" não significa "não é problema nosso". Pode ser um
+campo que algumas distribuidoras preenchem e outras não, e que o conversor
+trata mal quando falta. Distinguir isso exige abrir a topologia de uma Light
+contra a de uma base limpa — que é a próxima investigação, e precisa da `.gdb`.
+
 ## Validação externa e contaminação
 
 A âncora nacional de 7,4% de perda técnica total da ANEEL é apenas um teste de
