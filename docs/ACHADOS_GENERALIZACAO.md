@@ -411,10 +411,37 @@ diferença entre o nosso número e o `PERD_*` pode ser de **convenção contábi
 se a distribuidora reporta só a parcela dependente de carga, os dois números
 estão certos medindo coisas diferentes.
 
-**O que falta para fechar:** o modelo precisa REGISTRAR a divisão ferro/cobre
-da perda que ele mesmo calcula. Hoje o `validador` só publica o total
-(`dss.Circuit.Losses()`), então a comparação exata é impossível com o que
-`resultados/` guarda. É mudança pequena e é o próximo passo.
+**FECHADO na V25**, que passou a registrar onde a perda acontece. Nas 38 bases
+com declaração original e plausível:
+
+| | mediana |
+|---|---:|
+| perda modelada TOTAL | 4,57% |
+| ... parcela nos transformadores | **78%** |
+| perda modelada SÓ nas linhas | 0,87% |
+| perda DECLARADA (`PERD_*`) | 3,15% |
+
+| comparação | razão |
+|---|---:|
+| nosso total / declarado | 1,42x |
+| nossas linhas / declarado | **0,29x** |
+
+**A hipótese da convenção MORRE aqui.** Se o `PERD_*` cobrisse só a parcela
+dependente de carga, ele deveria bater com as nossas linhas — e elas dão 0,87%
+contra 3,15% declarados, quatro vezes menos. O declarado **inclui**
+transformador; não há convenção que reconcilie.
+
+**Mas o achado 11 entrega algo melhor que a hipótese que o motivou:** ele
+localiza o excesso. Com 78% da nossa perda nos transformadores, o viés de 1,42x
+está **dentro deles**, não nas linhas. Nossa perda de transformador é ~3,56%
+contra um declarado TOTAL de 3,15%.
+
+**O próximo suspeito, e é testável:** perda de ferro é potência CONSTANTE, então
+como percentual ela depende do denominador — a energia entregue. Se a carga que
+modelamos (`ENE_01/730 h`) for menor que a energia real do alimentador, o ferro
+infla em percentual sem que o watt esteja errado. Comparar a energia injetada
+do modelo contra a medida por alimentador decide isso, e os dois números já
+estão em `resultados/`.
 
 **Subproduto, e é um negativo limpo:** apenas **261 de 6.137.403
 transformadores** não declaram `PER_FER` — 0,00%. Ao contrário do `PERD_*`
