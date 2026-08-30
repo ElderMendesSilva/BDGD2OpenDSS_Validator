@@ -128,17 +128,28 @@ de alimentador/condutor, fora do que `resultados/` guarda.
 O detalhe das rodadas está abaixo, em ordem inversa. Os **achados** estão em
 `docs/ACHADOS_GENERALIZACAO.md`, que é o documento do artigo — não aqui.
 
-### Onde o projeto está
+### Onde o projeto está — atualizado 30/08 pós-V25
 
-- **V24 é a rodada corrente**: 97/97 bases, 4.201 subestações, 97,8% `OK`,
-  1.626 violações (6,13% dos 26.520 alimentadores). Publicada em
-  `resultados/v24/`.
-- **Clima real nas 97**, da NASA POWER na coordenada de cada base. A V24 ainda
-  rodou no sintético e ficou registrada como tal.
-- **BT completa: causa identificada, não resolvida.** É fragmentação, não
-  escala nem `m/trafo` — as mesmas 370 subestações dão 99% de convergência no
-  agregado e 62% no completo. Ver achado 3 e `docs/AMOSTRA_BT.md`.
-- **Suíte em 752.**
+- **V25 é a rodada corrente** (`resultados/v25/`), agregada, com clima real e a
+  instrumentação nova. A V24 fica como comparação.
+- **`TENSAO_IMPLAUSIVEL` corrigido: 76 subestações**, não as 60 da V24 — aquele
+  número saiu com a mediana de MT e BT juntas. Os demais veredictos ficaram
+  idênticos, o que confirma que a mudança foi cirúrgica.
+- **78% da nossa perda está nos transformadores** (mediana das 38 bases
+  filtradas). As linhas dão 0,87%.
+- **Achado 13 é o mais forte do projeto**, e não depende do nosso modelo: em 40
+  das 81 bases o ferro implícito na placa dos próprios transformadores JÁ EXCEDE
+  a perda técnica que a distribuidora declara.
+- **Achado 12:** a fragmentação é característica por distribuidora — 40 de 76
+  bases com mediana zero, a Light com 45,8 ramos isolados por km. O conversor é
+  o mesmo para todas.
+- **Suíte em 753.**
+
+### Lacuna conhecida no coletor
+
+`n_linhas` existe no `validador` e NÃO é coletado. Sem ele, os 11,66 milhões de
+ramos isolados não têm denominador próprio — usei km como aproximação no achado
+12. Incluir na próxima mudança do `auditoria.py`.
 
 ### A cadeia de investigação dos achados 6 a 11
 
