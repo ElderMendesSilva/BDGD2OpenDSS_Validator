@@ -50,7 +50,12 @@ def ferro_da_base(caminho):
     """
     b = BDGD(caminho, verbose=False)
     col = b.ler('EQTRMT', ['PER_FER', 'POT_NOM'])
-    vals = col.get('PER_FER') or []
+    # `x or []` NAO SERVE AQUI: o leitor devolve array do numpy, e testar a
+    # verdade de um array com mais de um elemento levanta ValueError. Foi assim
+    # que a primeira execucao errou as 97 bases de uma vez, com rc=0.
+    vals = col.get('PER_FER')
+    if vals is None:
+        vals = []
     w = 0.0
     sem = 0
     for v in vals:
@@ -78,7 +83,7 @@ def main(argv=None):
         print('nenhuma .gdb encontrada', file=sys.stderr)
         return 1
 
-    saida = []
+    saida, erros = [], 0
     print('%-20s %10s %12s %10s %10s' %
           ('base', 'trafos', 'ferro kW', 'sem PER_FER', 'modelo %'))
     for tag, cam in bases:
@@ -92,7 +97,8 @@ def main(argv=None):
         try:
             n, kw, sem = ferro_da_base(cam)
         except Exception as e:                          # noqa: BLE001
-            print('%-20s ERRO: %s' % (tag, str(e)[:50]), flush=True)
+            print('%-20s ERRO: %s' % (tag, str(e)[:70]), flush=True)
+            erros += 1
             continue
         d = dict(base=tag, trafos_eqtrmt=n, ferro_kW=round(kw, 1),
                  sem_per_fer=sem, pct_modelo=ag.get('pct_modelo'),
@@ -107,7 +113,13 @@ def main(argv=None):
     with open(a.saida_json, 'w', encoding='utf-8',
               newline=escrita.FIM_DE_LINHA) as fh:
         json.dump({'bases': saida}, fh, ensure_ascii=False, indent=1)
-    print('\n%d bases  ->  %s' % (len(saida), a.saida_json))
+    print('\n%d bases medidas, %d com erro  ->  %s'          % (len(saida), erros, a.saida_json))
+    # FALHAR QUANDO FALHA. A primeira execucao errou as 97 bases e saiu com
+    # rc=0, publicando um JSON vazio — o mesmo padrao de falha silenciosa que
+    # ja custou duas colheitas neste projeto. Medir nada nao e medir.
+    if not saida:
+        print('nenhuma base medida: veja os erros acima', file=sys.stderr)
+        return 1
     return 0
 
 

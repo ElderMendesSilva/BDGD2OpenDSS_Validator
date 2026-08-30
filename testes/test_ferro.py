@@ -21,8 +21,18 @@ import ferro                                            # noqa: E402
 
 
 class _BDGDFalsa:
+    """Devolve ARRAY do numpy, como o leitor real.
+
+    A primeira versao deste teste usava lista, e por isso nao pegou o
+    `col.get('PER_FER') or []` — que em lista funciona e em array levanta
+    `ValueError: The truth value of an array with more than one element is
+    ambiguous`. As 97 bases erraram de uma vez, com rc=0.
+    """
+
     def __init__(self, per_fer):
-        self._d = {'PER_FER': per_fer, 'POT_NOM': [75.0] * len(per_fer)}
+        import numpy as np
+        self._d = {'PER_FER': np.array(per_fer, dtype=object),
+                   'POT_NOM': np.array([75.0] * len(per_fer))}
 
     def ler(self, camada, cols):
         return self._d
