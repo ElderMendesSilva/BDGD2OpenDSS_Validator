@@ -219,8 +219,31 @@ energia que implica perda menor. As duas afirmações são dela, e não fecham.
 da medição": ele aponta contradição interna no dado regulatório, medida contra
 os próprios atributos que a BDGD publica.
 
-**O que falta:** repetir em outras bases para saber se o padrão é da Cemig ou
-nacional. O comando já existe — trocar `BASE=` no `submeter_perfil.sh`.
+### O padrão é NACIONAL: replicou em 6 de 6 bases, nos três atributos
+
+Repetido em 30/08 nas seis bases que concentram 60% dos 366 casos sem causa.
+Cada uma comparada contra **ela mesma**:
+
+| base | n | km susp. | km resto | razão | R1 susp. | R1 resto | kVA/km susp. | resto |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|
+| CEEE_EQUAT5707 | 131 | 40 | 17 | 2,4x | 1,00 | 0,50 | 333 | 555 |
+| CMIG | 143 | 349 | 34 | 10,3x | 1,31 | 0,85 | 42 | 86 |
+| COPELDIS2866 | 259 | 197 | 19 | 10,4x | 2,69 | 0,74 | 95 | 408 |
+| EQUATORIAL6072 | 168 | 307 | 29 | 10,6x | 1,45 | 0,89 | 49 | 122 |
+| NEOENERGIA43 | 62 | 270 | 24 | 11,3x | 1,47 | 1,00 | 37 | 301 |
+| NEOENERGIA47 | 88 | 281 | 37 | 7,5x | 1,40 | 1,12 | 37 | 126 |
+
+**Seis de seis** em cada um dos três atributos: suspeitos mais longos, com
+resistência por km maior, e com densidade de carga menor. **Sem exceção.**
+
+Seis distribuidoras independentes, em regiões diferentes, com práticas de
+cadastro diferentes, produzindo o mesmo perfil. A COPELDIS2866 é o extremo de
+resistência (2,69 contra 0,74 Ω/km, 3,6x) e a CEEE a mais branda (2,4x em km),
+mas o sinal é o mesmo em todas.
+
+Isso torna o achado 7 **nacional, não anedótico** — e é o resultado mais forte
+do projeto até aqui, porque não depende de escolher uma base nem de acreditar
+no modelo: os dois lados da contradição vêm da própria BDGD.
 
 ## Validação externa e contaminação
 
