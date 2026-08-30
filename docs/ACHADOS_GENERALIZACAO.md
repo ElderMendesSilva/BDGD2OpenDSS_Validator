@@ -185,9 +185,42 @@ total abaixo de técnica nacional é, de novo, impossível.
 - **Não é o mesmo defeito da BT.** As violações são do modo agregado, onde 99%
   das subestações convergem.
 
-**O que falta exige a `.gdb`:** comparar os alimentadores suspeitos contra os
-demais DA MESMA BASE em km, trafos, kVA, R1 e condutor — que é o que o
-`diagnosticos/perfil_violacao.py` faz, e o método que sustentou o condutor 593.
+**RESPONDIDO em 30/08 — ver o achado 7.**
+
+### 7. Os alimentadores "sem causa" são LONGOS, finos e pouco carregados
+
+O `perfil_violacao.py` na Cemig-D comparou os **143 alimentadores suspeitos**
+contra os **2.260 restantes da mesma base**, em atributos da própria BDGD:
+
+| | suspeitos | resto | razão |
+|---|---:|---:|---:|
+| **km de MT** | **349,2** | **33,8** | **10,3x** |
+| trafos | 637 | 196 | 3,3x |
+| **R1 ponderado** (Ω/km) | **1,31** | **0,85** | **1,5x** |
+| CNOM ponderado | 176 | 217 | 0,8x |
+| **kVA por km** | **41,9** | **86,2** | **0,5x** |
+
+O produto `R1 x km`, que é o que governa a perda joule, é **15,8x maior** nos
+suspeitos. Eles são alimentadores **longos, de condutor mais fino e com metade
+da densidade de carga** — rurais e extensos.
+
+**Isso resolve a ambiguidade do achado 6 a favor do modelo.** A pergunta era se
+o modelo superestima ou a medição subestima. Uma perda técnica de 8,66% num
+alimentador de 349 km com R1 = 1,31 Ω/km não é superestimativa: é o que a
+física manda. O modelo está calculando certo.
+
+**A consequência inverte a leitura da ferramenta.** Esses 366 casos não são
+falsos positivos do validador — são alimentadores onde a **energia medida ou
+declarada é inconsistente com a física da rede declarada**. A distribuidora
+declara um comprimento e um condutor que implicam certa perda, e reporta uma
+energia que implica perda menor. As duas afirmações são dela, e não fecham.
+
+**É esse o produto do auditor**, e é um achado mais forte que "o modelo diverge
+da medição": ele aponta contradição interna no dado regulatório, medida contra
+os próprios atributos que a BDGD publica.
+
+**O que falta:** repetir em outras bases para saber se o padrão é da Cemig ou
+nacional. O comando já existe — trocar `BASE=` no `submeter_perfil.sh`.
 
 ## Validação externa e contaminação
 
