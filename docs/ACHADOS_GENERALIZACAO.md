@@ -382,6 +382,45 @@ contra a perda total modelada. Se o ferro responder por ~30% do nosso número, o
 viés está explicado e a questão passa a ser de CONVENÇÃO: o `PERD_*` da
 distribuidora provavelmente não inclui perda a vazio. Lê `.gdb`, então é job.
 
+### 11. O ferro é parcela GRANDE da perda modelada — e a comparação com o
+`PERD_*` pode ser de convenção, não de erro
+
+Medido em 30/08 nas 97 bases (`medicoes/ferro.json`, job 34797), somando
+`PER_FER` da EQTRMT — a placa declarada pela própria distribuidora.
+
+Nas 38 bases com declaração original e plausível, o ferro representa uma
+**mediana de ~60% da perda que o modelo reporta**, com faixa de 15% a 183%.
+
+| base | ferro | modelo | ferro/modelo | declarado |
+|---|---:|---:|---:|---:|
+| NEOENERGIA40 | 1,61% | 11,01% | 15% | 2,15% |
+| EFLUL86 | 1,39% | 4,43% | 31% | 3,12% |
+| CHESP103 | 2,73% | 4,52% | 60% | 2,63% |
+| COOPERNORT5345 | 6,46% | 4,74% | 136% | 3,55% |
+| CRELUZD598 | 7,81% | 4,28% | 183% | 2,33% |
+
+**RESSALVA QUE LIMITA A CONCLUSÃO.** Os dois percentuais têm denominadores
+diferentes: o ferro está sobre a potência NOMINAL instalada, e a perda do
+modelo sobre a energia INJETADA no dia simulado. A razão é ordem de grandeza,
+não medida. Os casos acima de 100% denunciam isso — ferro não pode exceder a
+perda total.
+
+**O que se sustenta mesmo assim:** o ferro é parcela **grande**, não marginal,
+da perda modelada. É suficiente para explicar um viés de 1,42x, e portanto a
+diferença entre o nosso número e o `PERD_*` pode ser de **convenção contábil** —
+se a distribuidora reporta só a parcela dependente de carga, os dois números
+estão certos medindo coisas diferentes.
+
+**O que falta para fechar:** o modelo precisa REGISTRAR a divisão ferro/cobre
+da perda que ele mesmo calcula. Hoje o `validador` só publica o total
+(`dss.Circuit.Losses()`), então a comparação exata é impossível com o que
+`resultados/` guarda. É mudança pequena e é o próximo passo.
+
+**Subproduto, e é um negativo limpo:** apenas **261 de 6.137.403
+transformadores** não declaram `PER_FER` — 0,00%. Ao contrário do `PERD_*`
+(achados 8 e 9), a placa dos transformadores é preenchida de forma consistente
+em todo o país. Nem toda tabela da BDGD tem o mesmo problema.
+
 ## Validação externa e contaminação
 
 A âncora nacional de 7,4% de perda técnica total da ANEEL é apenas um teste de
