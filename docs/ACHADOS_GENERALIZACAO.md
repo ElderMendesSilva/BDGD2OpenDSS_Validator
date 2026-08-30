@@ -151,6 +151,44 @@ Resolvido: NASA POWER na coordenada de cada base, 97 de 97. A faixa nacional vai
 de **4,37 a 6,81 kWh/m²/dia** — variação de 56% entre a base menos e a mais
 ensolarada. Usar São Paulo para todas nunca foi aproximação inofensiva.
 
+### 6. As violações não são "erro absurdo": são excesso MODERADO e sistemático
+
+Investigado em 30/08 sobre a V24. **1.623 das 1.626 violações** têm cobertura
+acima de 100% — isto é, a perda técnica que o modelo calcula excede a perda
+TOTAL que a medição registra. Como a técnica é uma parcela da total, isso é
+impossível por definição, e vale para 47 das 97 bases.
+
+O que surpreende é a magnitude. Os 366 casos rotulados **"a investigar"** — os
+que não têm causa conhecida — não são disparates:
+
+| | mediana | faixa |
+|---|---:|---|
+| perda técnica modelada | 8,66% | 3,7% a 15,0% |
+| perda total medida | 4,72% | 3,0% a 11,8% |
+| razão modelo/medido | **1,56x** | 1,2x a 4,6x |
+| não-técnica implícita | −3,03% | **negativa em todos** |
+
+São perdas **plausíveis** que excedem a medição por um fator moderado e
+constante. Não é ruído nem caso extremo: é viés.
+
+**Duas leituras, e o dado não decide entre elas.** Ou o modelo superestima a
+perda nesses alimentadores, ou a medição os subestima. A favor da segunda: a
+mediana da técnica modelada nas violações (8,11%) fica perto da referência
+nacional da ANEEL (7,4%), enquanto a total medida (5,20%) fica ABAIXO dela — e
+total abaixo de técnica nacional é, de novo, impossível.
+
+**O que já se descartou por medição:**
+
+- **Fragmentação não explica.** Ramos isolados por km: 0,24 nas subestações sem
+  violação, 0,26 nas com violação, 0,17 nas sem causa. A diferença bruta
+  (71 contra 197) era efeito de tamanho e some ao normalizar.
+- **Não é o mesmo defeito da BT.** As violações são do modo agregado, onde 99%
+  das subestações convergem.
+
+**O que falta exige a `.gdb`:** comparar os alimentadores suspeitos contra os
+demais DA MESMA BASE em km, trafos, kVA, R1 e condutor — que é o que o
+`diagnosticos/perfil_violacao.py` faz, e o método que sustentou o condutor 593.
+
 ## Validação externa e contaminação
 
 A âncora nacional de 7,4% de perda técnica total da ANEEL é apenas um teste de
