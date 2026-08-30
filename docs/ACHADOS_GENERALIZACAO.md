@@ -81,7 +81,44 @@ Light — secundário longo em rede densa — e rodou com 4,85% de perda e duas
 cargas sem tensão, contra 92% de cargas mortas da Light. Não há gradiente na
 faixa.
 
-### 3. O modo completo falha por ESCALA, e o modo de falha é outro
+### 3. O modo completo falha por FRAGMENTAÇÃO — corrigido em 30/08
+
+A primeira leitura, com médias por base, atribuía a falha à escala. **A BT3
+completa desmente isso.** As mesmas 370 subestações, nas duas rodadas:
+
+| | agregado | completo |
+|---|---:|---:|
+| convergem | **99%** (366/370) | **62%** (231/370) |
+| ramos isolados (mediana) | 43,5 | 210,5 |
+| cargas sem tensão (mediana) | 0 | 27 |
+
+Mesma rede de MT, mesmos trafos, mesmos km — a única diferença é a BT entrar.
+
+E dentro do modo completo, o que separa quem converge de quem não converge
+**não é tamanho**:
+
+| | converge | falha | razão |
+|---|---:|---:|---:|
+| ramos isolados | 31 | 3.588 | **116x** |
+| cargas sem tensão | 2 | 346 | **173x** |
+| iterações | 4 | 500 | **125x** |
+| trafos | 684 | 1.073 | 1,6x |
+| km de MT | 195 | 450 | 2,3x |
+
+Tamanho aparece com 1,6–2,3x; fragmentação com 116x. As 500 iterações são o
+TETO do OpenDSS: elas não convergem devagar, batem no limite.
+
+**Isso reconecta ao defeito conhecido da Light**, descrito em 26/08 como
+fragmentação por recorte de CTMT. É o mesmo mecanismo, agora medido em 370
+subestações de cinco distribuidoras. A NEOENERGIA40 é o extremo: 13% de
+subestações OK e perda modelada em 10^300 — estouro numérico.
+
+**Consequência prática:** subir o teto de iterações não resolve. Rede com 3.588
+ramos isolados não converge com 500 nem com 5.000. E a fragmentação **já existe
+na MT** (43 ramos isolados no agregado) e a BT a multiplica por cinco — então a
+origem é anterior à baixa tensão.
+
+### 3b. Leitura anterior, mantida como registro do erro
 
 Nas bases de 1–2 milhões de UCs os modelos **compilam** mas **não convergem**,
 de 6% a 43% das subestações — contra 0% nas bases pequenas. É defeito distinto

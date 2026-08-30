@@ -1,0 +1,3 @@
+base,sub,ctmt,motivo,pct_tecnica_modelo,pct_total_medido,pct_nao_tecnica_implicita,GWh_injetado,GWh_faturado,ucs,cobertura,viola_limite,medida_degenerada,faturado_maior_que_injetado,declarado_pct,razao_vs_declarado,se_kv_mt,se_trafos,se_km_MT,se_alimentadores,se_convergiu,se_nos_nan,se_veredicto,se_V_MT_min,se_V_MT_mediana,se_barras_criticas
+AMAZONAS_E7019,5003263,IB-02,no limite: modelo 1.18x o total medido,6.597,5.584,-1.013,8.635,8.1528,2486,118.1,True,False,False,,,13.8,4364,1027.81,8,True,0,OK,0.856,0.969,1786
+AMAZONAS_E7019,5003152,SG-20,modelo quebrado na SE: NAO_CONVERGE[C-API:500],2.649,2.097,-0.552,17.2784,16.9161,1642,126.3,True,False,False,,,13.8,635,60.4,18,False,0,NAO_CONVERGE[C-API:500],0.979,0.988,0
