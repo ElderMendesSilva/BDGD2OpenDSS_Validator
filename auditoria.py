@@ -78,6 +78,7 @@ COLUNAS = [
     'se_kv_mt', 'se_trafos', 'se_km_MT', 'se_alimentadores',
     'se_convergiu', 'se_nos_nan', 'se_veredicto',
     'se_V_MT_min', 'se_V_MT_mediana', 'se_barras_criticas',
+    'se_perdas_trafos_pct',
 ]
 
 
@@ -186,6 +187,11 @@ def colher_base(pasta, base):
             'iteracoes': v.get('iteracoes', capi.get('iteracoes')),
             'nos_nan': v.get('nos_nan', capi.get('nan_nos')),
             'perdas_pct': v.get('perdas_pct'),
+            # ONDE a perda acontece. O achado 11 nao fecha sem isto: o ferro
+            # dos transformadores e parcela grande do total, e a comparacao com
+            # o `PERD_*` declarado depende de saber se a distribuidora conta a
+            # mesma coisa. Sem o campo, responder exige abrir os 97 modelos.
+            'perdas_trafos_pct': v.get('perdas_trafos_pct'),
             # O MINIMO SOZINHO NAO DISTINGUE COLAPSO DE PONTA SOLTA, e a
             # diferenca decide a leitura: `V_MT_min=0,04 pu` pode ser uma
             # barra ruim no fim de um ramal — ou a rede inteira caida. So a
@@ -241,6 +247,7 @@ def colher_base(pasta, base):
             'se_V_MT_min': vv.get('V_MT_min'),
             'se_V_MT_mediana': vv.get('V_MT_mediana'),
             'se_barras_criticas': vv.get('barras_criticas'),
+            'se_perdas_trafos_pct': vv.get('perdas_trafos_pct'),
         })
     # Maior perda modelada primeiro: quem abre o CSV quer o pior caso na
     # primeira linha, e nao a ordem em que a rodada calhou de gravar.

@@ -375,6 +375,34 @@ class AProcedenciaDoClimaViajaJunto(OQueSaiEmDisco):
             self.assertIsNone(json.load(fh)['clima_fonte'])
 
 
+class ONDE_A_PERDA_ACONTECE_VIAJA_JUNTO(OQueSaiEmDisco):
+    """Saber QUANTO se perde não basta; é preciso saber ONDE.
+
+    O achado 11 mediu que o ferro dos transformadores é parcela grande da perda
+    modelada. Isso muda a natureza da divergência contra o `PERD_*` declarado:
+    se a distribuidora reporta só a parcela dependente de carga, os dois
+    números estão certos medindo coisas diferentes — é convenção, não erro.
+
+    Sem este campo em `resultados/`, responder isso exige abrir os 97 modelos,
+    que é exatamente o que `resultados/` existe para evitar.
+    """
+
+    def test_a_parcela_dos_trafos_sai_por_subestacao(self):
+        r = _Rodada(validacao=[{'modelo': 'S1', 'perdas_pct': 4.6,
+                                'perdas_trafos_pct': 61.0}])
+        with open(os.path.join(self._colhe(r), 'XX.json'),
+                  encoding='utf-8') as fh:
+            s = json.load(fh)['subestacoes'][0]
+        self.assertEqual(s['perdas_trafos_pct'], 61.0)
+
+    def test_modelo_antigo_sem_o_campo_nao_derruba(self):
+        r = _Rodada(validacao=[{'modelo': 'S1', 'perdas_pct': 4.6}])
+        with open(os.path.join(self._colhe(r), 'XX.json'),
+                  encoding='utf-8') as fh:
+            self.assertIsNone(
+                json.load(fh)['subestacoes'][0]['perdas_trafos_pct'])
+
+
 class ATensaoViajaJuntoDoResultado(OQueSaiEmDisco):
     """`V_MT_min` sozinho nao distingue colapso de ponta solta.
 

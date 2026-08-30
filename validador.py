@@ -94,6 +94,30 @@ def valida(pasta, referencia=None):
     r['P_fonte_kW'] = round(-p, 1)
     perdas = dss.Circuit.Losses()[0] / 1000
     r['perdas_kW'] = round(perdas, 1)
+    # ONDE A PERDA ACONTECE, e nao so quanto ela e. O achado 11 mediu que o
+    # ferro dos transformadores e parcela GRANDE do que este modelo reporta —
+    # mediana da ordem de 60% —, e isso muda a natureza da comparacao com o
+    # `PERD_*` declarado: se a distribuidora reporta so a parcela dependente de
+    # carga, os dois numeros estao certos medindo coisas diferentes. Sem esta
+    # divisao a pergunta so se responde abrindo o modelo, que e o que
+    # `resultados/` existe para evitar.
+    #
+    # ATENCAO A UNIDADE: `Circuit.Losses` vem em WATTS e `Circuit.LineLosses`
+    # em kW. Dividir os dois por 1000 daria uma diferenca negativa e sem
+    # sentido — o tipo de erro que passa por resultado.
+    try:
+        linhas_kw = dss.Circuit.LineLosses()[0]
+        r['perdas_linhas_kW'] = round(linhas_kw, 1)
+        # O resto e transformador: ferro (constante) mais cobre (com a carga).
+        # O motor nao separa esses dois, entao o nome diz o que o numero e.
+        r['perdas_trafos_kW'] = round(perdas - linhas_kw, 1)
+        r['perdas_trafos_pct'] = (round(100.0 * (perdas - linhas_kw) / perdas, 1)
+                                  if perdas else None)
+    except Exception:                                    # noqa: BLE001
+        # Motor que nao expoe `LineLosses` nao pode custar a validacao inteira.
+        r['perdas_linhas_kW'] = None
+        r['perdas_trafos_kW'] = None
+        r['perdas_trafos_pct'] = None
     # Perdas sobre a energia INJETADA (fonte + GD), como no Modulo 7 do
     # PRODIST — nao sobre a fonte. Com geracao distribuida forte a fonte
     # quase zera e a razao perde sentido: na DALP sao 1.737 kW de fonte
