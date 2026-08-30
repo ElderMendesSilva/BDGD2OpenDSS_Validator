@@ -1,0 +1,4 @@
+base,sub,ctmt,motivo,pct_tecnica_modelo,pct_total_medido,pct_nao_tecnica_implicita,GWh_injetado,GWh_faturado,ucs,cobertura,viola_limite,medida_degenerada,faturado_maior_que_injetado,declarado_pct,razao_vs_declarado,se_kv_mt,se_trafos,se_km_MT,se_alimentadores,se_convergiu,se_nos_nan,se_veredicto,se_V_MT_min,se_V_MT_mediana,se_barras_criticas,se_perdas_trafos_pct
+NEOENERGIA5160,SSJ,SJ03,perda modelada absurda: 1072.6%,1072.62,69.718,-1002.902,5.0923,1.5421,68,1538.5,True,False,False,,,13.8,465,492.6,5,True,0,OK,0.81,0.997,1027,66.8
+NEOENERGIA5160,SCS,CS02,medida quase sem perda: 2.04% total medido,3.326,2.037,-1.289,19.1139,18.7245,7354,163.3,True,False,False,,,13.8,1253,303.45,18,True,0,OK,0.935,0.951,0,65.4
+NEOENERGIA5160,SCS,CS05,no limite: modelo 1.06x o total medido,2.54,2.392,-0.148,16.8785,16.4747,6886,106.2,True,False,False,,,13.8,1253,303.45,18,True,0,OK,0.935,0.951,0,65.4

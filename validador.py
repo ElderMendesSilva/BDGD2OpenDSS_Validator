@@ -111,8 +111,16 @@ def valida(pasta, referencia=None):
         # O resto e transformador: ferro (constante) mais cobre (com a carga).
         # O motor nao separa esses dois, entao o nome diz o que o numero e.
         r['perdas_trafos_kW'] = round(perdas - linhas_kw, 1)
-        r['perdas_trafos_pct'] = (round(100.0 * (perdas - linhas_kw) / perdas, 1)
-                                  if perdas else None)
+        # NaN TEM DE VIRAR None, e nao passar adiante como float. A V25
+        # publicou 2 subestacoes com `perdas_trafos_pct` NaN, e o efeito nao
+        # foi um valor esquisito: foi `sorted()` devolvendo lista DESORDENADA,
+        # porque toda comparacao com NaN e falsa. O percentil 75 saiu menor que
+        # a mediana e o numero passaria por resultado. `None` diz "nao sei"; NaN
+        # contamina a estatistica de quem consumir.
+        pct = (100.0 * (perdas - linhas_kw) / perdas) if perdas else None
+        if pct is not None and math.isnan(pct):
+            pct = None
+        r['perdas_trafos_pct'] = None if pct is None else round(pct, 1)
     except Exception:                                    # noqa: BLE001
         # Motor que nao expoe `LineLosses` nao pode custar a validacao inteira.
         r['perdas_linhas_kW'] = None

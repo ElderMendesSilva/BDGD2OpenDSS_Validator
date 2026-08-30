@@ -395,6 +395,27 @@ class ONDE_A_PERDA_ACONTECE_VIAJA_JUNTO(OQueSaiEmDisco):
             s = json.load(fh)['subestacoes'][0]
         self.assertEqual(s['perdas_trafos_pct'], 61.0)
 
+    def test_NaN_nao_pode_viajar_como_numero(self):
+        """NaN nao vira valor esquisito: vira ESTATISTICA ERRADA.
+
+        A V25 publicou 2 subestacoes com `perdas_trafos_pct` NaN. O efeito nao
+        foi um numero fora da faixa — foi `sorted()` devolvendo lista
+        DESORDENADA, porque toda comparacao com NaN e falsa. O percentil 75
+        saiu MENOR que a mediana (9,2% contra 86,3%), e esse numero passaria
+        por resultado se ninguem estranhasse.
+
+        `None` diz "nao sei" e e filtrado por quem consome. NaN se disfarca de
+        float e contamina.
+        """
+        import math
+        r = _Rodada(validacao=[{'modelo': 'S1', 'perdas_pct': 4.6,
+                                'perdas_trafos_pct': float('nan')}])
+        with open(os.path.join(self._colhe(r), 'XX.json'),
+                  encoding='utf-8') as fh:
+            v = json.load(fh)['subestacoes'][0]['perdas_trafos_pct']
+        self.assertFalse(isinstance(v, float) and math.isnan(v),
+                         'NaN nao pode chegar a `resultados/`')
+
     def test_modelo_antigo_sem_o_campo_nao_derruba(self):
         r = _Rodada(validacao=[{'modelo': 'S1', 'perdas_pct': 4.6}])
         with open(os.path.join(self._colhe(r), 'XX.json'),

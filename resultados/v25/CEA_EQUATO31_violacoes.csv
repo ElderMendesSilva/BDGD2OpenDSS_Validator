@@ -1,0 +1,12 @@
+base,sub,ctmt,motivo,pct_tecnica_modelo,pct_total_medido,pct_nao_tecnica_implicita,GWh_injetado,GWh_faturado,ucs,cobertura,viola_limite,medida_degenerada,faturado_maior_que_injetado,declarado_pct,razao_vs_declarado,se_kv_mt,se_trafos,se_km_MT,se_alimentadores,se_convergiu,se_nos_nan,se_veredicto,se_V_MT_min,se_V_MT_mediana,se_barras_criticas,se_perdas_trafos_pct
+CEA_EQUATO31,TAG,TAG01Y1,perda modelada absurda: 167.0%,167.034,12.434,-154.6,2.0435,1.7894,1164,1343.3,True,False,False,,,69,747,849.91,2,True,0,OK,0.387,0.984,477,95.3
+CEA_EQUATO31,STN,STN01S7,perda modelada absurda: 38.2%,38.165,5.067,-33.098,34.487,32.7397,7346,753.3,True,False,False,,,13.8,4130,2185.57,11,True,0,OK,0.053,0.979,7738,79.4
+CEA_EQUATO31,CY1,CY109F1,perda modelada absurda: 26.1%,26.119,5.538,-20.581,34.0681,32.1814,11997,471.6,True,False,False,,,13.8,1837,1657.23,1,True,0,OK,0.019,0.992,2300,97.0
+CEA_EQUATO31,CY,CY01C3,a investigar,13.031,5.772,-7.259,10.5229,9.9155,2710,225.8,True,False,False,,,13.8,467,374.05,2,True,0,OK,0.369,0.976,218,96.4
+CEA_EQUATO31,CPX,CPX01C1,a investigar,12.346,7.391,-4.955,0.537,0.4973,260,167.0,True,False,False,,,13.8,224,151.81,3,True,0,OK,0.992,0.993,0,98.3
+CEA_EQUATO31,STN,STN01S6,a investigar,10.126,4.808,-5.318,9.1484,8.7085,3598,210.6,True,False,False,,,13.8,4130,2185.57,11,True,0,OK,0.053,0.979,7738,79.4
+CEA_EQUATO31,STN,STN01S3,no limite: modelo 1.11x o total medido,6.5,5.854,-0.646,25.3778,23.8922,3739,111.0,True,False,False,,,13.8,4130,2185.57,11,True,0,OK,0.053,0.979,7738,79.4
+CEA_EQUATO31,STN,STN01W3,medida quase sem perda: 2.55% total medido,4.163,2.553,-1.61,20.0338,19.5224,4501,163.1,True,False,False,,,13.8,4130,2185.57,11,True,0,OK,0.053,0.979,7738,79.4
+CEA_EQUATO31,JAR,JAR01F3,medida quase sem perda: 2.54% total medido,3.828,2.541,-1.287,19.2874,18.7974,4108,150.7,True,False,False,,,13.8,425,202.37,4,True,0,OK,0.805,0.99,224,77.0
+CEA_EQUATO31,POR,POR01V3,no limite: modelo 1.18x o total medido,2.554,2.161,-0.393,24.6645,24.1315,3472,118.2,True,False,False,,,13.8,239,62.12,3,True,0,OK,0.932,0.98,0,84.5
+CEA_EQUATO31,SJO,SJO01S7,no limite: modelo 1.08x o total medido,2.235,2.068,-0.167,30.1371,29.5137,3578,108.1,True,False,False,,,13.8,721,76.34,7,True,0,OK,0.961,0.968,0,88.9

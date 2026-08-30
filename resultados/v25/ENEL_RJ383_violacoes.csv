@@ -1,0 +1,4 @@
+base,sub,ctmt,motivo,pct_tecnica_modelo,pct_total_medido,pct_nao_tecnica_implicita,GWh_injetado,GWh_faturado,ucs,cobertura,viola_limite,medida_degenerada,faturado_maior_que_injetado,declarado_pct,razao_vs_declarado,se_kv_mt,se_trafos,se_km_MT,se_alimentadores,se_convergiu,se_nos_nan,se_veredicto,se_V_MT_min,se_V_MT_mediana,se_barras_criticas,se_perdas_trafos_pct
+ENEL_RJ383,POT,POT04,denominador minusculo: 0.051 GWh injetados,101.291,20.575,-80.716,0.0508,0.0403,7,492.3,True,False,False,,,13.8,1225,424.64,8,True,0,OK,0.903,1.01,452,79.7
+ENEL_RJ383,CRZ,CRZ/FRA-1C,perda modelada absurda: 69.3%,69.279,8.916,-60.363,60.0031,54.653,18143,777.0,True,False,False,,,34.5,1965,754.53,3,True,0,OK,0.256,0.563,4227,0.1
+ENEL_RJ383,TER,TER/PNV-1C,perda modelada absurda: 18.2%,18.221,11.959,-6.262,59.4754,52.3626,10691,152.4,True,False,False,,,11.9,3756,1035.55,7,True,0,OK,0.159,0.941,6017,55.5

@@ -1,0 +1,27 @@
+base,sub,ctmt,motivo,pct_tecnica_modelo,pct_total_medido,pct_nao_tecnica_implicita,GWh_injetado,GWh_faturado,ucs,cobertura,viola_limite,medida_degenerada,faturado_maior_que_injetado,declarado_pct,razao_vs_declarado,se_kv_mt,se_trafos,se_km_MT,se_alimentadores,se_convergiu,se_nos_nan,se_veredicto,se_V_MT_min,se_V_MT_mediana,se_barras_criticas,se_perdas_trafos_pct
+CPFL_SANTA69,CHP,CHP12,perda modelada absurda: 104.2%,104.225,13.68,-90.545,71.7206,61.9094,18107,761.9,True,False,False,,,34.5,5842,2577.38,8,True,0,OK,0.207,0.561,40415,16.1
+CPFL_SANTA69,CHP,CHP13,perda modelada absurda: 64.2%,64.217,23.593,-40.624,55.0427,42.0567,10316,272.2,True,False,False,,,34.5,5842,2577.38,8,True,0,OK,0.207,0.561,40415,16.1
+CPFL_SANTA69,AVN,AVN22,perda modelada absurda: 52.8%,52.798,11.327,-41.471,43.7163,38.7646,4617,466.1,True,False,False,,,34.5,915,504.11,2,True,0,OK,0.39,0.914,6878,9.7
+CPFL_SANTA69,ITS,ITS35,perda modelada absurda: 43.5%,43.503,21.111,-22.392,44.395,35.0229,7213,206.1,True,False,False,,,36,2306,1128.94,3,True,0,OK,0.398,0.791,17261,18.8
+CPFL_SANTA69,KCC,KCC09,modelo quebrado na SE: TENSAO_IMPLAUSIVEL[C-API:0.29],21.334,11.51,-9.824,54.1243,47.8946,11348,185.3,True,False,False,,,11.4,3482,1363.86,4,True,0,TENSAO_IMPLAUSIVEL[C-API:0.29],0.227,0.289,15766,45.4
+CPFL_SANTA69,SPT,SPT03,perda modelada absurda: 20.3%,20.279,8.486,-11.793,1.6921,1.5485,400,239.0,True,False,False,,,11.9,1675,1043.44,5,True,0,OK,0.899,0.978,2627,55.4
+CPFL_SANTA69,SPT,SPT05,no limite: modelo 1.17x o total medido,19.407,16.562,-2.845,5.4783,4.571,686,117.2,True,False,False,,,11.9,1675,1043.44,5,True,0,OK,0.899,0.978,2627,55.4
+CPFL_SANTA69,MOS,MOS08,perda modelada absurda: 18.8%,18.774,5.645,-13.129,95.656,90.2565,17342,332.6,True,False,False,,,34.5,3722,1714.04,8,True,0,OK,0.699,0.861,29097,37.2
+CPFL_SANTA69,BEC,BEC02,perda modelada absurda: 18.1%,18.068,7.677,-10.391,2.1487,1.9837,463,235.3,True,False,False,,,13.8,792,428.62,7,True,0,OK,0.803,1.007,2669,86.6
+CPFL_SANTA69,SJS,SJS32,perda modelada absurda: 18.1%,18.05,7.719,-10.331,4.442,4.0991,442,233.8,True,False,False,,,34.5,3254,1268.52,14,True,0,OK,0.889,0.993,2312,4.5
+CPFL_SANTA69,SJS,SJS34,perda modelada absurda: 17.8%,17.755,7.216,-10.539,20.0073,18.5635,4957,246.0,True,False,False,,,34.5,3254,1268.52,14,True,0,OK,0.889,0.993,2312,4.5
+CPFL_SANTA69,KCC,KCC11,modelo quebrado na SE: TENSAO_IMPLAUSIVEL[C-API:0.29],16.866,9.362,-7.504,2.927,2.653,967,180.2,True,False,False,,,11.4,3482,1363.86,4,True,0,TENSAO_IMPLAUSIVEL[C-API:0.29],0.227,0.289,15766,45.4
+CPFL_SANTA69,TIM,TIM01,perda modelada absurda: 15.6%,15.563,10.904,-4.659,1.8173,1.6192,351,142.7,True,False,False,,,11.4,199,123.87,2,True,0,OK,0.996,0.999,0,98.6
+CPFL_SANTA69,KCB,KCB06,a investigar,14.401,7.185,-7.216,10.6504,9.8852,588,200.4,True,False,False,,,11.4,776,448.67,3,True,0,OK,0.075,0.971,2875,65.2
+CPFL_SANTA69,PIA,PIA04,no limite: modelo 1.06x o total medido,14.221,13.373,-0.848,5.8023,5.0264,780,106.3,True,False,False,,,11.9,1420,633.26,8,True,0,OK,0.906,0.95,1356,75.2
+CPFL_SANTA69,BEC,BEC03,no limite: modelo 1.06x o total medido,12.944,12.172,-0.772,6.7053,5.8891,636,106.3,True,False,False,,,13.8,792,428.62,7,True,0,OK,0.803,1.007,2669,86.6
+CPFL_SANTA69,AVN,AVN21,a investigar,12.18,6.95,-5.23,42.5081,39.5536,3011,175.2,True,False,False,,,34.5,915,504.11,2,True,0,OK,0.39,0.914,6878,9.7
+CPFL_SANTA69,ITS,ITS36,a investigar,11.718,6.631,-5.087,37.1706,34.7058,3079,176.7,True,False,False,,,36,2306,1128.94,3,True,0,OK,0.398,0.791,17261,18.8
+CPFL_SANTA69,RIC,RIC04,no limite: modelo 1.14x o total medido,11.368,9.984,-1.384,6.2939,5.6655,996,113.9,True,False,False,,,11.9,1155,511.93,4,True,0,OK,0.887,0.973,3,85.4
+CPFL_SANTA69,SJS,SJS31,a investigar,10.32,7.071,-3.249,37.6617,34.9986,3793,145.9,True,False,False,,,34.5,3254,1268.52,14,True,0,OK,0.889,0.993,2312,4.5
+CPFL_SANTA69,ITS,ITS37,a investigar,10.032,4.281,-5.751,66.4547,63.6099,6062,234.3,True,False,False,,,36,2306,1128.94,3,True,0,OK,0.398,0.791,17261,18.8
+CPFL_SANTA69,SPT,SPT02,no limite: modelo 1.06x o total medido,8.806,8.285,-0.521,7.8321,7.1833,688,106.3,True,False,False,,,11.9,1675,1043.44,5,True,0,OK,0.899,0.978,2627,55.4
+CPFL_SANTA69,SCR,SCR06,no limite: modelo 1.04x o total medido,7.347,7.078,-0.269,9.3444,8.683,275,103.8,True,False,False,,,13.8,706,371.12,8,True,0,OK,0.914,0.943,615,68.4
+CPFL_SANTA69,BEC,BEC05,medida quase sem perda: 2.49% total medido,4.031,2.491,-1.54,3.1547,3.0761,1057,161.8,True,False,False,,,13.8,792,428.62,7,True,0,OK,0.803,1.007,2669,86.6
+CPFL_SANTA69,OUA,OUA12,no limite: modelo 1.02x o total medido,3.091,3.041,-0.05,12.5855,12.2028,3199,101.7,True,False,False,,,13.8,962,250.75,11,True,0,OK,0.959,0.988,2,71.0
+CPFL_SANTA69,ROS,ROS31,no limite: modelo 1.06x o total medido,2.185,2.058,-0.127,32.1118,31.4511,679,106.2,True,False,False,,,34.5,357,119.96,7,True,0,OK,0.863,0.911,2783,37.5

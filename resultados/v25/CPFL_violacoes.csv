@@ -1,0 +1,17 @@
+base,sub,ctmt,motivo,pct_tecnica_modelo,pct_total_medido,pct_nao_tecnica_implicita,GWh_injetado,GWh_faturado,ucs,cobertura,viola_limite,medida_degenerada,faturado_maior_que_injetado,declarado_pct,razao_vs_declarado,se_kv_mt,se_trafos,se_km_MT,se_alimentadores,se_convergiu,se_nos_nan,se_veredicto,se_V_MT_min,se_V_MT_mediana,se_barras_criticas,se_perdas_trafos_pct
+CPFL,CCA,CCA14,denominador minusculo: 0.192 GWh injetados,337.715,21.251,-316.464,0.1918,0.151,14,1589.2,True,False,False,,,13.8,199,79.66,4,True,0,OK,0.94,0.954,1,53.3
+CPFL,AUX,AUX33,perda modelada absurda: 250.9%,250.939,19.713,-231.226,69.9021,56.1225,12887,1273.0,True,False,False,,,34.5,4718,2439.49,13,True,0,OK,0.013,0.808,28207,40.1
+CPFL,CAF,CAF32,perda modelada absurda: 107.6%,107.608,24.635,-82.973,14.9224,11.2463,3555,436.8,True,False,False,,,34.5,1367,905.03,5,True,0,OK,0.407,1.024,755,59.2
+CPFL,AUX,AUX32,perda modelada absurda: 106.7%,106.717,22.589,-84.128,36.7398,28.4406,7727,472.4,True,False,False,,,34.5,4718,2439.49,13,True,0,OK,0.013,0.808,28207,40.1
+CPFL,PMP,PMP31,perda modelada absurda: 105.6%,105.644,21.103,-84.541,27.2997,21.5386,4396,500.6,True,False,False,,,34.5,1771,1130.39,7,True,0,OK,0.01,1.01,745,62.2
+CPFL,GPE,GPE41,perda modelada absurda: 95.9%,95.898,23.476,-72.422,25.8743,19.8001,4997,408.5,True,False,False,,,13.8,1076,682.11,5,True,0,OK,0.053,0.991,1911,95.1
+CPFL,ITB,ITB31,perda modelada absurda: 68.6%,68.579,26.606,-41.973,40.7604,29.9156,7961,257.8,True,False,False,,,13.2,2831,1380.17,10,True,0,OK,0.01,0.925,9210,31.6
+CPFL,SPD,SPD31,perda modelada absurda: 62.5%,62.481,17.829,-44.652,14.8519,12.204,3044,350.5,True,False,False,,,13.8,1942,881.02,10,True,0,OK,0.015,0.98,6756,73.5
+CPFL,USG,USG11,modelo quebrado na SE: TENSAO_IMPLAUSIVEL[C-API:0.03],38.223,13.707,-24.516,9.112,7.863,651,278.9,True,False,False,,,11.9,230,115.57,1,True,0,TENSAO_IMPLAUSIVEL[C-API:0.03],0.024,0.026,1987,99.9
+CPFL,IAC,IAC31,modelo quebrado na SE: TENSAO_IMPLAUSIVEL[C-API:0.03],38.134,33.243,-4.891,60.6353,40.4781,8985,114.7,True,False,False,,,34.5,2194,1297.81,3,True,0,TENSAO_IMPLAUSIVEL[C-API:0.03],0.018,0.032,8978,86.1
+CPFL,JAB,JAB06,denominador minusculo: 0.104 GWh injetados,37.096,18.838,-18.258,0.1042,0.0845,5,196.9,True,False,False,,,13.8,630,206.97,5,True,0,OK,0.977,0.995,0,75.1
+CPFL,BLV,BLV33,modelo quebrado na SE: TENSAO_IMPLAUSIVEL[C-API:0.03],36.775,15.648,-21.127,22.5556,19.026,1447,235.0,True,False,False,,,34.5,1423,737.94,13,True,0,TENSAO_IMPLAUSIVEL[C-API:0.03],0.027,0.029,5329,1.9
+CPFL,TRM,TRM24,perda modelada absurda: 33.9%,33.88,15.057,-18.823,28.7492,24.4203,6729,225.0,True,False,False,,,13.2,1505,585.26,14,True,0,OK,0.706,0.908,8839,27.2
+CPFL,KIB,KIB01,denominador minusculo: 0.013 GWh injetados,23.774,15.376,-8.398,0.0134,0.0113,2,154.6,True,False,False,,,13.8,2,3.89,2,True,0,OK,1.035,1.035,0,99.9
+CPFL,CRA,CRA14,perda modelada absurda: 18.7%,18.673,10.794,-7.879,33.2982,29.7042,4249,173.0,True,False,False,,,13.8,805,293.76,11,True,0,OK,0.845,0.888,6743,31.0
+CPFL,BLV,BLV31,modelo quebrado na SE: TENSAO_IMPLAUSIVEL[C-API:0.03],16.522,15.062,-1.46,1.2001,1.0193,28,109.7,True,False,False,,,34.5,1423,737.94,13,True,0,TENSAO_IMPLAUSIVEL[C-API:0.03],0.027,0.029,5329,1.9

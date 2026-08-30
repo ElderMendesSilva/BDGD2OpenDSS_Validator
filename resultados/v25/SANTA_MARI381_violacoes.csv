@@ -1,0 +1,4 @@
+base,sub,ctmt,motivo,pct_tecnica_modelo,pct_total_medido,pct_nao_tecnica_implicita,GWh_injetado,GWh_faturado,ucs,cobertura,viola_limite,medida_degenerada,faturado_maior_que_injetado,declarado_pct,razao_vs_declarado,se_kv_mt,se_trafos,se_km_MT,se_alimentadores,se_convergiu,se_nos_nan,se_veredicto,se_V_MT_min,se_V_MT_mediana,se_barras_criticas,se_perdas_trafos_pct
+SANTA_MARI381,SGAB,53064_SGAB_2,medida quase sem perda: 2.45% total medido,8.334,2.449,-5.885,29.1315,28.4182,5979,340.4,True,False,False,,,24.2,7479,2237.1,6,True,0,OK,0.794,0.886,24219,78.2
+SANTA_MARI381,SGAB,53094_SGAB_3,a investigar,6.7,3.647,-3.053,33.1714,31.9616,7379,183.7,True,False,False,,,24.2,7479,2237.1,6,True,0,OK,0.794,0.886,24219,78.2
+SANTA_MARI381,SILV,32094_SILV_2,a investigar,5.203,3.703,-1.5,32.1193,30.9298,7286,140.5,True,False,False,,,24.2,3811,1135.41,8,True,0,OK,0.705,0.853,15826,23.8

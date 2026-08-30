@@ -1,0 +1,15 @@
+base,sub,ctmt,motivo,pct_tecnica_modelo,pct_total_medido,pct_nao_tecnica_implicita,GWh_injetado,GWh_faturado,ucs,cobertura,viola_limite,medida_degenerada,faturado_maior_que_injetado,declarado_pct,razao_vs_declarado,se_kv_mt,se_trafos,se_km_MT,se_alimentadores,se_convergiu,se_nos_nan,se_veredicto,se_V_MT_min,se_V_MT_mediana,se_barras_criticas,se_perdas_trafos_pct
+RGE396,KCV,KCV13,denominador minusculo: 0.001 GWh injetados,12514.518,58.653,-12455.865,0.0006,0.0002,1,21336.5,True,False,False,,,23.1,133,254.98,2,True,0,OK,1.0,1.0,0,97.7
+RGE396,CDA,CDA21,perda modelada absurda: 252.0%,252.021,21.225,-230.796,9.3151,7.338,2741,1187.4,True,False,False,,,23.1,1360,731.79,6,True,0,OK,0.021,0.747,7770,14.2
+RGE396,SSP,SSP11,denominador minusculo: 0.372 GWh injetados,59.408,18.883,-40.525,0.3724,0.302,100,314.6,True,False,False,,,13.8,1077,854.4,6,True,0,OK,0.9,0.992,380,89.3
+RGE396,SFE,SFE11,denominador minusculo: 0.351 GWh injetados,37.919,34.148,-3.771,0.3509,0.2311,88,111.0,True,False,False,,,13.8,789,662.93,2,True,0,OK,0.811,1.002,2312,81.6
+RGE396,ETB,ETB21,perda modelada absurda: 18.2%,18.218,10.348,-7.87,28.8349,25.851,1273,176.0,True,False,False,,,23.1,1996,722.66,10,True,0,OK,0.709,1.008,6545,68.0
+RGE396,KMB,KMB21,a investigar,8.983,5.721,-3.262,7.8254,7.3777,168,157.0,True,False,False,,,23.1,461,756.89,6,True,0,OK,0.756,1.004,2618,18.2
+RGE396,PFA,PFA13,a investigar,7.589,4.108,-3.481,60.9011,58.3992,1130,184.7,True,False,False,,,15,665,264.61,7,True,0,OK,0.88,0.956,486,35.4
+RGE396,IQB,IQB12,a investigar,5.962,4.808,-1.154,8.9678,8.5367,68,124.0,True,False,False,,,23,147,347.19,4,True,0,OK,0.843,0.984,571,12.4
+RGE396,URI,URI12,no limite: modelo 1.19x o total medido,5.083,4.288,-0.795,10.3576,9.9134,57,118.5,True,False,False,,,23,119,361.29,4,True,0,OK,0.858,0.985,1359,37.9
+RGE396,QUB,QUB15,a investigar,4.958,3.871,-1.087,4.9817,4.7889,76,128.1,True,False,False,,,23,469,960.22,4,True,0,OK,0.92,1.008,2116,28.2
+RGE396,KSZ,KSZ24,no limite: modelo 1.04x o total medido,4.784,4.613,-0.171,10.0982,9.6323,98,103.7,True,False,False,,,40.0,1119,1294.19,8,True,0,OK,0.76,0.99,6482,45.2
+RGE396,ALE,ALE11,a investigar,4.726,3.892,-0.834,8.4472,8.1184,118,121.4,True,False,False,,,23,217,482.72,4,True,0,OK,0.924,1.019,27,17.5
+RGE396,URC,URC17,a investigar,4.279,3.453,-0.826,8.3466,8.0584,77,123.9,True,False,False,,,23.1,241,430.48,4,True,0,OK,0.87,1.004,419,13.4
+RGE396,IQA,IQA23,no limite: modelo 1.17x o total medido,2.436,2.075,-0.361,3.6282,3.5529,26,117.4,True,False,False,,,23,510,490.75,11,True,0,OK,0.87,1.002,508,40.0

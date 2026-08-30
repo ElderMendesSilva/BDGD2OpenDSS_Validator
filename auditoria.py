@@ -42,6 +42,7 @@ import argparse
 import csv
 import glob
 import json
+import math
 import os
 import sys
 
@@ -156,10 +157,23 @@ def motivo_da_violacao(v):
 
 
 def _num(x):
+    """Numero utilizavel, ou None. NaN VIRA None.
+
+    NAO E ZELO: NaN se disfarca de float e contamina quem consome. A V25
+    publicou 2 subestacoes com `perdas_trafos_pct` NaN, e o efeito nao foi um
+    valor fora da faixa — foi `sorted()` devolvendo lista DESORDENADA, porque
+    toda comparacao com NaN e falsa. O percentil 75 saiu MENOR que a mediana,
+    9,2% contra 86,3%, e o numero passaria por resultado.
+
+    `float(x)` sozinho ACEITA NaN, e era isso que estava aqui. O coletor e a
+    fronteira que publica: sanear aqui protege qualquer modelo, inclusive os ja
+    gerados.
+    """
     try:
-        return float(x)
+        f = float(x)
     except (TypeError, ValueError):
         return None
+    return None if math.isnan(f) else f
 
 
 def colher_base(pasta, base):
@@ -191,7 +205,7 @@ def colher_base(pasta, base):
             # dos transformadores e parcela grande do total, e a comparacao com
             # o `PERD_*` declarado depende de saber se a distribuidora conta a
             # mesma coisa. Sem o campo, responder exige abrir os 97 modelos.
-            'perdas_trafos_pct': v.get('perdas_trafos_pct'),
+            'perdas_trafos_pct': _num(v.get('perdas_trafos_pct')),
             # O MINIMO SOZINHO NAO DISTINGUE COLAPSO DE PONTA SOLTA, e a
             # diferenca decide a leitura: `V_MT_min=0,04 pu` pode ser uma
             # barra ruim no fim de um ramal — ou a rede inteira caida. So a
@@ -247,7 +261,7 @@ def colher_base(pasta, base):
             'se_V_MT_min': vv.get('V_MT_min'),
             'se_V_MT_mediana': vv.get('V_MT_mediana'),
             'se_barras_criticas': vv.get('barras_criticas'),
-            'se_perdas_trafos_pct': vv.get('perdas_trafos_pct'),
+            'se_perdas_trafos_pct': _num(vv.get('perdas_trafos_pct')),
         })
     # Maior perda modelada primeiro: quem abre o CSV quer o pior caso na
     # primeira linha, e nao a ordem em que a rodada calhou de gravar.
