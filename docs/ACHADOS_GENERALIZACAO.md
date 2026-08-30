@@ -270,6 +270,46 @@ Isso torna o achado 7 **nacional, não anedótico** — e é o resultado mais fo
 do projeto até aqui, porque não depende de escolher uma base nem de acreditar
 no modelo: os dois lados da contradição vêm da própria BDGD.
 
+### 8. O `PERD_*` declarado tem casos fisicamente impossíveis
+
+Investigado em 30/08, como consequência da correção do achado 7. Se a
+declaração da distribuidora vai ser usada como referência, ela precisa passar
+no mesmo escrutínio que aplicamos ao modelo.
+
+Nas **81 bases** que declaram `PERD_*` agregado:
+
+| declaram perda técnica | bases |
+|---|---:|
+| abaixo de 0,5% | **7** |
+| abaixo de 1% | **10** |
+| abaixo de 2% | **21** |
+
+| base | declara | nosso modelo |
+|---|---:|---:|
+| CERIPA5378 | **0,13%** | 5,37% |
+| EQUATORIAL38 | 0,29% | 3,88% |
+| EQUATORIAL6072 | 0,29% | 13,15% |
+| CEA_EQUATO31 | 0,30% | 3,07% |
+| EQUATORIAL44 | 0,31% | 26,13% |
+
+**Uma rede de média tensão com 0,13% de perda técnica não existe.** É uma
+ordem de grandeza abaixo de qualquer alimentador real, e a referência nacional
+da ANEEL é 7,4%. Isso não depende de acreditar no nosso modelo: é implausível
+contra a física e contra a própria referência do regulador.
+
+**Consequência para a leitura do achado 7b.** A razão modelo/declarado nacional
+tem mediana de 1,59x (73 de 81 bases com o modelo acima), mas os extremos —
+43x, 45x, 84x — são puxados por declarações perto de zero, não por explosão do
+modelo. São dois fenômenos distintos que a razão sozinha confunde:
+
+- um **viés moderado e amplo** do nosso modelo, de ~1,6x, que continua sem
+  explicação e é problema nosso;
+- um **conjunto de declarações impossíveis**, em ~10 bases, que é achado de
+  auditoria independente do modelo.
+
+E há 8 bases onde o nosso modelo fica ABAIXO do declarado (0,74x a 0,89x), o
+que impede tratar o viés como constante universal.
+
 ## Validação externa e contaminação
 
 A âncora nacional de 7,4% de perda técnica total da ANEEL é apenas um teste de
