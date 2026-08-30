@@ -492,6 +492,53 @@ campo que algumas distribuidoras preenchem e outras não, e que o conversor
 trata mal quando falta. Distinguir isso exige abrir a topologia de uma Light
 contra a de uma base limpa — que é a próxima investigação, e precisa da `.gdb`.
 
+### 13. A perda declarada não comporta o ferro dos próprios transformadores
+
+Investigado em 30/08 com a V25, e este achado **não depende do nosso modelo**.
+
+**Primeiro, a nossa perda de transformador foi validada contra o dado deles.**
+Calculando o ferro a partir do `PER_FER` da EQTRMT — a placa que a própria
+distribuidora publica — sobre a carga que modelamos a partir do `ENE_01` dela:
+
+| | mediana |
+|---|---:|
+| ferro pela placa da distribuidora | 2,55% |
+| nossa perda de transformador modelada | 3,30% |
+| razão | **1,28x** |
+
+A diferença é cobre, que é o esperado, e **57 de 81 bases** ficam entre 0,7x e
+1,5x. Não estamos inventando perda de transformador: ela é consistente com a
+placa deles.
+
+**E é isso que expõe a contradição.** Se o ferro implícito nas placas deles é
+2,55% e a perda técnica que eles declaram é 3,09%, sobra **meio ponto
+percentual** para tudo o mais — linhas, cobre dos transformadores, ramais.
+Nossas linhas sozinhas já dão 0,87%.
+
+**Em 40 das 81 bases o ferro sozinho JÁ EXCEDE a perda técnica declarada.**
+Entre as 38 com declaração original e plausível, são 15.
+
+| base | ferro pela placa | declara | razão |
+|---|---:|---:|---:|
+| CRELUZD598 | 7,81% | 2,33% | **3,4x** |
+| COOPERNORT5345 | 6,46% | 3,55% | 1,8x |
+| CERTREL5369 | 3,77% | 2,35% | 1,6x |
+| CERNHE6609 | 6,41% | 4,18% | 1,5x |
+
+**Todos os números desta tabela são da distribuidora**: `PER_FER` da placa dos
+transformadores, `ENE_01` das unidades consumidoras, `PERD_*` da declaração de
+perdas. O nosso papel foi juntá-los. Uma perda técnica declarada menor que a
+perda a vazio dos próprios transformadores é **contradição interna do dado**.
+
+**Isto é o produto do auditor na sua forma mais forte** — mais que o achado 7,
+que dependia de acreditar no nosso cálculo de perda. Aqui não há modelo no meio:
+há três campos da mesma BDGD que não fecham entre si.
+
+**Ressalva:** o denominador é a carga média que modelamos (`ENE_01/730 h`). Se
+a energia real for maior que a faturada — furto, medição incompleta — o ferro
+percentual cai. Isso não salva os casos extremos: a CRELUZD598 precisaria de
+mais que o triplo da energia declarada para caber.
+
 ## Validação externa e contaminação
 
 A âncora nacional de 7,4% de perda técnica total da ANEEL é apenas um teste de
