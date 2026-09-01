@@ -67,6 +67,54 @@ def cortes_da_base(caminho):
                 por_pac[p].add(se)
 
     multi = sum(1 for v in por_pac.values() if len(v) > 1)
+
+    # COMPONENTES CONEXAS DENTRO DE CADA SUBESTACAO. As duas primeiras
+    # hipoteses cairam: o recorte por SE nao corta (92 de 97 bases com ZERO
+    # PACs multi-SE, e a Light com zero) e trecho orfao tampouco (82 de 97 com
+    # zero, e a Light com zero). Sobra a possibilidade de que os PACs
+    # simplesmente NAO ENCADEIEM dentro da propria subestacao.
+    #
+    # Uma SE radial sadia tem UMA componente. Duas ou tres podem ser rede
+    # operada em anel aberto. Milhares significam que a BDGD declara pedacos
+    # que nao se tocam — e ai o ramo isolado nao e efeito do nosso recorte, e
+    # sim do que esta escrito na tabela.
+    #
+    # Union-find sem recursao: as maiores bases tem milhoes de trechos, e uma
+    # busca em profundidade estouraria a pilha.
+    pai = {}
+
+    def raiz(x):
+        r = x
+        while pai[r] != r:
+            r = pai[r]
+        while pai[x] != r:                     # compressao de caminho
+            pai[x], x = r, pai[x]
+        return r
+
+    comp_por_se = collections.defaultdict(int)
+    pacs_por_se = collections.defaultdict(set)
+    for i in range(n):
+        se = de_ctmt.get(txt(m['CTMT'][i]))
+        if not se:
+            continue
+        a, b_ = txt(m['PAC_1'][i]), txt(m['PAC_2'][i])
+        if not a or not b_:
+            continue
+        for p in (a, b_):
+            chave = (se, p)
+            pai.setdefault(chave, chave)
+            pacs_por_se[se].add(p)
+        ra, rb = raiz((se, a)), raiz((se, b_))
+        if ra != rb:
+            pai[ra] = rb
+    vistos = collections.defaultdict(set)
+    for (se, p) in pai:
+        vistos[se].add(raiz((se, p)))
+    for se, r in vistos.items():
+        comp_por_se[se] = len(r)
+
+    comps = sorted(comp_por_se.values())
+    ses_n = len(comps) or 1
     return {
         'trechos_mt': n,
         'trechos_sem_ctmt_conhecido': sem_ctmt,
@@ -74,6 +122,13 @@ def cortes_da_base(caminho):
         'pacs_multi_se': multi,
         'pct_pacs_multi_se': round(100.0 * multi / max(1, len(por_pac)), 3),
         'subestacoes_no_ctmt': len(set(de_ctmt.values())),
+        'ses_medidas': len(comps),
+        'componentes_total': sum(comps),
+        'componentes_por_se_mediana': comps[len(comps) // 2] if comps else 0,
+        'componentes_por_se_max': max(comps) if comps else 0,
+        'ses_com_uma_componente': sum(1 for c in comps if c == 1),
+        'pct_ses_fragmentadas': round(
+            100.0 * sum(1 for c in comps if c > 1) / ses_n, 1),
     }
 
 
@@ -93,8 +148,8 @@ def main(argv=None):
         return 1
 
     saida, erros = [], 0
-    print('%-20s %10s %10s %12s %9s' %
-          ('base', 'trechos', 'PACs', 'PACs multi-SE', '%'))
+    print('%-20s %10s %12s %10s %10s' %
+          ('base', 'trechos', 'PACs multi-SE', 'comp/SE', 'SEs frag%'))
     for tag, cam in bases:
         try:
             d = cortes_da_base(cam)
@@ -104,10 +159,10 @@ def main(argv=None):
             continue
         d['base'] = tag
         saida.append(d)
-        print('%-20s %10s %10s %12s %8.3f%%'
-              % (tag, f"{d['trechos_mt']:,}", f"{d['pacs']:,}",
-                 f"{d['pacs_multi_se']:,}", d['pct_pacs_multi_se']),
-              flush=True)
+        print('%-20s %10s %12s %10s %9.1f%%'
+              % (tag, f"{d['trechos_mt']:,}", f"{d['pacs_multi_se']:,}",
+                 f"{d['componentes_por_se_mediana']:,}",
+                 d['pct_ses_fragmentadas']), flush=True)
 
     os.makedirs(os.path.dirname(a.saida_json) or '.', exist_ok=True)
     with open(a.saida_json, 'w', encoding='utf-8',

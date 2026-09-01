@@ -539,6 +539,37 @@ a energia real for maior que a faturada — furto, medição incompleta — o fe
 percentual cai. Isso não salva os casos extremos: a CRELUZD598 precisaria de
 mais que o triplo da energia declarada para caber.
 
+### 14. O recorte por subestação NÃO causa a fragmentação — hipótese refutada
+
+Medido em 31/08 nas 97 bases (`medicoes/recorte.json`). A hipótese vinha de
+26/08, do caso da Light, e nunca tinha sido verificada.
+
+**O mecanismo suspeito era real, mas não acontece.** O `converter.py` monta um
+modelo por subestação e filtra a SSDMT pelos CTMTs daquela SE, então um trecho
+de CTMT alheio ficaria de fora e o que viesse depois dele viraria ramo isolado.
+Um PAC tocado por trechos de duas subestações seria o ponto de corte.
+
+| | |
+|---|---:|
+| bases com **ZERO** PACs multi-SE | **92 de 97** |
+| **Light** (a pior em fragmentação, 45,8 isolados/km) | **0** |
+| EDP_SP391 (a 2ª pior, 26,5/km) | **0** |
+| única base com muitos: COPELDIS2866 | 5.751 (0,19%) |
+
+**E a segunda hipótese caiu junto.** Trecho cujo CTMT não existe na tabela CTMT
+é descartado pelo filtro, o que também órfãos vizinhos. São 74.593 no país —
+mas **82 das 97 bases têm zero**, e a Light e a EDP_SP391 estão entre elas. A
+base com mais órfãos (ENERGISA_M404, 3,1%) não é das piores em fragmentação.
+
+**Sobra uma explicação, e ela muda de quem é o problema:** os PACs simplesmente
+não encadeiam **dentro da própria subestação**. Se for isso, a BDGD declara
+pedaços de rede que não se tocam, e o ramo isolado não é efeito do nosso
+recorte — é o que está escrito na tabela.
+
+O diagnóstico foi estendido para contar **componentes conexas por subestação**.
+Uma SE radial sadia tem uma; milhares significam rede declarada em pedaços.
+Falta rodar.
+
 ## Validação externa e contaminação
 
 A âncora nacional de 7,4% de perda técnica total da ANEEL é apenas um teste de

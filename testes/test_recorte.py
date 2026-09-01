@@ -95,5 +95,58 @@ class OPontoDeCorteEUmPACDeDuasSubestacoes(unittest.TestCase):
         self.assertEqual(r['pct_pacs_multi_se'], 0.0)
 
 
+class AsComponentesDizemSeARedeEncadeia(unittest.TestCase):
+    """As duas primeiras hipóteses caíram; esta mede o que sobrou.
+
+    O recorte por SE não corta (92 de 97 bases com ZERO PACs multi-SE, e a
+    Light — a pior em fragmentação — com zero) e trecho órfão tampouco (82 de
+    97 com zero, Light com zero). Sobra a possibilidade de os PACs simplesmente
+    NÃO ENCADEAREM dentro da própria subestação.
+
+    Uma SE radial sadia tem UMA componente. Milhares significam que a BDGD
+    declara pedaços que não se tocam — e aí o ramo isolado não é efeito do
+    nosso recorte, é o que está escrito na tabela.
+    """
+
+    def test_rede_encadeada_da_uma_componente(self):
+        r = _mede([('C1', 'A')],
+                  [('p1', 'p2', 'C1'), ('p2', 'p3', 'C1'), ('p3', 'p4', 'C1')])
+        self.assertEqual(r['componentes_por_se_mediana'], 1)
+        self.assertEqual(r['pct_ses_fragmentadas'], 0.0)
+
+    def test_dois_pedacos_que_nao_se_tocam_dao_duas(self):
+        r = _mede([('C1', 'A')], [('p1', 'p2', 'C1'), ('p9', 'p8', 'C1')])
+        self.assertEqual(r['componentes_por_se_mediana'], 2)
+        self.assertEqual(r['pct_ses_fragmentadas'], 100.0)
+
+    def test_conta_por_SUBESTACAO_e_nao_pela_base_toda(self):
+        """Duas SEs sadias e separadas NÃO são fragmentação: cada uma vira o
+        seu próprio modelo. Contar a base como um grafo só diria 2 componentes
+        e acusaria rede perfeita."""
+        r = _mede([('C1', 'A'), ('C2', 'B')],
+                  [('a1', 'a2', 'C1'), ('b1', 'b2', 'C2')])
+        self.assertEqual(r['componentes_por_se_mediana'], 1)
+        self.assertEqual(r['ses_com_uma_componente'], 2)
+        self.assertEqual(r['pct_ses_fragmentadas'], 0.0)
+
+    def test_o_mesmo_PAC_em_SEs_diferentes_nao_une_as_duas(self):
+        """`p` aparece nas duas, mas cada SE vira um modelo separado — unir
+        contaria como conexa uma rede que o conversor separa."""
+        r = _mede([('C1', 'A'), ('C2', 'B')],
+                  [('p', 'a2', 'C1'), ('p', 'b2', 'C2')])
+        self.assertEqual(r['ses_medidas'], 2)
+        self.assertEqual(r['componentes_por_se_mediana'], 1)
+
+    def test_anel_nao_conta_duas_vezes(self):
+        r = _mede([('C1', 'A')],
+                  [('p1', 'p2', 'C1'), ('p2', 'p3', 'C1'), ('p3', 'p1', 'C1')])
+        self.assertEqual(r['componentes_por_se_mediana'], 1)
+
+    def test_base_vazia_nao_divide_por_zero(self):
+        r = _mede([], [])
+        self.assertEqual(r['pct_ses_fragmentadas'], 0.0)
+        self.assertEqual(r['componentes_por_se_max'], 0)
+
+
 if __name__ == '__main__':
     unittest.main()
