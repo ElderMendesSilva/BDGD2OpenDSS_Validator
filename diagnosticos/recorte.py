@@ -47,10 +47,15 @@ def cortes_da_base(caminho, por_se=False):
     b = BDGD(caminho, verbose=False)
 
     # CTMT -> SUB, que é o mapa que define o recorte
-    c = b.ler('CTMT', ['COD_ID', 'SUB'])
+    c = b.ler('CTMT', ['COD_ID', 'SUB', 'PAC_INI'])
     de_ctmt = {}
+    cabeca_de = {}
     for i in range(len(c['COD_ID'])):
-        de_ctmt[txt(c['COD_ID'][i])] = txt(c['SUB'][i])
+        cod = txt(c['COD_ID'][i])
+        de_ctmt[cod] = txt(c['SUB'][i])
+        # A CABECEIRA DO ALIMENTADOR, que e o que torna a medida robusta.
+        # Ver `alcance` mais abaixo e o achado 19.
+        cabeca_de[cod] = txt(c['PAC_INI'][i])
 
     m = b.ler('SSDMT', ['PAC_1', 'PAC_2', 'CTMT'])
     por_pac = collections.defaultdict(set)
@@ -134,6 +139,63 @@ def cortes_da_base(caminho, por_se=False):
     for se, r in vistos.items():
         comp_por_se[se] = len(r)
 
+    # ------------------------------------------------- ALCANCE POR ALIMENTADOR
+    # A MEDIDA QUE NAO DEPENDE DO ROTULO. `componentes por subestacao` mede a
+    # rede E o criterio de agrupamento juntos: quando uma base funde 24
+    # subestacoes em uma (CELETRO5343, safra 2025), as 24 redes que nunca se
+    # tocaram viram 24 componentes da mesma SE e a fragmentacao "salta" de 1
+    # para 21 sem que um metro de rede tenha mudado. E o achado 19.
+    #
+    # O alimentador nao tem esse problema: ele tem UMA cabeceira declarada, o
+    # `CTMT.PAC_INI`, e a pergunta "que fracao dos trechos deste alimentador se
+    # alcanca a partir dela" independe de como a base agrupa subestacoes.
+    #
+    # Cada alimentador vira seu proprio grafo, com as mesmas quatro camadas.
+    viz = collections.defaultdict(lambda: collections.defaultdict(set))
+    tot_ali = collections.Counter()
+    for nome, col2 in camadas:
+        for i in range(len(col2.get('CTMT', []))):
+            ali = txt(col2['CTMT'][i])
+            if ali not in de_ctmt:
+                continue
+            a2, b2 = txt(col2['PAC_1'][i]), txt(col2['PAC_2'][i])
+            if not a2 or not b2 or a2 == b2:
+                continue
+            tot_ali[ali] += 1
+            viz[ali][a2].add(b2)
+            viz[ali][b2].add(a2)
+
+    alcance = []
+    sem_cabeca = 0
+    cabeca_fora = 0
+    for ali, g in viz.items():
+        raizp = cabeca_de.get(ali)
+        if not raizp:
+            sem_cabeca += 1
+            continue
+        if raizp not in g:
+            # A cabeceira declarada nao aparece entre os PACs do proprio
+            # alimentador. Nao e alcance zero por rede partida: e cabeceira que
+            # nao existe no dado, e misturar as duas coisas mentiria.
+            cabeca_fora += 1
+            continue
+        # Busca em LARGURA com pilha explicita: recursao estoura em alimentador
+        # de dezenas de milhares de PACs.
+        visto = {raizp}
+        pilha = [raizp]
+        while pilha:
+            x = pilha.pop()
+            for y in g[x]:
+                if y not in visto:
+                    visto.add(y)
+                    pilha.append(y)
+        # Trechos alcancados: os que tem AO MENOS UMA ponta no alcance da
+        # cabeceira. Contar pelos PACs bastaria para a fracao, mas o trecho e a
+        # unidade que o modelo emite.
+        alcancados = sum(1 for x in visto for y in g[x] if y in visto) // 2
+        alcance.append(100.0 * alcancados / tot_ali[ali] if tot_ali[ali] else 0.0)
+
+    alcance.sort()
     comps = sorted(comp_por_se.values())
     ses_n = len(comps) or 1
     return {
@@ -151,6 +213,17 @@ def cortes_da_base(caminho, por_se=False):
         'pct_ses_fragmentadas': round(
             100.0 * sum(1 for c in comps if c > 1) / ses_n, 1),
         'ligacoes_por_camada': por_camada,
+        # A MEDIDA ROBUSTA (achado 19): independe de como a base agrupa SEs.
+        'alimentadores_medidos': len(alcance),
+        'alimentadores_sem_cabeceira': sem_cabeca,
+        'alimentadores_cabeceira_fora_da_rede': cabeca_fora,
+        'alcance_mediano_pct': (round(alcance[len(alcance) // 2], 2)
+                                if alcance else None),
+        'alcance_medio_pct': (round(sum(alcance) / len(alcance), 2)
+                              if alcance else None),
+        'pct_alimentadores_integros': (
+            round(100.0 * sum(1 for x in alcance if x >= 99.0) / len(alcance), 1)
+            if alcance else None),
         # A DISTRIBUICAO, e nao so a mediana. A Cemig tem mediana 5 e MAXIMO
         # 1.844: poucas subestacoes catastroficas ao lado de muitas trataveis.
         # Como o `converter` aceita `--se`, a pergunta util nao e "a base

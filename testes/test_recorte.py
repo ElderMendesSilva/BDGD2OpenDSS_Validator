@@ -33,8 +33,12 @@ class _BDGDFalsa:
 
     def __init__(self, ctmt, **camadas):
         import numpy as np
+        # A tupla aceita (cod, sub) OU (cod, sub, pac_ini). Sem cabeceira,
+        # o alcance nao tem de onde partir — e e assim que muitas bases sao.
         self._c = {'COD_ID': np.array([x[0] for x in ctmt], dtype=object),
-                   'SUB': np.array([x[1] for x in ctmt], dtype=object)}
+                   'SUB': np.array([x[1] for x in ctmt], dtype=object),
+                   'PAC_INI': np.array([(x[2] if len(x) > 2 else '')
+                                        for x in ctmt], dtype=object)}
         self._cam = {}
         for nome, linhas in camadas.items():
             self._cam[nome.upper()] = {
@@ -239,6 +243,75 @@ class QuaisSubestacoesAguentamABTCompleta(unittest.TestCase):
             recorte.BDGD = real
         self.assertEqual([x['se'] for x in d['por_se']], ['A', 'B'])
         self.assertEqual([x['componentes'] for x in d['por_se']], [1, 2])
+
+
+class OAlcanceNaoDependeDeComoABaseAGRUPA(unittest.TestCase):
+    """A medida robusta do achado 19.
+
+    `componentes por subestacao` mede a rede E o criterio de agrupamento: na
+    safra 2025 a CELETRO5343 fundiu 24 subestacoes em uma e sua fragmentacao
+    saltou de 1 para 21 sem que um metro de rede mudasse. O alimentador nao tem
+    esse problema — ele tem UMA cabeceira declarada, o `CTMT.PAC_INI`.
+    """
+
+    def test_alimentador_inteiro_alcancavel_da_cabeceira(self):
+        r = _mede([('C1', 'A', 'p1')],
+                  [('p1', 'p2', 'C1'), ('p2', 'p3', 'C1')])
+        self.assertEqual(r['alcance_mediano_pct'], 100.0)
+        self.assertEqual(r['pct_alimentadores_integros'], 100.0)
+
+    def test_metade_pendurada_fora_do_alcance(self):
+        """Dois trechos ligados a cabeceira, dois soltos: 50%."""
+        r = _mede([('C1', 'A', 'p1')],
+                  [('p1', 'p2', 'C1'), ('p2', 'p3', 'C1'),
+                   ('x1', 'x2', 'C1'), ('x2', 'x3', 'C1')])
+        self.assertEqual(r['alcance_mediano_pct'], 50.0)
+        self.assertEqual(r['pct_alimentadores_integros'], 0.0)
+
+    def test_REAGRUPAR_SUBESTACOES_NAO_MUDA_O_ALCANCE(self):
+        """O teste que da nome a classe, e o motivo de a medida existir.
+
+        A mesma rede, os mesmos alimentadores — mudando apenas o rotulo de
+        subestacao, que e o que a safra 2025 fez em 32 bases. O alcance tem de
+        ficar igual; `componentes_por_se` nao fica, e e por isso que ele nao
+        serve para comparar safras.
+        """
+        rede = [('a1', 'a2', 'C1'), ('b1', 'b2', 'C2')]
+        separadas = _mede([('C1', 'SE_A', 'a1'), ('C2', 'SE_B', 'b1')], rede)
+        juntas = _mede([('C1', 'UNICA', 'a1'), ('C2', 'UNICA', 'b1')], rede)
+
+        self.assertEqual(separadas['alcance_mediano_pct'],
+                         juntas['alcance_mediano_pct'],
+                         'o alcance nao pode depender do rotulo')
+        self.assertEqual(separadas['alcance_mediano_pct'], 100.0)
+        # E o contraste que justifica a medida nova: a metrica antiga MUDA.
+        self.assertEqual(separadas['componentes_por_se_mediana'], 1)
+        self.assertEqual(juntas['componentes_por_se_mediana'], 2)
+
+    def test_cabeceira_ausente_nao_vira_alcance_zero(self):
+        """Alimentador sem `PAC_INI` sai da conta e e RELATADO. Contar como
+        zero afundaria a mediana com um problema que e de outro tipo."""
+        r = _mede([('C1', 'A')], [('p1', 'p2', 'C1')])
+        self.assertEqual(r['alimentadores_sem_cabeceira'], 1)
+        self.assertEqual(r['alimentadores_medidos'], 0)
+        self.assertIsNone(r['alcance_mediano_pct'])
+
+    def test_cabeceira_que_nao_existe_na_rede_e_separada(self):
+        """`PAC_INI` declarado que nao aparece entre os PACs do alimentador nao
+        e rede partida: e cabeceira que nao existe no dado."""
+        r = _mede([('C1', 'A', 'FANTASMA')], [('p1', 'p2', 'C1')])
+        self.assertEqual(r['alimentadores_cabeceira_fora_da_rede'], 1)
+        self.assertEqual(r['alimentadores_medidos'], 0)
+
+    def test_a_chave_estende_o_alcance(self):
+        """Mesma rede, com e sem a UNSEMT que costura: 50% vira 100%."""
+        sem = _mede([('C1', 'A', 'p1')],
+                    [('p1', 'p2', 'C1'), ('p3', 'p4', 'C1')])
+        com = _mede([('C1', 'A', 'p1')],
+                    [('p1', 'p2', 'C1'), ('p3', 'p4', 'C1')],
+                    UNSEMT=[('p2', 'p3', 'C1')])
+        self.assertEqual(sem['alcance_mediano_pct'], 50.0)
+        self.assertEqual(com['alcance_mediano_pct'], 100.0)
 
 
 if __name__ == '__main__':

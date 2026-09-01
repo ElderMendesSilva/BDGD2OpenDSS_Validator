@@ -824,10 +824,50 @@ que declaram uma so, a metrica mede sobretudo o rotulo. O criterio de entrada
 para a `--bt completo` (<= 3 componentes) **continua valendo onde foi medido**,
 que sao as grandes, e deve ser usado com cuidado em base de uma subestacao.
 
-**O que fazer com isso:** a medida robusta seria componentes por **alimentador
-alcancavel a partir do `PAC_INI`**, que nao depende de como a base agrupa. Nao
-esta implementada. Ate la, a comparacao entre safras exige parear por numero de
-subestacoes, como aqui.
+### 19b. E ha um segundo vies, eletrico: alimentador nao se toca
+
+Investigando o primeiro, apareceu outro — e este atinge a medida no alvo, nao
+so na comparacao entre safras.
+
+**A mediana nacional de componentes por subestacao e 4,0. A mediana de
+ALIMENTADORES por subestacao tambem e 4,0.**
+
+A explicacao e elementar e eletrica: alimentadores da mesma subestacao sao
+radiais e **so se encontram na barra da SE**, que nao esta em nenhuma das
+quatro camadas unidas (SSDMT, UNSEMT, UNREMT, UNTRMT). Contar cada alimentador
+como componente separada chama de fragmentacao o que e topologia normal de
+distribuicao.
+
+**Mas o vies nao e uniforme, e e isso que salva o achado:**
+
+| base | alimentadores/SE | componentes/SE | leitura |
+|---|---:|---:|---|
+| Enel SP | 11,7 | **1** | os alimentadores SE TOCAM |
+| NEOENERGIA5160 | 14,4 | **1** | idem |
+| **Light** | 18,2 | **28** | 10 componentes ALEM dos alimentadores |
+| COPELDIS2866 | 10,8 | **76** | 65 alem |
+
+A correlacao entre as duas e 0,436 — existe, e nao explica tudo. Onde
+`componentes/SE` excede `alimentadores/SE` com folga, sobra fragmentacao real.
+Onde e igual ou menor, o numero mede topologia, nao defeito.
+
+**O que isto NAO derruba:** o achado 16. Os 25,70% de trechos que nao chegam a
+fonte sao medidos NO MODELO, pelo proprio OpenDSS, e nao dependem desta
+contagem. O que fica em xeque e o uso de `componentes/SE` como medida de
+qualidade do dado, e o corte de <= 3 como criterio de entrada.
+
+**A medida robusta, agora implementada:** *fracao dos trechos de cada
+alimentador alcancavel a partir do `CTMT.PAC_INI`*. Ela nao depende do
+agrupamento em subestacoes nem da separacao natural entre alimentadores —
+cada alimentador tem uma cabeceira declarada, e a pergunta e quanto da rede
+dele se alcanca dali.
+
+Na Sulgipe 2025 as duas medidas discordam frontalmente, e a robusta acerta:
+**6 componentes por subestacao** contra **99,94% de alcance mediano** e 96,4%
+dos alimentadores integros — e o modelo dessa base roda com 7 de 7 subestacoes
+`OK` e 0,12% de trechos isolados.
+
+
 
 ## Validação externa e contaminação
 
