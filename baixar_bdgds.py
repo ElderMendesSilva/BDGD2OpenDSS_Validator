@@ -128,6 +128,16 @@ def baixa_uma(b, destino, refazer=False, extrair=True):
     zip_ = os.path.join(destino, b['titulo'] + '.zip')
     r = _abre(DADO % b['id'])
     esperado = int(r.headers.get('Content-Length') or 0)
+
+    # RETOMAR SEM REBAIXAR 30 GB. A checagem de "ja tenho", acima, procura a
+    # pasta `.gdb` — que no modo `--sem-extrair` nunca existe. Sem isto, uma
+    # queda de rede no meio das 99 bases custaria o acervo inteiro de novo.
+    # So conta como pronto o `.zip` com o tamanho EXATO que o portal declara:
+    # arquivo cortado tem de ser rebaixado, nao aproveitado.
+    if (not extrair and not refazer and esperado
+            and os.path.exists(zip_) and os.path.getsize(zip_) == esperado):
+        r.close()
+        return dict(b, estado='zip', bytes=0, sha256=_sha256(zip_))
     with open(zip_, 'wb') as f:
         while True:
             pedaco = r.read(1 << 20)
