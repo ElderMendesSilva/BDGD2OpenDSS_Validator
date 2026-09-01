@@ -600,9 +600,18 @@ na BDGD, contra os ramos isolados por km que o modelo produz:
 | 4 a 9 | 40 | 0,21 |
 | 10 ou mais | 10 | 0,19 |
 
-Correlação de postos de **0,61**. Uma base cuja BDGD declara subestações
+Correlação de postos de **0,45**. Uma base cuja BDGD declara subestações
 conexas produz modelo praticamente sem ramo isolado; uma que declara em pedaços
 produz modelo fragmentado, na mesma ordem.
+
+> **Correção de 01/09/2026.** A primeira redação deste achado publicou **0,61**
+> para este par, e o valor não é dele: 0,61 é a correlação entre *ramos
+> isolados por subestação* e *componentes médios por subestação* — dois
+> agregados por SE, nenhum dos dois normalizado pelo tamanho da rede. O par que
+> a tabela acima descreve (isolados por km × componentes/SE **mediana**) dá
+> **0,445**, e é esse que vale. O erro foi de correspondência entre o número e
+> a descrição, não de cálculo, e não muda a conclusão — muda a força dela.
+> O achado 16 refaz a medida com denominador adimensional.
 
 **Conclusão: a fragmentação não é defeito do conversor.** Ela está no dado de
 origem, e o conversor a reproduz. Apenas **27 das 97 bases** declaram uma
@@ -615,10 +624,59 @@ distribuidora. Não resolve o `--bt completo`: se a rede vem partida da origem,
 modelar a baixa sobre ela continua inviável, e a limitação passa a ser de dado,
 não de código.
 
-**Ressalva:** a correlação é 0,61, não 0,9. Há bases conexas com algum ramo
+**Ressalva:** a correlação é 0,45, não 0,9. Há bases conexas com algum ramo
 isolado e bases fragmentadas com poucos — então há outro fator em jogo, ainda
 não identificado. E o grupo de "10 ou mais" tem mediana menor que o de "4 a 9",
 o que a amostra de 10 não permite tratar como inversão real.
+
+### 16. Um quarto da rede modelada do país não chega à fonte
+
+Medido em 01/09/2026 nas 97 bases da V25, com o denominador que faltava.
+
+`n_linhas` existia no `validador` desde sempre e **não era coletado**. Sem ele,
+o achado 12 mediu fragmentação em ramos isolados **por quilômetro** — e km mede
+comprimento, não número de trechos. Uma rede de poucos trechos longos e uma de
+muitos curtos dão o mesmo km e fragmentações que não se comparam. Com o campo
+no coletor, a medida vira adimensional: **que fração dos trechos modelados está
+eletricamente desligada da fonte**.
+
+**11.660.236 de 45.374.525 trechos, ou 25,70%.** Mediana por base de 5,48%,
+com quartis em 0,21% e 31,02%. Só **duas** bases têm zero.
+
+| base | trechos isolados | trechos | % |
+|---|---:|---:|---:|
+| CHESP103 | 29.180 | 32.873 | **88,77%** |
+| CERSUL5368 | 22.017 | 26.800 | 82,15% |
+| **Light** | 783.515 | 1.060.726 | **73,87%** |
+| EQUATORIAL37 | 1.093.069 | 1.536.994 | 71,12% |
+| EDP_SP391 | 402.366 | 607.771 | 66,20% |
+| Cemig | 404.364 | 6.514.317 | 6,21% |
+| CEREJ5352 | 8 | 21.693 | **0,04%** |
+
+**O ranking por km não estava errado** — a correlação de postos entre as duas
+métricas é **0,975**, e nenhuma conclusão do achado 12 cai. O que muda é a
+leitura: "45,8 isolados por km" não diz se é muito, e "73,87% dos trechos" diz.
+
+**E o gradiente contra a BDGD fica nítido**, o que a métrica por km escondia:
+
+| componentes/SE na BDGD | bases | % de trechos isolados (mediana) |
+|---|---:|---:|
+| 1 (conexa) | 26 | **0,21%** |
+| 2 a 3 | 20 | 0,30% |
+| 4 a 9 | 40 | **22,87%** |
+| 10 ou mais | 10 | 17,37% |
+
+Duas ordens de grandeza entre "até 3 componentes" e "4 ou mais" — não é uma
+rampa, é um **degrau**. A correlação de postos continua modesta (0,452) porque
+dentro de cada lado do degrau a ordem é quase aleatória; o que existe é um
+limiar, não uma proporcionalidade. Isso corrige a leitura do achado 15: a
+fragmentação da BDGD não *gradua* a do modelo, ela a **liga**.
+
+**Consequência para o `--bt completo`.** Modelar baixa tensão sobre uma rede
+cuja média já vem 25,70% desligada não é caro, é sem sentido — a carga
+pendurada num trecho isolado não recebe tensão qualquer que seja o esforço de
+cálculo. A viabilidade passa a ter um critério de entrada barato e mensurável
+antes de simular: componentes por subestação na BDGD ≤ 3.
 
 ## Validação externa e contaminação
 

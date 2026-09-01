@@ -143,13 +143,29 @@ O detalhe das rodadas está abaixo, em ordem inversa. Os **achados** estão em
 - **Achado 12:** a fragmentação é característica por distribuidora — 40 de 76
   bases com mediana zero, a Light com 45,8 ramos isolados por km. O conversor é
   o mesmo para todas.
-- **Suíte em 753.**
+- **Suíte em 785.**
 
-### Lacuna conhecida no coletor
+### A lacuna do `n_linhas` está fechada — 01/09/2026
 
-`n_linhas` existe no `validador` e NÃO é coletado. Sem ele, os 11,66 milhões de
-ramos isolados não têm denominador próprio — usei km como aproximação no achado
-12. Incluir na próxima mudança do `auditoria.py`.
+`n_linhas` e `ramos_isolados` agora saem por subestação, somados no rollup e
+como coluna do CSV. O denominador próprio deu o **achado 16**: 11.660.236 de
+45.374.525 trechos modelados no país estão eletricamente desligados da fonte,
+ou **25,70%**.
+
+**A medição não precisou de cluster.** Os `validacao.json` das 97
+`MODELOS_*_V25` somam 3,9 MB; trouxe por `tar | ssh` e medi na máquina local. O
+campo já estava gravado nos modelos desde a V25 — só não viajava para
+`resultados/`.
+
+**Mas `resultados/v25/` ainda não tem os campos novos.** Quem quiser o CSV com
+`se_n_linhas` precisa recoletar (não re-simular) sobre as `MODELOS_*_V25` que
+estão em `~/elder/BDGD2OpenDSS_Validator` no cluster:
+
+    git pull && SUFIXO=V25 bash cluster/submeter_todas.sh --coletar
+
+**E corrigi o achado 15:** a correlação de 0,61 não era do par que o texto
+descrevia. O par certo dá 0,445, e a correção está registrada dentro do próprio
+achado — o número velho fica visível, não apagado.
 
 ### A cadeia de investigação dos achados 6 a 11
 
