@@ -123,6 +123,21 @@ APELIDO = {
 }
 
 
+class SafrasMisturadas(RuntimeError):
+    """Duas .gdb da MESMA distribuidora visiveis na mesma varredura.
+
+    `_sigla` extrai o codigo do agente e ignora data, versao e carimbo — o que
+    e correto, e e o que mantem `SULGIPE46` comparavel entre safras. O efeito
+    colateral e que `Sulgipe_46_2024-12-31` e `Sulgipe_46_2025-12-31` viram a
+    MESMA tag: as duas gravariam em `MODELOS_SULGIPE46_<sufixo>` e o resumo
+    mesclaria por tag. A rodada misturaria as safras SEM ERRO NENHUM.
+
+    Recusar e a unica saida honesta. Escolher uma das duas seria adivinhar qual
+    safra o usuario quis, e o preco de adivinhar errado e uma rodada inteira
+    respondendo a pergunta de outro ano.
+    """
+
+
 def _sigla(nome):
     """A sigla de uma .gdb. Conhecida vira apelido; nova vira o nome dela.
 
@@ -178,10 +193,36 @@ def descobrir(pasta=None):
             novas.append((tag, cam, None, tam))
     conhecidas.sort(key=lambda x: ordem.index(x[0]))
     novas.sort(key=lambda x: x[3])
-    return conhecidas + [(t, c, m) for t, c, m, _ in novas]
+    saida = conhecidas + [(t, c, m) for t, c, m, _ in novas]
+
+    # UMA TAG, UMA .gdb. Ver `SafrasMisturadas`: sem esta guarda a safra 2025
+    # entrando ao lado da 2024 produz rodada misturada e silenciosa.
+    porta = {}
+    for tag, cam, _ in saida:
+        porta.setdefault(tag, []).append(cam)
+    repetidas = {t: v for t, v in porta.items() if len(v) > 1}
+    if repetidas:
+        linhas = []
+        for t, v in sorted(repetidas.items()):
+            linhas.append('  %s:' % t)
+            linhas += ['    %s' % os.path.basename(x) for x in sorted(v)]
+        raise SafrasMisturadas(
+            'a mesma distribuidora aparece mais de uma vez:\n'
+            + '\n'.join(linhas)
+            + '\n\nAs duas gravariam na mesma pasta de modelo. '
+              'Separe as safras em pastas diferentes e aponte '
+              'BDGD2DSS_BASES para uma de cada vez.')
+    return saida
 
 
-BASES = descobrir()
+# O IMPORT NAO PODE MORRER. `descobrir` roda aqui, e uma excecao crua
+# impediria ate o `--help` — inclusive o dos diagnosticos que serviriam para
+# entender o problema. Guarda-se o erro e quem for USAR as bases o reporta.
+_ERRO_BASES = None
+try:
+    BASES = descobrir()
+except SafrasMisturadas as _e:                            # noqa: F841
+    BASES, _ERRO_BASES = [], _e
 
 os.environ['BDGD_SEM_JANELA'] = '1'
 os.environ['PYTHONIOENCODING'] = 'utf-8'
@@ -620,6 +661,12 @@ def main():
     # final — a unica visao de conjunto da noite — se perderia.
     sys.stdout = _Tee(os.path.join(LOGS, '_console.log'))
     sys.stderr = sys.stdout
+    # O ERRO GUARDADO NO IMPORT COBRA AQUI. Sem isto a rodada seguiria com
+    # `BASES` vazia, imprimiria "0 bases" e sairia com rc=0 — falha silenciosa
+    # no lugar de uma guarda que existe justamente para evitar uma.
+    if _ERRO_BASES is not None:
+        print('ERRO: %s' % _ERRO_BASES, file=sys.stderr, flush=True)
+        return 2
     bases = [b for b in BASES if not a.so or b[0] in a.so]
     prev, sem_previsao = previsao(bases)
     t0 = time.time()
@@ -776,4 +823,8 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    # `sys.exit` E NECESSARIO: `main()` sozinho descarta o codigo de retorno e
+    # o processo sai 0 mesmo recusando a rodada. No PBS isso vira job "bem
+    # sucedido" que nao converteu nada — o mesmo padrao que ja custou duas
+    # colheitas aqui. `None` continua virando 0, como antes.
+    sys.exit(main())

@@ -179,5 +179,55 @@ class OQueNaoPodeVoltar(unittest.TestCase):
             importlib.reload(rg)
 
 
+class DuasSafrasNaMesmaPastaSaoRecusadas(unittest.TestCase):
+    """`Sulgipe_46_2024-12-31` e `Sulgipe_46_2025-12-31` viram a MESMA tag.
+
+    E isso e CORRETO: `_sigla` ignora data, versao e carimbo de proposito, e e
+    o que permite comparar SULGIPE46 entre safras. O efeito colateral e que as
+    duas gravariam em `MODELOS_SULGIPE46_<sufixo>` e o resumo mesclaria por
+    tag — a rodada misturaria 2024 e 2025 SEM ERRO NENHUM.
+
+    Recusar e a unica saida honesta. Escolher uma das duas seria adivinhar qual
+    safra o usuario quis, e adivinhar errado custa uma rodada inteira
+    respondendo a pergunta de outro ano.
+    """
+
+    def setUp(self):
+        self.dir = tempfile.mkdtemp()
+
+    def test_duas_safras_da_mesma_base_levantam(self):
+        _gdb(self.dir, 'Sulgipe_46_2024-12-31_V11_a.gdb')
+        _gdb(self.dir, 'Sulgipe_46_2025-12-31_V11_b.gdb')
+        with self.assertRaises(rg.SafrasMisturadas):
+            rg.descobrir(self.dir)
+
+    def test_a_mensagem_diz_QUAL_base_e_QUAIS_arquivos(self):
+        """Mensagem que so diz "duplicata" obriga a cacar a mao entre 97."""
+        _gdb(self.dir, 'Sulgipe_46_2024-12-31_V11_a.gdb')
+        _gdb(self.dir, 'Sulgipe_46_2025-12-31_V11_b.gdb')
+        with self.assertRaises(rg.SafrasMisturadas) as c:
+            rg.descobrir(self.dir)
+        m = str(c.exception)
+        self.assertIn('SULGIPE46', m)
+        self.assertIn('2024-12-31', m)
+        self.assertIn('2025-12-31', m)
+        self.assertIn('BDGD2DSS_BASES', m, 'tem de dizer o que fazer')
+
+    def test_uma_safra_so_continua_passando(self):
+        """O contraste: a guarda nao pode reprovar a operacao normal."""
+        _gdb(self.dir, 'Sulgipe_46_2025-12-31_V11_b.gdb')
+        _gdb(self.dir, 'Cedrap_5381_2025-12-31_V11_c.gdb')
+        tags = sorted(t for t, _, _ in rg.descobrir(self.dir))
+        self.assertEqual(tags, ['CEDRAP5381', 'SULGIPE46'])
+
+    def test_base_CONHECIDA_tambem_e_pega(self):
+        """A Cemig cai no APELIDO e nao no ramo das novas — outro caminho, que
+        uma guarda posta so num dos dois deixaria passar."""
+        _gdb(self.dir, 'Cemig-D_4950_2024-12-31_V11_a.gdb')
+        _gdb(self.dir, 'Cemig-D_4950_2025-12-31_V11_b.gdb')
+        with self.assertRaises(rg.SafrasMisturadas):
+            rg.descobrir(self.dir)
+
+
 if __name__ == '__main__':
     unittest.main()
