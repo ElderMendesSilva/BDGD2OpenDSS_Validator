@@ -567,6 +567,10 @@ def main():
                          'quanto do resultado depende de premissa nossa')
     ap.add_argument('--so', nargs='+', metavar='TAG',
                     help='apenas estas bases (RR ENCE EQPA SP LT CPFL CMIG)')
+    ap.add_argument('--se', nargs='*', default=None, metavar='SE',
+                    help='apenas estas subestacoes, repassado ao `converter`. '
+                         'A lista sai de `diagnosticos/recorte.py '
+                         '--elegiveis N`, que aplica o criterio do achado 16')
     ap.add_argument('--bt', default='agregado',
                     choices=['agregado', 'completo', 'nenhum'],
                     help='como a baixa tensao entra no modelo. `agregado` '
@@ -669,10 +673,18 @@ def main():
         # Cemig-D quando o bug de dtype a derrubou — 265 das 413 ja estavam
         # prontas e foram aproveitadas. O pulo por base, acima, e o que evita
         # refazer o que ja terminou; aqui dentro, retomar e sempre melhor.
+        # AS SUBESTACOES ELEGIVEIS, quando ha lista. O achado 16 deu um
+        # criterio de entrada por SUBESTACAO, nao por base: ate tres
+        # componentes na BDGD o modelo sai com 0,2% de trechos isolados, de
+        # quatro em diante passa de 20%. Sem repassar `--se`, a unica escolha
+        # era rodar a base INTEIRA — e ai as 249 subestacoes fragmentadas da
+        # Cemig condenam as 163 trataveis junto.
+        cmd_conv = [PY, '-u', 'converter.py', gdb, '--saida', saida,
+                    '--max-ctmt', str(a.max_ctmt), '--bt', a.bt]
+        if a.se:
+            cmd_conv += ['--se'] + list(a.se)
         ok, reg['min_converter'] = passo(
-            'converter', [PY, '-u', 'converter.py', gdb, '--saida', saida,
-                          '--max-ctmt', str(a.max_ctmt), '--bt', a.bt],
-            log, limite=8 * 3600)
+            'converter', cmd_conv, log, limite=8 * 3600)
         reg['converter_ok'] = ok
         if not ok:
             resumo.append(reg)

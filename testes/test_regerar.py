@@ -121,6 +121,69 @@ class BaseNovaNaoDerrubaARodada(unittest.TestCase):
         self.assertEqual(rg.previsao([]), (0, 0))
 
 
+class AsSubestacoesElegiveisChegamNoConversor(unittest.TestCase):
+    """Sem repassar `--se`, a unica escolha era rodar a base INTEIRA.
+
+    O achado 16 deu um criterio de entrada por SUBESTACAO e nao por base: ate
+    tres componentes na BDGD o modelo sai com 0,2% de trechos isolados, de
+    quatro em diante passa de 20%. A Cemig tem 163 subestacoes trataveis e 249
+    fragmentadas — e sem `--se` as 249 condenam as 163 junto.
+
+    O risco de nao testar isto e caro e SILENCIOSO: a flag some, o job roda a
+    base inteira, gasta horas de cluster e responde outra pergunta com cara de
+    ter respondido a certa.
+    """
+
+    def _comando(self, argv):
+        """Monta o comando do conversor sem executar nada."""
+        import regerar_v10 as rg
+        vistos = []
+
+        def falso_passo(nome, cmd, log, limite=None):
+            vistos.append((nome, cmd))
+            return False, 0.0            # falha: para a rodada logo apos
+
+        # A `.gdb` tem de ser um DIRETORIO EXISTENTE: o `regerar` pula a base
+        # quando nao e, e o conversor nunca seria chamado — o teste passaria a
+        # medir o proprio atalho em vez do comando.
+        import tempfile
+        gdb = tempfile.mkdtemp(suffix='.gdb')
+        # `BASES` E RESOLVIDO NO IMPORT (`BASES = descobrir()` no topo do
+        # modulo), entao trocar `descobrir` depois nao muda nada: o `main` ja
+        # esta lendo a lista pronta. A primeira versao deste teste trocou a
+        # funcao e viu "0 bases".
+        real_passo, real_bases = rg.passo, rg.BASES
+        rg.passo = falso_passo
+        rg.BASES = [('RR', gdb, 1)]
+        argv_real = sys.argv[:]
+        sys.argv = ['regerar_v10.py'] + argv
+        try:
+            try:
+                rg.main()
+            except SystemExit:
+                pass
+        finally:
+            rg.passo, rg.BASES = real_passo, real_bases
+            sys.argv = argv_real
+        for nome, cmd in vistos:
+            if nome == 'converter':
+                return cmd
+        return None
+
+    def test_a_lista_vai_para_o_converter(self):
+        cmd = self._comando(['--so', 'RR', '--se', 'SE_A', 'SE_B'])
+        self.assertIsNotNone(cmd, 'o conversor nem foi chamado')
+        self.assertIn('--se', cmd)
+        i = cmd.index('--se')
+        self.assertEqual(cmd[i + 1:i + 3], ['SE_A', 'SE_B'])
+
+    def test_sem_a_flag_o_comando_nao_ganha_se(self):
+        """O contraste: rodada normal nao pode ficar restrita por acidente."""
+        cmd = self._comando(['--so', 'RR'])
+        self.assertIsNotNone(cmd)
+        self.assertNotIn('--se', cmd)
+
+
 class OModoDaBtEntraNoSufixo(unittest.TestCase):
     """Modelo agregado e modelo completo nao podem disputar a mesma pasta.
 

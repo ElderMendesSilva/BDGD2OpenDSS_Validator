@@ -88,6 +88,22 @@ python doutor.py --bases "$BDGD2DSS_BASES" || exit 1
 ARGS_BT=()
 [[ -n "${BT:-}" ]] && ARGS_BT=(--bt "$BT")
 
-python -u regerar_v10.py --sufixo "$SUFIXO" --so "$TAG" --jobs 0 "${ARGS_BT[@]}"
+# AS SUBESTACOES ELEGIVEIS VEM DE ARQUIVO, e nao de variavel de ambiente. A
+# lista da Enel SP tem 150 nomes e a da Cemig 163: passar isso pelo `-v` do
+# qsub estourava o limite e ainda esbarrava na virgula, que ali separa
+# variaveis. `SES_ARQUIVO` aponta para um arquivo com um nome por linha, que e
+# o que `diagnosticos/recorte.py --elegiveis N` sabe produzir.
+ARGS_SE=()
+if [[ -n "${SES_ARQUIVO:-}" ]]; then
+    if [[ ! -s "$SES_ARQUIVO" ]]; then
+        echo "## ERRO: SES_ARQUIVO=$SES_ARQUIVO nao existe ou esta vazio" >&2
+        exit 2
+    fi
+    mapfile -t SES < "$SES_ARQUIVO"
+    echo "## rodando so ${#SES[@]} subestacoes de $SES_ARQUIVO"
+    ARGS_SE=(--se "${SES[@]}")
+fi
+
+python -u regerar_v10.py --sufixo "$SUFIXO" --so "$TAG" --jobs 0 "${ARGS_BT[@]}" "${ARGS_SE[@]}"
 
 echo "## $TAG terminou em $(date '+%d-%m-%Y as %T')"

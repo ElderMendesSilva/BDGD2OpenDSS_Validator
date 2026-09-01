@@ -174,6 +174,9 @@ def main(argv=None):
     ap.add_argument('--elegiveis', type=int, default=None, metavar='N',
                     help='imprime as SEs com ate N componentes, prontas para '
                          'colar em `converter.py --se`')
+    ap.add_argument('--elegiveis-dir', default=None, metavar='DIR',
+                    help='alem de imprimir, grava DIR/<base>.txt com um nome '
+                         'por linha — o formato que `SES_ARQUIVO` espera')
     a = ap.parse_args(argv)
 
     import regerar_v10 as rg
@@ -213,6 +216,16 @@ def main(argv=None):
                   % (d['base'], len(ok), d['ses_medidas'], a.elegiveis))
             if ok:
                 print('--se ' + ' '.join(ok))
+            # UM NOME POR LINHA, porque a lista da Enel SP tem 150 nomes e nao
+            # cabe no `-v` do qsub. O job le o arquivo; ninguem cola 150 nomes
+            # a mao sem errar um.
+            if a.elegiveis_dir and ok:
+                os.makedirs(a.elegiveis_dir, exist_ok=True)
+                alvo = os.path.join(a.elegiveis_dir, d['base'] + '.txt')
+                with open(alvo, 'w', encoding='utf-8',
+                          newline=escrita.FIM_DE_LINHA) as fh:
+                    fh.write('\n'.join(ok) + '\n')
+                print('# -> %s' % alvo)
 
     os.makedirs(os.path.dirname(a.saida_json) or '.', exist_ok=True)
     with open(a.saida_json, 'w', encoding='utf-8',
