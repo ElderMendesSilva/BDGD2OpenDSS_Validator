@@ -79,7 +79,7 @@ COLUNAS = [
     'se_kv_mt', 'se_trafos', 'se_km_MT', 'se_alimentadores',
     'se_convergiu', 'se_nos_nan', 'se_veredicto',
     'se_V_MT_min', 'se_V_MT_mediana', 'se_barras_criticas',
-    'se_perdas_trafos_pct',
+    'se_perdas_trafos_pct', 'se_n_linhas', 'se_ramos_isolados',
 ]
 
 
@@ -218,6 +218,12 @@ def colher_base(pasta, base):
             'barras_criticas': v.get('barras_criticas'),
             'cargas_sem_tensao': v.get('cargas_sem_tensao'),
             'ramos_isolados': v.get('ramos_isolados'),
+            # O DENOMINADOR PROPRIO DO RAMO ISOLADO. O achado 12 mediu
+            # fragmentacao em ramos isolados POR KM porque `n_linhas` existia
+            # no `validador` e nao era coletado — e km mede comprimento, nao
+            # numero de trechos. Uma rede de poucos trechos longos e uma de
+            # muitos curtos dao o mesmo km e fragmentacoes incomparaveis.
+            'n_linhas': v.get('n_linhas'),
             'causa': v.get('causa'),
             'alimentadores': g.get('alimentadores'),
             'trafos': g.get('trafos'),
@@ -262,6 +268,8 @@ def colher_base(pasta, base):
             'se_V_MT_mediana': vv.get('V_MT_mediana'),
             'se_barras_criticas': vv.get('barras_criticas'),
             'se_perdas_trafos_pct': _num(vv.get('perdas_trafos_pct')),
+            'se_n_linhas': vv.get('n_linhas'),
+            'se_ramos_isolados': vv.get('ramos_isolados'),
         })
     # Maior perda modelada primeiro: quem abre o CSV quer o pior caso na
     # primeira linha, e nao a ordem em que a rodada calhou de gravar.
@@ -291,6 +299,8 @@ def colher_base(pasta, base):
             'nao_convergiu': sum(1 for x in ses if x.get('convergiu') is False),
             'com_nan': sum(1 for x in ses if (x.get('nos_nan') or 0) > 0),
             'trafos': _soma('trafos'),
+            'n_linhas': _soma('n_linhas'),
+            'ramos_isolados': _soma('ramos_isolados'),
             'km_MT': round(_soma('km_MT'), 1),
             'chaves_ilhadas': _soma('chaves_ilhadas'),
             'reguladores_pendurados': _soma('reguladores_pendurados'),

@@ -375,6 +375,43 @@ class AProcedenciaDoClimaViajaJunto(OQueSaiEmDisco):
             self.assertIsNone(json.load(fh)['clima_fonte'])
 
 
+class OrRamoIsoladoPrecisaDeDenominadorProprio(OQueSaiEmDisco):
+    """`n_linhas` existia no validador e NAO era coletado.
+
+    Por isso o achado 12 mediu fragmentacao em ramos isolados POR KM — e km
+    mede comprimento, nao numero de trechos. Uma rede de poucos trechos longos
+    e uma de muitos curtos dao o mesmo km e fragmentacoes incomparaveis.
+    """
+
+    def test_n_linhas_e_ramos_isolados_saem_por_subestacao(self):
+        r = _Rodada(validacao=[{'modelo': 'S1', 'n_linhas': 1000,
+                                'ramos_isolados': 40}])
+        with open(os.path.join(self._colhe(r), 'XX.json'),
+                  encoding='utf-8') as fh:
+            d = json.load(fh)
+        s = d['subestacoes'][0]
+        self.assertEqual((s['n_linhas'], s['ramos_isolados']), (1000, 40))
+
+    def test_o_rollup_soma_os_dois(self):
+        """Sem a soma, a fracao da base exige reabrir a lista de SEs."""
+        r = _Rodada(validacao=[{'modelo': 'S1', 'n_linhas': 1000,
+                                'ramos_isolados': 40},
+                               {'modelo': 'S2', 'n_linhas': 500,
+                                'ramos_isolados': 10}])
+        with open(os.path.join(self._colhe(r), 'XX.json'),
+                  encoding='utf-8') as fh:
+            ru = json.load(fh)['rollup']
+        self.assertEqual((ru['n_linhas'], ru['ramos_isolados']), (1500, 50))
+
+    def test_modelo_antigo_sem_o_campo_soma_zero_e_nao_derruba(self):
+        r = _Rodada(validacao=[{'modelo': 'S1'}])
+        with open(os.path.join(self._colhe(r), 'XX.json'),
+                  encoding='utf-8') as fh:
+            d = json.load(fh)
+        self.assertIsNone(d['subestacoes'][0]['n_linhas'])
+        self.assertEqual(d['rollup']['n_linhas'], 0)
+
+
 class ONDE_A_PERDA_ACONTECE_VIAJA_JUNTO(OQueSaiEmDisco):
     """Saber QUANTO se perde não basta; é preciso saber ONDE.
 
