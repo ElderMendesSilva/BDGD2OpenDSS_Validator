@@ -41,7 +41,8 @@ resultado.
 ## Limitações e fatos de dado relevantes
 
 - **`--bt completo`:** a limitação deixou de ser "não roda nas grandes" e passou
-  a ser **delimitável**. O critério de entrada é medido antes de simular —
+  a ser **delimitável** — com a ressalva do achado 19, que mostra a métrica
+  sensível ao critério de agrupamento das subestações. O critério de entrada é medido antes de simular —
   componentes por subestação na BDGD ≤ 3 —, e por ele a Enel SP tem 150 de 155
   subestações elegíveis e a Cemig 163 de 412 (achados 16 e 17). Falta provar
   que as elegíveis rodam: o critério prevê fragmentação, e escala é outra
@@ -779,6 +780,54 @@ perda com que comparar). Em 2024 isso descarta 29 das 97; em 2025, 23 das 99.
 **O que a safra nova mudou, e nao e pouco:** a fracao de bases com declaracao
 utilizavel subiu de 68/97 para 76/99. Mais distribuidoras estao declarando algo
 comparavel — e o que declaram continua nao fechando com o proprio parque.
+
+### 19. A metrica de fragmentacao depende de como a base AGRUPA subestacoes
+
+Medido em 01/09/2026, comparando a fragmentacao das 97 bases nas duas safras.
+**Este achado corrige a leitura dos achados 15, 16 e 17**, e apareceu porque o
+numero bruto era bom demais para ser verdade.
+
+**O que o numero bruto dizia:** a fragmentacao teria piorado muito de 2024 para
+2025 — bases com subestacao mediana conexa caindo de 27 para 12, elegiveis para
+BT completa de 47 para 32, e piora em 45 das 97.
+
+**O que estava acontecendo:** 57 das 97 bases mudaram o numero de subestacoes
+declaradas, 32 delas para menos. E o padrao e inequivoco:
+
+| base | subestacoes | componentes/SE |
+|---|---:|---:|
+| CELETRO5343 | 24 -> **1** | 1 -> **21** |
+| CEREJ5352 | 18 -> **1** | 1 -> **18** |
+| CEMIRIM7467 | 13 -> **2** | 1 -> **13** |
+| CEDRAP5381 | 9 -> **1** | 1 -> **9** |
+
+O numero de componentes vira **exatamente** o numero de subestacoes fundidas.
+A rede nao mudou: mudou o rotulo. Quando uma base declara vinte e quatro
+subestacoes sob um unico `CTMT.SUB`, as vinte e quatro redes — que nunca se
+tocaram — passam a ser componentes da mesma subestacao.
+
+**A comparacao limpa**, nas 40 bases que mantiveram o mesmo numero de
+subestacoes:
+
+| | 2024 | 2025 |
+|---|---:|---:|
+| componentes/SE (mediana) | 5,0 | **5,5** |
+| piorou / melhorou / igual | — | **13 / 7 / 20** |
+
+Estabilidade com leve piora, e nao colapso.
+
+**A ressalva que isto impoe aos achados 15 a 17.** "Componentes por subestacao"
+mede a rede **e o criterio de agrupamento junto**. Nas bases grandes, que
+declaram centenas de subestacoes, o efeito e desprezivel — a Cemig tem 412 e a
+Enel SP 155, e nelas o rotulo corresponde a instalacao fisica. Nas pequenas,
+que declaram uma so, a metrica mede sobretudo o rotulo. O criterio de entrada
+para a `--bt completo` (<= 3 componentes) **continua valendo onde foi medido**,
+que sao as grandes, e deve ser usado com cuidado em base de uma subestacao.
+
+**O que fazer com isso:** a medida robusta seria componentes por **alimentador
+alcancavel a partir do `PAC_INI`**, que nao depende de como a base agrupa. Nao
+esta implementada. Ate la, a comparacao entre safras exige parear por numero de
+subestacoes, como aqui.
 
 ## Validação externa e contaminação
 
