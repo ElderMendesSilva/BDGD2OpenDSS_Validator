@@ -1,0 +1,46 @@
+#!/bin/bash
+#PBS -N contradicao
+#PBS -l nodes=1:ppn=4
+#PBS -l mem=48gb
+#PBS -l walltime=12:00:00
+#PBS -q BIRA_Q3
+#PBS -j oe
+#
+# A fila e declarada porque a padrao deste cluster NAO ESTA HABILITADA: sem
+# `-q`, o `qsub` recusa com "Queue is not enabled" e o job nem entra.
+#
+# O FERRO DECLARADO CABE DENTRO DA PERDA DECLARADA?
+#
+#     qsub -v "PROJETO=$PWD,BDGD2DSS_BASES=$HOME/elder/bdgds_2025,
+#              SAIDA=medicoes/contradicao_2025.json" cluster/contradicao.pbs
+#
+# POR QUE ESTE JOB E BARATO E VALE MUITO. O achado 13 e o mais forte do
+# projeto porque NAO depende do nosso modelo: sao tres campos da mesma BDGD que
+# nao fecham entre si — `PER_FER` da placa dos transformadores, `ENE_xx` das
+# unidades consumidoras e `PERD_*` da declaracao de perdas. Se o ferro
+# implicito nas placas ja excede a perda tecnica declarada, sobra espaco
+# NEGATIVO para linhas, cobre e ramais.
+#
+# Medido na safra 2024: 40 de 81 bases. A pergunta que a safra 2025 abre e se
+# isso MELHOROU — e ela se responde LENDO, sem converter nada. Minutos de
+# cluster contra as horas de uma rodada completa.
+#
+# Le `.gdb`, entao e job: o head node nao processa (regra de 28/08/2026).
+set -uo pipefail
+cd "${PBS_O_WORKDIR:-$PROJETO}"
+source .venv/bin/activate
+export BDGD2DSS_MODO=cluster
+
+: "${BDGD2DSS_BASES:?defina onde estao as .gdb}"
+SAIDA="${SAIDA:-medicoes/contradicao.json}"
+
+echo "## ferro declarado x perda declarada — $(date)"
+echo "## bases em: $BDGD2DSS_BASES"
+echo "## saida   : $SAIDA"
+
+python diagnosticos/contradicao.py --bases "$BDGD2DSS_BASES" \
+    --saida-json "$SAIDA"
+rc=$?
+
+echo "## fim $(date)  (rc=$rc)"
+exit $rc
