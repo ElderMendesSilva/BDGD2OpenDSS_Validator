@@ -3,7 +3,12 @@
 #PBS -l nodes=1:ppn=1
 #PBS -l mem=2gb
 #PBS -l walltime=00:05:00
+#PBS -q BIRA_Q3
 #PBS -j oe
+#
+# A FILA E DECLARADA porque a padrao deste cluster NAO ESTA
+# HABILITADA: sem `-q`, o `qsub` recusa com "Queue is not
+# enabled" e o job nem entra.
 #
 # O NO DE CALCULO ALCANCA A INTERNET? Um minuto de job responde.
 #
