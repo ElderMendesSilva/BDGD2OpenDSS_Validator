@@ -91,22 +91,43 @@ def cortes_da_base(caminho):
             pai[x], x = r, pai[x]
         return r
 
+    # A REDE NAO E SO A SSDMT, e medir so ela mente. A primeira execucao deu
+    # 384 componentes por subestacao na mediana nacional — e a CEREJ5352, que
+    # tem ZERO ramos isolados no modelo, apareceu com 42. O modelo emitido pelo
+    # `converter` inclui CHAVES (UNSEMT) e REGULADORES (UNREMT), que tambem tem
+    # PAC_1/PAC_2 e costuram trechos. Contar sem eles mede uma rede que nunca
+    # foi construida.
+    def liga(camada, cols=('PAC_1', 'PAC_2', 'CTMT')):
+        try:
+            return b.ler(camada, list(cols))
+        except Exception:                                # noqa: BLE001
+            return None
+
+    camadas = [('SSDMT', m)]
+    for nome in ('UNSEMT', 'UNREMT', 'UNTRMT'):
+        c2 = liga(nome)
+        if c2:
+            camadas.append((nome, c2))
+
     comp_por_se = collections.defaultdict(int)
-    pacs_por_se = collections.defaultdict(set)
-    for i in range(n):
-        se = de_ctmt.get(txt(m['CTMT'][i]))
-        if not se:
-            continue
-        a, b_ = txt(m['PAC_1'][i]), txt(m['PAC_2'][i])
-        if not a or not b_:
-            continue
-        for p in (a, b_):
-            chave = (se, p)
-            pai.setdefault(chave, chave)
-            pacs_por_se[se].add(p)
-        ra, rb = raiz((se, a)), raiz((se, b_))
-        if ra != rb:
-            pai[ra] = rb
+    por_camada = {}
+    for nome, col2 in camadas:
+        usados = 0
+        for i in range(len(col2.get('CTMT', []))):
+            se = de_ctmt.get(txt(col2['CTMT'][i]))
+            if not se:
+                continue
+            a, b_ = txt(col2['PAC_1'][i]), txt(col2['PAC_2'][i])
+            if not a or not b_ or a == b_:
+                continue
+            usados += 1
+            for p in (a, b_):
+                chave = (se, p)
+                pai.setdefault(chave, chave)
+            ra, rb = raiz((se, a)), raiz((se, b_))
+            if ra != rb:
+                pai[ra] = rb
+        por_camada[nome] = usados
     vistos = collections.defaultdict(set)
     for (se, p) in pai:
         vistos[se].add(raiz((se, p)))
@@ -129,6 +150,7 @@ def cortes_da_base(caminho):
         'ses_com_uma_componente': sum(1 for c in comps if c == 1),
         'pct_ses_fragmentadas': round(
             100.0 * sum(1 for c in comps if c > 1) / ses_n, 1),
+        'ligacoes_por_camada': por_camada,
     }
 
 

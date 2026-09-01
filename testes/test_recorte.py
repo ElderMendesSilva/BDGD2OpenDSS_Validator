@@ -24,23 +24,35 @@ import recorte                                          # noqa: E402
 
 
 class _BDGDFalsa:
-    """`ctmt` = [(cod, sub)], `ssdmt` = [(pac1, pac2, ctmt)]."""
+    """`ctmt` = [(cod, sub)], demais camadas = [(pac1, pac2, ctmt)].
 
-    def __init__(self, ctmt, ssdmt):
+    Cada camada devolve o SEU dado. A primeira versao devolvia o mesmo para
+    todas, e por isso nao provava nada sobre chaves e reguladores costurarem
+    trechos — que e justamente o que o diagnostico passou a medir.
+    """
+
+    def __init__(self, ctmt, **camadas):
         import numpy as np
         self._c = {'COD_ID': np.array([x[0] for x in ctmt], dtype=object),
                    'SUB': np.array([x[1] for x in ctmt], dtype=object)}
-        self._m = {'PAC_1': np.array([x[0] for x in ssdmt], dtype=object),
-                   'PAC_2': np.array([x[1] for x in ssdmt], dtype=object),
-                   'CTMT': np.array([x[2] for x in ssdmt], dtype=object)}
+        self._cam = {}
+        for nome, linhas in camadas.items():
+            self._cam[nome.upper()] = {
+                'PAC_1': np.array([x[0] for x in linhas], dtype=object),
+                'PAC_2': np.array([x[1] for x in linhas], dtype=object),
+                'CTMT': np.array([x[2] for x in linhas], dtype=object)}
 
     def ler(self, camada, cols):
-        return self._c if camada == 'CTMT' else self._m
+        if camada == 'CTMT':
+            return self._c
+        if camada not in self._cam:
+            raise KeyError(camada)          # como a BDGD real, sem a camada
+        return self._cam[camada]
 
 
-def _mede(ctmt, ssdmt):
+def _mede(ctmt, ssdmt, **outras):
     real = recorte.BDGD
-    recorte.BDGD = lambda *a, **k: _BDGDFalsa(ctmt, ssdmt)
+    recorte.BDGD = lambda *a, **k: _BDGDFalsa(ctmt, SSDMT=ssdmt, **outras)
     try:
         return recorte.cortes_da_base('/qualquer.gdb')
     finally:
@@ -146,6 +158,52 @@ class AsComponentesDizemSeARedeEncadeia(unittest.TestCase):
         r = _mede([], [])
         self.assertEqual(r['pct_ses_fragmentadas'], 0.0)
         self.assertEqual(r['componentes_por_se_max'], 0)
+
+
+class ARedeNaoESoASSDMT(unittest.TestCase):
+    """Medir só a SSDMT mede uma rede que nunca foi construída.
+
+    A primeira execução deu 384 componentes por subestação na mediana nacional
+    — e a CEREJ5352, que tem ZERO ramos isolados no modelo, apareceu com 42. O
+    modelo que o `converter` emite inclui CHAVES (UNSEMT) e REGULADORES
+    (UNREMT), que também têm PAC_1/PAC_2 e costuram trechos.
+    """
+
+    def test_a_chave_costura_dois_pedacos(self):
+        r = _mede([('C1', 'A')],
+                  [('p1', 'p2', 'C1'), ('p3', 'p4', 'C1')],
+                  UNSEMT=[('p2', 'p3', 'C1')])
+        self.assertEqual(r['componentes_por_se_mediana'], 1,
+                         'a chave liga os dois trechos')
+
+    def test_sem_a_chave_ficam_dois(self):
+        """O contraste que dá sentido ao teste anterior."""
+        r = _mede([('C1', 'A')],
+                  [('p1', 'p2', 'C1'), ('p3', 'p4', 'C1')])
+        self.assertEqual(r['componentes_por_se_mediana'], 2)
+
+    def test_o_regulador_tambem_costura(self):
+        r = _mede([('C1', 'A')],
+                  [('p1', 'p2', 'C1'), ('p3', 'p4', 'C1')],
+                  UNREMT=[('p2', 'p3', 'C1')])
+        self.assertEqual(r['componentes_por_se_mediana'], 1)
+
+    def test_camada_ausente_nao_derruba(self):
+        """Base sem UNREMT é comum, e não pode virar erro."""
+        r = _mede([('C1', 'A')], [('p1', 'p2', 'C1')])
+        self.assertEqual(r['componentes_por_se_mediana'], 1)
+
+    def test_conta_quantas_ligacoes_cada_camada_deu(self):
+        """Sem isso não dá para saber de qual tabela a rede depende."""
+        r = _mede([('C1', 'A')],
+                  [('p1', 'p2', 'C1'), ('p3', 'p4', 'C1')],
+                  UNSEMT=[('p2', 'p3', 'C1')])
+        self.assertEqual(r['ligacoes_por_camada']['SSDMT'], 2)
+        self.assertEqual(r['ligacoes_por_camada']['UNSEMT'], 1)
+
+    def test_laco_no_mesmo_PAC_nao_conta_como_ligacao(self):
+        r = _mede([('C1', 'A')], [('p1', 'p1', 'C1'), ('p1', 'p2', 'C1')])
+        self.assertEqual(r['ligacoes_por_camada']['SSDMT'], 1)
 
 
 if __name__ == '__main__':
