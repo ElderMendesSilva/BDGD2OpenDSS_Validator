@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Submete a medicao de completude da BT das 97 bases.
+# Submete a medicao de FRAGMENTACAO (componentes conexas por subestacao).
 #
 #     bash cluster/submeter_recorte.sh            # so mostra
 #     bash cluster/submeter_recorte.sh --rodar
@@ -22,10 +22,14 @@ RODAR="no"
 DEP=""
 [[ -n "${DEPOIS:-}" ]] && DEP="-W depend=afterany:$DEPOIS"
 
+# AS ASPAS SIMPLES EM ARGS NAO SAO ENFEITE. No `-v` do PBS a VIRGULA separa
+# variaveis e o espaco termina o valor, entao `ARGS=--so CMIG SP` chegaria
+# truncado em "--so". Com aspas simples o valor viaja inteiro. Por isso ARGS
+# nao pode conter virgula — se um dia precisar, passe por arquivo.
 mkdir -p logs/cluster
 echo "bases   : $BDGD2DSS_BASES"
 echo "depende : ${DEPOIS:-<nada>}"
-echo "saida   : medicoes/recorte.json"
+echo "argumentos: ${ARGS:-<padrao: as 97 bases, agregado>}"
 echo
 
 if [[ $RODAR != sim ]]; then
@@ -37,6 +41,6 @@ fi
 ID=$(qsub -N recorte -q "$FILA" \
      -l nodes=1:ppn=4 -l mem=48gb -l walltime="$WALLTIME" \
      -j oe -o logs/cluster/ $DEP \
-     -v "PROJETO=$PWD,BDGD2DSS_BASES=$BDGD2DSS_BASES" \
+     -v "PROJETO=$PWD,BDGD2DSS_BASES=$BDGD2DSS_BASES,ARGS='${ARGS:-}'" \
      cluster/recorte.pbs)
 echo "medicao submetida: $ID"

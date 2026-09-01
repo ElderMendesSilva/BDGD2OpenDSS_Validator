@@ -1,27 +1,29 @@
 #!/bin/bash
-# Mede a COMPLETUDE DA BAIXA TENSAO das 97 bases, sem simular nada.
+# Mede a FRAGMENTACAO da rede declarada: quantas componentes conexas cada
+# subestacao tem na BDGD, contando SSDMT, UNSEMT, UNREMT e UNTRMT.
 #
-#     bash cluster/submeter_bt_completude.sh --rodar
+#     bash cluster/submeter_recorte.sh --rodar          # as 97, agregado
 #
-# POR QUE ISTO VEM ANTES DE QUALQUER RODADA `--bt completo`. Modelar a baixa so
-# aumenta a fidelidade se a baixa DECLARADA estiver la. Rede de BT incompleta e
-# pior que rede de BT ausente: o modelo agregado ADMITE que nao tem a baixa,
-# enquanto o completo com dado faltando parece te-la e entrega numero errado
-# com cara de numero certo.
+#     ARGS="--so CMIG SP --por-se --elegiveis 3
+#           --saida-json medicoes/recorte_cmig_sp.json"
+#         bash cluster/submeter_recorte.sh --rodar      # duas bases, detalhe
 #
-# E o que se procura aqui ja tem candidato medido. Em 26/08/2026, sobre sete
-# bases, METROS DE BT POR TRANSFORMADOR previu quais sobrevivem ao modo
-# completo:
+# POR QUE ISTO DECIDE A BT COMPLETA. O achado 16 mediu que 25,70% dos trechos
+# modelados do pais nao chegam eletricamente na fonte, e que a fragmentacao da
+# BDGD nao GRADUA esse numero — ela o LIGA: ate tres componentes por
+# subestacao os modelos saem com 0,2% de trechos isolados; de quatro em
+# diante, mais de 20%. E um degrau, nao uma rampa.
 #
-#     Roraima 270 m ok | CPFL 453 ok | Enel SP 632 ok (2,3% mortas)
-#     Enel CE 812 FALHA (perda 63%)  | Light 888 FALHA (92% mortas)
+# Modelar baixa tensao sobre rede que ja vem partida nao e caro, e sem sentido:
+# a carga pendurada num trecho isolado nao recebe tensao por mais esforco de
+# calculo que se gaste. Entao o criterio de entrada da `--bt completo` e
+# barato e mede-se ANTES de simular: componentes por subestacao <= 3.
 #
-# Sete pontos nao fecham uma lei. As 97 fecham — e o custo e ler tabela, nao
-# resolver circuito: nenhuma conversao, nenhum OpenDSS, nenhuma rodada.
-#
-# O numero alto tambem e suspeita de DADO por si so: 888 m de secundario por
-# transformador em rede metropolitana nao e crivel. Ou faltam transformadores
-# declarados, ou sobra comprimento, ou o mesmo trecho e contado varias vezes.
+# E A MEDIANA ESCONDE A CAUDA. A Cemig tem mediana 5 e MAXIMO 1.844 — poucas
+# subestacoes catastroficas ao lado de muitas trataveis. Como o `converter`
+# aceita `--se`, a pergunta util nao e "a base aguenta?" e sim "QUAIS
+# subestacoes aguentam?". `--por-se` publica a distribuicao e `--elegiveis N`
+# ja imprime a lista no formato do `--se`.
 #
 # Le a `.gdb`, entao e job — o head node nao processa (regra de 28/08/2026).
 set -uo pipefail
@@ -29,14 +31,19 @@ cd "${PBS_O_WORKDIR:-$PROJETO}"
 source .venv/bin/activate
 export BDGD2DSS_MODO=cluster
 
-echo "## pontos de corte do recorte por subestacao — $(date)"
+echo "## fragmentacao por subestacao — $(date)"
 echo "## bases em: ${BDGD2DSS_BASES:-<nao definido>}"
+echo "## argumentos: ${ARGS:-<padrao: as 97, agregado>}"
 
-python diagnosticos/recorte.py \
-    --bases "$BDGD2DSS_BASES" \
-    --saida-json medicoes/recorte.json
+# ARGS SEM ASPAS, de proposito: o shell tem de reparti-lo em palavras para que
+# `--so CMIG SP` chegue como duas tags, e nao como uma unica tag "CMIG SP".
+# shellcheck disable=SC2086
+if [[ -n "${ARGS:-}" ]]; then
+    python diagnosticos/recorte.py --bases "$BDGD2DSS_BASES" $ARGS
+else
+    python diagnosticos/recorte.py --bases "$BDGD2DSS_BASES" --saida-json medicoes/recorte.json
+fi
 rc=$?
 
 echo "## fim $(date)  (rc=$rc)"
-echo "## saida em medicoes/recorte.json"
 exit $rc
