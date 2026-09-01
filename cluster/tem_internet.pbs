@@ -1,0 +1,55 @@
+#!/bin/bash
+#PBS -N tem_internet
+#PBS -l nodes=1:ppn=1
+#PBS -l mem=2gb
+#PBS -l walltime=00:05:00
+#PBS -j oe
+#
+# O NO DE CALCULO ALCANCA A INTERNET? Um minuto de job responde.
+#
+# POR QUE A PERGUNTA VALE UM ARQUIVO. O `baixar_bdgds.py` e de 25/08/2026, TRES
+# DIAS antes da regra que proibiu processamento no head node, e foi escrito
+# para rodar exatamente la — baixa e faz `extractall` de dezenas de GB. A regra
+# invalidou o desenho dele, e a saida obvia (baixar no laptop e subir por scp)
+# gasta a banda duas vezes e nao retoma.
+#
+# Mas a premissa de que "o no nao tem internet" foi HERDADA e nunca testada
+# neste cluster. Se ela for falsa, o download inteiro vira job e o head node
+# sai da historia — que e o que se quer.
+#
+#     qsub cluster/tem_internet.pbs
+#     cat tem_internet.o<id>
+#
+# O teste nao baixa dado nenhum: pede o CABECALHO de um item da ANEEL e a
+# pagina inicial do ArcGIS. Se sair `ALCANCA`, o caminho esta aberto.
+set -uo pipefail
+cd "${PBS_O_WORKDIR:-$HOME}"
+
+echo "## no: $(hostname)   $(date)"
+echo "## proxy no ambiente: ${http_proxy:-<nenhum>} ${https_proxy:-<nenhum>}"
+echo
+
+python3 - <<'PY'
+import socket
+import urllib.request
+
+ALVOS = [
+    ('DNS  arcgis.com', lambda: socket.gethostbyname('www.arcgis.com')),
+    ('DNS  aneel.gov.br', lambda: socket.gethostbyname('www.aneel.gov.br')),
+    ('HTTP arcgis (busca)', lambda: urllib.request.urlopen(
+        'https://www.arcgis.com/sharing/rest?f=json', timeout=20).status),
+]
+ok = 0
+for nome, f in ALVOS:
+    try:
+        print('%-22s ALCANCA   %s' % (nome, f()))
+        ok += 1
+    except Exception as e:
+        print('%-22s falhou    %s: %s' % (nome, type(e).__name__, str(e)[:80]))
+print()
+print('VEREDICTO:', 'o no tem internet' if ok == len(ALVOS)
+      else 'internet parcial ou ausente (%d de %d)' % (ok, len(ALVOS)))
+PY
+
+echo
+echo "## fim $(date)"

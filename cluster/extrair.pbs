@@ -1,0 +1,107 @@
+#!/bin/bash
+#PBS -N extrair_bdgd
+#PBS -l nodes=1:ppn=8
+#PBS -l mem=32gb
+#PBS -l walltime=06:00:00
+#PBS -j oe
+#
+# Descompacta as `.gdb` baixadas, NO NO DE CALCULO.
+#
+#     qsub -v "PASTA=$HOME/elder/bdgds_2025" cluster/extrair.pbs
+#
+# POR QUE ISTO E UM JOB. O `baixar_bdgds.py` e de 25/08/2026, tres dias antes
+# de o administrador proibir processamento no head node, e fazia as duas coisas
+# de uma vez: baixava e dava `extractall`. Baixar e mover bytes — mesma
+# natureza do `scp` e do `git pull`, que a regra permite. Extrair dezenas de GB
+# e calculo, e calculo nao acontece no no de acesso.
+#
+# Entao o fluxo virou dois passos:
+#
+#     1. head node:  python3 baixar_bdgds.py --sem-extrair ...   (so bytes)
+#     2. no PBS:     qsub -v "PASTA=..." cluster/extrair.pbs     (o unzip)
+#
+# Nao e contorno da regra: e por a parte que e calculo onde o calculo deve
+# acontecer.
+#
+# O SHA256 VIAJA NO MANIFESTO que o passo 1 grava. Aqui ele e CONFERIDO antes
+# de extrair — um download cortado pela metade vira `.gdb` truncada, e o
+# defeito so apareceria horas depois, no meio da conversao, parecendo bug do
+# conversor.
+set -uo pipefail
+cd "${PBS_O_WORKDIR:-$PROJETO}"
+
+: "${PASTA:?defina PASTA com o diretorio dos .zip}"
+
+echo "## extraindo em $PASTA — $(date)"
+echo "## no: $(hostname)"
+
+python3 - "$PASTA" <<'PY'
+import hashlib
+import json
+import os
+import sys
+import zipfile
+
+pasta = sys.argv[1]
+manifesto = os.path.join(pasta, 'manifesto_bdgd.json')
+soma_de = {}
+try:
+    with open(manifesto, encoding='utf-8') as fh:
+        for b in (json.load(fh).get('bases') or []):
+            if b.get('sha256'):
+                soma_de[b['titulo']] = b['sha256']
+except Exception as e:                                        # noqa: BLE001
+    print('sem manifesto utilizavel (%s) — extrai sem conferir soma' % e)
+
+
+def sha256(caminho):
+    h = hashlib.sha256()
+    with open(caminho, 'rb') as f:
+        for p in iter(lambda: f.read(1 << 20), b''):
+            h.update(p)
+    return h.hexdigest()
+
+
+zips = sorted(f for f in os.listdir(pasta) if f.endswith('.zip'))
+print('%d arquivos .zip' % len(zips))
+ok = ruins = pulados = 0
+for n, z in enumerate(zips, 1):
+    titulo = z[:-4]
+    alvo = os.path.join(pasta, titulo + '.gdb')
+    cam = os.path.join(pasta, z)
+    if os.path.isdir(alvo):
+        print('%3d/%d  %-58s ja extraida' % (n, len(zips), titulo[:58]))
+        pulados += 1
+        continue
+    esperado = soma_de.get(titulo)
+    if esperado:
+        veio = sha256(cam)
+        if veio != esperado:
+            print('%3d/%d  %-58s SOMA NAO BATE — nao extraida'
+                  % (n, len(zips), titulo[:58]), flush=True)
+            ruins += 1
+            continue
+    try:
+        with zipfile.ZipFile(cam) as f:
+            f.extractall(pasta)
+    except zipfile.BadZipFile:
+        print('%3d/%d  %-58s ZIP INVALIDO' % (n, len(zips), titulo[:58]),
+              flush=True)
+        ruins += 1
+        continue
+    # O `.zip` so sai depois da extracao dar certo. Apagar antes seria trocar
+    # um arquivo bom por uma pasta que pode nao existir.
+    os.remove(cam)
+    ok += 1
+    print('%3d/%d  %-58s ok' % (n, len(zips), titulo[:58]), flush=True)
+
+print()
+print('extraidas %d | ja estavam %d | com problema %d' % (ok, pulados, ruins))
+# MEDIR NADA NAO E MEDIR, e extrair nada nao e extrair: um job que nao fez
+# trabalho nenhum e sai 0 vira "sucesso" no historico da fila.
+sys.exit(1 if (ruins or (ok == 0 and pulados == 0)) else 0)
+PY
+rc=$?
+
+echo "## fim $(date)  (rc=$rc)"
+exit $rc

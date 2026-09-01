@@ -106,8 +106,21 @@ def _sha256(caminho):
     return h.hexdigest()
 
 
-def baixa_uma(b, destino, refazer=False):
-    """Baixa, confere o tamanho, extrai e apaga o `.zip`. Devolve o resultado."""
+def baixa_uma(b, destino, refazer=False, extrair=True):
+    """Baixa, confere o tamanho, extrai e apaga o `.zip`. Devolve o resultado.
+
+    `extrair=False` PARA NO ZIP, e existe por causa da regra do head node.
+
+    Este script e de 25/08/2026, TRES DIAS antes de o administrador proibir
+    processamento no no de acesso — e foi escrito para rodar exatamente la,
+    porque e o unico ponto do cluster com internet. Baixar e transferir bytes,
+    da mesma natureza do `scp` e do `git pull`, que a regra permite; o
+    `extractall` de dezenas de GB e que e processamento.
+
+    Separando os dois, o head node so move bytes e a descompactacao vai para um
+    job (`cluster/extrair.pbs`). Nao e contorno de regra: e fazer no no de
+    calculo a parte que e calculo.
+    """
     gdb = os.path.join(destino, b['titulo'] + '.gdb')
     if os.path.isdir(gdb) and not refazer:
         return dict(b, estado='ja tinha', bytes=0, sha256=None)
@@ -131,6 +144,10 @@ def baixa_uma(b, destino, refazer=False):
                     detalhe='%d de %d bytes' % (veio, esperado))
 
     soma = _sha256(zip_)
+    if not extrair:
+        # O `.zip` FICA, e com ele o sha256 no manifesto: quem extrair depois
+        # pode conferir que o arquivo e o mesmo que desceu do portal.
+        return dict(b, estado='zip', bytes=veio, sha256=soma)
     try:
         with zipfile.ZipFile(zip_) as z:
             z.extractall(destino)
@@ -162,6 +179,11 @@ def main(argv=None):
                     help='downloads simultaneos (padrao 4; o portal e de terceiros)')
     ap.add_argument('--listar', action='store_true', help='mostra e nao baixa')
     ap.add_argument('--refazer', action='store_true', help='rebaixa o que ja existe')
+    ap.add_argument('--sem-extrair', action='store_true',
+                    help='para no .zip, sem descompactar. Use no head node, '
+                         'onde a regra de 28/08/2026 proibe processamento: '
+                         'baixar e mover bytes, extrair e calculo. A extracao '
+                         'vai depois por `qsub cluster/extrair.pbs`')
     a = ap.parse_args(argv)
 
     print('consultando o acervo da ANEEL...', flush=True)
@@ -218,7 +240,7 @@ def main(argv=None):
 
     feitos, t0 = [], time.time()
     with ThreadPoolExecutor(a.jobs) as ex:
-        futuros = {ex.submit(baixa_uma, b, destino, a.refazer): b for b in bases}
+        futuros = {ex.submit(baixa_uma, b, destino, a.refazer, not a.sem_extrair): b for b in bases}
         for n, fut in enumerate(as_completed(futuros), 1):
             r = fut.result()
             feitos.append(r)
@@ -237,12 +259,21 @@ def main(argv=None):
                                key=lambda x: x['titulo'])},
               io.open(man, 'w', encoding='utf-8'), ensure_ascii=False, indent=1)
 
-    bons = [f for f in feitos if f['estado'] in ('ok', 'ja tinha')]
-    ruins = [f for f in feitos if f['estado'] not in ('ok', 'ja tinha')]
+    # `zip` E SUCESSO quando foi o que se pediu. Sem isto o `--sem-extrair`
+    # baixava certo, gravava o manifesto e ainda assim relatava "0 de 1" e
+    # saia com rc=1 — um caminho que funciona se declarando quebrado, que
+    # numa corrente do PBS abortaria os jobs seguintes por dependencia.
+    OK = ('ok', 'ja tinha', 'zip')
+    bons = [f for f in feitos if f['estado'] in OK]
+    ruins = [f for f in feitos if f['estado'] not in OK]
     print('\n%d de %d em %.1f min; %.1f GB baixados'
           % (len(bons), len(feitos), (time.time() - t0) / 60,
              sum(f['bytes'] for f in feitos) / 2 ** 30))
     print('manifesto: %s' % man)
+    if a.sem_extrair and bons:
+        print('\nOS .zip NAO FORAM EXTRAIDOS, por escolha: extrair e '
+              'calculo, e calculo nao acontece no no de acesso.')
+        print('    qsub -v "PASTA=%s" cluster/extrair.pbs' % destino)
     for f in ruins:
         print('  FALHOU  %-46s %s %s'
               % (f['titulo'][:46], f['estado'], f.get('detalhe', '')))
