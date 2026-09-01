@@ -51,6 +51,22 @@ HORAS_ANO = 8760.0
 # Aqui vale a mesma escolha, para que os dois numeros sejam comparaveis.
 PARCELAS = ['PERD_A4']
 
+# OS DOIS CORTES DE PLAUSIBILIDADE, e eles nao sao cosmetica: sem eles a
+# primeira execucao publicou "2.639% de ferro" e razoes de 213.530x — lixo com
+# cara de achado.
+#
+# A causa e a mesma dos achados 8 e 9, declaracao degenerada. A CERBRANORT6898
+# declara 0,2 GWh no ano para 1.810 transformadores, ou 0,1 MWh por trafo: o
+# denominador e que esta errado, nao o ferro.
+#
+# FERRO_IMPOSSIVEL: perda a vazio nao chega a um quarto da energia servida. Base
+# acima disso nao esta contradizendo a propria declaracao — esta com a energia
+# da CTMT vazia ou incompleta.
+FERRO_IMPOSSIVEL = 25.0     # % da energia anual
+# DECLARACAO_MINIMA: abaixo disto nao ha perda declarada com que comparar, e a
+# razao explode por denominador minusculo em vez de por contradicao real.
+DECLARACAO_MINIMA = 0.5     # % da energia anual
+
 
 def contradicao_da_base(caminho, parcelas=None):
     """(ferro kWh/ano, energia kWh/ano, perda declarada kWh/ano) da base."""
@@ -81,7 +97,7 @@ def contradicao_da_base(caminho, parcelas=None):
         ene += sum(num(c[f'ENE_{k:02d}'][i]) for k in range(1, 13))
         perda += sum(num(c[k][i]) for k in parcelas)
 
-    return {
+    r = {
         'trafos': len(vals),
         'sem_per_fer': sem,
         'ferro_kWh_ano': round(ferro_kwh, 1),
@@ -95,6 +111,21 @@ def contradicao_da_base(caminho, parcelas=None):
                                   if perda > 0 else None),
         'parcelas': parcelas,
     }
+    # PLAUSIVEL SEPARA CONTRADICAO DE DADO QUEBRADO, e as duas nao podem entrar
+    # na mesma estatistica: a primeira e o achado, a segunda o afoga.
+    fp, dp = r['ferro_pct'], r['declarado_pct']
+    if fp is None or dp is None:
+        r['plausivel'], r['motivo'] = False, 'sem energia declarada na CTMT'
+    elif fp > FERRO_IMPOSSIVEL:
+        r['plausivel'] = False
+        r['motivo'] = ('ferro de %.0f%% — a energia da CTMT e que esta errada'
+                       % fp)
+    elif dp < DECLARACAO_MINIMA:
+        r['plausivel'] = False
+        r['motivo'] = 'declara %.2f%% — sem perda com que comparar' % dp
+    else:
+        r['plausivel'], r['motivo'] = True, None
+    return r
 
 
 def main(argv=None):
@@ -133,10 +164,15 @@ def main(argv=None):
                  '—' if d['razao_ferro_declarado'] is None
                  else '%.2fx' % d['razao_ferro_declarado']), flush=True)
 
-    piores = [d for d in saida
-              if (d['razao_ferro_declarado'] or 0) > 1.0]
-    print('\n%d de %d bases em que o FERRO SOZINHO excede a perda declarada'
-          % (len(piores), len(saida)))
+    bons = [d for d in saida if d['plausivel']]
+    fora = [d for d in saida if not d['plausivel']]
+    print('\n%d bases medidas: %d com declaracao utilizavel, %d descartadas'
+          % (len(saida), len(bons), len(fora)))
+    for d in fora[:8]:
+        print('    fora: %-20s %s' % (d['base'], d['motivo']))
+    piores = [d for d in bons if (d['razao_ferro_declarado'] or 0) > 1.0]
+    print('\n%d de %d bases PLAUSIVEIS em que o FERRO SOZINHO excede a '
+          'perda declarada' % (len(piores), len(bons)))
     for d in sorted(piores, key=lambda x: -x['razao_ferro_declarado'])[:10]:
         print('  %-20s %.2f%% de ferro contra %.2f%% declarados  (%.1fx)'
               % (d['base'], d['ferro_pct'], d['declarado_pct'],

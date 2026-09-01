@@ -116,5 +116,46 @@ class OQueNaoPodeVirarNumeroPlausivel(unittest.TestCase):
         self.assertEqual(r['trafos'], 0)
 
 
+class ContradicaoNaoSeConfundeComDadoQUEBRADO(unittest.TestCase):
+    """A primeira execucao publicou 2.639% de ferro e razoes de 213.530x.
+
+    Nao era achado, era denominador degenerado: a CERBRANORT6898 declara 0,2
+    GWh no ano para 1.810 transformadores. A conta estava certa e o dado, nao —
+    e sem separar as duas coisas o lixo afoga o achado na mesma estatistica.
+
+    Estes testes existem porque os outros nove NAO pegaram isso: eles travam as
+    unidades, e o defeito estava na escolha de quem entra na conta.
+    """
+
+    def test_ferro_impossivel_sai_da_estatistica(self):
+        """Perda a vazio nao chega a um quarto da energia servida."""
+        r = _mede([1000000.0], [1.0], [1.0])      # ferro gigante, energia 12
+        self.assertFalse(r['plausivel'])
+        self.assertIn('energia da CTMT', r['motivo'])
+
+    def test_quem_quase_nao_declara_sai_da_estatistica(self):
+        """Razao de 213.530x mede o denominador, nao a contradicao."""
+        r = _mede([1000.0], [8760.0], [1.0])      # declara ~0,001%
+        self.assertFalse(r['plausivel'])
+        self.assertIn('sem perda com que comparar', r['motivo'])
+
+    def test_base_sadia_continua_entrando(self):
+        """O contraste: o filtro nao pode comer o caso normal.
+
+        Ferro 8,3% contra 10% declarados e exatamente a ordem de grandeza real
+        — a CRELUZD598 da 8,1% contra 2,5%.
+        """
+        r = _mede([1000.0], [8760.0], [10512.0])
+        self.assertTrue(r['plausivel'])
+        self.assertIsNone(r['motivo'])
+
+    def test_a_contradicao_REAL_sobrevive_ao_filtro(self):
+        """Ferro que excede o declarado, com os dois em faixa plausivel: e o
+        achado, e ele nao pode ser descartado junto com o lixo."""
+        r = _mede([2000.0], [8760.0], [8760.0])   # 16,7% contra 8,3%
+        self.assertTrue(r['plausivel'])
+        self.assertGreater(r['razao_ferro_declarado'], 1.0)
+
+
 if __name__ == '__main__':
     unittest.main()
