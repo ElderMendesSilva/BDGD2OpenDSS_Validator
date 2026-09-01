@@ -5,6 +5,12 @@
 #PBS -l walltime=06:00:00
 #PBS -q BIRA_Q3
 #PBS -j oe
+#PBS -o logs/cluster/
+#
+# O LOG VAI PARA `logs/cluster/`, e nao para a raiz. Job que
+# larga `nome.o12345` no diretorio do projeto deixa a arvore
+# SUJA, e a guarda do `submeter_todas.sh` recusa a rodada
+# seguinte — foi o que travou a V26.
 #
 # A FILA E DECLARADA porque a padrao deste cluster NAO ESTA
 # HABILITADA: sem `-q`, o `qsub` recusa com "Queue is not

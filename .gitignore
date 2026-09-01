@@ -90,3 +90,11 @@ contato.txt
 # choque travou o `git pull` em tres rodadas seguidas. O no escreve aqui, a
 # maquina que analisa traz por `scp` e commita em `resultados/`.
 saida_cluster/
+
+# Log de job do PBS. O `qsub` grava `<nome>.o<id>` no diretorio de
+# submissao quando o job nao declara `-o`, e isso deixa a arvore suja —
+# a guarda do `submeter_todas.sh` entao RECUSA a rodada seguinte, que e
+# o comportamento certo pela razao errada. Os jobs ja mandam para
+# `logs/cluster/`; isto cobre o que escapar.
+*.o[0-9]*
+*.e[0-9]*
