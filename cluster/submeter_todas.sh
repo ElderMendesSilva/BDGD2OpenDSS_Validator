@@ -109,7 +109,7 @@ fi
 
 # O PYTHON E O DO `.venv`, e nao o do sistema. O nó tem `python3` 3.6.8 e nao
 # tem `python` nenhum: chamar `python` cru dava `command not found`, e chamar
-# `python3` daria 3.6.8, que nao roda o projeto (o `requisitos.txt` pede 3.9+)
+# `python3` daria 3.6.8, que nao roda o projeto (o `requirements.txt` pede 3.9+)
 # nem tem numpy/pyogrio. O `uma_base.pbs` resolve com `source .venv/bin/
 # activate`; aqui basta o caminho, porque e uma chamada so.
 PY_VENV="$PWD/.venv/bin/python"

@@ -9,25 +9,47 @@ integra a perda por alimentador e confronta com a perda que a distribuidora
 declara na própria BDGD. Quando não bate, classifica a causa — separando
 defeito do conversor de limitação do cadastro.
 
-**Estado:** sete distribuidoras — Roraima, Enel CE, Equatorial PA, Enel SP,
-Light, CPFL Paulista e Cemig-D —, **1.608 subestações** e cerca de 6.000
-alimentadores. O ciclo completo, do zero, leva ~9 h numa máquina de 8 núcleos.
+**Versão 1.0** — safra BDGD **2024-12-31**, **97 distribuidoras**, **4.201
+subestações** e **26.655 alimentadores**. Delas, **97,4% das subestações**
+fecham com veredicto `OK`: compilam, convergem, não têm `NaN` e passam nos
+limites de tensão e ampacidade.
 
-| base | subestações | cobertura da medição | razão modelo/declarado |
-|---|---|---|---|
-| Roraima | 20 | 89,9% | 2,63× |
-| Enel CE | 129 | 94,2% | 0,83× |
-| Equatorial PA | 119 | 91,0% | 0,55× |
-| Enel SP | 155 | 87,2% | 3,19× |
-| Light | 94 | 93,9% | 0,74× |
-| CPFL Paulista | 265 | 94,6% | 0,88× |
-| Cemig-D | 413 | *medindo* | *medindo* |
+| veredicto | subestações | |
+|---|---:|---:|
+| `OK` | 4.093 | 97,4% |
+| `TENSAO_IMPLAUSIVEL` | 76 | 1,8% |
+| `NAO_CONVERGE` | 18 | 0,4% |
+| `NAO_COMPILA` | 11 | 0,3% |
+| `POTENCIA_NAN` | 2 | 0,0% |
 
-*Cobertura* é quantos alimentadores podem sequer ser comparados com o
-declarado; o resto não tem par ou não declara perda. *Razão* é a perda técnica
-do modelo sobre a perda total medida — abaixo de 1 é o esperado fisicamente, e
-acima pede explicação. As duas colunas são resultado, não meta: os casos fora
-da faixa estão medidos e documentados em `docs/ACHADOS_GENERALIZACAO.md`.
+**O que este projeto conclui não depende de acreditar no modelo.** A pergunta
+que ele responde é sobre a **qualidade do dado publicado**, e os achados que
+mais pesam são medidos direto na BDGD:
+
+- **25,70% dos trechos de média tensão modelados no país não chegam
+  eletricamente à fonte.** A fragmentação está no dado de origem — só 27 das 97
+  bases declaram uma subestação mediana conexa.
+- **A perda declarada pela distribuidora não serve de árbitro.** Há casos
+  fisicamente impossíveis, um quinto das bases repete um valor padrão, e em 40
+  de 81 bases a perda declarada é menor que o ferro dos próprios
+  transformadores que ela mesma cadastra.
+
+Os dezessete achados, com número e método, estão em
+[docs/ACHADOS_GENERALIZACAO.md](docs/ACHADOS_GENERALIZACAO.md).
+
+### O que a v1.0 NÃO faz
+
+- **Não calibra contra referência externa.** A âncora nacional de 7,4% reprova,
+  não valida. Comparar nossa perda com a declarada na BDGD é comparar com um
+  número que não fecha consigo mesmo (achados 8, 9 e 13), então a divergência
+  de 1,42× está **medida e não atribuída**.
+- **Não entrega baixa tensão completa como produto.** O `--bt completo` roda,
+  mas só é confiável onde a rede vem conexa da origem. O critério é medido
+  antes de simular — componentes por subestação ≤ 3 —, e por ele a Enel SP tem
+  150 de 155 subestações elegíveis e a Cemig 163 de 412. Que as elegíveis
+  rodem em escala ainda não está provado.
+- **Não explica os 0,7% que falham.** As 29 subestações que não compilam ou não
+  convergem estão classificadas, não diagnosticadas uma a uma.
 
 ## Sem decorar nada
 
@@ -60,7 +82,7 @@ auditoria pode ser rodada depois, no Windows, sobre os mesmos arquivos.
 
 **Modo de execução.** `--modo pessoal` deixa núcleos livres e abre formulário;
 `--modo cluster` usa a máquina toda e nunca abre janela. É detectado sozinho
-(`SLURM_JOB_ID`, ou Linux sem `DISPLAY`) e a variável `BDGD2DSS_MODO` manda
+(`PBS_JOBID`, `SLURM_JOB_ID`, ou Linux sem `DISPLAY`) e a variável `BDGD2DSS_MODO` manda
 mais que a detecção. **O modo não muda nada que seja calculado**: um modelo
 gerado no cluster sai byte a byte igual ao gerado no laptop, e há teste
 travando isso.
@@ -71,15 +93,20 @@ preciso:
 ```bash
 bash cluster/instalar.sh
 python doutor.py                       # autoteste da máquina
-sbatch --array=0-6 cluster/uma_base.sbatch
+BDGD2DSS_BASES=~/bdgds bash cluster/submeter_todas.sh          # mostra o plano
+BDGD2DSS_BASES=~/bdgds bash cluster/submeter_todas.sh --rodar  # submete
 ```
+
+O agendador é o **OpenPBS**. `submeter_todas.sh` monta correntes de jobs com
+`depend=afterany` respeitando dois tetos — núcleos e memória, o menor manda —
+e **sem `--rodar` ele apenas mostra o plano**, sem submeter nada.
 
 Passo a passo em [docs/CLUSTER.md](docs/CLUSTER.md).
 
 ## Uso
 
 ```bash
-pip install -r requisitos.txt          # numpy, pyogrio, opendssdirect, matplotlib
+pip install -r requirements.txt          # numpy, pyogrio, opendssdirect, matplotlib
 pip install pywin32                    # opcional, SO no Windows (ver abaixo)
 
 # a concessão inteira
@@ -318,25 +345,25 @@ modelo nenhum — não é limitação do conversor, é limite do dado, e qualque
 resultado tem de dizer sobre que fração da base ele fala. A cobertura efetiva
 da comparação vai de 53% (Enel SP) a 73% (Cemig-D).
 
-**A perda do modelo não é a perda da rede.** Medido nas sete bases contra o
-`PERD_A4` declarado, depois de corrigidos os achados 26 e 32 e aplicadas as
-duas premissas:
+**A perda do modelo não é a perda da rede — e o declarado não é árbitro.**
+Medido nas sete bases originais contra o `PERD_A4`, quatro pousavam entre 0,74×
+e 0,88×, faixa esperada de um modelo com MT e transformadores e **sem rede
+secundária**; a Enel SP dava 3,19× e a Roraima 2,63×.
 
-| base | razão modelo/declarado |
-|---|---|
-| Equatorial PA | 0,55× |
-| Light | 0,74× |
-| Enel CE | 0,83× |
-| CPFL Paulista | 0,88× |
-| Roraima | 2,63× |
-| Enel SP | 3,19× |
+Estendida às 97, a leitura mudou de natureza. Nas 38 bases com declaração
+original e plausível o viés é de **1,42×** — e ele **sobrevive aos filtros** e
+não cresce com o comprimento do alimentador, o que descarta as explicações
+geométricas. Só que o denominador dessa razão não se sustenta:
 
-Quatro pousam entre 0,74× e 0,88×, que é a faixa esperada de um modelo com MT
-e transformadores e **sem rede secundária**. As duas fora têm causa conhecida e
-não tratada: a Enel SP declara 1,12%, o mais baixo das sete, e a Roraima tem
-duas subestações rurais com cauda de tensão colapsada. Enquanto não houver
-validação contra referência **externa** à BDGD — a perda publicada no Módulo 7,
-por exemplo —, o que se afirma é concordância com o cadastro, não com a rede.
+- **16 bases declaram exatamente 3,89%**, o mesmo valor — é padrão, não medição
+  (achado 9);
+- há **casos fisicamente impossíveis** na declaração (achado 8);
+- em **40 de 81 bases**, o ferro implícito na placa dos próprios
+  transformadores **já excede** a perda técnica declarada (achado 13).
+
+Por isso a v1.0 publica a divergência como **medida, não atribuída**. Enquanto
+não houver referência **externa** à BDGD — a perda do Módulo 7, por exemplo —,
+o que se afirma é discordância com o cadastro, e não erro de nenhum dos lados.
 
 **Parte da rede declarada não é alcançável a partir da cabeceira.** Refazendo a
 conectividade na BDGD crua, sem OpenDSS, o alcance a partir do `PAC_INI` vai de

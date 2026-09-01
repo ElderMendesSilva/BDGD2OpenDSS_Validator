@@ -97,9 +97,9 @@ diz "instalando as bibliotecas"
 if [[ $OFFLINE -eq 1 ]]; then
     # Nos de calculo costumam nao ter internet. Baixe as rodas antes, numa
     # maquina que tenha (o comando esta em docs/CLUSTER.md), e traga a pasta.
-    "$VPY" -m pip install --no-index --find-links cluster/rodas -r requisitos.txt
+    "$VPY" -m pip install --no-index --find-links cluster/rodas -r requirements.txt
 else
-    "$VPY" -m pip install -r requisitos.txt
+    "$VPY" -m pip install -r requirements.txt
 fi
 
 # ------------------------------------------------------- 3. o motor mesmo

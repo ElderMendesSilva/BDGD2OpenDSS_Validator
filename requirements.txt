@@ -1,21 +1,43 @@
-# Conversor BDGD -> OpenDSS
+# Conversor/auditor BDGD -> OpenDSS
 #
-# Versoes sao as usadas na linha de base de 10/08/2026 (MODELOS_V9).
-# O `>=` e proposital: nada aqui depende de versao exata, e travar versao
-# num projeto que vai ser lido por terceiros cria atrito sem ganho.
+#     pip install -r requirements.txt
+#
+# ESTE E O UNICO ARQUIVO DE DEPENDENCIAS. Ate 01/09/2026 havia dois — este e um
+# `requisitos.txt` —, e eles DIVERGIAM: um pedia `reportlab` e nao `openpyxl`,
+# o outro o contrario. O README mandava instalar o que nao era o canonico. Os
+# dois foram fundidos aqui.
+#
+# O `>=` e proposital: nada aqui depende de versao exata, e travar versao num
+# projeto que sera lido por terceiros cria atrito sem ganho. A versao REALMENTE
+# usada em cada rodada fica gravada no `_procedencia.json`, junto com a do
+# motor OpenDSS — que e o que reproduz um resultado, nao este arquivo.
 
-pyogrio>=0.13          # leitura da .gdb; traz o GDAL junto
+# --- obrigatorias: sem elas nada roda ---------------------------------------
 numpy>=1.26
+pyogrio>=0.13          # leitura da .gdb; traz o GDAL embutido nas wheels
 opendssdirect.py>=0.9  # motor DSS C-API
 
-# --- opcionais, por funcionalidade -----------------------------------------
-matplotlib>=3.8        # graficos do analise_com, verifica, energia, valida_perdas
-pywin32>=306           # motor COM da EPRI (so Windows) — usado por
-                       # analise_com.py, painel.py e pelo verifica --motor com
+# `pyogrio` nao precisa de GDAL do sistema. Se nao houver wheel para a
+# arquitetura do no, `conda install -c conda-forge pyogrio` resolve sem
+# compilar nada.
+
+# --- opcionais, por funcionalidade ------------------------------------------
+# A ferramenta funciona sem estas; o `doutor.py` avisa em vez de quebrar.
+matplotlib>=3.8        # graficos de verifica, energia e valida_perdas
 openpyxl>=3.1          # planilhas da transmissora (--excel)
+reportlab>=4.0         # PDF de analise/relatorio_estudo.py
+
+# NAO INSTALE `pywin32` EM LINUX: o motor COM da EPRI so existe registrado no
+# Windows, e la o `pip install` simplesmente falha. O `verifica` cai sozinho
+# para o `opendssdirect` quando o COM falta, dizendo no rodape que comparou um
+# motor so — nenhum resultado do projeto depende dele.
+#
+#     pip install pywin32        # apenas no Windows, apenas para o COM
 
 # --- desenvolvimento --------------------------------------------------------
-# Os testes rodam com o `unittest` da biblioteca padrao, de proposito:
-#     python -m unittest discover -s testes -t testes -v
-# Nao ha dependencia de teste a instalar. O fixture e gerado com pyogrio,
-# que ja e exigido acima.
+# Nao ha dependencia de teste a instalar. A suite roda com o `unittest` da
+# biblioteca padrao, de proposito:
+#
+#     python -m unittest discover -s testes -q
+#
+# O fixture e gerado com pyogrio, que ja e exigido acima.

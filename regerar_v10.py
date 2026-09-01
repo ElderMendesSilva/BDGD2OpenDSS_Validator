@@ -380,7 +380,15 @@ def procedencia():
             commit, origem = de_fora, 'submissao'
             descricao = descricao or os.environ.get('BDGD2DSS_DESCRICAO', '')
 
-    return {'commit': commit,
+    # A VERSAO DA ENTREGA, ao lado do commit. O commit identifica o codigo
+    # para quem tem o repositorio; a versao identifica a ENTREGA para quem leu
+    # o artigo e quer saber se esta olhando a mesma coisa.
+    try:
+        from bdgd2dss import __version__ as _versao
+    except Exception:                                            # noqa: BLE001
+        _versao = None
+    return {'versao': _versao,
+            'commit': commit,
             'commit_origem': origem if commit else 'ausente',
             'descricao': descricao,
             # None NAO e False. `False` afirma "conferi e a arvore esta

@@ -7,7 +7,7 @@ começo** — mover depois quebra caminho que alguém já escreveu.
 
 | pasta | o que vai nela |
 |---|---|
-| **raiz** | só os `.py` executáveis (`converter.py`, `verifica.py`, `energia.py`, `validador.py`, `valida_*.py`, `ampacidade.py`, `ligacao.py`, `regerar_v10.py`, `decompor.py`, `menu.py`, `painel.py`, `app.py`), o `README.md` e o `requirements.txt` |
+| **raiz** | só os `.py` executáveis (`converter.py`, `verifica.py`, `energia.py`, `validador.py`, `valida_*.py`, `ampacidade.py`, `ligacao.py`, `regerar_v10.py`, `decompor.py`, `menu.py`, `painel.py`, `app.py`), o `README.md`, o `CHANGELOG.md` e o `requirements.txt` |
 | **`docs/`** | todo `.md` que não seja o `README.md` — achados, planos, relatórios, respostas |
 | **`logs/`** | log de execução. A regeração escreve em `logs/<sufixo>/`: `logs/v13/`, `logs/v14/`… Log solto de script avulso fica em `logs/` mesmo |
 | **`medicoes/`** | JSON de medição avulsa: alcance, censo de condutor, e o que mais sair de script de diagnóstico |
@@ -24,7 +24,9 @@ começo** — mover depois quebra caminho que alguém já escreveu.
   `ligacao.json`, `relatorio_rede.json`, `_procedencia.json` e os `.dss` por
   caminho relativo à pasta da subestação. Mover um deles quebra a cadeia
   inteira.
-- **`requirements.txt` e `README.md`**, que ficam na raiz por convenção.
+- **`requirements.txt`, `README.md` e `CHANGELOG.md`**, que ficam na raiz
+  por convenção. O `CHANGELOG` declara o que cada versão NAO faz, e é a
+  primeira coisa que alguém de fora lê depois do README.
 - **`dados/de_para_mnemonicos.csv`**, lido pelo `converter.py` por caminho
   fixo — é insumo, não resultado, e por isso entra no repositório.
 

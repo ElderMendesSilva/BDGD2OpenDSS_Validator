@@ -50,7 +50,7 @@ def bibliotecas():
             falta.append(f'{nome} ({para_que}): {type(e).__name__}')
     if falta:
         return _linha(ERRO, 'bibliotecas obrigatorias',
-                      '; '.join(falta) + '\n         pip install -r requisitos.txt')
+                      '; '.join(falta) + '\n         pip install -r requirements.txt')
     estado = OK
     try:
         __import__('matplotlib')

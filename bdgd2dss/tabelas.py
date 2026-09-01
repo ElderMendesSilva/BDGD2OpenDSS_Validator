@@ -72,7 +72,7 @@ def censo(bdgd, log=None):
         ausentes = [t for t, d in out.items() if not d['registros']]
         # AS PARTES SAEM ANTES DO f-STRING, e nao dentro dele. Expressao de
         # f-string que quebra linha so passou a ser valida no Python 3.12
-        # (PEP 701); o `requisitos.txt` declara 3.9+ e o no do cluster tem
+        # (PEP 701); o `requirements.txt` declara 3.9+ e o no do cluster tem
         # 3.11.4, onde este modulo nao COMPILAVA — e como `converter.py` o
         # importa no topo, a ferramenta inteira morria no import, em qualquer
         # base, antes de ler um byte. Custou um job de diagnostico inteiro.
