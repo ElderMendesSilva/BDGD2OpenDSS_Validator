@@ -295,6 +295,37 @@ def sufixo_com_bt(sufixo, bt):
     return sufixo if bt == 'agregado' else f'{sufixo}_bt{bt}'
 
 
+def _versao_do_motor():
+    """A versao do OpenDSS que resolveu estes modelos, e a das dependencias.
+
+    POR QUE ISTO ENTRA NA PROCEDENCIA. Enquanto houve uma safra so, saber o
+    commit bastava: o codigo era a unica coisa que mudava entre duas rodadas.
+    Com a safra 2025 ao lado da 2024 a comparacao passa a ser o resultado, e ai
+    o motor deixa de ser cenario — resultado de fluxo de potencia depende da
+    versao dele. Comparar 2024 com 2025 sem saber se o OpenDSS mudou no meio e
+    atribuir ao dado uma diferenca que pode ser do solver.
+
+    Nao pode derrubar a rodada: tudo aqui e best-effort, e o que nao responder
+    vira `None` — que se le como "nao verificado", diferente de "igual".
+    """
+    v = {}
+    try:
+        import opendssdirect as dss
+        v['opendssdirect'] = getattr(dss, '__version__', None)
+        # A string do motor traz versao, revisao e build. E longa e feia, e e
+        # exatamente por isso que serve: identifica a biblioteca sem ambiguidade.
+        v['opendss_motor'] = str(dss.Basic.Version())
+    except Exception:                                            # noqa: BLE001
+        v['opendssdirect'] = v.get('opendssdirect')
+        v['opendss_motor'] = v.get('opendss_motor')
+    for mod in ('numpy', 'pyogrio'):
+        try:
+            v[mod] = getattr(__import__(mod), '__version__', None)
+        except Exception:                                        # noqa: BLE001
+            v[mod] = None
+    return v
+
+
 def procedencia():
     """De qual codigo estes modelos sairam.
 
@@ -359,6 +390,10 @@ def procedencia():
             'sujo': bool(status) if ok_status else None,
             'git_respondeu': bool(ok_commit and ok_status),
             'python': sys.version.split()[0],
+            # O COMMIT NAO COBRE O MOTOR. Ver `_versao_do_motor`: para comparar
+            # duas safras, saber que o codigo era o mesmo nao basta se o
+            # OpenDSS por baixo mudou.
+            'versoes': _versao_do_motor(),
             'gerado_em': time.strftime('%Y-%m-%d %H:%M:%S')}
 
 

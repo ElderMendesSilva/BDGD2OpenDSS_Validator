@@ -300,5 +300,44 @@ class ProcedenciaNaoMenteQuandoNaoSabe(unittest.TestCase):
         self.assertEqual(p['commit_origem'], 'ausente')
 
 
+class OMotorEntraNaProcedencia(unittest.TestCase):
+    """O commit nao cobre o OpenDSS, e a safra 2025 faz isso importar.
+
+    Enquanto houve uma safra so, saber o commit bastava: o codigo era a unica
+    coisa que mudava entre duas rodadas. Comparando 2024 com 2025 o resultado
+    passa a ser a medida, e resultado de fluxo de potencia depende da versao do
+    solver — atribuir ao dado uma diferenca que pode ser do motor invalidaria a
+    comparacao inteira.
+    """
+
+    def test_a_versao_do_motor_e_das_dependencias_sai_na_procedencia(self):
+        v = rg.procedencia()['versoes']
+        self.assertIn('opendss_motor', v)
+        self.assertTrue(v['opendss_motor'],
+                        'a string do motor nao pode vir vazia com o pacote '
+                        'instalado')
+        for mod in ('numpy', 'pyogrio', 'opendssdirect'):
+            self.assertIn(mod, v)
+
+    def test_dependencia_ausente_vira_None_e_nao_derruba(self):
+        """`None` le-se "nao verificado", que e diferente de "igual" — e uma
+        rodada nao pode morrer porque um opcional faltou."""
+        import builtins
+        alvo = builtins.__import__
+
+        def explode(nome, *a, **k):
+            if nome in ('numpy', 'pyogrio', 'opendssdirect'):
+                raise ImportError(nome)
+            return alvo(nome, *a, **k)
+
+        builtins.__import__ = explode
+        try:
+            v = rg._versao_do_motor()
+        finally:
+            builtins.__import__ = alvo
+        self.assertIsNone(v['numpy'])
+        self.assertIsNone(v['pyogrio'])
+
+
 if __name__ == '__main__':
     unittest.main()
