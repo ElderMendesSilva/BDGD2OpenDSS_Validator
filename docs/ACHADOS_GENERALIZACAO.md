@@ -570,6 +570,56 @@ O diagnóstico foi estendido para contar **componentes conexas por subestação*
 Uma SE radial sadia tem uma; milhares significam rede declarada em pedaços.
 Falta rodar.
 
+### 15. A fragmentação está na BDGD, e o grau dela prevê a do modelo
+
+Medido em 31/08 nas 97 bases, montando o grafo de conectividade **por
+subestação** com as quatro camadas que o `converter` emite — SSDMT, UNSEMT
+(chaves), UNREMT (reguladores) e UNTRMT.
+
+**A correção importava.** Contando só a SSDMT, a mediana nacional dava 384
+componentes por subestação e a CEREJ5352 — que tem ZERO ramos isolados no
+modelo — aparecia com 42. Com as quatro camadas a mediana cai para **4**, e a
+CEREJ5352 para **1**. Chaves e transformadores costuram a rede, e medir sem
+eles media uma rede que nunca foi construída.
+
+| base | componentes/SE | máx | SEs fragmentadas | isolados/km no modelo |
+|---|---:|---:|---:|---:|
+| CEREJ5352 | **1** | 3 | 17% | 0,00 |
+| CASTRODIS11825 | **1** | 4 | 20% | 0,00 |
+| CMIG | 5 | 1.844 | 87% | — |
+| EDP_SP391 | 8 | 19 | 94% | 26,45 |
+| **Light** | **28** | 156 | **100%** | **45,84** |
+
+**E o grau prevê o resultado.** Agrupando as 96 bases pela fragmentação medida
+na BDGD, contra os ramos isolados por km que o modelo produz:
+
+| componentes/SE na BDGD | bases | isolados/km no modelo |
+|---|---:|---:|
+| 1 (conexa) | 26 | **0,02** |
+| 2 a 3 | 20 | 0,05 |
+| 4 a 9 | 40 | 0,21 |
+| 10 ou mais | 10 | 0,19 |
+
+Correlação de postos de **0,61**. Uma base cuja BDGD declara subestações
+conexas produz modelo praticamente sem ramo isolado; uma que declara em pedaços
+produz modelo fragmentado, na mesma ordem.
+
+**Conclusão: a fragmentação não é defeito do conversor.** Ela está no dado de
+origem, e o conversor a reproduz. Apenas **27 das 97 bases** declaram uma
+subestação mediana eletricamente conexa; nas demais, a BDGD publica pedaços de
+rede que não se tocam por nenhuma das quatro camadas.
+
+**O que isso resolve e o que não resolve.** Resolve a pergunta de quem é o
+problema — e fecha o achado 12, que só sabia dizer que variava por
+distribuidora. Não resolve o `--bt completo`: se a rede vem partida da origem,
+modelar a baixa sobre ela continua inviável, e a limitação passa a ser de dado,
+não de código.
+
+**Ressalva:** a correlação é 0,61, não 0,9. Há bases conexas com algum ramo
+isolado e bases fragmentadas com poucos — então há outro fator em jogo, ainda
+não identificado. E o grupo de "10 ou mais" tem mediana menor que o de "4 a 9",
+o que a amostra de 10 não permite tratar como inversão real.
+
 ## Validação externa e contaminação
 
 A âncora nacional de 7,4% de perda técnica total da ANEEL é apenas um teste de
