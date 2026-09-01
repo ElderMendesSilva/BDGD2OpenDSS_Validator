@@ -592,6 +592,15 @@ Falta rodar.
 
 ### 15. A fragmentação está na BDGD, e o grau dela prevê a do modelo
 
+> **REVERTIDO PELO ACHADO 20 (01/09/2026).** A métrica usada aqui —
+> `componentes por subestação` — mede a rede junto com o número de
+> alimentadores por subestação e com o critério de agrupamento da base (achados
+> 19 e 19b). Trocada pelo alcance a partir da cabeceira, que não tem esses
+> vieses, a rede declarada aparece **99,92% conexa** e a correlação com a
+> fragmentação do modelo **desaparece**. A conclusão abaixo está errada no
+> ponto principal: a fragmentação é do conversor, não do dado. O texto fica
+> como registro do erro.
+
 Medido em 31/08 nas 97 bases, montando o grafo de conectividade **por
 subestação** com as quatro camadas que o `converter` emite — SSDMT, UNSEMT
 (chaves), UNREMT (reguladores) e UNTRMT.
@@ -868,6 +877,60 @@ dos alimentadores integros — e o modelo dessa base roda com 7 de 7 subestacoes
 `OK` e 0,12% de trechos isolados.
 
 
+
+### 20. A rede declarada E alcancavel — a fragmentacao e NOSSA
+
+Medido em 01/09/2026 nas 97 bases de 2024 e nas 99 de 2025, com a medida
+robusta do achado 19b. **Este achado reverte a conclusao do achado 15.**
+
+**O alcance mediano nacional a partir da cabeceira e 99,92%.** A rede que a
+BDGD declara e, para todos os efeitos, conexa: partindo do `CTMT.PAC_INI` de
+cada alimentador e caminhando pelas quatro camadas, chega-se a
+praticamente todos os trechos dele.
+
+E o modelo, sobre essa mesma rede, perde um quarto:
+
+| base | alcance na BDGD | trechos isolados no MODELO |
+|---|---:|---:|
+| CHESP103 | **99,92%** | **88,77%** |
+| CERSUL5368 | 99,86% | 82,15% |
+| **Light** | **100,00%** | **73,87%** |
+| EQUATORIAL37 | 100,00% | 71,12% |
+| EDP_SP391 | 100,00% | 66,20% |
+
+**A correlacao entre as duas medidas e −0,205** — nula. Das **57 bases com
+alcance acima de 99,9%**, **18 produzem modelo com mais de 20% de trechos
+isolados**.
+
+**O que isso derruba.** O achado 15 concluiu que "a fragmentacao esta na BDGD e
+o grau dela preve a do modelo", com correlacao de 0,45 contra
+`componentes/SE`. O achado 19b mostrou que aquela metrica media, em boa parte,
+o numero de alimentadores por subestacao — topologia normal — e o criterio de
+agrupamento da base. Trocada por uma medida que nao tem esses vieses, **a
+correlacao desaparece e o sinal inverte de dono**: a rede vem inteira e o
+modelo a quebra.
+
+**A hipotese, concreta e verificavel.** O modelo e montado por SUBESTACAO e a
+fonte fica na barra dela. Cada alimentador e internamente conexo — o alcance
+prova isso —, mas precisa estar ligado a barra da SE pelo `PAC_INI`, atraves do
+transformador de AT. Se essa ligacao nao e emitida para um alimentador, ele
+inteiro fica isolado no modelo, intacto e sem tensao. Isso explicaria por que os
+ramos isolados vem em blocos grandes e por que nao correlacionam com nada da
+BDGD.
+
+**O que isso NAO muda:** o achado 16 continua valendo como MEDIDA — 25,70% dos
+trechos modelados nao chegam a fonte, e isso e fato do nosso modelo. O que muda
+e a ATRIBUICAO: a causa nao esta no dado de origem.
+
+**Consequencia para o produto.** A `--bt completo` nao e inviavel por dado
+partido, e o criterio de entrada do achado 17 (componentes/SE <= 3) nao tem
+fundamento. Ha um defeito de conversao afetando um quarto da rede modelada do
+pais, e ele e a prioridade — acima da safra 2025 e acima da validacao externa.
+
+**Ressalva honesta:** o alcance mede conectividade nas quatro camadas de MT.
+Ele nao prova que o `.dss` emitido deveria ser conexo — o conversor faz
+recortes legitimos. Mas 100% de alcance com 73,87% de isolamento e uma
+distancia que nenhum recorte legitimo explica.
 
 ## Validação externa e contaminação
 
