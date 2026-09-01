@@ -1,21 +1,30 @@
 # Achados de generalização — síntese
 
-**Corte:** 27/08/2026. Este arquivo conserva conclusões, evidências e ações.
-O histórico de hipóteses, experimentos intermediários e números de cada rodada
-permanece no Git.
+**Corte:** 01/09/2026. Este arquivo conserva **conclusões, evidências e
+números**; hipóteses intermediárias e o detalhe de cada rodada ficam no Git.
+
+Dezessete achados, medidos sobre 97 distribuidoras e 4.201 subestações. Onde
+uma conclusão minha caiu no teste seguinte, a correção está **dentro do próprio
+achado**, com o número velho visível — quatro delas caíram, e isso é parte do
+resultado.
 
 ## O que o projeto demonstrou
 
 - A BDGD padroniza o **formato**, não a qualidade nem a semântica local do
   preenchimento. O conversor precisa inferir e auditar por concessão.
-- Validar somente compilação, convergência ou ausência de `NaN` não basta:
-  redes fisicamente implausíveis podem convergir. A validação deve incluir
-  tensão, ampacidade, cobertura e balanço de energia.
-- O modelo agregado de BT é útil para estudos de MT; `--bt completo` ainda não
-  é uma base confiável para perdas ou otimização na baixa tensão.
+- Validar compilação, convergência ou ausência de `NaN` **não basta**: redes
+  fisicamente implausíveis convergem. A validação inclui tensão, ampacidade,
+  cobertura e balanço de energia (achado 1).
+- **Um quarto da rede modelada do país não chega eletricamente à fonte** —
+  25,70% dos trechos —, e a causa está no dado de origem, não no conversor
+  (achados 15 e 16).
+- **A perda declarada pela distribuidora não serve de árbitro.** Ela tem casos
+  fisicamente impossíveis (achado 8), um quinto das bases repete um valor
+  padrão (achado 9) e em 40 de 81 bases ela é menor que o ferro dos próprios
+  transformadores declarados (achado 13).
 - A comparação agregada é frágil quando poucos alimentadores implausíveis
-  dominam a perda. Sempre publicar agregado, mediana, corte de sensibilidade e
-  a parcela contaminada.
+  dominam a perda. Publicar sempre agregado, mediana, corte de sensibilidade e
+  parcela contaminada.
 
 ## Correções incorporadas
 
@@ -25,26 +34,29 @@ permanece no Git.
 | AT e fontes | A malha de AT, fontes e barras são modeladas por topologia e nível de tensão; evitar uma fonte fixa de 88 kV e nomes de pátio tratados como barra. |
 | Transformadores | Respeitar fases reais dos enrolamentos; um primário bifásico não pode ser escrito como trifásico. |
 | Chaves e reguladores | Emitir elementos conectados à rede, preservar o estado aberto e manter reguladores entre chaves no modelo. |
+| Nomes de elemento | O nome leva a camada: `COD_ID` é único DENTRO da tabela, não entre tabelas (achado 4). |
 | Leitura e escala | Ler tabelas grandes por fatias/lotes, tratar `dtype` heterogêneo e rejeitar comprimentos nulos antes de gerar DSS. |
 | Execução | Ordenar subestações maiores primeiro, retomar etapas concluídas e manter a saída determinística entre laptop e cluster. |
 
 ## Limitações e fatos de dado relevantes
 
-- **Enel SP:** o condutor 593 e, em geral, incoerência entre condutor e uso
-  explicam grande parte da perda impossível. É um problema de cadastro/uso que
-  deve ser marcado, não escondido no agregado.
-- **Cemig-D:** há diferença importante ainda não explicada; o desvio não deve
-  ser atribuído ao conversor sem evidência adicional.
-- **CPFL e Equatorial:** códigos de tensão e redes de níveis misturados podem
-  criar alimentadores com tensão incorreta. A correção exige evidência do
-  cadastro, não substituição automática por um padrão.
+- **`--bt completo`:** a limitação deixou de ser "não roda nas grandes" e passou
+  a ser **delimitável**. O critério de entrada é medido antes de simular —
+  componentes por subestação na BDGD ≤ 3 —, e por ele a Enel SP tem 150 de 155
+  subestações elegíveis e a Cemig 163 de 412 (achados 16 e 17). Falta provar
+  que as elegíveis rodam: o critério prevê fragmentação, e escala é outra
+  coisa. Até lá, não usar seus números como resultado de produção.
+- **Enel SP:** o condutor 593 e, em geral, a incoerência entre condutor e uso
+  explicam grande parte da perda impossível. É problema de cadastro, que deve
+  ser marcado e não escondido no agregado.
+- **Cemig-D:** o desvio agregado segue sem explicação completa e não deve ser
+  atribuído ao conversor sem evidência. A base é **bimodal** em fragmentação
+  (achado 17), o que é parte da resposta, não toda ela.
+- **CPFL e Equatorial:** códigos de tensão e níveis misturados podem criar
+  alimentadores com tensão incorreta. Corrigir exige evidência do cadastro, não
+  substituição por um padrão.
 - **Premissa de ligação:** pode energizar uma componente, mas só é aceitável se
-  não introduzir perda, corrente ou tensão implausíveis. Convergir não é prova
-  de validade física.
-- **BT completa:** continua em diagnóstico, mas o diagnóstico mudou de lugar —
-  ver o achado 3 abaixo. Funciona em bases pequenas; falha por convergência
-  acima de ~1 milhão de UCs. Não usar seus números de perda, cobertura ou
-  tensão como resultado de produção.
+  não introduzir perda, corrente ou tensão implausíveis.
 
 ## Achados de 28–29/08/2026
 
@@ -450,6 +462,13 @@ em todo o país. Nem toda tabela da BDGD tem o mesmo problema.
 
 ### 12. A fragmentação é característica POR DISTRIBUIDORA, e a Light é o extremo
 
+> **Encerrado pelos achados 15 e 16.** Este achado sabia dizer que a
+> fragmentação variava por distribuidora, não de onde vinha nem quanto valia.
+> O 15 mostrou que está na BDGD e o 16 lhe deu denominador adimensional. A
+> medida por km usada aqui não estava errada — correlação de 0,975 com a
+> definitiva —, mas "45,8 isolados por km" não diz se é muito, e "73,87% dos
+> trechos" diz.
+
 Investigado em 30/08 sobre a V24, seguindo o achado 3 (a BT completa falha por
 fragmentação, e ela já existe na MT).
 
@@ -724,20 +743,24 @@ de UCs. Isso e rodada, nao leitura de tabela.
 
 ## Validação externa e contaminação
 
-A âncora nacional de 7,4% de perda técnica total da ANEEL é apenas um teste de
-reprovação: como o modelo agregado não contém a BT, ultrapassá-la é evidência
-de problema; ficar abaixo não prova acerto. A validação preferida é o balanço
-de energia medido por alimentador, acompanhado da cobertura e da classificação
-de casos degenerados/implausíveis.
+A âncora nacional de 7,4% de perda técnica total da ANEEL é apenas um **teste
+de reprovação**: como o modelo agregado não contém a BT, ultrapassá-la é
+evidência de problema; ficar abaixo não prova acerto. A validação preferida é o
+balanço de energia medido por alimentador, com cobertura e classificação de
+casos degenerados.
 
-Na V22, as sete bases que reprovavam a âncora ficaram entre **2,64% e 8,93%**
-após retirar alimentadores implausíveis. A conclusão é que o alvo de análise é
-o conjunto de alimentadores contaminantes, não “consertar” bases inteiras.
+Na V25, **7 das 97 bases** reprovam a âncora, e a contaminação passa de 10% em
+16 delas. O alvo de análise é o conjunto de alimentadores contaminantes, não
+"consertar" bases inteiras.
 
-## Próxima investigação técnica
+**Mas a validação externa por distribuidora virou necessária, e não opcional.**
+Os achados 8, 9 e 13 mostraram que o `PERD_*` declarado não fecha nem consigo
+mesmo, então o viés de 1,42× entre nossa perda e a dele fica sem juiz. Enquanto
+não houver referência de fora, esse número é uma divergência medida — não um
+erro atribuído.
 
-1. Importar e analisar `resultados/v22/` localmente.
-2. Explicar os alimentadores implausíveis apontados nos CSVs de violação.
-3. Medir as 21 bases pequenas que fecharam ciclo pela primeira vez.
-4. Corrigir a BT completa antes de usar qualquer métrica de baixa tensão.
-5. Obter referência externa por distribuidora para completar a validação.
+## O que vem depois
+
+A fila de trabalho está em `PLANO.md`, com a ordem e o motivo de cada item.
+Em resumo: fechar a entrada da safra 2025 sem misturar safras, provar que as
+subestações elegíveis do achado 17 rodam de fato, e obter a referência externa.
