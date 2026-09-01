@@ -678,6 +678,50 @@ pendurada num trecho isolado não recebe tensão qualquer que seja o esforço de
 cálculo. A viabilidade passa a ter um critério de entrada barato e mensurável
 antes de simular: componentes por subestação na BDGD ≤ 3.
 
+### 17. A Enel SP sempre coube; a Cemig cabe em 40%
+
+Medido em 01/09/2026, aplicando o criterio do achado 16 subestacao a
+subestacao nas duas maiores bases onde a `--bt completo` era dada como
+inviavel.
+
+| base | SEs | elegiveis (<=3 componentes) | % | pior SE |
+|---|---:|---:|---:|---:|
+| **Enel SP** | 155 | **150** | **96,8%** | 15 |
+| **Cemig** | 412 | **163** | 39,6% | 1.844 |
+
+**A distribuicao, que a mediana escondia:**
+
+| componentes/SE | Enel SP | Cemig |
+|---|---:|---:|
+| 1 (conexa) | **136** | 55 |
+| 2 a 3 | 14 | 108 |
+| 4 a 9 | 4 | 174 |
+| 10 a 99 | 1 | 70 |
+| 100 ou mais | 0 | **5** |
+
+**A Enel SP nunca foi um caso perdido.** 136 das 155 subestacoes dela sao
+eletricamente conexas na BDGD, e 150 passam no criterio. A hipotese de 26/08
+a classificava como limitrofe por ter 632 m de BT por transformador; o achado
+16 mostra que o previsor era outro, e por ele ela e a base grande mais sadia
+que temos.
+
+**E a Cemig nao e uniformemente ruim, e sim BIMODAL.** Cinco subestacoes com
+mais de cem componentes — uma com 1.844 — puxavam a mediana da base inteira
+para 5 e a reprovavam por atacado. Separadas essas, 163 subestacoes passam no
+mesmo criterio que a Enel SP.
+
+**O que isto muda no produto.** A pergunta deixa de ser "esta base aguenta
+baixa tensao completa?", que so admite sim ou nao, e passa a ser "que parte da
+concessao aguenta?" — respondida antes de simular, lendo a `.gdb`. A limitacao
+declarada deixa de ser *"a BT completa nao roda nas grandes"* e passa a ser
+*"a BT completa roda na parte da rede que a BDGD declara conexa, e essa parte
+e mensuravel: 96,8% da Enel SP, 39,6% da Cemig"*.
+
+**O que ainda nao esta medido:** que as elegiveis de fato rodem. O criterio
+preve fragmentacao do modelo, e fragmentacao era a causa suspeita do fracasso
+da BT — mas escala e custo sao outra coisa, e as 150 da Enel SP somam milhoes
+de UCs. Isso e rodada, nao leitura de tabela.
+
 ## Validação externa e contaminação
 
 A âncora nacional de 7,4% de perda técnica total da ANEEL é apenas um teste de
