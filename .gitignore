@@ -70,6 +70,11 @@ __pycache__/
 # primeira vez que uma base foi posta dentro da pasta do projeto.
 BDGDs/
 *.gdb/
+# ...MENOS a BDGD minima dos testes, que tem 354 KB e E CODIGO: sem ela o
+# `test_ciclo_completo` nao roda na outra maquina nem no cluster. A regra
+# acima existe por TAMANHO, e esta nao tem o problema que ela evita.
+!testes/bdgd_minima.gdb/
+!testes/bdgd_minima.gdb/**
 
 # O ambiente virtual. Nao estava aqui, e por isso um `git stash -u` no no do
 # cluster levou o `.venv/` inteiro junto com as alteracoes — o ambiente sumiu e

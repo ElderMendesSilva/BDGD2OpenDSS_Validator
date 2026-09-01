@@ -343,7 +343,13 @@ def reguladores(bdgd, ctmts, caminho, kv=13.8, kv_por_ctmt=None,
         col = bdgd.ler_filtrado('UNREMT', 'CTMT', ctmts,
                                 ['COD_ID', 'PAC_1', 'PAC_2', 'CTMT', 'FAS_CON'])
     except Exception:
-        escrita.escreve(caminho, '! UNREMT indisponivel\n'); return 0
+        # DUAS SAIDAS, MESMA FORMA. Este ramo devolvia `0` enquanto o normal
+        # devolve `(n, pendurados)`, e o chamador desempacota — base sem UNREMT
+        # derrubava a conversao inteira com `TypeError: cannot unpack
+        # non-iterable int object`. Nunca apareceu porque as 97 bases tem
+        # UNREMT; apareceria na primeira que nao tivesse.
+        escrita.escreve(caminho, '! UNREMT indisponivel\n')
+        return 0, []
     # A BDGD TRAZ A POTENCIA E O AJUSTE, e ate aqui nao eram lidos. O
     # comentario que este bloco substitui dizia que a BDGD nao traz a
     # potencia do regulador; ela traz, na EQRE, e o campo e CODIGO e nao

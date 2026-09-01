@@ -50,6 +50,26 @@ def _mes(v):
     return {f'ENE_{i:02d}': np.array(v, dtype=float) for i in range(1, 13)}
 
 
+def _curva(pico=1.6, vale=0.5):
+    """Uma CRVCRG: 96 pontos de 15 min, com vale de madrugada e pico a noite.
+
+    A FORMA IMPORTA POUCO, a existencia importa muito. O conversor normaliza
+    cada curva pela propria media, entao o que muda o resultado e o PERFIL, nao
+    a escala. O que nao pode e a curva faltar: sem `CRVCRG` o conversor para na
+    escrita do `Curvas.dss`, e foi assim que a `.gdb` minima ficou incapaz de
+    exercitar o ciclo completo — os testes de modulo nunca chegavam ate ali.
+    """
+    import math
+    v = []
+    for k in range(96):
+        h = k / 4.0
+        # vale as 4h, pico as 19h
+        x = vale + (pico - vale) * (0.5 + 0.5 * math.cos((h - 19.0)
+                                                         * math.pi / 12.0))
+        v.append(round(x, 4))
+    return v
+
+
 def tabelas():
     """As tabelas da BDGD minima, como dicionarios de arrays."""
     s = lambda *v: np.array(v, dtype=object)      # noqa: E731  (coluna de texto)
@@ -94,6 +114,20 @@ def tabelas():
             'TIP_CND': s('C1', 'C3', 'C2', 'C4'),
             'COMP': f(120.0, 80.0, 300.0, 500.0),
             'FAS_CON': s('ABC', 'ABC', 'ABC', 'ABC'),
+        },
+        # UMA CHAVE, porque `UNSEMT` e lida SEM `try` — base sem ela nao
+        # converte. Fechada e tocando a rede nas duas pontas: e o caso normal,
+        # e e o que costura S1-S2 em uma componente so. `UNREMT` e `UNCRMT`
+        # sao opcionais e ficam de fora.
+        'UNSEMT': {
+            'COD_ID': s('CHM1',),
+            'PAC_1': s('B2',),
+            'PAC_2': s('B3',),
+            'CTMT': s('F1',),
+            'FAS_CON': s('ABC',),
+            'P_N_OPE': s('F',),
+            'COR_NOM': f(400.0),
+            'TIP_UNID': s('35',),
         },
         'UNTRMT': {
             'COD_ID': s('TR1', 'TR2', 'TR3', 'TR4'),
@@ -146,6 +180,54 @@ def tabelas():
             'PAC': s('B3', 'B11'),
             'TIP_CC': s('MT', 'MT'),
             **_mes([100.0, 50.0]),              # 1.200 | 600
+        },
+        # AS CURVAS DE CARGA, sem as quais o ciclo nao fecha. `COD_ID` casa
+        # com o `TIP_CC` das UCs — aqui 'BT' e 'MT' —, e os tres tipos de dia
+        # existem porque o conversor aceita `--dia DU|SA|DO` e cada um le o
+        # seu. Faltando o tipo pedido, a rede sai sem LoadShape e a simulacao
+        # diaria mede outra coisa.
+        'CRVCRG': {
+            'COD_ID': s('BT', 'MT', 'BT', 'MT', 'BT', 'MT'),
+            'TIP_DIA': s('DU', 'DU', 'SA', 'SA', 'DO', 'DO'),
+            **{f'POT_{i:02d}': f(*(c[i - 1] for c in (
+                _curva(1.7, 0.45), _curva(1.3, 0.7),
+                _curva(1.5, 0.5), _curva(1.2, 0.75),
+                _curva(1.4, 0.55), _curva(1.15, 0.8))))
+               for i in range(1, 97)},
+        },
+        # A SUBTRANSMISSAO, so o obrigatorio. `SSDAT`, `UNSEAT` e `CTAT` sao
+        # lidas sem `try` — faltando qualquer uma o conversor para. Ja
+        # `EQTRAT`, `UCAT_tab`, `UGAT_tab` e `UNCRAT` sao opcionais de
+        # proposito, e ficam de fora: o fixture cobre o CAMINHO, nao o catalogo.
+        'SSDAT': {
+            'COD_ID': s('A1', 'A2'),
+            'PAC_1': s('PS1', 'PA1'),
+            'PAC_2': s('PA1', 'PA2'),
+            'CTAT': s('LT1', 'LT1'),
+            'FAS_CON': s('ABC', 'ABC'),
+            'TIP_CND': s('C1', 'C1'),
+            'COMP': f(5000.0, 3000.0),
+        },
+        'UNSEAT': {
+            'COD_ID': s('CH1',),
+            'PAC_1': s('PA1',),
+            'PAC_2': s('PA2',),
+            'FAS_CON': s('ABC',),
+            'P_N_OPE': s('F',),          # fechada
+            'SUB': s('SE1',),
+            'SIT_ATIV': s('AT',),
+        },
+        'CTAT': {
+            'COD_ID': s('LT1',),
+            'NOME': s('LT SE1 88kV',),
+            'TEN_NOM': s('84',),
+            'PAC_INI': s('PS1',),
+        },
+        # A DISTRIBUIDORA VEM DECLARADA, e nao inferida do nome do arquivo. O
+        # `clima.py` usa este campo para achar o cache — por DIST, nao por tag.
+        'BASE': {
+            'COD_ID': s('B1',),
+            'DIST': s('9999',),
         },
         'UNTRAT': {
             'COD_ID': s('T1', 'T2'),
