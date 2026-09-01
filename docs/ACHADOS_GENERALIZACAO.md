@@ -463,6 +463,10 @@ em todo o país. Nem toda tabela da BDGD tem o mesmo problema.
 
 ### 12. A fragmentação é característica POR DISTRIBUIDORA, e a Light é o extremo
 
+> **REVERTIDO PELO ACHADO 21 (01/09/2026).** O que variava por
+> distribuidora era, sobretudo, quantas subestações de cada base têm duas
+> barras de MT.
+
 > **Encerrado pelos achados 15 e 16.** Este achado sabia dizer que a
 > fragmentação variava por distribuidora, não de onde vinha nem quanto valia.
 > O 15 mostrou que está na BDGD e o 16 lhe deu denominador adimensional. A
@@ -659,6 +663,12 @@ não identificado. E o grupo de "10 ou mais" tem mediana menor que o de "4 a 9",
 o que a amostra de 10 não permite tratar como inversão real.
 
 ### 16. Um quarto da rede modelada do país não chega à fonte
+
+> **REVERTIDO PELO ACHADO 21 (01/09/2026).** O numerador vinha de
+> `Topology.AllIsolatedBranches()`, que reporta como isolada toda a rede
+> alimentada pela segunda fonte de uma subestação — energizada e
+> funcionando. Medido por tensão, o isolamento real da pior subestação da
+> Light é **0,34%**, não 80%. Os 25,70% não existem.
 
 Medido em 01/09/2026 nas 97 bases da V25, com o denominador que faltava.
 
@@ -880,6 +890,11 @@ dos alimentadores integros — e o modelo dessa base roda com 7 de 7 subestacoes
 
 ### 20. A rede declarada E alcancavel — a fragmentacao e NOSSA
 
+> **CORRIGIDO PELO ACHADO 21 (01/09/2026).** A parte medida continua
+> válida — a rede declarada é 99,92% alcançável. Mas a atribuição está
+> errada: não há fragmentação no modelo para atribuir a ninguém. O que
+> existia era artefato de medição.
+
 Medido em 01/09/2026 nas 97 bases de 2024 e nas 99 de 2025, com a medida
 robusta do achado 19b. **Este achado reverte a conclusao do achado 15.**
 
@@ -931,6 +946,74 @@ pais, e ele e a prioridade — acima da safra 2025 e acima da validacao externa.
 Ele nao prova que o `.dss` emitido deveria ser conexo — o conversor faz
 recortes legitimos. Mas 100% de alcance com 73,87% de isolamento e uma
 distancia que nenhum recorte legitimo explica.
+
+### 21. Nao havia fragmentacao: `AllIsolatedBranches` mente com duas fontes
+
+Medido em 01/09/2026, abrindo a subestacao 18520353 da Light — a que mais
+"isolava". **Este achado encerra a cadeia 12 -> 15 -> 16 -> 20 e mostra que ela
+inteira media um artefato.**
+
+`Topology.AllIsolatedBranches()` percorre a arvore a partir de **uma** fonte.
+Subestacao com duas barras de MT e comum, e o `MASTER` emite uma `Vsource` para
+cada — entao **toda a rede alimentada pela segunda barra aparece como
+isolada**, estando energizada e funcionando.
+
+**A prova, elemento a elemento:**
+
+| | valor |
+|---|---:|
+| `AllIsolatedBranches` na SE 18520353 | 36.695 de 45.868 (80%) |
+| linhas realmente **sem tensao** | **155 de 45.868 (0,34%)** |
+| linhas "isoladas" com tensao normal | 300 de 300 amostradas, a 1,02 pu |
+| ao desligar a 2a fonte | **as 300 morreram** |
+
+**E o padrao vale nas 4.189 subestacoes da V25:**
+
+| subestacoes | mediana de "isolado" |
+|---|---:|
+| com **uma** fonte (3.301) | **0,86%** |
+| com **duas ou mais** (888) | **68,88%** |
+
+Oitenta vezes de diferenca, decidida por quantas barras de MT a subestacao tem
+— nao por qualidade de dado, nem por defeito de conversao.
+
+**O que cai, e e muito:**
+
+- **Achado 16** (25,70% dos trechos nao chegam a fonte): falso. A rede esta
+  energizada. A ordem de grandeza real e ~1%.
+- **Achado 20** (a fragmentacao e nossa): falso na atribuicao. Nao ha
+  fragmentacao a atribuir.
+- **Achado 15** (esta na BDGD): ja revertido pelo 20, e agora por outro motivo.
+- **Achado 12** (caracteristica por distribuidora): media sobretudo quantas
+  subestacoes de cada base tem duas barras de MT.
+- **O criterio de entrada da `--bt completo`** perde o fundamento pela segunda
+  vez.
+
+**O que se sustenta:** o achado 17 continua util como descricao do dado — a
+Enel SP tem 136 subestacoes eletricamente conexas na BDGD e a Cemig 55 —, mas
+nao mais como criterio de viabilidade, porque o que ele previa nao existia.
+
+**O mais desconfortavel: o projeto ja sabia.** O `validador` carrega, desde
+antes, o comentario explicando que `AllIsolatedLoads` percorre a topologia a
+partir de uma fonte e por isso da "falso positivo em massa" — e mantendo
+`cargas_sem_tensao` como a medida confiavel. `AllIsolatedBranches`, a funcao
+irma com o mesmo defeito, ficou ao lado sendo tratada como verdade por quatro
+achados. O sinal estava a duas linhas de distancia.
+
+**A pista que nao foi seguida:** subestacoes com 80% da rede "isolada" e
+**ZERO cargas sem tensao**, veredicto `OK`. Isso e contraditorio e estava
+publicado em `resultados/` desde a V25. E `ramos_isolados` chegava a exceder
+`n_linhas` — impossivel para um subconjunto das linhas, e o primeiro sinal que
+de fato levou a investigacao.
+
+**Correcao aplicada:** `ramos_isolados` passa a ser medido por tensao —
+linha cuja barra tem menos de 1 V. O valor topologico continua publicado como
+`ramos_isolados_topologia`, com o nome dizendo o que ele e. Custo: 0,2 s por
+subestacao.
+
+**O que falta:** os numeros nacionais corrigidos exigem reprocessar o
+`validador` nas 97 bases. A V26 deixa de ser opcional e passa a ser **a rodada
+que refaz as medidas**.
 
 ## Validação externa e contaminação
 

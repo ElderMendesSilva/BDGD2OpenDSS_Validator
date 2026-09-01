@@ -149,7 +149,42 @@ def valida(pasta, referencia=None):
     # contra as 54 reais, no teste com duas subestacoes). A medida confiavel
     # e eletrica: carga cuja barra ficou praticamente sem tensao.
     r['cargas_isoladas_topologia'] = len(dss.Topology.AllIsolatedLoads())
-    r['ramos_isolados'] = len(dss.Topology.AllIsolatedBranches())
+    # O MESMO DEFEITO VALE PARA OS RAMOS, e isso custou tres achados. O
+    # comentario acima ja dizia que `AllIsolatedLoads` percorre a topologia a
+    # partir de UMA fonte — mas `AllIsolatedBranches`, que tem exatamente o
+    # mesmo problema, foi tratado como medida real ate 01/09/2026.
+    #
+    # Medido nas 4.189 subestacoes da V25: as de UMA fonte tem mediana de 0,86%
+    # de ramos "isolados"; as de DUAS OU MAIS, 68,88%. Oitenta vezes mais, e a
+    # rede esta energizada — conferido elemento a elemento na Light, onde 300
+    # de 300 linhas "isoladas" tinham 1,02 pu e so morriam ao desligar a
+    # segunda fonte.
+    #
+    # O campo fica, com nome que diz o que ele e. A medida ELETRICA e a de
+    # baixo.
+    r['ramos_isolados_topologia'] = len(dss.Topology.AllIsolatedBranches())
+    # RAMO SEM TENSAO: a medida que sobrevive a mais de uma fonte. Uma barra
+    # com menos de 1 V esta morta em qualquer topologia.
+    mortas_b = set()
+    nomes = dss.Circuit.AllBusNames()
+    for b in nomes:
+        dss.Circuit.SetActiveBus(b)
+        v = dss.Bus.VMagAngle()[0::2]
+        if not v or max(v) < 1.0:
+            mortas_b.add(b.lower())
+    sem_v = 0
+    i = dss.Lines.First()
+    while i:
+        b1 = dss.Lines.Bus1().split('.')[0].lower()
+        if b1 in mortas_b:
+            sem_v += 1
+        i = dss.Lines.Next()
+    r['ramos_sem_tensao'] = sem_v
+    r['barras_sem_tensao'] = len(mortas_b)
+    # COMPATIBILIDADE: `ramos_isolados` continua existindo para nao quebrar o
+    # coletor e as comparacoes com rodadas anteriores, mas passa a carregar a
+    # medida ELETRICA — que e o que o nome sempre prometeu.
+    r['ramos_isolados'] = sem_v
     mortas = 0
     i = dss.Loads.First()
     while i:
