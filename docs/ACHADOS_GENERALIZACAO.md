@@ -741,6 +741,45 @@ preve fragmentacao do modelo, e fragmentacao era a causa suspeita do fracasso
 da BT — mas escala e custo sao outra coisa, e as 150 da Enel SP somam milhoes
 de UCs. Isso e rodada, nao leitura de tabela.
 
+### 18. A safra 2025 nao corrigiu a contradicao — ela persiste igual
+
+Medido em 01/09/2026, no dia em que a safra 2025-12-31 entrou. **Este achado
+nao depende do nosso modelo nem de conversao nenhuma**: sao tres campos da
+mesma BDGD, lidos das 99 bases novas e das 97 antigas.
+
+A comparacao que vale e **pareada** — as **63 bases** com declaracao utilizavel
+nas duas safras. Comparar o agregado misturaria composicao diferente:
+
+| | 2024 | 2025 |
+|---|---:|---:|
+| ferro pela placa (mediana) | 2,46% | **2,42%** |
+| perda tecnica declarada (mediana) | 3,03% | **3,06%** |
+| bases em que o ferro EXCEDE o declarado | 25 de 63 | **26 de 63** |
+| razao piorou / melhorou | — | **31 / 32** |
+
+**Nada mudou.** As distribuidoras republicaram a base com um ano a mais de
+dados e a contradicao interna seguiu no mesmo lugar, com a mesma intensidade, e
+quase exatamente nas mesmas bases. Trinta e uma pioraram, trinta e duas
+melhoraram: e ruido, nao correcao.
+
+**Por que isso fortalece o achado 13 em vez de repeti-lo.** Uma contradicao
+observada em uma safra admite a leitura de erro pontual de preenchimento — um
+ano ruim, um campo mal exportado. Observada em **duas safras consecutivas, nas
+mesmas bases**, ela deixa de ser episodio e passa a ser **caracteristica do
+processo de declaracao**. O `PERD_*` nao e um numero que erra as vezes: e um
+numero que nao esta sendo produzido a partir do parque declarado.
+
+**O filtro e parte do achado, e custou uma execucao errada.** A primeira
+medicao publicou "2.639% de ferro" e razoes de 213.530x — denominador
+degenerado, nao contradicao. A CERBRANORT6898 declara 0,2 GWh no ano para 1.810
+transformadores. Ficam de fora as bases com ferro acima de 25% da energia (a
+energia da CTMT e que esta errada) e as que declaram menos de 0,5% (nao ha
+perda com que comparar). Em 2024 isso descarta 29 das 97; em 2025, 23 das 99.
+
+**O que a safra nova mudou, e nao e pouco:** a fracao de bases com declaracao
+utilizavel subiu de 68/97 para 76/99. Mais distribuidoras estao declarando algo
+comparavel — e o que declaram continua nao fechando com o proprio parque.
+
 ## Validação externa e contaminação
 
 A âncora nacional de 7,4% de perda técnica total da ANEEL é apenas um **teste
