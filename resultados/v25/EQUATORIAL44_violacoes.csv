@@ -1,28 +1,28 @@
-base,sub,ctmt,motivo,pct_tecnica_modelo,pct_total_medido,pct_nao_tecnica_implicita,GWh_injetado,GWh_faturado,ucs,cobertura,viola_limite,medida_degenerada,faturado_maior_que_injetado,declarado_pct,razao_vs_declarado,se_kv_mt,se_trafos,se_km_MT,se_alimentadores,se_convergiu,se_nos_nan,se_veredicto,se_V_MT_min,se_V_MT_mediana,se_barras_criticas,se_perdas_trafos_pct
-EQUATORIAL44,PEP,PEPY2,perda modelada absurda: 319204.5%,319204.523,3.639,-319200.884,9.1304,8.7981,3032,8772289.9,True,False,False,,,13.8,692,554.06,6,True,0,OK,0.14,0.917,7661,11.7
-EQUATORIAL44,PMI,PMIY4,perda modelada absurda: 24689.3%,24689.342,18.99,-24670.352,24.7534,20.0527,16298,130012.1,True,False,False,,,13.8,3264,2047.39,7,True,0,OK,0.017,0.743,23049,20.0
-EQUATORIAL44,PEP,PEPY6,perda modelada absurda: 1547.8%,1547.783,4.333,-1543.45,21.0296,20.1185,9320,35722.8,True,False,False,,,13.8,692,554.06,6,True,0,OK,0.14,0.917,7661,11.7
-EQUATORIAL44,CDU,CDUM7,perda modelada absurda: 142.8%,142.841,7.949,-134.892,23.7249,21.8391,9986,1797.0,True,False,False,,,13.8,679,150.84,8,True,0,OK,0.882,0.886,5105,94.4
-EQUATORIAL44,BSM,BSMC1,perda modelada absurda: 122.2%,122.242,4.658,-117.584,16.5266,15.7569,6013,2624.6,True,False,False,,,13.8,431,146.14,4,True,0,OK,0.973,0.976,0,96.8
-EQUATORIAL44,RLU,RLUY6,perda modelada absurda: 71.5%,71.506,3.914,-67.592,10.9232,10.4957,2514,1827.1,True,False,False,,,13.8,743,326.9,14,True,0,OK,0.87,0.96,151,67.9
-EQUATORIAL44,CPL,CPLY3,perda modelada absurda: 62.0%,61.996,13.708,-48.288,13.26,11.4423,7978,452.3,True,False,False,,,13.8,734,564.03,6,True,0,OK,0.887,0.98,150,96.6
-EQUATORIAL44,CPE,CPEY5,perda modelada absurda: 56.5%,56.476,8.937,-47.539,6.5338,5.9499,3407,632.0,True,False,False,,,13.8,617,459.16,5,True,0,OK,0.976,0.985,0,97.3
-EQUATORIAL44,MTB,MTBY8,denominador minusculo: 0.037 GWh injetados,42.895,11.608,-31.287,0.0368,0.0325,49,369.5,True,False,False,,,13.8,1233,844.78,7,True,0,OK,0.575,0.661,13247,77.5
-EQUATORIAL44,SBR,SBRY3,denominador minusculo: 0.012 GWh injetados,41.748,35.451,-6.297,0.0119,0.0077,9,117.8,True,False,False,,,13.8,473,380.27,5,True,0,OK,0.477,0.946,337,19.7
-EQUATORIAL44,IPA,IPAY3,perda modelada absurda: 31.1%,31.063,11.593,-19.47,18.0525,15.9597,8222,268.0,True,False,False,,,13.8,440,211.15,3,True,0,OK,0.606,0.969,585,93.6
-EQUATORIAL44,UPM,UPMY6,perda modelada absurda: 26.6%,26.564,10.159,-16.405,2.1971,1.9739,1775,261.5,True,False,False,,,13.8,2045,1386.46,7,True,0,OK,0.208,0.772,17849,0.4
-EQUATORIAL44,PLR,PLRY1,perda modelada absurda: 16.2%,16.213,11.138,-5.075,0.7719,0.6859,249,145.6,True,False,False,,,13.8,330,203.37,6,True,0,OK,0.982,0.986,0,93.0
-EQUATORIAL44,PEP,PEPY5,no limite: modelo 1.04x o total medido,14.809,14.251,-0.558,1.8681,1.6019,1110,103.9,True,False,False,,,13.8,692,554.06,6,True,0,OK,0.14,0.917,7661,11.7
-EQUATORIAL44,CDU,CDUM3,a investigar,14.361,5.148,-9.213,20.4988,19.4435,6142,279.0,True,False,False,,,13.8,679,150.84,8,True,0,OK,0.882,0.886,5105,94.4
-EQUATORIAL44,PCA,PCAY5,a investigar,10.988,8.387,-2.601,4.1416,3.7943,1368,131.0,True,False,False,,,13.8,394,178.83,6,True,0,OK,0.888,0.977,552,90.5
-EQUATORIAL44,MTB,MTBY5,no limite: modelo 1.12x o total medido,9.897,8.876,-1.021,0.7876,0.7177,595,111.5,True,False,False,,,13.8,1233,844.78,7,True,0,OK,0.575,0.661,13247,77.5
-EQUATORIAL44,CPE,CPEY1,no limite: modelo 1.19x o total medido,8.881,7.476,-1.405,14.8683,13.7567,7205,118.8,True,False,False,,,13.8,617,459.16,5,True,0,OK,0.976,0.985,0,97.3
-EQUATORIAL44,MTB,MTBY3,a investigar,8.366,6.58,-1.786,13.7226,12.8196,6877,127.1,True,False,False,,,13.8,1233,844.78,7,True,0,OK,0.575,0.661,13247,77.5
-EQUATORIAL44,SBR,SBRY5,a investigar,7.104,3.534,-3.57,21.5031,20.7433,3231,201.0,True,False,False,,,13.8,473,380.27,5,True,0,OK,0.477,0.946,337,19.7
-EQUATORIAL44,GIP,GIPY2,a investigar,6.697,4.473,-2.224,12.0363,11.4979,2343,149.7,True,False,False,,,13.8,1026,747.81,4,True,0,OK,0.298,0.972,1495,68.0
-EQUATORIAL44,SSO,SSOY3,no limite: modelo 1.07x o total medido,6.504,6.056,-0.448,13.0066,12.2189,6808,107.4,True,False,False,,,13.8,961,608.25,4,True,0,OK,0.491,0.978,11,92.5
-EQUATORIAL44,MTB,MTBY4,no limite: modelo 1.12x o total medido,6.231,5.554,-0.677,23.9494,22.6193,9541,112.2,True,False,False,,,13.8,1233,844.78,7,True,0,OK,0.575,0.661,13247,77.5
-EQUATORIAL44,RLU,RLUY1,a investigar,6.031,3.803,-2.228,10.5432,10.1423,507,158.6,True,False,False,,,13.8,743,326.9,14,True,0,OK,0.87,0.96,151,67.9
-EQUATORIAL44,JDH,JDHY4,no limite: modelo 1.02x o total medido,3.623,3.566,-0.057,7.2003,6.9435,741,101.6,True,False,False,,,13.8,1538,1348.78,6,True,0,OK,0.357,0.977,136,79.1
-EQUATORIAL44,PEP,PEPY3,no limite: modelo 1.07x o total medido,2.994,2.793,-0.201,19.8699,19.3149,5473,107.2,True,False,False,,,13.8,692,554.06,6,True,0,OK,0.14,0.917,7661,11.7
-EQUATORIAL44,TBM,TBMW1,no limite: modelo 1.01x o total medido,2.379,2.359,-0.02,56.1001,54.7766,6153,100.8,True,False,False,,,13.8,1208,253.85,10,True,0,OK,0.886,0.979,257,85.8
+base,sub,ctmt,motivo,pct_tecnica_modelo,pct_total_medido,pct_nao_tecnica_implicita,GWh_injetado,GWh_faturado,ucs,cobertura,viola_limite,medida_degenerada,faturado_maior_que_injetado,declarado_pct,razao_vs_declarado,se_kv_mt,se_trafos,se_km_MT,se_alimentadores,se_convergiu,se_nos_nan,se_veredicto,se_V_MT_min,se_V_MT_mediana,se_barras_criticas,se_perdas_trafos_pct,se_n_linhas,se_ramos_isolados
+EQUATORIAL44,PEP,PEPY2,perda modelada absurda: 319204.5%,319204.523,3.639,-319200.884,9.1304,8.7981,3032,8772289.9,True,False,False,,,13.8,692,554.06,6,True,0,OK,0.14,0.917,7661,11.7,8475,272
+EQUATORIAL44,PMI,PMIY4,perda modelada absurda: 24689.3%,24689.342,18.99,-24670.352,24.7534,20.0527,16298,130012.1,True,False,False,,,13.8,3264,2047.39,7,True,0,OK,0.017,0.743,23049,20.0,29246,4896
+EQUATORIAL44,PEP,PEPY6,perda modelada absurda: 1547.8%,1547.783,4.333,-1543.45,21.0296,20.1185,9320,35722.8,True,False,False,,,13.8,692,554.06,6,True,0,OK,0.14,0.917,7661,11.7,8475,272
+EQUATORIAL44,CDU,CDUM7,perda modelada absurda: 142.8%,142.841,7.949,-134.892,23.7249,21.8391,9986,1797.0,True,False,False,,,13.8,679,150.84,8,True,0,OK,0.882,0.886,5105,94.4,5353,266
+EQUATORIAL44,BSM,BSMC1,perda modelada absurda: 122.2%,122.242,4.658,-117.584,16.5266,15.7569,6013,2624.6,True,False,False,,,13.8,431,146.14,4,True,0,OK,0.973,0.976,0,96.8,3599,139
+EQUATORIAL44,RLU,RLUY6,perda modelada absurda: 71.5%,71.506,3.914,-67.592,10.9232,10.4957,2514,1827.1,True,False,False,,,13.8,743,326.9,14,True,0,OK,0.87,0.96,151,67.9,7253,1406
+EQUATORIAL44,CPL,CPLY3,perda modelada absurda: 62.0%,61.996,13.708,-48.288,13.26,11.4423,7978,452.3,True,False,False,,,13.8,734,564.03,6,True,0,OK,0.887,0.98,150,96.6,7684,273
+EQUATORIAL44,CPE,CPEY5,perda modelada absurda: 56.5%,56.476,8.937,-47.539,6.5338,5.9499,3407,632.0,True,False,False,,,13.8,617,459.16,5,True,0,OK,0.976,0.985,0,97.3,6648,46
+EQUATORIAL44,MTB,MTBY8,denominador minusculo: 0.037 GWh injetados,42.895,11.608,-31.287,0.0368,0.0325,49,369.5,True,False,False,,,13.8,1233,844.78,7,True,0,OK,0.575,0.661,13247,77.5,13390,170
+EQUATORIAL44,SBR,SBRY3,denominador minusculo: 0.012 GWh injetados,41.748,35.451,-6.297,0.0119,0.0077,9,117.8,True,False,False,,,13.8,473,380.27,5,True,0,OK,0.477,0.946,337,19.7,5314,214
+EQUATORIAL44,IPA,IPAY3,perda modelada absurda: 31.1%,31.063,11.593,-19.47,18.0525,15.9597,8222,268.0,True,False,False,,,13.8,440,211.15,3,True,0,OK,0.606,0.969,585,93.6,4464,29
+EQUATORIAL44,UPM,UPMY6,perda modelada absurda: 26.6%,26.564,10.159,-16.405,2.1971,1.9739,1775,261.5,True,False,False,,,13.8,2045,1386.46,7,True,0,OK,0.208,0.772,17849,0.4,18145,164
+EQUATORIAL44,PLR,PLRY1,perda modelada absurda: 16.2%,16.213,11.138,-5.075,0.7719,0.6859,249,145.6,True,False,False,,,13.8,330,203.37,6,True,0,OK,0.982,0.986,0,93.0,3444,90
+EQUATORIAL44,PEP,PEPY5,no limite: modelo 1.04x o total medido,14.809,14.251,-0.558,1.8681,1.6019,1110,103.9,True,False,False,,,13.8,692,554.06,6,True,0,OK,0.14,0.917,7661,11.7,8475,272
+EQUATORIAL44,CDU,CDUM3,a investigar,14.361,5.148,-9.213,20.4988,19.4435,6142,279.0,True,False,False,,,13.8,679,150.84,8,True,0,OK,0.882,0.886,5105,94.4,5353,266
+EQUATORIAL44,PCA,PCAY5,a investigar,10.988,8.387,-2.601,4.1416,3.7943,1368,131.0,True,False,False,,,13.8,394,178.83,6,True,0,OK,0.888,0.977,552,90.5,4053,380
+EQUATORIAL44,MTB,MTBY5,no limite: modelo 1.12x o total medido,9.897,8.876,-1.021,0.7876,0.7177,595,111.5,True,False,False,,,13.8,1233,844.78,7,True,0,OK,0.575,0.661,13247,77.5,13390,170
+EQUATORIAL44,CPE,CPEY1,no limite: modelo 1.19x o total medido,8.881,7.476,-1.405,14.8683,13.7567,7205,118.8,True,False,False,,,13.8,617,459.16,5,True,0,OK,0.976,0.985,0,97.3,6648,46
+EQUATORIAL44,MTB,MTBY3,a investigar,8.366,6.58,-1.786,13.7226,12.8196,6877,127.1,True,False,False,,,13.8,1233,844.78,7,True,0,OK,0.575,0.661,13247,77.5,13390,170
+EQUATORIAL44,SBR,SBRY5,a investigar,7.104,3.534,-3.57,21.5031,20.7433,3231,201.0,True,False,False,,,13.8,473,380.27,5,True,0,OK,0.477,0.946,337,19.7,5314,214
+EQUATORIAL44,GIP,GIPY2,a investigar,6.697,4.473,-2.224,12.0363,11.4979,2343,149.7,True,False,False,,,13.8,1026,747.81,4,True,0,OK,0.298,0.972,1495,68.0,11557,175
+EQUATORIAL44,SSO,SSOY3,no limite: modelo 1.07x o total medido,6.504,6.056,-0.448,13.0066,12.2189,6808,107.4,True,False,False,,,13.8,961,608.25,4,True,0,OK,0.491,0.978,11,92.5,10185,353
+EQUATORIAL44,MTB,MTBY4,no limite: modelo 1.12x o total medido,6.231,5.554,-0.677,23.9494,22.6193,9541,112.2,True,False,False,,,13.8,1233,844.78,7,True,0,OK,0.575,0.661,13247,77.5,13390,170
+EQUATORIAL44,RLU,RLUY1,a investigar,6.031,3.803,-2.228,10.5432,10.1423,507,158.6,True,False,False,,,13.8,743,326.9,14,True,0,OK,0.87,0.96,151,67.9,7253,1406
+EQUATORIAL44,JDH,JDHY4,no limite: modelo 1.02x o total medido,3.623,3.566,-0.057,7.2003,6.9435,741,101.6,True,False,False,,,13.8,1538,1348.78,6,True,0,OK,0.357,0.977,136,79.1,17794,93
+EQUATORIAL44,PEP,PEPY3,no limite: modelo 1.07x o total medido,2.994,2.793,-0.201,19.8699,19.3149,5473,107.2,True,False,False,,,13.8,692,554.06,6,True,0,OK,0.14,0.917,7661,11.7,8475,272
+EQUATORIAL44,TBM,TBMW1,no limite: modelo 1.01x o total medido,2.379,2.359,-0.02,56.1001,54.7766,6153,100.8,True,False,False,,,13.8,1208,253.85,10,True,0,OK,0.886,0.979,257,85.8,8305,1931

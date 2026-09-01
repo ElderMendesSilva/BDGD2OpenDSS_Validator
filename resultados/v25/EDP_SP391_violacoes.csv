@@ -1,7 +1,7 @@
-base,sub,ctmt,motivo,pct_tecnica_modelo,pct_total_medido,pct_nao_tecnica_implicita,GWh_injetado,GWh_faturado,ucs,cobertura,viola_limite,medida_degenerada,faturado_maior_que_injetado,declarado_pct,razao_vs_declarado,se_kv_mt,se_trafos,se_km_MT,se_alimentadores,se_convergiu,se_nos_nan,se_veredicto,se_V_MT_min,se_V_MT_mediana,se_barras_criticas,se_perdas_trafos_pct
-EDP_SP391,GUL,RGUL0103,perda modelada absurda: 17.6%,17.628,6.997,-10.631,20.1684,18.7573,1920,251.9,True,False,False,,,13.8,1455,171.75,18,True,0,OK,0.808,0.965,2954,40.1
-EDP_SP391,PID,RPID1311,no limite: modelo 1.16x o total medido,6.552,5.671,-0.881,42.3167,39.9171,1840,115.5,True,False,False,,,13.8,2660,735.54,13,True,0,OK,0.948,0.978,870,41.3
-EDP_SP391,SLU,RSLU0115,no limite: modelo 1.02x o total medido,4.454,4.353,-0.101,47.2809,45.2228,2564,102.3,True,False,False,,,13.8,1149,147.45,16,True,0,OK,0.911,0.983,153,42.2
-EDP_SP391,VGA,RVGA0112,no limite: modelo 1.07x o total medido,3.803,3.556,-0.247,36.2009,34.9138,4209,107.0,True,False,False,,,13.8,1262,129.74,16,True,0,OK,0.909,0.975,375,48.2
-EDP_SP391,BRR,RBRR1303,no limite: modelo 1.09x o total medido,3.368,3.089,-0.279,27.5235,26.6734,4811,109.0,True,False,False,,,13.8,2367,689.63,16,True,0,OK,0.943,0.988,0,46.6
-EDP_SP391,CRU,RCRU1304,no limite: modelo 1.03x o total medido,2.137,2.074,-0.063,23.4966,23.0092,6466,103.0,True,False,False,,,13.8,1251,319.28,7,True,0,OK,0.983,1.007,0,75.5
+base,sub,ctmt,motivo,pct_tecnica_modelo,pct_total_medido,pct_nao_tecnica_implicita,GWh_injetado,GWh_faturado,ucs,cobertura,viola_limite,medida_degenerada,faturado_maior_que_injetado,declarado_pct,razao_vs_declarado,se_kv_mt,se_trafos,se_km_MT,se_alimentadores,se_convergiu,se_nos_nan,se_veredicto,se_V_MT_min,se_V_MT_mediana,se_barras_criticas,se_perdas_trafos_pct,se_n_linhas,se_ramos_isolados
+EDP_SP391,GUL,RGUL0103,perda modelada absurda: 17.6%,17.628,6.997,-10.631,20.1684,18.7573,1920,251.9,True,False,False,,,13.8,1455,171.75,18,True,0,OK,0.808,0.965,2954,40.1,10257,9861
+EDP_SP391,PID,RPID1311,no limite: modelo 1.16x o total medido,6.552,5.671,-0.881,42.3167,39.9171,1840,115.5,True,False,False,,,13.8,2660,735.54,13,True,0,OK,0.948,0.978,870,41.3,22913,21563
+EDP_SP391,SLU,RSLU0115,no limite: modelo 1.02x o total medido,4.454,4.353,-0.101,47.2809,45.2228,2564,102.3,True,False,False,,,13.8,1149,147.45,16,True,0,OK,0.911,0.983,153,42.2,8216,5184
+EDP_SP391,VGA,RVGA0112,no limite: modelo 1.07x o total medido,3.803,3.556,-0.247,36.2009,34.9138,4209,107.0,True,False,False,,,13.8,1262,129.74,16,True,0,OK,0.909,0.975,375,48.2,8306,5449
+EDP_SP391,BRR,RBRR1303,no limite: modelo 1.09x o total medido,3.368,3.089,-0.279,27.5235,26.6734,4811,109.0,True,False,False,,,13.8,2367,689.63,16,True,0,OK,0.943,0.988,0,46.6,21416,6067
+EDP_SP391,CRU,RCRU1304,no limite: modelo 1.03x o total medido,2.137,2.074,-0.063,23.4966,23.0092,6466,103.0,True,False,False,,,13.8,1251,319.28,7,True,0,OK,0.983,1.007,0,75.5,9768,10021

@@ -38,7 +38,7 @@ from bdgd2dss import escrita                            # noqa: E402
 from bdgd2dss.leitor import BDGD, txt                    # noqa: E402
 
 
-def cortes_da_base(caminho):
+def cortes_da_base(caminho, por_se=False):
     """Quantos PACs a divisão por subestação separa.
 
     Devolve o dicionário do resultado. `pacs_multi_se` é a medida principal:
@@ -151,6 +151,15 @@ def cortes_da_base(caminho):
         'pct_ses_fragmentadas': round(
             100.0 * sum(1 for c in comps if c > 1) / ses_n, 1),
         'ligacoes_por_camada': por_camada,
+        # A DISTRIBUICAO, e nao so a mediana. A Cemig tem mediana 5 e MAXIMO
+        # 1.844: poucas subestacoes catastroficas ao lado de muitas trataveis.
+        # Como o `converter` aceita `--se`, a pergunta util nao e "a base
+        # aguenta BT completa?" e sim "QUAIS subestacoes aguentam?" — e essa so
+        # a lista por SE responde.
+        'por_se': (sorted(({'se': k, 'componentes': v}
+                           for k, v in comp_por_se.items()),
+                          key=lambda x: (x['componentes'], x['se']))
+                   if por_se else None),
     }
 
 
@@ -160,6 +169,11 @@ def main(argv=None):
     ap.add_argument('--so', nargs='*', default=None, help='tags')
     ap.add_argument('--saida-json', default=os.path.join('medicoes',
                                                          'recorte.json'))
+    ap.add_argument('--por-se', action='store_true',
+                    help='inclui a lista de componentes POR subestacao')
+    ap.add_argument('--elegiveis', type=int, default=None, metavar='N',
+                    help='imprime as SEs com ate N componentes, prontas para '
+                         'colar em `converter.py --se`')
     a = ap.parse_args(argv)
 
     import regerar_v10 as rg
@@ -174,7 +188,7 @@ def main(argv=None):
           ('base', 'trechos', 'PACs multi-SE', 'comp/SE', 'SEs frag%'))
     for tag, cam in bases:
         try:
-            d = cortes_da_base(cam)
+            d = cortes_da_base(cam, por_se=(a.por_se or a.elegiveis))
         except Exception as e:                          # noqa: BLE001
             print('%-20s ERRO: %s' % (tag, str(e)[:70]), flush=True)
             erros += 1
@@ -185,6 +199,20 @@ def main(argv=None):
               % (tag, f"{d['trechos_mt']:,}", f"{d['pacs_multi_se']:,}",
                  f"{d['componentes_por_se_mediana']:,}",
                  d['pct_ses_fragmentadas']), flush=True)
+
+    # O CRITERIO DE ENTRADA DO ACHADO 16, em forma de comando. Sem isto o
+    # usuario tem de abrir o JSON e filtrar a mao, e a barreira faz com que a
+    # BT completa continue sendo tentada na base inteira — que e o que nao
+    # funciona.
+    if a.elegiveis:
+        print()
+        for d in saida:
+            ok = [x['se'] for x in (d.get('por_se') or [])
+                  if x['componentes'] <= a.elegiveis]
+            print('# %s: %d de %d subestacoes com ate %d componentes'
+                  % (d['base'], len(ok), d['ses_medidas'], a.elegiveis))
+            if ok:
+                print('--se ' + ' '.join(ok))
 
     os.makedirs(os.path.dirname(a.saida_json) or '.', exist_ok=True)
     with open(a.saida_json, 'w', encoding='utf-8',

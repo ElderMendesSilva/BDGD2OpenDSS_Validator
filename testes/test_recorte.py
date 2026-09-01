@@ -206,5 +206,40 @@ class ARedeNaoESoASSDMT(unittest.TestCase):
         self.assertEqual(r['ligacoes_por_camada']['SSDMT'], 1)
 
 
+class QuaisSubestacoesAguentamABTCompleta(unittest.TestCase):
+    """A mediana esconde a cauda, e e a cauda que decide o caso da Cemig.
+
+    Ela tem mediana 5 e MAXIMO 1.844 componentes por subestacao: poucas SEs
+    catastroficas ao lado de muitas trataveis. Como o `converter` aceita
+    `--se`, a pergunta util deixa de ser "a base aguenta BT completa?" e passa
+    a ser "QUAIS subestacoes aguentam?" — e so a lista por SE responde.
+    """
+
+    def test_a_lista_so_sai_quando_pedida(self):
+        """Carregar milhares de SEs em toda medicao inflaria o JSON das 97."""
+        real = recorte.BDGD
+        recorte.BDGD = lambda *a, **k: _BDGDFalsa(
+            [('C1', 'A')], SSDMT=[('p1', 'p2', 'C1')])
+        try:
+            self.assertIsNone(recorte.cortes_da_base('/x.gdb')['por_se'])
+            d = recorte.cortes_da_base('/x.gdb', por_se=True)
+        finally:
+            recorte.BDGD = real
+        self.assertEqual(d['por_se'], [{'se': 'A', 'componentes': 1}])
+
+    def test_a_sadia_vem_antes_da_fragmentada(self):
+        real = recorte.BDGD
+        recorte.BDGD = lambda *a, **k: _BDGDFalsa(
+            [('C1', 'A'), ('C2', 'B')],
+            SSDMT=[('b1', 'b2', 'C2'), ('b9', 'b8', 'C2'),
+                   ('a1', 'a2', 'C1')])
+        try:
+            d = recorte.cortes_da_base('/x.gdb', por_se=True)
+        finally:
+            recorte.BDGD = real
+        self.assertEqual([x['se'] for x in d['por_se']], ['A', 'B'])
+        self.assertEqual([x['componentes'] for x in d['por_se']], [1, 2])
+
+
 if __name__ == '__main__':
     unittest.main()

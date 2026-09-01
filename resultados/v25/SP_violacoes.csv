@@ -1,49 +1,49 @@
-base,sub,ctmt,motivo,pct_tecnica_modelo,pct_total_medido,pct_nao_tecnica_implicita,GWh_injetado,GWh_faturado,ucs,cobertura,viola_limite,medida_degenerada,faturado_maior_que_injetado,declarado_pct,razao_vs_declarado,se_kv_mt,se_trafos,se_km_MT,se_alimentadores,se_convergiu,se_nos_nan,se_veredicto,se_V_MT_min,se_V_MT_mediana,se_barras_criticas,se_perdas_trafos_pct
-SP,DBRG,BRG0210,perda modelada absurda: 138.4%,138.407,74.761,-63.646,0.5927,0.1496,2,185.1,True,False,False,,,21,308,84.61,12,True,0,OK,0.98,0.988,0,87.6
-SP,DCAL,CAL0105,no limite: modelo 1.09x o total medido,26.304,24.235,-2.069,19.4679,14.7499,2056,108.5,True,False,False,,,13.8,678,70.31,17,True,0,OK,1.033,1.056,0,85.8
-SP,DCAL,CAL0115,perda modelada absurda: 25.2%,25.177,12.581,-12.596,11.5901,10.132,1818,200.1,True,False,False,,,13.8,678,70.31,17,True,0,OK,1.033,1.056,0,85.8
-SP,DESP,ESP0102,perda modelada absurda: 24.5%,24.499,20.345,-4.154,57.4886,45.7926,10160,120.4,True,False,False,,,13.8,870,167.86,12,True,0,OK,0.949,1.034,0,59.8
-SP,DPRE,PRE0108,perda modelada absurda: 23.1%,23.094,10.445,-12.649,2.5594,2.2921,915,221.1,True,False,False,,,13.8,1987,597.35,13,True,0,OK,1.047,1.073,15827,77.6
-SP,DAGU,AGU0109,perda modelada absurda: 19.9%,19.914,12.755,-7.159,14.9848,13.0735,1723,156.1,True,False,False,,,13.8,303,38.98,10,True,0,OK,1.05,1.063,470,82.7
-SP,SSJO,MRE0225,perda modelada absurda: 18.9%,18.882,5.942,-12.94,27.7683,26.1183,5791,317.8,True,False,False,,,3.8,176,23.65,2,True,0,OK,0.814,0.894,1458,34.6
-SP,DCAM,CAM0011,perda modelada absurda: 17.8%,17.776,10.978,-6.798,13.428,11.9539,4335,161.9,True,False,False,,,34.5,545,91.6,21,True,0,OK,1.023,1.078,4859,70.4
-SP,DBUT,BUT0108,perda modelada absurda: 17.8%,17.763,7.112,-10.651,17.693,16.4347,1887,249.8,True,False,False,,,13.8,1146,118.05,16,True,0,OK,0.979,1.051,0,50.9
-SP,DGVI,GVI0106,perda modelada absurda: 15.7%,15.715,11.555,-4.16,47.0247,41.5907,15521,136.0,True,False,False,,,13.8,1899,291.15,12,True,0,OK,0.899,0.932,8113,45.0
-SP,TBAN,BAN0203,perda modelada absurda: 15.2%,15.236,9.37,-5.866,1.2537,1.1362,36,162.6,True,False,False,,,34.5,1139,380.35,38,True,0,OK,0.266,0.976,7,56.5
-SP,DBUT,BUT0102,a investigar,14.609,10.519,-4.09,52.411,46.8977,2314,138.9,True,False,False,,,13.8,1146,118.05,16,True,0,OK,0.979,1.051,0,50.9
-SP,DMAU,MAU0105,a investigar,14.064,9.741,-4.323,30.7213,27.7286,8827,144.4,True,False,False,,,13.8,1531,216.44,16,True,0,OK,1.016,1.041,0,68.8
-SP,DJCI,JCI0104,no limite: modelo 1.09x o total medido,13.844,12.654,-1.19,17.09,14.9274,4309,109.4,True,False,False,,,13.8,871,88.59,10,True,0,OK,1.034,1.057,0,76.9
-SP,DSAB,SAB0102,no limite: modelo 1.14x o total medido,13.616,11.912,-1.704,15.8773,13.986,4095,114.3,True,False,False,,,13.8,803,102.79,16,True,0,OK,1.044,1.055,0,72.1
-SP,DTTI,TTI0110,a investigar,13.315,9.033,-4.282,26.3521,23.9717,5669,147.4,True,False,False,,,13.8,684,66.08,16,True,0,OK,1.036,1.059,0,81.9
-SP,DTSE,TSE0108,a investigar,13.079,8.148,-4.931,32.6124,29.9553,11094,160.5,True,False,False,,,13.8,2287,244.29,16,True,0,OK,0.937,0.972,0,54.4
-SP,DTTI,TTI0102,no limite: modelo 1.12x o total medido,13.024,11.657,-1.367,13.5043,11.9302,3599,111.7,True,False,False,,,13.8,684,66.08,16,True,0,OK,1.036,1.059,0,81.9
-SP,DSAU,SAU0104,no limite: modelo 1.16x o total medido,12.885,11.133,-1.752,47.5272,42.2362,16609,115.7,True,False,False,,,13.8,980,81.65,10,True,0,OK,0.985,1.054,0,72.0
-SP,DANA,ANA0105,a investigar,12.818,4.951,-7.867,10.2546,9.7469,1697,258.9,True,False,False,,,13.8,494,64.21,12,True,0,OK,1.045,1.061,0,81.4
-SP,DTED,TED0302,a investigar,12.65,5.971,-6.679,0.8502,0.7994,373,211.9,True,False,False,,,34.5,382,78.7,18,True,0,OK,1.048,1.078,3829,76.3
-SP,DCAM,CAM0110,denominador minusculo: 0.110 GWh injetados,12.236,8.39,-3.846,0.1104,0.1012,29,145.8,True,False,False,,,34.5,545,91.6,21,True,0,OK,1.023,1.078,4859,70.4
-SP,DVFO,VFO0103,no limite: modelo 1.20x o total medido,11.959,9.992,-1.967,17.911,16.1213,4676,119.7,True,False,False,,,13.8,1425,164.1,16,True,0,OK,1.023,1.045,0,71.2
-SP,DPRI,PRI0102,no limite: modelo 1.06x o total medido,11.494,10.795,-0.699,34.98,31.204,11061,106.5,True,False,False,,,13.8,1463,160.55,12,True,0,OK,0.979,1.043,0,78.4
-SP,DPEN,PEN0115,no limite: modelo 1.09x o total medido,11.461,10.562,-0.899,30.5467,27.3203,5406,108.5,True,False,False,,,13.8,1273,135.25,16,True,0,OK,1.025,1.044,0,75.8
-SP,DLUB,LUB0110,a investigar,11.122,8.696,-2.426,32.0118,29.2282,7686,127.9,True,False,False,,,13.8,1184,151.26,15,True,0,OK,0.974,1.034,0,56.4
-SP,DBUT,BUT0107,no limite: modelo 1.04x o total medido,11.102,10.631,-0.471,24.2086,21.6351,2753,104.4,True,False,False,,,13.8,1146,118.05,16,True,0,OK,0.979,1.051,0,50.9
-SP,DMBE,MBE0112,no limite: modelo 1.04x o total medido,10.861,10.419,-0.442,16.1557,14.4725,5689,104.2,True,False,False,,,13.8,1426,184.98,14,True,0,OK,1.013,1.052,0,75.8
-SP,DVMA,VMA0115,no limite: modelo 1.12x o total medido,10.84,9.649,-1.191,19.4406,17.5648,3833,112.3,True,False,False,,,13.8,896,61.42,16,True,0,OK,1.045,1.06,0,84.0
-SP,DVMA,VMA0113,no limite: modelo 1.12x o total medido,10.631,9.511,-1.12,16.1175,14.5846,4513,111.8,True,False,False,,,13.8,896,61.42,16,True,0,OK,1.045,1.06,0,84.0
-SP,DMBE,MBE0113,no limite: modelo 1.13x o total medido,10.523,9.307,-1.216,43.1836,39.1643,15792,113.1,True,False,False,,,13.8,1426,184.98,14,True,0,OK,1.013,1.052,0,75.8
-SP,DBAI,BAI0103,no limite: modelo 1.20x o total medido,10.495,8.764,-1.731,20.2685,18.4921,6787,119.8,True,False,False,,,13.8,1033,125.01,13,True,0,OK,1.026,1.048,0,78.0
-SP,DBAL,BAL0109,a investigar,10.14,7.932,-2.208,15.8273,14.5718,2782,127.8,True,False,False,,,13.8,1858,140.98,16,True,0,OK,1.011,1.04,0,74.9
-SP,DMBE,MBE0105,no limite: modelo 1.00x o total medido,9.779,9.775,-0.004,39.6142,35.742,13992,100.0,True,False,False,,,13.8,1426,184.98,14,True,0,OK,1.013,1.052,0,75.8
-SP,DTAI,TAI0110,no limite: modelo 1.08x o total medido,9.709,9.004,-0.705,31.3104,28.4914,9797,107.8,True,False,False,,,13.8,1289,184.01,11,True,0,OK,1.015,1.046,0,66.1
-SP,DMOR,MOR0106,no limite: modelo 1.03x o total medido,9.467,9.161,-0.306,35.4188,32.174,5981,103.3,True,False,False,,,13.8,642,53.29,12,True,0,OK,1.033,1.061,438,67.8
-SP,DMON,MON0110,a investigar,8.718,6.356,-2.362,11.4491,10.7214,1959,137.2,True,False,False,,,13.8,848,84.23,16,True,0,OK,1.045,1.066,973,78.1
-SP,DCAM,CAM0020,no limite: modelo 1.07x o total medido,8.681,8.136,-0.545,8.1768,7.5116,1232,106.7,True,False,False,,,34.5,545,91.6,21,True,0,OK,1.023,1.078,4859,70.4
-SP,DVAR,VAR0107,no limite: modelo 1.07x o total medido,8.5,7.949,-0.551,11.2607,10.3656,3810,106.9,True,False,False,,,13.8,1785,335.01,16,True,0,OK,0.967,1.044,1,60.3
-SP,DJGL,JGL0106,a investigar,8.356,6.725,-1.631,3.5959,3.3541,912,124.2,True,False,False,,,13.8,682,50.03,8,True,0,OK,1.039,1.054,974,67.9
-SP,DREG,REG0301,medida quase sem perda: 2.06% total medido,6.618,2.062,-4.556,38.0565,37.2716,11044,320.9,True,False,False,,,34.5,2500,889.0,4,True,0,OK,0.375,0.939,5951,73.3
-SP,DCAM,CAM0109,denominador minusculo: 0.274 GWh injetados,5.878,5.367,-0.511,0.2742,0.2595,79,109.5,True,False,False,,,34.5,545,91.6,21,True,0,OK,1.023,1.078,4859,70.4
-SP,DREG,REG0303,no limite: modelo 1.14x o total medido,5.61,4.922,-0.688,38.2169,36.336,15575,114.0,True,False,False,,,34.5,2500,889.0,4,True,0,OK,0.375,0.939,5951,73.3
-SP,DMEN,MEN0104,denominador minusculo: 0.267 GWh injetados,5.262,4.773,-0.489,0.2671,0.2543,120,110.3,True,False,False,,,13.8,511,59.24,10,True,0,OK,1.049,1.063,1,81.6
-SP,TBAN,BAN0206,a investigar,5.182,4.003,-1.179,4.8399,4.6461,805,129.4,True,False,False,,,34.5,1139,380.35,38,True,0,OK,0.266,0.976,7,56.5
-SP,DSND,SND0104,no limite: modelo 1.10x o total medido,3.579,3.24,-0.339,249.6752,241.5847,4804,110.4,True,False,False,,,13.8,1247,122.26,16,True,0,OK,1.018,1.049,0,65.2
-SP,DSOC,SOC0102,medida quase sem perda: 2.13% total medido,3.069,2.127,-0.942,21.5651,21.1064,8700,144.3,True,False,False,,,13.8,364,47.91,4,True,0,OK,1.062,1.072,2430,80.5
-SP,DCLE,CLE0103,medida quase sem perda: 2.07% total medido,2.499,2.068,-0.431,22.1288,21.6711,351,120.8,True,False,False,,,13.8,862,74.9,16,True,0,OK,1.034,1.054,0,60.9
+base,sub,ctmt,motivo,pct_tecnica_modelo,pct_total_medido,pct_nao_tecnica_implicita,GWh_injetado,GWh_faturado,ucs,cobertura,viola_limite,medida_degenerada,faturado_maior_que_injetado,declarado_pct,razao_vs_declarado,se_kv_mt,se_trafos,se_km_MT,se_alimentadores,se_convergiu,se_nos_nan,se_veredicto,se_V_MT_min,se_V_MT_mediana,se_barras_criticas,se_perdas_trafos_pct,se_n_linhas,se_ramos_isolados
+SP,DBRG,BRG0210,perda modelada absurda: 138.4%,138.407,74.761,-63.646,0.5927,0.1496,2,185.1,True,False,False,,,21,308,84.61,12,True,0,OK,0.98,0.988,0,87.6,4924,98
+SP,DCAL,CAL0105,no limite: modelo 1.09x o total medido,26.304,24.235,-2.069,19.4679,14.7499,2056,108.5,True,False,False,,,13.8,678,70.31,17,True,0,OK,1.033,1.056,0,85.8,6052,117
+SP,DCAL,CAL0115,perda modelada absurda: 25.2%,25.177,12.581,-12.596,11.5901,10.132,1818,200.1,True,False,False,,,13.8,678,70.31,17,True,0,OK,1.033,1.056,0,85.8,6052,117
+SP,DESP,ESP0102,perda modelada absurda: 24.5%,24.499,20.345,-4.154,57.4886,45.7926,10160,120.4,True,False,False,,,13.8,870,167.86,12,True,0,OK,0.949,1.034,0,59.8,11043,169
+SP,DPRE,PRE0108,perda modelada absurda: 23.1%,23.094,10.445,-12.649,2.5594,2.2921,915,221.1,True,False,False,,,13.8,1987,597.35,13,True,0,OK,1.047,1.073,15827,77.6,28077,161
+SP,DAGU,AGU0109,perda modelada absurda: 19.9%,19.914,12.755,-7.159,14.9848,13.0735,1723,156.1,True,False,False,,,13.8,303,38.98,10,True,0,OK,1.05,1.063,470,82.7,3206,56
+SP,SSJO,MRE0225,perda modelada absurda: 18.9%,18.882,5.942,-12.94,27.7683,26.1183,5791,317.8,True,False,False,,,3.8,176,23.65,2,True,0,OK,0.814,0.894,1458,34.6,1808,43
+SP,DCAM,CAM0011,perda modelada absurda: 17.8%,17.776,10.978,-6.798,13.428,11.9539,4335,161.9,True,False,False,,,34.5,545,91.6,21,True,0,OK,1.023,1.078,4859,70.4,6423,6139
+SP,DBUT,BUT0108,perda modelada absurda: 17.8%,17.763,7.112,-10.651,17.693,16.4347,1887,249.8,True,False,False,,,13.8,1146,118.05,16,True,0,OK,0.979,1.051,0,50.9,9430,179
+SP,DGVI,GVI0106,perda modelada absurda: 15.7%,15.715,11.555,-4.16,47.0247,41.5907,15521,136.0,True,False,False,,,13.8,1899,291.15,12,True,0,OK,0.899,0.932,8113,45.0,18250,148
+SP,TBAN,BAN0203,perda modelada absurda: 15.2%,15.236,9.37,-5.866,1.2537,1.1362,36,162.6,True,False,False,,,34.5,1139,380.35,38,True,0,OK,0.266,0.976,7,56.5,20831,11041
+SP,DBUT,BUT0102,a investigar,14.609,10.519,-4.09,52.411,46.8977,2314,138.9,True,False,False,,,13.8,1146,118.05,16,True,0,OK,0.979,1.051,0,50.9,9430,179
+SP,DMAU,MAU0105,a investigar,14.064,9.741,-4.323,30.7213,27.7286,8827,144.4,True,False,False,,,13.8,1531,216.44,16,True,0,OK,1.016,1.041,0,68.8,13862,171
+SP,DJCI,JCI0104,no limite: modelo 1.09x o total medido,13.844,12.654,-1.19,17.09,14.9274,4309,109.4,True,False,False,,,13.8,871,88.59,10,True,0,OK,1.034,1.057,0,76.9,7270,124
+SP,DSAB,SAB0102,no limite: modelo 1.14x o total medido,13.616,11.912,-1.704,15.8773,13.986,4095,114.3,True,False,False,,,13.8,803,102.79,16,True,0,OK,1.044,1.055,0,72.1,7511,110
+SP,DTTI,TTI0110,a investigar,13.315,9.033,-4.282,26.3521,23.9717,5669,147.4,True,False,False,,,13.8,684,66.08,16,True,0,OK,1.036,1.059,0,81.9,6029,157
+SP,DTSE,TSE0108,a investigar,13.079,8.148,-4.931,32.6124,29.9553,11094,160.5,True,False,False,,,13.8,2287,244.29,16,True,0,OK,0.937,0.972,0,54.4,19178,271
+SP,DTTI,TTI0102,no limite: modelo 1.12x o total medido,13.024,11.657,-1.367,13.5043,11.9302,3599,111.7,True,False,False,,,13.8,684,66.08,16,True,0,OK,1.036,1.059,0,81.9,6029,157
+SP,DSAU,SAU0104,no limite: modelo 1.16x o total medido,12.885,11.133,-1.752,47.5272,42.2362,16609,115.7,True,False,False,,,13.8,980,81.65,10,True,0,OK,0.985,1.054,0,72.0,7289,103
+SP,DANA,ANA0105,a investigar,12.818,4.951,-7.867,10.2546,9.7469,1697,258.9,True,False,False,,,13.8,494,64.21,12,True,0,OK,1.045,1.061,0,81.4,4560,70
+SP,DTED,TED0302,a investigar,12.65,5.971,-6.679,0.8502,0.7994,373,211.9,True,False,False,,,34.5,382,78.7,18,True,0,OK,1.048,1.078,3829,76.3,5852,5732
+SP,DCAM,CAM0110,denominador minusculo: 0.110 GWh injetados,12.236,8.39,-3.846,0.1104,0.1012,29,145.8,True,False,False,,,34.5,545,91.6,21,True,0,OK,1.023,1.078,4859,70.4,6423,6139
+SP,DVFO,VFO0103,no limite: modelo 1.20x o total medido,11.959,9.992,-1.967,17.911,16.1213,4676,119.7,True,False,False,,,13.8,1425,164.1,16,True,0,OK,1.023,1.045,0,71.2,12193,202
+SP,DPRI,PRI0102,no limite: modelo 1.06x o total medido,11.494,10.795,-0.699,34.98,31.204,11061,106.5,True,False,False,,,13.8,1463,160.55,12,True,0,OK,0.979,1.043,0,78.4,12278,158
+SP,DPEN,PEN0115,no limite: modelo 1.09x o total medido,11.461,10.562,-0.899,30.5467,27.3203,5406,108.5,True,False,False,,,13.8,1273,135.25,16,True,0,OK,1.025,1.044,0,75.8,11069,157
+SP,DLUB,LUB0110,a investigar,11.122,8.696,-2.426,32.0118,29.2282,7686,127.9,True,False,False,,,13.8,1184,151.26,15,True,0,OK,0.974,1.034,0,56.4,10659,145
+SP,DBUT,BUT0107,no limite: modelo 1.04x o total medido,11.102,10.631,-0.471,24.2086,21.6351,2753,104.4,True,False,False,,,13.8,1146,118.05,16,True,0,OK,0.979,1.051,0,50.9,9430,179
+SP,DMBE,MBE0112,no limite: modelo 1.04x o total medido,10.861,10.419,-0.442,16.1557,14.4725,5689,104.2,True,False,False,,,13.8,1426,184.98,14,True,0,OK,1.013,1.052,0,75.8,13221,189
+SP,DVMA,VMA0115,no limite: modelo 1.12x o total medido,10.84,9.649,-1.191,19.4406,17.5648,3833,112.3,True,False,False,,,13.8,896,61.42,16,True,0,OK,1.045,1.06,0,84.0,6389,96
+SP,DVMA,VMA0113,no limite: modelo 1.12x o total medido,10.631,9.511,-1.12,16.1175,14.5846,4513,111.8,True,False,False,,,13.8,896,61.42,16,True,0,OK,1.045,1.06,0,84.0,6389,96
+SP,DMBE,MBE0113,no limite: modelo 1.13x o total medido,10.523,9.307,-1.216,43.1836,39.1643,15792,113.1,True,False,False,,,13.8,1426,184.98,14,True,0,OK,1.013,1.052,0,75.8,13221,189
+SP,DBAI,BAI0103,no limite: modelo 1.20x o total medido,10.495,8.764,-1.731,20.2685,18.4921,6787,119.8,True,False,False,,,13.8,1033,125.01,13,True,0,OK,1.026,1.048,0,78.0,9023,125
+SP,DBAL,BAL0109,a investigar,10.14,7.932,-2.208,15.8273,14.5718,2782,127.8,True,False,False,,,13.8,1858,140.98,16,True,0,OK,1.011,1.04,0,74.9,12725,207
+SP,DMBE,MBE0105,no limite: modelo 1.00x o total medido,9.779,9.775,-0.004,39.6142,35.742,13992,100.0,True,False,False,,,13.8,1426,184.98,14,True,0,OK,1.013,1.052,0,75.8,13221,189
+SP,DTAI,TAI0110,no limite: modelo 1.08x o total medido,9.709,9.004,-0.705,31.3104,28.4914,9797,107.8,True,False,False,,,13.8,1289,184.01,11,True,0,OK,1.015,1.046,0,66.1,12075,128
+SP,DMOR,MOR0106,no limite: modelo 1.03x o total medido,9.467,9.161,-0.306,35.4188,32.174,5981,103.3,True,False,False,,,13.8,642,53.29,12,True,0,OK,1.033,1.061,438,67.8,4704,76
+SP,DMON,MON0110,a investigar,8.718,6.356,-2.362,11.4491,10.7214,1959,137.2,True,False,False,,,13.8,848,84.23,16,True,0,OK,1.045,1.066,973,78.1,7226,133
+SP,DCAM,CAM0020,no limite: modelo 1.07x o total medido,8.681,8.136,-0.545,8.1768,7.5116,1232,106.7,True,False,False,,,34.5,545,91.6,21,True,0,OK,1.023,1.078,4859,70.4,6423,6139
+SP,DVAR,VAR0107,no limite: modelo 1.07x o total medido,8.5,7.949,-0.551,11.2607,10.3656,3810,106.9,True,False,False,,,13.8,1785,335.01,16,True,0,OK,0.967,1.044,1,60.3,20291,199
+SP,DJGL,JGL0106,a investigar,8.356,6.725,-1.631,3.5959,3.3541,912,124.2,True,False,False,,,13.8,682,50.03,8,True,0,OK,1.039,1.054,974,67.9,4762,98
+SP,DREG,REG0301,medida quase sem perda: 2.06% total medido,6.618,2.062,-4.556,38.0565,37.2716,11044,320.9,True,False,False,,,34.5,2500,889.0,4,True,0,OK,0.375,0.939,5951,73.3,37546,204
+SP,DCAM,CAM0109,denominador minusculo: 0.274 GWh injetados,5.878,5.367,-0.511,0.2742,0.2595,79,109.5,True,False,False,,,34.5,545,91.6,21,True,0,OK,1.023,1.078,4859,70.4,6423,6139
+SP,DREG,REG0303,no limite: modelo 1.14x o total medido,5.61,4.922,-0.688,38.2169,36.336,15575,114.0,True,False,False,,,34.5,2500,889.0,4,True,0,OK,0.375,0.939,5951,73.3,37546,204
+SP,DMEN,MEN0104,denominador minusculo: 0.267 GWh injetados,5.262,4.773,-0.489,0.2671,0.2543,120,110.3,True,False,False,,,13.8,511,59.24,10,True,0,OK,1.049,1.063,1,81.6,4524,100
+SP,TBAN,BAN0206,a investigar,5.182,4.003,-1.179,4.8399,4.6461,805,129.4,True,False,False,,,34.5,1139,380.35,38,True,0,OK,0.266,0.976,7,56.5,20831,11041
+SP,DSND,SND0104,no limite: modelo 1.10x o total medido,3.579,3.24,-0.339,249.6752,241.5847,4804,110.4,True,False,False,,,13.8,1247,122.26,16,True,0,OK,1.018,1.049,0,65.2,9498,169
+SP,DSOC,SOC0102,medida quase sem perda: 2.13% total medido,3.069,2.127,-0.942,21.5651,21.1064,8700,144.3,True,False,False,,,13.8,364,47.91,4,True,0,OK,1.062,1.072,2430,80.5,3299,36
+SP,DCLE,CLE0103,medida quase sem perda: 2.07% total medido,2.499,2.068,-0.431,22.1288,21.6711,351,120.8,True,False,False,,,13.8,862,74.9,16,True,0,OK,1.034,1.054,0,60.9,6630,154

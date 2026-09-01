@@ -1,6 +1,6 @@
-base,sub,ctmt,motivo,pct_tecnica_modelo,pct_total_medido,pct_nao_tecnica_implicita,GWh_injetado,GWh_faturado,ucs,cobertura,viola_limite,medida_degenerada,faturado_maior_que_injetado,declarado_pct,razao_vs_declarado,se_kv_mt,se_trafos,se_km_MT,se_alimentadores,se_convergiu,se_nos_nan,se_veredicto,se_V_MT_min,se_V_MT_mediana,se_barras_criticas,se_perdas_trafos_pct
-CHESP103,RI1,414_RI4_4,denominador minusculo: 0.153 GWh injetados,17.218,6.345,-10.873,0.1533,0.1436,50,271.3,True,False,False,,,34.5,1485,768.5,8,True,0,OK,0.829,0.972,4500,0.7
-CHESP103,JP,224_JP_1,medida quase sem perda: 2.81% total medido,8.657,2.813,-5.844,6.6682,6.4807,2272,307.8,True,False,False,,,34.5,1227,707.73,6,True,0,OK,0.853,0.959,2768,77.0
-CHESP103,CRV,214_CRV1_2,no limite: modelo 1.04x o total medido,8.239,7.9,-0.339,6.1029,5.6208,1618,104.3,True,False,False,,,34.5,908,466.66,7,True,0,OK,0.915,0.957,568,71.8
-CHESP103,UR1,214_UR1_1,a investigar,7.38,3.47,-3.91,7.0062,6.7631,2348,212.7,True,False,False,,,13.8,826,472.23,3,True,0,OK,0.875,0.99,2834,88.3
-CHESP103,CRV,224_CRV1_2,medida quase sem perda: 2.15% total medido,3.613,2.146,-1.467,7.7546,7.5881,2456,168.3,True,False,False,,,34.5,908,466.66,7,True,0,OK,0.915,0.957,568,71.8
+base,sub,ctmt,motivo,pct_tecnica_modelo,pct_total_medido,pct_nao_tecnica_implicita,GWh_injetado,GWh_faturado,ucs,cobertura,viola_limite,medida_degenerada,faturado_maior_que_injetado,declarado_pct,razao_vs_declarado,se_kv_mt,se_trafos,se_km_MT,se_alimentadores,se_convergiu,se_nos_nan,se_veredicto,se_V_MT_min,se_V_MT_mediana,se_barras_criticas,se_perdas_trafos_pct,se_n_linhas,se_ramos_isolados
+CHESP103,RI1,414_RI4_4,denominador minusculo: 0.153 GWh injetados,17.218,6.345,-10.873,0.1533,0.1436,50,271.3,True,False,False,,,34.5,1485,768.5,8,True,0,OK,0.829,0.972,4500,0.7,9815,11366
+CHESP103,JP,224_JP_1,medida quase sem perda: 2.81% total medido,8.657,2.813,-5.844,6.6682,6.4807,2272,307.8,True,False,False,,,34.5,1227,707.73,6,True,0,OK,0.853,0.959,2768,77.0,7714,10167
+CHESP103,CRV,214_CRV1_2,no limite: modelo 1.04x o total medido,8.239,7.9,-0.339,6.1029,5.6208,1618,104.3,True,False,False,,,34.5,908,466.66,7,True,0,OK,0.915,0.957,568,71.8,5343,6268
+CHESP103,UR1,214_UR1_1,a investigar,7.38,3.47,-3.91,7.0062,6.7631,2348,212.7,True,False,False,,,13.8,826,472.23,3,True,0,OK,0.875,0.99,2834,88.3,5221,1364
+CHESP103,CRV,224_CRV1_2,medida quase sem perda: 2.15% total medido,3.613,2.146,-1.467,7.7546,7.5881,2456,168.3,True,False,False,,,34.5,908,466.66,7,True,0,OK,0.915,0.957,568,71.8,5343,6268
