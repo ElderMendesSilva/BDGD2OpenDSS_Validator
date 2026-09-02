@@ -304,9 +304,186 @@ def laudo_da_concessao(resumo):
 # nao ilhamento" e uma leitura. A segunda e o que alguem precisa para decidir o
 # que fazer.
 
-def _n(x, casas=2):
+# ===========================================================================
+#  A LEITURA DA FICHA
+# ===========================================================================
+#
+# A tabela da ficha diz OS NUMEROS; esta funcao diz o que eles significam
+# juntos. Fator de carga 0,95 nao e defeito de nenhum campo isolado — e o
+# sinal de que a mesma curva de carga foi aplicada a todo mundo, e so aparece
+# quando se olha media, pico e vale ao mesmo tempo.
+
+def leitura_da_ficha(fic, fdia=None):
+    """Uma lista de (título, parágrafo) lendo a ficha do circuito."""
+    fic, fdia = fic or {}, fdia or {}
+    secoes = []
+
+    nb, nl = fic.get('n_barras'), fic.get('n_linhas')
+    km = fic.get('km_linhas')
+    if nb:
+        t = ('O motor montou **%s barras** e **%s nós**, com %s trechos de '
+             'linha' % (_mil(nb), _mil(fic.get('n_nos')), _mil(nl)))
+        t += (' somando %s km.' % _n(km, 1)) if km else '.'
+        nt, nc = fic.get('n_trafos'), fic.get('n_cargas')
+        if nt or nc:
+            t += (' São %s transformadores e %s cargas.'
+                  % (_mil(nt), _mil(nc)))
+        npv = fic.get('n_pv') or 0
+        if npv:
+            t += (' Há **%s geradores fotovoltaicos**, somando %s kW '
+                  'instalados — é o que torna a série de 96 passos '
+                  'indispensável: com geração na rede, o pior caso deixa de '
+                  'ser o pico de carga.'
+                  % (_mil(npv), _mil(fic.get('kW_pv_instalado'))))
+        else:
+            t += (' Não há geração distribuída declarada nesta subestação, '
+                  'então a curva do dia é só carga.')
+        nr = fic.get('n_regcontrols') or 0
+        if nr:
+            t += (' %s reguladores de tensão controlam o perfil ao longo do '
+                  'tronco.' % _mil(nr))
+        d = fic.get('distancia_max_km')
+        if d:
+            t += (' A barra mais distante está a **%s km** da fonte em '
+                  'distância elétrica.' % _n(d, 1))
+        secoes.append(('O que foi simulado', t))
+
+    # ---------------------------------------------------- ponto de operação
+    z = fic.get('pct_nos_zerados')
+    fp = fic.get('fp_fonte')
+    t = ''
+    if fic.get('convergiu') is not None:
+        t = ('O fluxo de potência **%s** em %s iterações.'
+             % ('convergiu' if fic.get('convergiu') else 'NÃO convergiu',
+                fic.get('iteracoes')))
+    if fic.get('fonte_kW') is not None:
+        t += (' A fonte entrega **%s kW**' % _mil(fic.get('fonte_kW')))
+        if fp is not None:
+            t += ' com fator de potência %s' % _n(fp, 3)
+            if fp < 0.92:
+                t += (' — abaixo de 0,92, que é o limite a partir do qual a '
+                      'distribuidora é cobrada por excedente de reativo')
+        t += '.'
+    if z is not None and z > 0.5:
+        t += (' **%s%% dos nós estão com tensão exatamente zero** (%s de %s). '
+              'Zero não é tensão baixa: é nó que a matriz de admitância não '
+              'liga a fonte nenhuma. Todo número de perda e de energia abaixo '
+              'está medido sobre uma rede menor do que a declarada.'
+              % (_n(z), _mil(fic.get('n_nos_zerados')), _mil(fic.get('n_nos'))))
+    elif z is not None:
+        t += ' Praticamente todos os nós recebem tensão (%s%% em zero).' % _n(z)
+    if t:
+        secoes.append(('O ponto de operação', t))
+
+    # ---------------------------------------------------------------- o dia
+    if fdia.get('passos_validos'):
+        fc = fdia.get('fator_de_carga')
+        t = ('A rede foi resolvida em **%d dos %d passos** de 15 minutos.'
+             % (fdia['passos_validos'],
+                fdia['passos_validos'] + (fdia.get('passos_falhos') or 0)))
+        if fdia.get('pico_kW') is not None:
+            t += (' O pico é de **%s kW às %s** e o vale de %s kW às %s.'
+                  % (_mil(fdia['pico_kW']), _hora(fdia.get('hora_pico')),
+                     _mil(fdia.get('vale_kW')), _hora(fdia.get('hora_vale'))))
+        if fc is not None:
+            t += ' O fator de carga é **%s**' % _n(fc, 3)
+            if fc > 0.85:
+                t += (', alto demais para uma rede de distribuição real. O '
+                      'valor típico fica entre 0,45 e 0,65; acima de 0,85 a '
+                      'explicação quase sempre é a mesma curva de carga '
+                      'aplicada a todos os consumidores, o que achata o dia '
+                      'e **subestima a perda de pico**')
+            elif fc < 0.35:
+                t += (', baixo, o que indica carga concentrada em poucas '
+                      'horas — a rede fica dimensionada por um pico que dura '
+                      'pouco')
+            else:
+                t += ', dentro do que se espera de uma rede de distribuição'
+            t += '.'
+        h90 = fdia.get('horas_acima_90pct')
+        if h90 is not None:
+            t += (' A carga fica acima de 90%% do pico por **%s horas**: pico '
+                  'curto é questão de proteção, pico longo é questão de '
+                  'condutor.' % _n(h90, 1))
+        secoes.append(('O dia, em 96 passos de 15 minutos', t))
+
+        rz = fdia.get('razao_perda_pico_vale')
+        if rz:
+            t = ('A perda vai de %s kW no vale a %s kW no pico, uma razão de '
+                 '**%s×**.' % (_n(fdia.get('perda_vale_kW'), 1),
+                               _n(fdia.get('perda_pico_kW'), 1), _n(rz)))
+            if rz < 1.5:
+                t += (' Razão baixa significa que a perda **quase não depende '
+                      'da carga**: o que domina é o ferro dos transformadores, '
+                      'que existe 24 horas por dia. É exatamente a parcela que '
+                      'a perda técnica declarada pela distribuidora costuma '
+                      'não contemplar (achado 13).')
+            else:
+                t += (' A parcela que cresce com a carga domina, o que é o '
+                      'comportamento ôhmico esperado — a perda vai com o '
+                      'quadrado da corrente, então dobrar a carga quadruplica '
+                      'a perda daquele instante.')
+            r = fdia.get('rampa_max_kW')
+            if r:
+                t += (' A maior variação entre dois passos consecutivos é de '
+                      '%s kW em 15 minutos.' % _mil(r))
+            secoes.append(('A perda não é um número, é uma curva', t))
+
+        if fdia.get('kWh_gd'):
+            co = fdia.get('coincidencia_gd')
+            t = ('A geração distribuída produz **%s kWh no dia**, com pico de '
+                 '%s kW às %s, e cobre %s%% da energia total.'
+                 % (_mil(fdia['kWh_gd']), _mil(fdia.get('gd_pico_kW')),
+                    _hora(fdia.get('hora_gd_pico')),
+                    _n(fdia.get('penetracao_gd_pct'))))
+            if co is not None:
+                t += (' No instante do pico de carga há %s kW de geração '
+                      'disponível, ou **%s%% do pico da própria GD**.'
+                      % (_mil(fdia.get('gd_no_pico_kW')), _n(100 * co)))
+                if co < 0.2:
+                    t += (' A não-coincidência é quase total: a geração solar '
+                          'tem pico ao meio-dia e a carga à noite, então esta '
+                          'GD **desloca energia no tempo mas não alivia o '
+                          'carregamento de ponta**. Reduzir condutor com base '
+                          'nela seria erro de dimensionamento.')
+                else:
+                    t += (' Parte relevante da geração está presente na hora '
+                          'crítica, então ela de fato reduz o carregamento de '
+                          'ponta, e não apenas a energia do dia.')
+            hr = fdia.get('horas_reverso')
+            if hr:
+                t += (' Em **%s horas do dia o fluxo se inverte** e a rede '
+                      'exporta para a subestação. É nesses instantes que '
+                      'aparecem sobretensão e atuação indevida de regulador, e '
+                      'nenhum deles é visitado por um estudo de ponta.'
+                      % _n(hr, 1))
+            else:
+                t += (' O fluxo nunca se inverte: a geração fica sempre abaixo '
+                      'do consumo local.')
+            secoes.append(('O que a geração distribuída faz com esta rede', t))
+    return secoes
+
+
+def _mil(x):
     try:
-        return ('%%.%df' % casas) % float(x)
+        return '{:,.0f}'.format(float(x)).replace(',', '.')
+    except (TypeError, ValueError):
+        return '—'
+
+
+def _hora(h):
+    try:
+        h = float(h)
+        return '%dh%02d' % (int(h), round((h - int(h)) * 60))
+    except (TypeError, ValueError):
+        return '—'
+
+
+def _n(x, casas=2):
+    """Numero com VIRGULA decimal. O relatorio e em portugues, e o texto ficava
+    dizendo "0.854" ao lado de uma tabela que dizia "0,854"."""
+    try:
+        return (('%%.%df' % casas) % float(x)).replace('.', ',')
     except (TypeError, ValueError):
         return '—'
 
@@ -382,6 +559,45 @@ def analise_da_figura(chave, v, e, g, extra=None):
                 'quadrado da corrente. O valor único do resumo (%s%%) é a '
                 'integral do dia, e ler o pico como se fosse a média '
                 'superestima a perda.' % _n(pp))
+
+    if chave == 'duracao':
+        d = extra.get('dia') or {}
+        fc = d.get('fator_de_carga')
+        t = ('A mesma carga do dia, mas **ordenada do maior para o menor '
+             'valor**. O eixo horizontal deixa de ser a hora e passa a ser '
+             'duração: cada ponto responde "por quantas horas a carga fica '
+             'pelo menos neste nível?".')
+        if fc is not None:
+            t += (' A área sob a curva é a energia do dia, e a razão entre a '
+                  'média e o pico é o **fator de carga, %s**.' % _n(fc, 3))
+            if fc > 0.85:
+                t += (' Um valor tão alto achata a curva quase numa reta, e '
+                      'isso não é rede: é a mesma curva de carga aplicada a '
+                      'todos os consumidores. O efeito prático é **subestimar '
+                      'a perda de pico**, que cresce com o quadrado da '
+                      'corrente.')
+        h90 = d.get('horas_acima_90pct')
+        if h90 is not None:
+            t += (' A faixa vermelha marca as %s horas em que a carga passa de '
+                  '90%% do pico — é esse intervalo, e não o instante do '
+                  'máximo, que dimensiona o condutor.' % _n(h90, 1))
+        return t
+
+    if chave == 'perda_carga':
+        t = ('Cada ponto é um dos 96 passos: carga no eixo horizontal, perda '
+             'no vertical. A perda ôhmica vai com o **quadrado** da corrente, '
+             'então os pontos devem cair sobre uma parábola — e a curva '
+             'vermelha é o ajuste.')
+        t += (' O que importa aqui é **onde a parábola cruza o eixo vertical**: '
+              'esse intercepto é a perda que existe com a rede vazia, o ferro '
+              'dos transformadores. Ela não some à noite, não depende de '
+              'consumo, e é justamente a parcela que a perda técnica declarada '
+              'pela distribuidora costuma não contemplar (achado 13).')
+        t += (' Nuvem dispersa em vez de parábola limpa significa que a perda '
+              'está sendo governada por outra coisa que não a carga — '
+              'comutação de regulador ou banco de capacitor chaveando ao longo '
+              'do dia.')
+        return t
 
     if chave == 'gd_fluxo':
         if not (e.get('kWh_gd') or 0):

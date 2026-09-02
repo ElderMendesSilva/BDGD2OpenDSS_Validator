@@ -490,3 +490,76 @@ def carregamento_liquido(ax, fonte_kw):
     ax.set_xticks(range(0, 25, 3))
     return _acaba(ax, 'Carregamento líquido na cabeceira — variação de %.0fx'
                   % (hi / lo if lo > 0 else float('inf')), 'hora', 'kW')
+
+
+def duracao_de_carga(ax, fonte_kw):
+    """A curva de duracao: a carga ordenada do maior para o menor.
+
+    Responde o que a curva do dia nao responde — nao QUANDO a carga e alta,
+    mas por QUANTO TEMPO. Pico que dura quinze minutos e questao de protecao;
+    o mesmo pico sustentado por seis horas e questao de condutor, e as duas
+    curvas do dia podem ter o mesmo maximo.
+    """
+    v = sorted((x for x in (fonte_kw or []) if x is not None), reverse=True)
+    if not v:
+        return _vazio(ax, 'sem série diária')
+    h = [(i + 1) * 24.0 / len(v) for i in range(len(v))]
+    ax.fill_between(h, v, color=COR_NEUTRA, alpha=0.25, lw=0)
+    ax.plot(h, v, color=COR_NEUTRA, lw=1.6)
+    pico, med = v[0], sum(v) / len(v)
+    ax.axhline(med, color=COR_ATENCAO, ls='--', lw=1.2,
+               label='média %s kW  (fator de carga %.2f)'
+                     % (_mil(med), med / pico if pico else 0))
+    # As horas acima de 90% do pico, que e o numero que dimensiona o condutor.
+    n90 = sum(1 for x in v if x >= 0.9 * pico)
+    if n90:
+        t90 = n90 * 24.0 / len(v)
+        ax.axvspan(0, t90, color=COR_RUIM, alpha=0.10, lw=0,
+                   label='%.1f h acima de 90%% do pico' % t90)
+    ax.axhline(pico, color=COR_RUIM, ls=':', lw=1.0)
+    ax.annotate('pico %s kW' % _mil(pico), xy=(0.3, pico), fontsize=8,
+                color=COR_RUIM, va='bottom')
+    ax.set_xlim(0, 24)
+    ax.set_xticks(range(0, 25, 3))
+    ax.legend(fontsize=7.5, framealpha=0.9)
+    return _acaba(ax, 'Curva de duração da carga',
+                  'horas em que a carga é pelo menos o valor do eixo Y', 'kW')
+
+
+def perda_contra_carga(ax, fonte_kw, perdas_kw):
+    """Perda contra carga, um ponto por passo de 15 min.
+
+    A perda ohmica vai com o QUADRADO da corrente, entao os pontos deveriam
+    cair sobre uma parabola que passa perto da origem. O que a nuvem mostra e
+    o intercepto: onde a parabola cruza carga zero esta a perda a vazio — o
+    ferro dos transformadores, que existe com a rede vazia e nao aparece em
+    nenhuma medicao de ponta.
+    """
+    par = [(f, p) for f, p in zip(fonte_kw or [], perdas_kw or [])
+           if f is not None and p is not None and f > 0]
+    if len(par) < 5:
+        return _vazio(ax, 'sem série diária')
+    xs = [a for a, _ in par]
+    ys = [b for _, b in par]
+    ax.scatter(xs, ys, s=18, color=COR_NEUTRA, alpha=0.65, edgecolors='none')
+    # ajuste a*x^2 + c por minimos quadrados em duas incognitas, resolvido a
+    # mao para nao arrastar numpy so por isto.
+    n = len(par)
+    s4 = sum(x ** 4 for x in xs)
+    s2 = sum(x ** 2 for x in xs)
+    sy = sum(ys)
+    sx2y = sum(x * x * y for x, y in par)
+    det = s4 * n - s2 * s2
+    if det:
+        a = (sx2y * n - s2 * sy) / det
+        c = (s4 * sy - s2 * sx2y) / det
+        lo, hi = min(xs), max(xs)
+        gx = [lo + (hi - lo) * k / 60.0 for k in range(61)]
+        ax.plot(gx, [a * x * x + c for x in gx], color=COR_RUIM, lw=1.6,
+                label='ajuste quadrático')
+        if c > 0:
+            ax.axhline(c, color=COR_ATENCAO, ls='--', lw=1.2,
+                       label='perda a vazio ≈ %s kW (o ferro)' % _mil(c))
+        ax.legend(fontsize=7.5, framealpha=0.9)
+    return _acaba(ax, 'A perda segue o quadrado da carga',
+                  'potência da fonte (kW)', 'perdas (kW)')

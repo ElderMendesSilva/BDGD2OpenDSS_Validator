@@ -27,6 +27,7 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from bdgd2dss import graficos                            # noqa: E402
 from bdgd2dss import laudo                               # noqa: E402
+from bdgd2dss import ficha                               # noqa: E402
 
 
 
@@ -50,6 +51,8 @@ PLOTS_SE = [
     ('mapa',        'A rede no espaco, colorida por tensao'),
     ('dia',         'Curva do dia: fonte, GD e perdas'),
     ('perdas_dia',  'Perda em % ao longo do dia'),
+    ('duracao',     'Curva de duracao da carga'),
+    ('perda_carga', 'Perda contra carga: o ferro aparece no intercepto'),
     ('gd_fluxo',    'Geracao no dia, com o fluxo reverso destacado'),
     ('gd_cobre',    'Quanto da carga a GD cobre, passo a passo'),
     ('liquido',     'Carregamento liquido na cabeceira (o MINIMO importa)'),
@@ -123,11 +126,11 @@ def _figura(linhas, colunas, titulo):
 def _do_modelo(pasta, se):
     """Perfil de tensao, carregamento e coordenadas — exige compilar.
 
-    Devolve (distancias, pus, carregamentos, xs, ys, cores). Tudo vazio quando
-    o modelo nao abre: relatorio de subestacao quebrada tem de sair assim
-    mesmo, com as figuras dizendo que nao ha dado.
+    Devolve (distancias, pus, carregamentos, xs, ys, cores, ficha). Tudo vazio
+    quando o modelo nao abre: relatorio de subestacao quebrada tem de sair
+    assim mesmo, com as figuras dizendo que nao ha dado.
     """
-    vazio = ([], [], [], [], [], [])
+    vazio = ([], [], [], [], [], [], {})
     try:
         import opendssdirect as dss
     except Exception:
@@ -197,7 +200,15 @@ def _do_modelo(pasta, se):
                         cor.append(pu_de.get(p[0].strip().lower()))
                     except ValueError:
                         pass
-    return dist, pus, carga, xs, ys, cor
+
+    # A FICHA. Sai do mesmo circuito ja resolvido — abrir o modelo de novo so
+    # para conta-lo seria pagar a compilacao duas vezes, e numa concessao de
+    # 450 subestacoes isso e meia hora de maquina por nada.
+    try:
+        ficha_ = ficha.ficha_do_circuito(dss)
+    except Exception:                                        # noqa: BLE001
+        ficha_ = {}
+    return dist, pus, carga, xs, ys, cor, ficha_
 
 
 def uma_subestacao(pasta, se, val, ene, ger, destino, abrir=True,
@@ -212,8 +223,9 @@ def uma_subestacao(pasta, se, val, ene, ger, destino, abrir=True,
     gd = serie.get('gd_kw') or []
     perdas = serie.get('perdas_kw') or []
 
-    dist, pus, carga, xs, ys, cor = (_do_modelo(pasta, se) if abrir
-                                     else ([], [], [], [], [], []))
+    dist, pus, carga, xs, ys, cor, fic = (_do_modelo(pasta, se) if abrir
+                                          else ([], [], [], [], [], [], {}))
+    fdia = ficha.ficha_do_dia(serie)
 
     # CADA CHAVE DO CATALOGO VIRA UMA FUNCAO SEM ARGUMENTO, e so as pedidas
     # sao desenhadas. Assim acrescentar uma figura e escrever uma linha aqui e
@@ -224,6 +236,8 @@ def uma_subestacao(pasta, se, val, ene, ger, destino, abrir=True,
         'mapa': lambda a: graficos.mapa(a, xs, ys, cor, 'Rede (cor = tensao)'),
         'dia': lambda a: graficos.curva_do_dia(a, fonte, gd, perdas),
         'perdas_dia': lambda a: graficos.perdas_do_dia(a, fonte, perdas),
+        'duracao': lambda a: graficos.duracao_de_carga(a, fonte),
+        'perda_carga': lambda a: graficos.perda_contra_carga(a, fonte, perdas),
         'gd_fluxo': lambda a: graficos.geracao_no_dia(a, fonte, gd),
         'gd_cobre': lambda a: graficos.cobertura_da_gd(a, fonte, gd),
         'liquido': lambda a: graficos.carregamento_liquido(a, fonte),
@@ -291,7 +305,10 @@ def uma_subestacao(pasta, se, val, ene, ger, destino, abrir=True,
         # em tres secoes — e elas sao justamente as que respondem se a rede e
         # boa: quantas barras fora da faixa, quantos condutores acima da
         # ampacidade, e em quantos passos o fluxo se inverte.
-        extra = {}
+        # A FICHA DO DIA VIAJA DENTRO DO `extra`, para que as analises das
+        # figuras possam citar fator de carga e coincidencia sem que cada uma
+        # tenha de recalcular a serie.
+        extra = {'dia': fdia}
         if pus:
             fora = sum(1 for x in pus
                        if x < graficos.V_ADEQUADA[0] or x > graficos.V_ADEQUADA[1])
@@ -304,7 +321,8 @@ def uma_subestacao(pasta, se, val, ene, ger, destino, abrir=True,
             extra['passos_reversos'] = sum(1 for x, t in zip(gd, total)
                                            if x > t)
         try:
-            pdf_da_subestacao(base + '.pdf', pasta, se, v, e, g, alvo, extra)
+            pdf_da_subestacao(base + '.pdf', pasta, se, v, e, g, alvo, extra,
+                              fic, fdia)
         except Exception as erro:                            # noqa: BLE001
             print('   PDF de %s falhou: %s' % (se, erro), flush=True)
     return alvo
@@ -612,14 +630,14 @@ def _p(texto, estilo):
 
 
 def pdf_da_subestacao(caminho, pasta, se, v, e, g, figura,
-                      extra=None):
+                      extra=None, fic=None, fdia=None):
     """Um documento por subestacao: o que e, o que deu, e a figura."""
     from reportlab.lib.pagesizes import A4
     from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
     from reportlab.lib.units import mm
     from reportlab.lib import colors
     from reportlab.platypus import (SimpleDocTemplate, Spacer, Table,
-                                    TableStyle, Image)
+                                    TableStyle, Image, PageBreak)
 
     est = getSampleStyleSheet()
     titulo = ParagraphStyle('t', parent=est['Title'], fontSize=16, spaceAfter=2)
@@ -637,8 +655,19 @@ def pdf_da_subestacao(caminho, pasta, se, v, e, g, figura,
         _p('Subestação %s' % se, titulo),
         _p('%s &nbsp;·&nbsp; gerado por BDGD → OpenDSS v%s'
            % (os.path.basename(pasta), _versao()), sub),
-        _p('A rede', h2),
     ]
+
+    # A FICHA DO CIRCUITO ABRE O DOCUMENTO. Antes ele comecava pelo veredicto,
+    # e o veredicto sozinho nao diz sobre O QUE ele foi dado: 3% de perda numa
+    # rede de 40 barras e 3% numa de 40 mil sao resultados diferentes. Os
+    # numeros aqui saem da interface do OpenDSS com o circuito ja resolvido —
+    # e nao do `.dss` lido como texto —, entao contam o que o motor de fato
+    # montou, e nao o que foi escrito.
+    if fic or fdia:
+        pecas += _bloco_da_ficha(fic or {}, fdia or {}, h2, corpo)
+        pecas.append(PageBreak())
+
+    pecas.append(_p('A rede', h2))
     linhas = [
         ['alimentadores', g.get('alimentadores'), 'transformadores',
          g.get('trafos')],
@@ -677,7 +706,6 @@ def pdf_da_subestacao(caminho, pasta, se, v, e, g, figura,
     # painelao servia para ter tudo de relance; num relatorio, figura sem
     # leitura ao lado obriga quem le a redescobrir sozinho o que ela mostra —
     # e a maior parte das pessoas nao redescobre, so passa a pagina.
-    from reportlab.platypus import PageBreak
     pasta_fig = os.path.join(os.path.dirname(caminho))
     for chave, titulo_fig in PLOTS_SE:
         png = os.path.join(pasta_fig, '%s.png' % chave)
@@ -699,6 +727,60 @@ def pdf_da_subestacao(caminho, pasta, se, v, e, g, figura,
         ]
     doc.build(pecas)
     return caminho
+
+
+def _bloco_da_ficha(fic, fdia, h2, corpo):
+    """A ficha do circuito: tres tabelas de duas colunas e a leitura delas.
+
+    Tabela de duas colunas e nao de uma: a ficha tem quase cinquenta linhas, e
+    empilhadas numa coluna so elas ocupariam tres paginas de papel quase
+    branco. Em duas colunas cabe um bloco por terco de pagina, que e o formato
+    em que alguem realmente confere numero.
+    """
+    from reportlab.lib.styles import ParagraphStyle
+    from reportlab.lib.units import mm
+    from reportlab.lib import colors
+    from reportlab.platypus import Spacer, Table, TableStyle
+
+    pequeno = ParagraphStyle('fic', parent=corpo, fontSize=8, leading=11)
+    pecas = [_p('Ficha do circuito', h2),
+             _p('Lido da interface do OpenDSS, com o circuito já resolvido.',
+                pequeno)]
+
+    blocos = {}
+    ordem = []
+    for bloco, rotulo, valor in ficha.linhas_da_ficha(fic, fdia):
+        if bloco not in blocos:
+            blocos[bloco] = []
+            ordem.append(bloco)
+        blocos[bloco].append((rotulo, valor))
+
+    for bloco in ordem:
+        itens = blocos[bloco]
+        meio = (len(itens) + 1) // 2
+        esq, dir_ = itens[:meio], itens[meio:]
+        linhas = []
+        for k in range(meio):
+            a = esq[k] if k < len(esq) else ('', '')
+            b = dir_[k] if k < len(dir_) else ('', '')
+            linhas.append([a[0], a[1], b[0], b[1]])
+        t = Table(linhas, colWidths=[46 * mm, 26 * mm, 46 * mm, 26 * mm])
+        t.setStyle(TableStyle([
+            ('FONTSIZE', (0, 0), (-1, -1), 7.6),
+            ('TEXTCOLOR', (0, 0), (0, -1), colors.HexColor('#555')),
+            ('TEXTCOLOR', (2, 0), (2, -1), colors.HexColor('#555')),
+            ('ALIGN', (1, 0), (1, -1), 'RIGHT'),
+            ('ALIGN', (3, 0), (3, -1), 'RIGHT'),
+            ('LINEBELOW', (0, 0), (-1, -2), 0.25, colors.HexColor('#e8e8e8')),
+            ('TOPPADDING', (0, 0), (-1, -1), 2),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 2),
+        ]))
+        pecas += [Spacer(1, 3 * mm), _p('<b>%s</b>' % bloco, pequeno),
+                  Spacer(1, 1 * mm), t]
+
+    for tit, par in laudo.leitura_da_ficha(fic, fdia):
+        pecas += [_p(tit, h2), _p(_negrito(par), corpo)]
+    return pecas
 
 
 def _negrito(txt):
