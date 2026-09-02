@@ -183,9 +183,14 @@ def uma_subestacao(pasta, se, val, ene, ger, destino, abrir=True):
     # olhar o `.dss` acha o retrato dela do lado, sem precisar saber que existe
     # uma pasta de relatorio em outro lugar.
     dse = os.path.join(pasta, se)
-    alvo = (os.path.join(dse, 'RELATORIO.png') if os.path.isdir(dse)
-            else os.path.join(destino, '%s.png' % se))
+    base = (os.path.join(dse, 'RELATORIO') if os.path.isdir(dse)
+            else os.path.join(destino, se))
+    # OS DOIS FORMATOS, e nao um. O PNG abre com dois cliques e serve para
+    # olhar; o PDF e vetorial, imprime sem borrar e e o que se manda por
+    # e-mail ou anexa a um relatorio maior.
+    alvo = base + '.png'
     fig.savefig(alvo, dpi=110)
+    fig.savefig(base + '.pdf')
     plt.close(fig)
     return alvo
 
@@ -297,6 +302,7 @@ def a_concessao(pasta, val, ene, ger, ver, destino):
     fig.tight_layout(rect=[0, 0, 1, 0.97])
     alvo = os.path.join(destino, '_GERAL.png')
     fig.savefig(alvo, dpi=110)
+    fig.savefig(os.path.join(destino, '_GERAL.pdf'))
     plt.close(fig)
     return alvo
 

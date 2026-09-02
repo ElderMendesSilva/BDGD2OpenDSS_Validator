@@ -91,6 +91,32 @@ FERRAMENTAS = [
 ]
 
 
+def _sufixo_novo():
+    """Um nome de rodada que nao existe ainda.
+
+    A saida vai para `MODELOS_<BASE>_<SUFIXO>`, e gravar por cima da rodada
+    anterior apaga a unica coisa com que comparar. No modo simples ninguem
+    quer pensar nisso, entao o proximo livre e escolhido aqui.
+    """
+    import glob
+    usados = set()
+    for d in glob.glob(os.path.join(RAIZ, 'MODELOS_*')):
+        parte = os.path.basename(d).rsplit('_', 1)[-1]
+        if parte.upper().startswith('V') and parte[1:].isdigit():
+            usados.add(int(parte[1:]))
+    return 'V%d' % ((max(usados) + 1) if usados else 1)
+
+
+def _pasta_das_bases():
+    """Onde procurar a `.gdb` — a mesma lista que o `regerar` usa."""
+    v = os.environ.get('BDGD2DSS_BASES')
+    if v:
+        for p in v.split(os.pathsep):
+            if os.path.isdir(p):
+                return p
+    return os.path.expanduser('~')
+
+
 class Menu(tk.Tk):
     def __init__(self):
         super().__init__()
@@ -109,15 +135,52 @@ class Menu(tk.Tk):
         cab.pack(fill='x')
         ttk.Label(cab, text='BDGD → OpenDSS',
                   font=('Segoe UI', 15, 'bold')).pack(anchor='w')
-        ttk.Label(cab, text='Escolha a ferramenta. Ela pergunta os parâmetros '
-                            'na própria janela e o resultado aparece abaixo.',
+        ttk.Label(cab, text='Escolha a .gdb e clique em Rodar. O resto é para '
+                            'quando a pergunta for técnica.',
                   foreground='#555').pack(anchor='w')
 
         corpo = ttk.Frame(self, padding=(14, 0, 14, 6))
         corpo.pack(fill='both', expand=True)
 
-        lista = ttk.Frame(corpo)
-        lista.pack(fill='x')
+        # ------------------------------------------------------------ SIMPLES
+        # A PORTA DE ENTRADA E UMA SO PERGUNTA: qual .gdb. Ate 02/09/2026 esta
+        # tela abria com doze cartoes tecnicos e nenhuma indicacao de por onde
+        # comecar — quem so queria rodar uma base tinha de saber que "CICLO
+        # COMPLETO" era o decimo segundo, e que os onze acima sao etapas DELE.
+        simples = ttk.LabelFrame(corpo, text=' Rodar uma BDGD ', padding=12)
+        simples.pack(fill='x', pady=(0, 10))
+        ttk.Label(simples,
+                  text='Converte, aplica as premissas, verifica, mede energia '
+                       'e perdas, valida, e grava o relatório visual dentro da '
+                       'pasta de cada subestação.',
+                  wraplength=940, justify='left',
+                  foreground='#444').pack(anchor='w', pady=(0, 8))
+        linha = ttk.Frame(simples)
+        linha.pack(fill='x')
+        self.gdb = tk.StringVar()
+        ttk.Label(linha, text='Arquivo .gdb:').pack(side='left')
+        ttk.Entry(linha, textvariable=self.gdb, width=72).pack(
+            side='left', padx=6, fill='x', expand=True)
+        ttk.Button(linha, text='Procurar…', width=12,
+                   command=self._escolhe_gdb).pack(side='left', padx=(0, 6))
+        ttk.Button(linha, text='RODAR TUDO', width=16,
+                   command=self._roda_simples).pack(side='left')
+        ttk.Label(simples,
+                  text='Sem escolher arquivo, roda TODAS as .gdb encontradas '
+                       'na pasta de bases — são horas.',
+                  foreground='#888', font=('Segoe UI', 8)).pack(anchor='w',
+                                                               pady=(6, 0))
+
+        # ----------------------------------------------------------- AVANCADO
+        self.avancado_aberto = tk.BooleanVar(value=False)
+        self.b_avancado = ttk.Button(
+            corpo, text='▸  Avançado — as %d etapas, uma a uma'
+                        % len(FERRAMENTAS),
+            command=self._alterna_avancado)
+        self.b_avancado.pack(anchor='w', pady=(0, 6))
+
+        self.lista = ttk.Frame(corpo)
+        lista = self.lista
         for i, (nome, script, faz, precisa) in enumerate(FERRAMENTAS):
             cx = ttk.Frame(lista, relief='groove', borderwidth=1, padding=8)
             cx.grid(row=i // 2, column=i % 2, sticky='nsew', padx=4, pady=4)
@@ -146,7 +209,10 @@ class Menu(tk.Tk):
         self.status = ttk.Label(barra, text='pronto', foreground='#666')
         self.status.pack(side='right')
 
-        self.log = tk.Text(corpo, wrap='none', height=8, bg='#1e1e1e',
+        # 8 LINHAS NAO DAVAM PARA LER: uma conversao imprime uma linha por
+        # subestacao, e o que interessa some antes de ser lido. 22 linhas
+        # mostram uma base pequena inteira sem rolar.
+        self.log = tk.Text(corpo, wrap='none', height=22, bg='#1e1e1e',
                            fg='#d4d4d4', insertbackground='#d4d4d4',
                            font=('Consolas', 9))
         sb = ttk.Scrollbar(corpo, command=self.log.yview)
@@ -155,7 +221,50 @@ class Menu(tk.Tk):
         self.log.pack(fill='both', expand=True)
 
     # ------------------------------------------------------------- execucao
-    def roda(self, script, nome):
+    def escreve(self, txt):
+        """Uma linha no log, do lado de quem clicou."""
+        self._diz(txt.rstrip())
+
+    def _escolhe_gdb(self):
+        """A `.gdb` e uma PASTA, e nao um arquivo — quem procura por arquivo
+        nao acha nada e conclui que o programa esta quebrado."""
+        from tkinter import filedialog
+        d = filedialog.askdirectory(
+            title='Escolha a .gdb (é uma pasta)',
+            initialdir=_pasta_das_bases(), mustexist=True)
+        if d:
+            self.gdb.set(d)
+
+    def _roda_simples(self):
+        """Uma base, ou todas, com os padroes medidos."""
+        alvo = self.gdb.get().strip()
+        args = ['--sufixo', _sufixo_novo()]
+        if alvo:
+            if not os.path.isdir(alvo):
+                self.escreve('\nEssa pasta .gdb nao existe: %s\n' % alvo)
+                return
+            # `--so` espera a TAG, e o `regerar` a deriva do nome do arquivo
+            import regerar_v10 as rg
+            tag = rg._sigla(alvo)[0]
+            args += ['--so', tag]
+            self.escreve('\nRodando %s (%s)\n'
+                         % (tag, os.path.basename(alvo)))
+        else:
+            self.escreve('\nRodando TODAS as bases encontradas — sao horas.\n')
+        self.roda('regerar_v10.py', 'Ciclo completo', args)
+
+    def _alterna_avancado(self):
+        aberto = not self.avancado_aberto.get()
+        self.avancado_aberto.set(aberto)
+        if aberto:
+            self.lista.pack(fill='x', before=self.b_avancado)
+            self.b_avancado.config(text='▾  Avançado — ocultar as etapas')
+        else:
+            self.lista.pack_forget()
+            self.b_avancado.config(
+                text='▸  Avançado — as %d etapas, uma a uma' % len(FERRAMENTAS))
+
+    def roda(self, script, nome, args=None):
         if self.proc and self.proc.poll() is None:
             self._diz('!! já há uma ferramenta rodando — interrompa antes.')
             return
@@ -167,7 +276,7 @@ class Menu(tk.Tk):
         # -u: sem buffer, senao a saida so aparece quando o script termina e a
         # janela parece travada durante uma hora de conversao
         self.proc = subprocess.Popen(
-            [sys.executable, '-u', os.path.join(RAIZ, script)],
+            [sys.executable, '-u', os.path.join(RAIZ, script)] + list(args or []),
             stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
             cwd=RAIZ, env=env, text=True, encoding='utf-8', errors='replace')
         self.b_parar.configure(state='normal')
