@@ -792,3 +792,247 @@ def perda_contra_carga(ax, fonte_kw, perdas_kw):
         ax.legend(fontsize=_fs(7.5), framealpha=0.9)
     return _acaba(ax, 'A perda segue o quadrado da carga',
                   'potência da fonte (kW)', 'perdas (kW)')
+
+
+def perdas_por_alimentador(ax, alimentadores, quantos=15):
+    """Ranking de perda por alimentador, em % e em kWh.
+
+    A perda agregada da subestacao ESCONDE QUEM DOMINA: e comum um punhado de
+    alimentadores responder pela maior parte da perda, e trabalhar sobre a
+    media da subestacao seria tratar o sintoma errado. O eixo mostra o
+    percentual, que compara; o rotulo traz o kWh, que dimensiona.
+    """
+    itens = [(d.get('perdas_pct'), n, d.get('kWh_perdas') or 0)
+             for n, d in (alimentadores or {}).items()
+             if d.get('perdas_pct') is not None and (d.get('kWh') or 0) > 0]
+    if not itens:
+        return _vazio(ax, 'sem energia por alimentador')
+    itens.sort(reverse=True)
+    itens = itens[:quantos]
+    nomes = [n for _p, n, _k in itens][::-1]
+    pcts = [p for p, _n, _k in itens][::-1]
+    kwh = [k for _p, _n, k in itens][::-1]
+    cores = [COR_RUIM if p > 10 else (COR_ATENCAO if p > 8 else COR_NEUTRA)
+             for p in pcts]
+    ax.barh(range(len(pcts)), pcts, color=cores, height=0.72)
+    ax.set_yticks(range(len(nomes)))
+    ax.set_yticklabels(nomes, fontsize=_fs(6.5))
+    largura = max(pcts) or 1
+    for k, (p, e) in enumerate(zip(pcts, kwh)):
+        ax.text(p + largura * 0.015, k, '%s%%   (%s kWh)' % (_dec(p, 2), _mil(e)),
+                va='center', fontsize=_fs(6.5), color=COR_NEUTRA)
+    ax.set_xlim(0, largura * 1.34)
+    if largura > 10:
+        ax.axvline(10, color=COR_RUIM, lw=0.9, ls='--')
+    ax.text(0.0, 1.01, '%d alimentadores mostrados  ·  somam %s kWh de perda'
+            % (len(itens), _mil(sum(kwh))), transform=ax.transAxes,
+            fontsize=_fs(7.5), color=COR_NEUTRA, va='bottom')
+    return _acaba(ax, 'Perda por alimentador (maiores primeiro)',
+                  '% da energia que entra no alimentador', None, pad=26)
+
+
+def tensao_por_alimentador(ax, por_alim):
+    """A faixa de tensao de cada alimentador: minimo, mediana e maximo.
+
+    O histograma da subestacao mistura tudo; aqui se ve QUAL alimentador puxa
+    a cauda. Uma subestacao com 8% das barras fora da faixa pode ter oito
+    alimentadores levemente baixos ou UM inteiro afundado, e o tratamento e
+    completamente diferente.
+    """
+    itens = [(min(v), sorted(v)[len(v) // 2], max(v), n)
+             for n, v in (por_alim or {}).items() if v]
+    if not itens:
+        return _vazio(ax, 'sem tensão por alimentador')
+    itens.sort()
+    # A ESCALA SAI DAS MEDIANAS, e nao dos extremos. Com catorze alimentadores
+    # nao ha percentil que apare um valor unico, e bastou UM alimentador com
+    # uma barra em 1,55 pu para o eixo ir ate la e comprimir os catorze numa
+    # coluna de meio centimetro. O extremo que nao couber vira seta e contagem.
+    base = [x for it in itens for x in (it[0], it[1])]
+    lo, hi, _nb, _na = _faixa_util(base, referencia=V_ADEQUADA, folga=0.05)
+    estourados = 0
+    for k, (lo_, med, hi_, _nome) in enumerate(itens):
+        # a cor vem do pior lado, e nao so do minimo: alimentador com barra
+        # muito ALTA e tao anomalo quanto um com barra muito baixa.
+        pior = lo_ if (V_ADEQUADA[0] - lo_) >= (hi_ - V_ADEQUADA[1]) else hi_
+        ax.plot([max(lo_, lo), min(hi_, hi)], [k, k], color=_cor_da_tensao(pior),
+                lw=2.6, alpha=0.8, solid_capstyle='round')
+        if lo <= med <= hi:
+            ax.plot([med], [k], marker='|', color='#263238', ms=9, mew=1.6)
+        if hi_ > hi:
+            estourados += 1
+            ax.annotate('%s pu' % _dec(hi_, 3), xy=(hi, k), xytext=(-6, 0),
+                        textcoords='offset points', fontsize=_fs(6),
+                        color=COR_RUIM, va='center', ha='right',
+                        arrowprops=dict(arrowstyle='->', color=COR_RUIM,
+                                        lw=1.0))
+    ax.set_yticks(range(len(itens)))
+    ax.set_yticklabels([x[3] for x in itens], fontsize=_fs(6.5))
+    ax.axvspan(V_ADEQUADA[0], V_ADEQUADA[1], color=COR_OK, alpha=0.08, lw=0)
+    for x in V_ADEQUADA:
+        ax.axvline(x, color=COR_RUIM, lw=0.9, ls='--')
+    ax.set_xlim(lo, hi)
+    _avisa_cortados(ax, 0, estourados)
+    fora = sum(1 for x in itens if x[0] < V_ADEQUADA[0] or x[2] > V_ADEQUADA[1])
+    ax.text(0.0, 1.01, '%d alimentadores  ·  %d com pelo menos um ponto fora da '
+            'faixa  ·  o traço é mín–máx, o risco é a mediana'
+            % (len(itens), fora), transform=ax.transAxes, fontsize=_fs(7.5),
+            color=COR_NEUTRA, va='bottom')
+    return _acaba(ax, 'Faixa de tensão por alimentador', 'tensão (pu)', None,
+                  pad=26)
+
+
+def duracao_de_tensao(ax, pus):
+    """Curva de duracao da TENSAO: quanto da rede esta acima de cada nivel.
+
+    Responde o que o histograma nao responde de relance — nao quantas barras ha
+    em cada faixa, mas quanto da rede esta abaixo de um limite qualquer que se
+    queira escolher. Ler "10% da rede abaixo de 0,95 pu" e imediato aqui e
+    exige somar barras no histograma.
+    """
+    v = sorted((x for x in (pus or []) if x is not None), reverse=True)
+    if not v:
+        return _vazio(ax, 'sem barras de MT com tensão')
+    fr = [100.0 * (i + 1) / len(v) for i in range(len(v))]
+    lo, hi, nb, na = _faixa_util(v, referencia=V_ADEQUADA)
+    ax.plot(fr, v, color=COR_NEUTRA, lw=2.0)
+    ax.fill_between(fr, v, lo, color=COR_NEUTRA, alpha=0.13, lw=0)
+    ax.axhspan(V_ADEQUADA[0], V_ADEQUADA[1], color=COR_OK, alpha=0.08, lw=0)
+    for y in V_ADEQUADA:
+        ax.axhline(y, color=COR_RUIM, lw=0.9, ls='--')
+    ax.set_ylim(lo, hi)
+    _avisa_cortados(ax, nb, na)
+    marcas = []
+    for corte in (0.95, V_ADEQUADA[0]):
+        abaixo = sum(1 for x in v if x < corte)
+        if abaixo:
+            p = 100.0 * abaixo / len(v)
+            ax.plot([100 - p, 100 - p], [lo, corte], color=COR_ATENCAO, lw=1.0,
+                    ls=':')
+            marcas.append('%s%% abaixo de %s pu' % (_dec(p, 1), _dec(corte, 2)))
+    ax.set_xlim(0, 100)
+    ax.text(0.0, 1.01, '%s barras  ·  %s'
+            % (_mil(len(v)), '  ·  '.join(marcas) or 'nenhuma abaixo de 0,95 pu'),
+            transform=ax.transAxes, fontsize=_fs(7.5), color=COR_NEUTRA,
+            va='bottom')
+    return _acaba(ax, 'Curva de duração da tensão',
+                  '% das barras com tensão pelo menos igual ao eixo Y',
+                  'tensão (pu)', pad=26)
+
+
+def comprimento_dos_trechos(ax, kms):
+    """Distribuicao do comprimento de trecho — o denominador de tudo.
+
+    Rede feita de milhares de trechos de dez metros e rede feita de centenas de
+    trechos de um quilometro respondem de forma diferente a mesma perda. E
+    trecho de comprimento ZERO e defeito de cadastro que so aparece aqui: ele
+    nao move o total de quilometros o bastante para chamar atencao em lugar
+    nenhum.
+    """
+    v = [x for x in (kms or []) if x is not None and x >= 0]
+    if not v:
+        return _vazio(ax, 'sem comprimento de trecho')
+    m = [x * 1000.0 for x in v]
+    lo, hi, _nb, na = _faixa_util(m, folga=0.02)
+    lo = max(0.0, lo)
+    ax.hist([min(max(x, lo), hi) for x in m], bins=48, range=(lo, hi),
+            color=COR_NEUTRA, alpha=0.85)
+    _avisa_cortados(ax, 0, na)
+    zeros = sum(1 for x in m if x <= 0.01)
+    med = sorted(m)[len(m) // 2]
+    ax.axvline(med, color='#263238', lw=1.4)
+    ax.text(med, 0.6, ' mediana %s m' % _dec(med, 1), rotation=90,
+            transform=ax.get_xaxis_transform(), fontsize=_fs(7),
+            color='#263238', va='center')
+    resumo = ('%s trechos  ·  mediana %s m  ·  maior %s m  ·  total %s km'
+              % (_mil(len(m)), _dec(med, 1), _mil(max(m)), _dec(sum(v), 1)))
+    if zeros:
+        resumo += ('\n%s trechos com comprimento ZERO — cadastro incompleto'
+                   % _mil(zeros))
+    ax.text(0.0, 1.01, resumo, transform=ax.transAxes, fontsize=_fs(7.5),
+            color=COR_RUIM if zeros else COR_NEUTRA, va='bottom',
+            linespacing=1.6)
+    return _acaba(ax, 'Comprimento dos trechos de média tensão',
+                  'comprimento do trecho (m)', 'número de trechos',
+                  pad=42 if zeros else 26)
+
+
+def reativo_no_dia(ax, fonte_kw, fonte_kvar):
+    """Ativa, reativa e fator de potencia na cabeceira, ao longo do dia.
+
+    O fator de potencia NAO e constante: ele cai no vale, quando o reativo dos
+    transformadores pesa sobre uma ativa pequena. Abaixo de 0,92 a distribuidora
+    e cobrada por excedente de reativo, e um numero unico de ponta esconde
+    exatamente as horas em que isso acontece.
+    """
+    q = list(fonte_kvar or [])
+    if not fonte_kw or not any(x is not None for x in q):
+        return _vazio(ax, 'a série não traz o reativo — refaça a etapa de energia')
+    n = len(fonte_kw)
+    h = [i * 24.0 / n for i in range(n)]
+    ax.plot(h, fonte_kw, color=COR_NEUTRA, lw=2.0, label='ativa (kW)')
+    ax.plot(h, q, color='#7b1fa2', lw=1.6, ls='--', label='reativa (kvar)')
+    ax.set_xlim(0, 24)
+    ax.set_xticks(range(0, 25, 3))
+    ax.legend(fontsize=_fs(7), loc='upper left', frameon=False)
+
+    b = ax.twinx()
+    fp = []
+    for p, x in zip(fonte_kw, q):
+        if p is None or x is None:
+            fp.append(None)
+            continue
+        s = (p * p + x * x) ** 0.5
+        fp.append(abs(p) / s if s else None)
+    b.plot(h, fp, color=COR_ATENCAO, lw=1.8)
+    b.axhline(0.92, color=COR_RUIM, lw=0.9, ls=':')
+    b.set_ylim(0, 1.06)
+    b.set_ylabel('fator de potência', fontsize=_fs(8), color=COR_ATENCAO)
+    b.tick_params(labelsize=_fs(7), colors=COR_ATENCAO)
+    validos = [x for x in fp if x is not None]
+    if validos:
+        abaixo = sum(1 for x in validos if x < 0.92) * 24.0 / n
+        ax.text(0.0, 1.01, 'fator de potência entre %s e %s  ·  %s h abaixo de '
+                '0,92 (limite de excedente de reativo)'
+                % (_dec(min(validos), 3), _dec(max(validos), 3), _dec(abaixo, 2)),
+                transform=ax.transAxes, fontsize=_fs(7.5), color=COR_NEUTRA,
+                va='bottom')
+    return _acaba(ax, 'Ativa, reativa e fator de potência na cabeceira',
+                  'hora', 'potência', pad=26)
+
+
+def mapa_de_carregamento(ax, segmentos):
+    """A rede desenhada, com a COR indicando carregamento do condutor.
+
+    O mapa de tensao mostra onde a rede esta fraca; este mostra por onde a
+    corrente passa. Sao perguntas diferentes e costumam ter respostas
+    diferentes — tronco muito carregado tem tensao boa, porque esta perto da
+    fonte.
+    """
+    segs = [s for s in (segmentos or []) if s and s[4] is not None]
+    if not segs:
+        return _vazio(ax, 'sem coordenadas de trecho')
+    faixas = [(0, 30, COR_OK, 'até 30%'), (30, 60, '#9ccc65', '30 a 60%'),
+              (60, 100, COR_ATENCAO, '60 a 100%'),
+              (100, float('inf'), COR_RUIM, 'acima de 100%')]
+    for lo, hi, cor, rot in faixas:
+        xs, ys, n = [], [], 0
+        for x1, y1, x2, y2, pct in segs:
+            if lo <= pct < hi:
+                xs += [x1, x2, None]
+                ys += [y1, y2, None]
+                n += 1
+        if n:
+            ax.plot(xs, ys, color=cor, lw=1.3 if hi <= 60 else 2.0, alpha=0.85,
+                    label='%s (%s trechos)' % (rot, _mil(n)))
+    ax.set_aspect('equal', adjustable='datalim')
+    ax.legend(fontsize=_fs(6.5), loc='best', framealpha=0.85)
+    ax.set_xticks([])
+    ax.set_yticks([])
+    acima = sum(1 for s in segs if s[4] > 100)
+    ax.text(0.0, 1.01, '%s trechos desenhados  ·  %s acima da ampacidade'
+            % (_mil(len(segs)), _mil(acima)), transform=ax.transAxes,
+            fontsize=_fs(7.5), color=COR_RUIM if acima else COR_NEUTRA,
+            va='bottom')
+    return _acaba(ax, 'A rede no espaço, colorida por carregamento', None, None,
+                  pad=26)

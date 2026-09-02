@@ -113,8 +113,12 @@ def dia(dss, master, passos=96):
     # perdas ja sao lidas a cada passo para o balanco de energia — aqui elas
     # so param de ser jogadas fora depois de somadas. Passo que falha fica
     # None, para nao desalinhar o eixo do tempo.
+    # `fonte_kvar` entra aqui e nao numa segunda passagem: `TotalPower` ja
+    # devolve o par (kW, kvar) a cada passo, entao o reativo sai de graca — e
+    # sem ele nao ha como desenhar o fator de potencia ao longo do dia, que e
+    # o que diz se a subestacao paga excedente de reativo.
     serie = {'fonte_kw': [None] * passos, 'gd_kw': [None] * passos,
-             'perdas_kw': [None] * passos}
+             'perdas_kw': [None] * passos, 'fonte_kvar': [None] * passos}
     # Por alimentador, acumulado em Python e nao nos registradores do medidor:
     # a recompilacao zera os registradores, entao a cada passo o medidor e
     # reiniciado e amostrado uma vez — o que le exatamente a energia daquele
@@ -141,7 +145,7 @@ def dia(dss, master, passos=96):
         if not dss.Solution.Converged():
             falhos.append(k)
             continue
-        p = dss.Circuit.TotalPower()[0]          # kW, negativo = entregue
+        p, q = dss.Circuit.TotalPower()[:2]      # kW e kvar, negativo = entregue
         L = dss.Circuit.Losses()[0] / 1000.0     # kW
         if math.isnan(p) or math.isnan(L):
             falhos.append(k)
@@ -159,6 +163,8 @@ def dia(dss, master, passos=96):
         serie['fonte_kw'][k] = round(-p, 1)      # negativo = fluxo reverso
         serie['gd_kw'][k] = round(gd, 1)
         serie['perdas_kw'][k] = round(L, 1)
+        if not math.isnan(q):
+            serie['fonte_kvar'][k] = round(-q, 1)
 
         # --- energia deste passo, por alimentador -------------------------
         dss.Text.Command('Reset Meters')

@@ -599,6 +599,70 @@ def analise_da_figura(chave, v, e, g, extra=None):
               'do dia.')
         return t
 
+    if chave == 'perdas_alim':
+        return ('A perda **por alimentador**, e não a da subestação inteira. '
+                'Esta figura existe porque o valor agregado esconde quem '
+                'domina: é comum um ou dois alimentadores responderem pela '
+                'maior parte da perda de toda a subestação, e trabalhar sobre a '
+                'média seria tratar o sintoma errado. O percentual compara '
+                'alimentadores de tamanhos diferentes; o kWh ao lado diz qual '
+                'deles vale a pena atacar primeiro, porque 12% num alimentador '
+                'pequeno pode ser menos energia do que 4% no tronco principal.')
+
+    if chave == 'tensao_alim':
+        return ('Cada linha é um alimentador: o traço vai do **mínimo ao '
+                'máximo** e o risco marca a **mediana**. É a figura que responde '
+                'o que o histograma da subestação não responde — se as barras '
+                'fora da faixa estão espalhadas por todos os alimentadores ou '
+                'concentradas em **um**. A diferença decide o trabalho: '
+                'espalhado é questão de regulação na saída da subestação; '
+                'concentrado é um alimentador específico, e o conserto é local. '
+                'Traço que estoura o eixo vira seta com o valor escrito, para '
+                'que um alimentador anômalo não comprima os outros.')
+
+    if chave == 'duracao_v':
+        return ('A tensão **ordenada**, do maior valor para o menor. O eixo '
+                'horizontal deixa de contar barras e passa a responder '
+                'diretamente: *que fração da rede está abaixo de tal nível?* '
+                'Ler «10% da rede abaixo de 0,95 pu» é imediato aqui e exige '
+                'somar colunas no histograma. As linhas pontilhadas marcam os '
+                'dois cortes que se pergunta na prática — 0,95 pu, onde a '
+                'regulação começa a incomodar, e 0,93 pu, onde o PRODIST passa '
+                'a ser violado.')
+
+    if chave == 'trechos':
+        return ('O comprimento dos trechos, que é **o denominador de tudo o '
+                'mais**. Uma rede feita de milhares de trechos de dez metros e '
+                'outra feita de centenas de trechos de um quilômetro respondem '
+                'de forma diferente à mesma perda percentual, e a mediana daqui '
+                'é o que separa as duas. Serve também para um defeito que não '
+                'aparece em nenhum outro lugar: **trecho com comprimento zero**, '
+                'que não move o total de quilômetros o bastante para chamar '
+                'atenção mas indica cadastro incompleto — quando existem, a '
+                'contagem vem escrita em vermelho acima da figura.')
+
+    if chave == 'reativo':
+        return ('A potência ativa e a reativa na cabeceira, e o **fator de '
+                'potência** no eixo da direita. Ele não é constante: cai no '
+                'vale da madrugada, quando o reativo de magnetização dos '
+                'transformadores — que existe com ou sem carga — pesa sobre uma '
+                'ativa pequena. A linha pontilhada marca **0,92**, o limite a '
+                'partir do qual se cobra excedente de reativo, e o número acima '
+                'da figura diz por quantas horas do dia a subestação fica '
+                'abaixo dele. Um valor único medido na ponta esconde exatamente '
+                'essas horas.')
+
+    if chave == 'mapa_carga':
+        return ('A mesma rede do mapa anterior, agora colorida por **quanto de '
+                'corrente cada trecho carrega**, e não por tensão. São '
+                'perguntas diferentes e costumam ter respostas opostas: o '
+                'tronco perto da subestação é o mais carregado e é justamente '
+                'onde a tensão está melhor, porque está perto da fonte. O '
+                'vermelho marca trecho acima da própria ampacidade declarada — '
+                'em rede real ele aparece em ponta de alimentador; espalhado '
+                'pelo tronco é quase sempre bitola declarada menor do que a '
+                'instalada.')
+
     if chave == 'gd_fluxo':
         if not (e.get('kWh_gd') or 0):
             return ''

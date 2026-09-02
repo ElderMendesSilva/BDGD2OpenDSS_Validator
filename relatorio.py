@@ -59,6 +59,12 @@ PLOTS_SE = [
     ('gd_cobre',    'Quanto da carga a GD cobre, passo a passo'),
     ('liquido',     'Carregamento liquido na cabeceira (o MINIMO importa)'),
     ('condutor',    'Carregamento dos condutores, em % da ampacidade'),
+    ('mapa_carga',  'A rede no espaco, colorida por carregamento'),
+    ('perdas_alim', 'Perda por alimentador, maiores primeiro'),
+    ('tensao_alim', 'Faixa de tensao por alimentador'),
+    ('duracao_v',   'Curva de duracao da tensao'),
+    ('trechos',     'Comprimento dos trechos de MT'),
+    ('reativo',     'Ativa, reativa e fator de potencia no dia'),
     ('composicao',  'Onde a perda acontece: linhas contra transformadores'),
     ('resumo',      'Painel de numeros da subestacao'),
     ('energia',     'Energia do dia e anomalias'),
@@ -132,7 +138,7 @@ def _do_modelo(pasta, se):
     quando o modelo nao abre: relatorio de subestacao quebrada tem de sair
     assim mesmo, com as figuras dizendo que nao ha dado.
     """
-    vazio = ([], [], [], [], [], [], {}, [])
+    vazio = ([], [], [], [], [], [], {}, [], {})
     try:
         import opendssdirect as dss
     except Exception:
@@ -192,7 +198,7 @@ def _do_modelo(pasta, se):
             v = [p for p in dss.Bus.puVmagAngle()[0::2] if 0.001 < p < 3]
             if v:
                 pu_de[b.lower()] = min(v)
-        with open(coords, encoding='utf-8', errors='ignore') as fh:
+        with open(coords, encoding='utf-8', errors='ignore') as fh:  # noqa
             for L in fh:
                 p = L.split(',')
                 if len(p) >= 3:
@@ -202,6 +208,74 @@ def _do_modelo(pasta, se):
                         cor.append(pu_de.get(p[0].strip().lower()))
                     except ValueError:
                         pass
+
+    # ------------------------------------------------------ o que e por trecho
+    # Numa passagem so pelas linhas: comprimento, carregamento e os dois pontos
+    # do segmento. Percorrer `dss.Lines` tres vezes custaria tres vezes, e numa
+    # concessao de 450 subestacoes isso e tempo de maquina jogado fora.
+    kms, segs = [], []
+    xy = {}
+    if os.path.exists(coords):
+        with open(coords, encoding='utf-8', errors='ignore') as fh:
+            for L in fh:
+                q = L.split(',')
+                if len(q) >= 3:
+                    try:
+                        xy[q[0].strip().lower()] = (float(q[1]), float(q[2]))
+                    except ValueError:
+                        pass
+    fator_u = {0: 0.0, 1: 1.609344, 2: 0.0003048, 3: 1.0, 4: 0.001,
+               5: 0.0000254, 6: 0.0000833, 7: 0.001}
+    i = dss.Lines.First()
+    while i:
+        try:
+            nome = dss.Lines.Name()
+            u = dss.Lines.Units()
+            kms.append((dss.Lines.Length() or 0.0)
+                       * fator_u.get(int(u) if u is not None else 3, 0.0))
+            b1 = dss.Lines.Bus1().split('.')[0].lower()
+            b2 = dss.Lines.Bus2().split('.')[0].lower()
+            nom = dss.Lines.NormAmps()
+            dss.Circuit.SetActiveElement('Line.' + nome)
+            c = dss.CktElement.CurrentsMagAng()[0::2]
+            pct = (100.0 * max(c[:3]) / nom) if (nom and c) else None
+            if b1 in xy and b2 in xy and pct is not None:
+                segs.append((xy[b1][0], xy[b1][1], xy[b2][0], xy[b2][1], pct))
+        except Exception:                                    # noqa: BLE001
+            pass
+        i = dss.Lines.Next()
+
+    # ------------------------------------------------- a tensao por alimentador
+    # A zona de cada EnergyMeter E o alimentador: e assim que o proprio modelo
+    # define a fronteira, e nao por prefixo de nome — que ja mudou de forma
+    # entre distribuidoras e nao serve de chave.
+    pu_de = {}
+    for b in dss.Circuit.AllBusNames():
+        dss.Circuit.SetActiveBus(b)
+        if dss.Bus.kVBase() <= 1:
+            continue
+        vv = [p for p in dss.Bus.puVmagAngle()[0::2] if 0.001 < p < 3]
+        if vv:
+            pu_de[b.lower()] = min(vv)
+    por_alim = {}
+    try:
+        j = dss.Meters.First()
+        while j:
+            nome = dss.Meters.Name()
+            alim = nome[3:] if nome.lower().startswith('em_') else nome
+            vs = []
+            for br in (dss.Meters.AllBranchesInZone() or []):
+                dss.Circuit.SetActiveElement(br)
+                for bb in (dss.CktElement.BusNames() or []):
+                    p = pu_de.get(bb.split('.')[0].lower())
+                    if p is not None:
+                        vs.append(p)
+            if vs:
+                por_alim[alim] = vs
+            dss.Meters.Name(nome)
+            j = dss.Meters.Next()
+    except Exception:                                        # noqa: BLE001
+        por_alim = {}
 
     # A FICHA. Sai do mesmo circuito ja resolvido — abrir o modelo de novo so
     # para conta-lo seria pagar a compilacao duas vezes, e numa concessao de
@@ -213,7 +287,8 @@ def _do_modelo(pasta, se):
     # O DIAGNOSTICO, no mesmo circuito aberto. E aqui que "ha um ponto em
     # 1,551 pu" vira "o Transformer.1019552488 declara 22 kV nesta barra".
     anom = anomalias.do_modelo(dss)
-    return dist, pus, carga, xs, ys, cor, ficha_, anom
+    return (dist, pus, carga, xs, ys, cor, ficha_, anom,
+            {'kms': kms, 'segs': segs, 'por_alim': por_alim})
 
 
 def _extra_do_modelo(pus, carga, fonte, gd):
@@ -250,9 +325,9 @@ def uma_subestacao(pasta, se, val, ene, ger, destino, abrir=True,
     gd = serie.get('gd_kw') or []
     perdas = serie.get('perdas_kw') or []
 
-    dist, pus, carga, xs, ys, cor, fic, anom = (
+    dist, pus, carga, xs, ys, cor, fic, anom, mais = (
         _do_modelo(pasta, se) if abrir
-        else ([], [], [], [], [], [], {}, []))
+        else ([], [], [], [], [], [], {}, [], {}))
     fdia = ficha.ficha_do_dia(serie)
     anom = list(anom) + anomalias.do_dia(fdia)
 
@@ -271,6 +346,17 @@ def uma_subestacao(pasta, se, val, ene, ger, destino, abrir=True,
         'gd_cobre': lambda a: graficos.cobertura_da_gd(a, fonte, gd),
         'liquido': lambda a: graficos.carregamento_liquido(a, fonte),
         'condutor': lambda a: graficos.carregamento(a, carga),
+        'mapa_carga': lambda a: graficos.mapa_de_carregamento(
+            a, (mais or {}).get('segs')),
+        'perdas_alim': lambda a: graficos.perdas_por_alimentador(
+            a, e.get('alimentadores')),
+        'tensao_alim': lambda a: graficos.tensao_por_alimentador(
+            a, (mais or {}).get('por_alim')),
+        'duracao_v': lambda a: graficos.duracao_de_tensao(a, pus),
+        'trechos': lambda a: graficos.comprimento_dos_trechos(
+            a, (mais or {}).get('kms')),
+        'reativo': lambda a: graficos.reativo_no_dia(
+            a, fonte, serie.get('fonte_kvar')),
         'composicao': lambda a: graficos.composicao_da_perda(
             a, v.get('perdas_linhas_kW'), v.get('perdas_trafos_kW')),
         'resumo': lambda a: graficos.texto(a, _resumo_se(v, e, g), 'Resumo'),
