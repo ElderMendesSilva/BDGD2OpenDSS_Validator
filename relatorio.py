@@ -26,6 +26,7 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from bdgd2dss import graficos                            # noqa: E402
+from bdgd2dss import laudo                               # noqa: E402
 
 
 
@@ -279,8 +280,24 @@ def uma_subestacao(pasta, se, val, ene, ger, destino, abrir=True,
     # as figuras dentro. E o que se anexa a um e-mail e o que alguem le sem
     # ter o projeto aberto do lado.
     if pdf:
+        # O QUE SO O MODELO ABERTO SABE. Sem isto o laudo diria "nao medido"
+        # em tres secoes — e elas sao justamente as que respondem se a rede e
+        # boa: quantas barras fora da faixa, quantos condutores acima da
+        # ampacidade, e em quantos passos o fluxo se inverte.
+        extra = {}
+        if pus:
+            fora = sum(1 for x in pus
+                       if x < graficos.V_ADEQUADA[0] or x > graficos.V_ADEQUADA[1])
+            extra['pct_fora_faixa'] = 100.0 * fora / len(pus)
+        if carga:
+            extra['pct_sobrecarga'] = (100.0 * sum(1 for x in carga if x > 100)
+                                       / len(carga))
+        if gd and any(gd):
+            total = [(f or 0) + (x or 0) for f, x in zip(fonte, gd)]
+            extra['passos_reversos'] = sum(1 for x, t in zip(gd, total)
+                                           if x > t)
         try:
-            pdf_da_subestacao(base + '.pdf', pasta, se, v, e, g, alvo)
+            pdf_da_subestacao(base + '.pdf', pasta, se, v, e, g, alvo, extra)
         except Exception as erro:                            # noqa: BLE001
             print('   PDF de %s falhou: %s' % (se, erro), flush=True)
     return alvo
@@ -549,7 +566,8 @@ def _p(texto, estilo):
     return Paragraph(texto, estilo)
 
 
-def pdf_da_subestacao(caminho, pasta, se, v, e, g, figura):
+def pdf_da_subestacao(caminho, pasta, se, v, e, g, figura,
+                      extra=None):
     """Um documento por subestacao: o que e, o que deu, e a figura."""
     from reportlab.lib.pagesizes import A4
     from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
@@ -574,9 +592,6 @@ def pdf_da_subestacao(caminho, pasta, se, v, e, g, figura):
         _p('Subestação %s' % se, titulo),
         _p('%s &nbsp;·&nbsp; gerado por BDGD → OpenDSS v%s'
            % (os.path.basename(pasta), _versao()), sub),
-        _p('Veredicto', h2),
-        _p(_frase_do_veredicto(ver, v), corpo),
-        Spacer(1, 4 * mm),
         _p('A rede', h2),
     ]
     linhas = [
@@ -607,9 +622,11 @@ def pdf_da_subestacao(caminho, pasta, se, v, e, g, figura):
     ]))
     pecas.append(t)
 
-    anom = _anomalias(g, v)
-    if anom:
-        pecas += [_p('O que merece olhar', h2), _p(anom, corpo)]
+    # O LAUDO ESCRITO, que e o que faz disto um relatorio e nao uma legenda de
+    # figura. As regras estao em `bdgd2dss/laudo.py`, com as faixas de
+    # referencia e a origem de cada uma.
+    for tit, par in laudo.laudo_da_subestacao(v, e, g, extra):
+        pecas += [_p(tit, h2), _p(_negrito(par), corpo)]
 
     if figura and os.path.exists(figura):
         pecas += [Spacer(1, 6 * mm), _p('Figuras', h2),
@@ -617,6 +634,19 @@ def pdf_da_subestacao(caminho, pasta, se, v, e, g, figura):
                         height=170 * mm * _proporcao(figura))]
     doc.build(pecas)
     return caminho
+
+
+def _negrito(txt):
+    """`**assim**` vira `<b>assim</b>`.
+
+    O laudo e escrito em texto simples para poder ser lido no terminal e no
+    log; o reportlab so entende marcacao propria.
+    """
+    partes = txt.split('**')
+    saida = []
+    for k, pedaco in enumerate(partes):
+        saida.append('<b>%s</b>' % pedaco if k % 2 else pedaco)
+    return ''.join(saida)
 
 
 def _versao():
