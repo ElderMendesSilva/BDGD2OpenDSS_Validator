@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-REGERACAO COMPLETA — as sete bases, do zero, com o codigo atual.
+REGERACAO COMPLETA — todas as bases da pasta, do zero, com o codigo atual.
 ================================================================
 
     python regerar_v10.py                 roda o que falta
@@ -21,7 +21,7 @@ modelo que o usuario recebe. `--sem-premissas` pula as duas.
 
 Por que existe: o passo 5 do PLANO.md muda a SAIDA do conversor (ancoragem
 da AT, tabelas de tensao derivadas da base, clima por regiao). Nenhuma dessas
-mudancas pode ser validada sem regerar, e regerar sete bases e um ciclo de
+mudancas pode ser validada sem regerar, e regerar as bases e um ciclo de
 ~11 h. Este script e o que roda esse ciclo sozinho, de madrugada.
 
 TRES DECISOES QUE IMPORTAM
@@ -579,6 +579,42 @@ def colher(tag, reg):
     return reg
 
 
+def _painel_basico():
+    """O caminho de duas perguntas: qual base, e como chamar a rodada.
+
+    POR QUE DOIS PAINEIS. O formulario completo tem sete campos, e cinco deles
+    sao decisoes tecnicas que quase nunca mudam — alimentadores por leitura,
+    subestacoes em paralelo, se as premissas entram. Quem quer so rodar uma
+    base tinha de atravessar todos, e cada campo e uma chance de errar.
+
+    Aqui valem os padroes medidos, e as duas unicas perguntas que mudam a
+    resposta ficam de pe: QUAL base e ONDE gravar. O avancado continua um
+    clique ao lado, para quando a pergunta for tecnica.
+    """
+    import interativo
+    achadas = ' '.join(t for t, _, _ in BASES[:6])
+    v = interativo.formulario('regerar_basico', 'Rodar — basico', [
+        {'chave': 'so', 'tipo': 'texto', 'rotulo': 'Qual base rodar',
+         'padrao': '',
+         'dica': 'vazio = TODAS as %d encontradas (horas).   Uma so, para '
+                 'testar rapido: %s ...' % (len(BASES), achadas)},
+        {'chave': 'sufixo', 'tipo': 'texto', 'rotulo': 'Nome da rodada',
+         'padrao': 'V27',
+         'dica': 'as saidas vao para MODELOS_<BASE>_<NOME>. Nunca grava por '
+                 'cima da rodada anterior'},
+    ], ajuda='Roda o ciclo completo com os padroes medidos: baixa tensao '
+             'agregada, premissas ligadas, 8 subestacoes em paralelo. Ao fim, '
+             'cada subestacao ganha o relatorio visual na propria pasta. '
+             'Para as decisoes tecnicas, use o painel avancado.',
+       rodar='Rodar')
+    if not v:
+        return False
+    sys.argv += ['--sufixo', v['sufixo']]
+    if v['so'].strip():
+        sys.argv += ['--so'] + v['so'].split()
+    return True
+
+
 def _painel():
     """Sem argumento, pergunta na janela — o `menu.py` conta com isso.
 
@@ -586,7 +622,7 @@ def _painel():
     pergunta antes: quais bases, com que sufixo e se as premissas entram.
     """
     import interativo
-    v = interativo.formulario('regerar', 'Ciclo completo das sete bases', [
+    v = interativo.formulario('regerar', 'Ciclo completo das bases', [
         {'chave': 'sufixo', 'tipo': 'texto', 'rotulo': 'Sufixo da rodada',
          'padrao': 'V15',
          'dica': 'as saidas vao para MODELOS_<BASE>_<SUFIXO> e os logs para '
@@ -620,7 +656,7 @@ def _painel():
          'padrao': False,
          'dica': 'por padrao ele pula a base que ja tem validacao_balanco.json '
                  'e continua da proxima'},
-    ], ajuda='Roda o ciclo inteiro nas sete distribuidoras: converter, as duas '
+    ], ajuda='Roda o ciclo inteiro em todas as bases encontradas: converter, as duas '
              'premissas, verificar, energia, validador e as duas validacoes. '
              'Sao HORAS — deixe rodando. Retoma de onde parou.',
        rodar='Rodar o ciclo')
@@ -651,6 +687,9 @@ def main():
                          'quanto do resultado depende de premissa nossa')
     ap.add_argument('--so', nargs='+', metavar='TAG',
                     help='apenas estas bases (RR ENCE EQPA SP LT CPFL CMIG)')
+    ap.add_argument('--basico', action='store_true',
+                    help='painel de DUAS perguntas: qual base e como chamar a '
+                         'rodada. O resto vai nos padroes medidos')
     ap.add_argument('--se', nargs='*', default=None, metavar='SE',
                     help='apenas estas subestacoes, repassado ao `converter`. '
                          'A lista sai de `diagnosticos/recorte.py '
@@ -831,6 +870,19 @@ def main():
         ok, _ = passo('valida_balanco', [PY, '-u', 'valida_balanco.py', saida,
                                          gdb], log, 3 * 3600)
         reg['balanco_ok'] = ok
+
+        # O RELATORIO VISUAL FECHA O CICLO, e sai junto com o modelo: uma
+        # figura de doze paineis dentro da pasta de CADA subestacao, mais o
+        # painel da concessao. Ate 02/09/2026 as figuras estavam espalhadas por
+        # cinco executaveis, com uma ou duas cada — ver uma subestacao exigia
+        # rodar cinco programas e juntar os PNG a mao, e por isso ninguem via.
+        #
+        # NAO ENTRA NA CONTA DE FALHA DA BASE: figura e apresentacao, e uma
+        # rodada de 11 h nao pode ser marcada como falha porque o matplotlib
+        # nao estava instalado no no.
+        ok, reg['min_relatorio'] = passo(
+            'relatorio', [PY, '-u', 'relatorio.py', saida], log, 2 * 3600)
+        reg['relatorio_ok'] = ok
 
         resumo.append(colher(tag, reg))
         r = resumo[-1]

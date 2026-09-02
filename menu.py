@@ -82,11 +82,12 @@ FERRAMENTAS = [
      'andamento terminam, nenhuma nova começa, e retomar continua de onde '
      'parou. Serve para quando a máquina for necessária para outra coisa.',
      'um ciclo rodando — ou nada, se for só para ver o estado.'),
-    ('CICLO COMPLETO das sete bases', 'regerar_v10.py',
-     'Roda tudo acima, na ordem, para as sete distribuidoras: converter, as '
-     'duas premissas, verificar, energia, validador e as duas validações. '
-     'Retoma de onde parou e grava o resumo por base.',
-     'as sete .gdb no disco. É o ciclo de horas — deixe rodando.'),
+    ('CICLO COMPLETO de todas as bases', 'regerar_v10.py',
+     'Roda tudo acima, na ordem, para TODAS as .gdb encontradas na pasta — '
+     'hoje 99 distribuidoras: converter, as duas premissas, verificar, '
+     'energia, validador, as duas validações e o relatório visual. Retoma de '
+     'onde parou e grava o resumo por base.',
+     'as .gdb no disco. É o ciclo de horas — deixe rodando.'),
 ]
 
 
