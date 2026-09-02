@@ -412,6 +412,39 @@ class OrRamoIsoladoPrecisaDeDenominadorProprio(OQueSaiEmDisco):
         self.assertEqual(d['rollup']['n_linhas'], 0)
 
 
+class ATNaoEUmaSubestacao(OQueSaiEmDisco):
+    """A pasta `_AT` entrava na lista de subestacoes.
+
+    Ela tem a malha de alta tensao da concessao, e o `validador` a percorre
+    como percorre qualquer modelo. O coletor entao a publicava como uma
+    subestacao de `n_linhas=0` e veredicto nulo — e ela contava no
+    denominador de "subestacoes sadias".
+
+    Na V26 isso eram 17 entradas em 4.078, todas em bases que declaram poucas
+    subestacoes. O percentual publicado saia mais baixo do que a realidade,
+    por dividir por algo que nao era subestacao.
+    """
+
+    def test_a_entrada_AT_nao_vira_subestacao(self):
+        r = _Rodada(validacao=[{'modelo': 'AT', 'converge': True},
+                               {'modelo': 'SE1', 'converge': True}])
+        with open(os.path.join(self._colhe(r), 'XX.json'),
+                  encoding='utf-8') as fh:
+            d = json.load(fh)
+        nomes = [x['se'] for x in d['subestacoes']]
+        self.assertEqual(nomes, ['SE1'])
+        self.assertEqual(d['rollup']['ses'], 1)
+
+    def test_subestacao_de_nome_parecido_CONTINUA_entrando(self):
+        """`ATIBAIA` comeca com AT e e subestacao de verdade: o corte e por
+        nome exato, nunca por prefixo."""
+        r = _Rodada(validacao=[{'modelo': 'ATIBAIA', 'converge': True}])
+        with open(os.path.join(self._colhe(r), 'XX.json'),
+                  encoding='utf-8') as fh:
+            d = json.load(fh)
+        self.assertEqual([x['se'] for x in d['subestacoes']], ['ATIBAIA'])
+
+
 class ONDE_A_PERDA_ACONTECE_VIAJA_JUNTO(OQueSaiEmDisco):
     """Saber QUANTO se perde não basta; é preciso saber ONDE.
 

@@ -190,8 +190,15 @@ def colher_base(pasta, base):
     decl = _por_chave(per.get('alimentadores') or [], 'ctmt')
 
     # ---------------------------------------------------------- por subestacao
+    # `AT` NAO E SUBESTACAO. E a pasta `_AT`, com a malha de alta tensao da
+    # concessao — o `validador` a percorre como percorre qualquer modelo, e ela
+    # entrava na lista com `n_linhas=0` e veredicto nulo. Nas 99 bases da V26
+    # isso poluia 17 entradas e derrubava o percentual de subestacoes sadias
+    # com um denominador que nao era de subestacoes.
     ses = []
     for se in sorted(set(val) | set(ver) | set(ger)):
+        if str(se).strip().upper() in ('AT', '_AT'):
+            continue
         v, w, g = val.get(se, {}), ver.get(se, {}), ger.get(se, {})
         capi = w.get('capi') or {}
         ses.append({
