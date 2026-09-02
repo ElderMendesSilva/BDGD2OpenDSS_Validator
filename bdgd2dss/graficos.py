@@ -207,8 +207,12 @@ def mapa(ax, xs, ys, valores=None, titulo='Rede'):
         cores = [_cor_da_tensao(v) for v in valores]
     else:
         cores = COR_NEUTRA
-    ax.scatter(xs, ys, s=1.5, c=cores, alpha=0.6, linewidths=0)
-    ax.set_aspect('equal', adjustable='datalim')
+    # `datalim` deixava a rede num canto com metade da figura em branco:
+    # ele estica os LIMITES para casar com a proporcao do eixo. `box` faz o
+    # contrario — ajusta a caixa ao dado, e a rede ocupa a pagina.
+    ax.scatter(xs, ys, s=2.0, c=cores, alpha=0.7, linewidths=0)
+    ax.set_aspect('equal', adjustable='box')
+    ax.margins(0.02)
     ax.set_xticks([])
     ax.set_yticks([])
     ax.set_title(titulo, fontsize=10, loc='left')

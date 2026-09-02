@@ -148,6 +148,11 @@ def _do_modelo(pasta, se):
     except Exception:
         os.chdir(voltar)
         return vazio
+    # VOLTA AQUI, e nao no fim. Tudo abaixo usa a API do OpenDSS, que nao
+    # depende do diretorio — menos a leitura do `BusCoords.dat`, que e um
+    # arquivo comum. Restaurar so no fim fazia `os.path.exists(coords)` dar
+    # False com o arquivo ali, e o mapa saia "sem coordenadas".
+    os.chdir(voltar)
 
     dist, pus = [], []
     for b in dss.Circuit.AllBusNames():
@@ -192,7 +197,6 @@ def _do_modelo(pasta, se):
                         cor.append(pu_de.get(p[0].strip().lower()))
                     except ValueError:
                         pass
-    os.chdir(voltar)
     return dist, pus, carga, xs, ys, cor
 
 
@@ -249,9 +253,12 @@ def uma_subestacao(pasta, se, val, ene, ger, destino, abrir=True,
             desenha[chave](a1)
         except Exception as erro:                            # noqa: BLE001
             graficos._vazio(a1, 'falhou: %s' % erro)
-        f1.suptitle('%s — %s' % (se, dict(PLOTS_SE).get(chave, chave)),
-                    fontsize=11, x=0.02, ha='left')
-        f1.tight_layout(rect=[0, 0, 1, 0.95])
+        # SEM `suptitle`: cada figura ja escreve o proprio titulo no eixo, e
+        # o de cima repetia a mesma frase com outras palavras. O nome da
+        # subestacao vai no rodape, que e onde nao disputa espaco com o dado.
+        f1.text(0.01, 0.01, '%s · %s' % (se, chave), fontsize=7,
+                color=graficos.COR_CLARA)
+        f1.tight_layout(rect=[0, 0.02, 1, 1])
         f1.savefig(os.path.join(dest_se, '%s.png' % chave), dpi=120)
         _plt.close(f1)
 
