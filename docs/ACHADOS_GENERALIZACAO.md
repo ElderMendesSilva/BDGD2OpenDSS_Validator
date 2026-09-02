@@ -1015,6 +1015,56 @@ subestacao.
 `validador` nas 97 bases. A V26 deixa de ser opcional e passa a ser **a rodada
 que refaz as medidas**.
 
+### 22. O regulador entra EM PARALELO com o trecho que ele deveria regular
+
+Medido em 02/09/2026, abrindo a subestacao AGV da NEOENERGIA385 — a base que
+concentra 68 das 139 subestacoes fora do `OK` na V26. **Este e defeito NOSSO, e
+o primeiro achado do projeto que aponta um erro de conversao com causa
+precisa.**
+
+**O sintoma:** a subestacao dissipa **9,9 MW em perdas** com a tensao mediana
+de MT em **0,415 pu**, e isso **nao muda ao desligar as 1.282 cargas**. Sem
+carga nao deveria haver corrente.
+
+**A bissecao, elemento a elemento** (`batchedit` nao tem efeito e mascarou os
+primeiros testes; o que vale e desabilitar um a um):
+
+| desligando | V_MT | perdas |
+|---|---:|---:|
+| nada | 0,415 pu | 9.906 kW |
+| cargas, PV, reatores, capacitores | 0,410 pu | 9.893 kW |
+| **os 9 reguladores** | **1,013 pu** | **229 kW** |
+
+**A causa, nas barras:**
+
+    Line.1083769322   agv4824224137.1.2.3  ->  agv481083769275.1.2.3
+    REG_AGV01760_1    agv4824224137.1      ->  agv481083769275.1
+
+O regulador liga **o mesmo par de barras** que uma linha ja liga. A BDGD
+declara o regulador na UNREMT com `PAC_1` e `PAC_2`, e a SSDMT declara o
+**trecho entre os mesmos dois PACs** — o vao onde o equipamento esta instalado.
+O conversor emite os dois, e o regulador fica em paralelo com um caminho de
+impedancia quase nula. Com o tap regulando contra esse curto, circula corrente
+de laco: **2.506 A num condutor de 145 A**.
+
+**Nao e caso isolado: 9 de 9 reguladores da AGV estao assim.**
+
+**O que isto explica.** `REGULADOR_SATURADO` aparece como causa em **89
+subestacoes** so nesta base — o tap corre ate o fim tentando vencer o paralelo.
+E `reguladores_pendurados`, que o validador ja mede, **nao pega**: ele detecta
+ponta solta, e aqui as duas pontas estao conectadas. O defeito nao tem
+deteccao hoje.
+
+**Quanto vale.** 252 das 4.061 subestacoes tem regulador com alguma anomalia
+registrada, e a NEOENERGIA385 sozinha responde por metade do que falta para
+100% de veredictos `OK`. Se a correcao valer para as demais, e o maior ganho
+isolado disponivel.
+
+**A correcao NAO e remover o regulador.** Ele existe na rede real. O trecho e
+o regulador sao o mesmo vao fisico declarado em duas tabelas — ou o trecho sai
+e o regulador o substitui, ou o regulador entra em serie, com barra
+intermediaria. Isto ainda nao esta implementado.
+
 ## Validação externa e contaminação
 
 A âncora nacional de 7,4% de perda técnica total da ANEEL é apenas um **teste
