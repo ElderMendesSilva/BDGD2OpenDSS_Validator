@@ -384,7 +384,8 @@ def _fmt(x):
 
 # ----------------------------------------------------------------- concessao
 
-def a_concessao(pasta, val, ene, ger, ver, destino, plots=None):
+def a_concessao(pasta, val, ene, ger, ver, destino, plots=None,
+                pdf=True):
     """As dez figuras da base inteira."""
     import collections
     import matplotlib.pyplot as plt
@@ -457,6 +458,25 @@ def a_concessao(pasta, val, ene, ger, ver, destino, plots=None):
             a, _energia_geral(ses, ene, num), 'Energia do dia'),
     }
     chaves = _escolhidos(plots, PLOTS_GERAL)
+
+    # A CONCESSAO GANHA O MESMO TRATAMENTO DA SUBESTACAO: uma figura por
+    # arquivo, e nao so o painelao. Ate agora so a subestacao tinha sido
+    # adaptada, e o `_GERAL` continuava sendo a versao antiga — quem quisesse
+    # o ranking de perdas numa apresentacao teria de recortar da imagem grande.
+    os.makedirs(destino, exist_ok=True)
+    import matplotlib.pyplot as _plt
+    for chave in chaves:
+        f1, a1 = _plt.subplots(figsize=(9, 5.5))
+        try:
+            desenha[chave](a1)
+        except Exception as erro:                            # noqa: BLE001
+            graficos._vazio(a1, 'falhou: %s' % erro)
+        f1.text(0.01, 0.01, 'concessao · %s' % chave, fontsize=7,
+                color=graficos.COR_CLARA)
+        f1.tight_layout(rect=[0, 0.02, 1, 1])
+        f1.savefig(os.path.join(destino, '%s.png' % chave), dpi=120)
+        _plt.close(f1)
+
     linhas = max(1, (len(chaves) + 2) // 3)
     fig, ax = _figura(linhas, 3, '%s — concessao (%d subestacoes)'
                       % (os.path.basename(pasta), len(ses)))
@@ -468,8 +488,26 @@ def a_concessao(pasta, val, ene, ger, ver, destino, plots=None):
     fig.tight_layout(rect=[0, 0, 1, 0.97])
     alvo = os.path.join(destino, '_GERAL.png')
     fig.savefig(alvo, dpi=110)
-    fig.savefig(os.path.join(destino, '_GERAL.pdf'))
     plt.close(fig)
+    # E O PDF DA CONCESSAO tambem vira laudo, com a mesma estrutura do da
+    # subestacao: o julgamento primeiro, e cada figura com a leitura dela.
+    if pdf:
+        agregado = {
+            'ses': len(ses), 'ok': cont.get('OK', 0),
+            'cargas_sem_tensao': sum(int(num(val, x, 'cargas_sem_tensao') or 0)
+                                     for x in ses),
+            'perda_mediana': (sorted(v for v, _ in perdas)[len(perdas) // 2]
+                              if perdas else None),
+            'perdas_linhas_kW': sum(num(val, x, 'perdas_linhas_kW') or 0
+                                    for x in ses),
+            'perdas_trafos_kW': sum(num(val, x, 'perdas_trafos_kW') or 0
+                                    for x in ses),
+        }
+        try:
+            pdf_da_concessao(os.path.join(destino, '_GERAL.pdf'), pasta,
+                             agregado, destino, chaves)
+        except Exception as erro:                            # noqa: BLE001
+            print('   PDF da concessao falhou: %s' % erro, flush=True)
     return alvo
 
 
@@ -534,7 +572,7 @@ def main(argv=None):
 
     feitos = []
     feitos.append(a_concessao(a.pasta, val, ene, ger, ver, destino,
-                              a.plots))
+                              a.plots, pdf=not a.sem_pdf))
     print('concessao -> %s' % feitos[-1], flush=True)
 
     if not a.so_geral:
@@ -731,6 +769,87 @@ def _anomalias(g, v):
         itens.append('%d carga(s) sem tensão' % n)
     return '; '.join(itens) + '.' if itens else ''
 
+
+def pdf_da_concessao(caminho, pasta, agregado, pasta_fig, chaves):
+    """O laudo da concessão: o julgamento, os números e cada figura lida.
+
+    Mesma estrutura do da subestação, de propósito. Relatório que muda de forma
+    conforme o nível de agregação obriga quem lê a reaprender o documento a
+    cada página.
+    """
+    from reportlab.lib.pagesizes import A4
+    from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+    from reportlab.lib.units import mm
+    from reportlab.lib import colors
+    from reportlab.platypus import (SimpleDocTemplate, Spacer, Table,
+                                    TableStyle, Image, PageBreak)
+
+    est = getSampleStyleSheet()
+    titulo = ParagraphStyle('t', parent=est['Title'], fontSize=16, spaceAfter=2)
+    sub = ParagraphStyle('s', parent=est['Normal'], fontSize=9,
+                         textColor=colors.HexColor('#666'), spaceAfter=10)
+    h2 = ParagraphStyle('h', parent=est['Heading2'], fontSize=11, spaceBefore=8)
+    corpo = ParagraphStyle('c', parent=est['Normal'], fontSize=9, leading=13)
+
+    doc = SimpleDocTemplate(caminho, pagesize=A4,
+                            leftMargin=18 * mm, rightMargin=18 * mm,
+                            topMargin=16 * mm, bottomMargin=16 * mm,
+                            title='Concessao %s' % os.path.basename(pasta))
+    pecas = [
+        _p('Concessão — %s' % os.path.basename(pasta), titulo),
+        _p('gerado por BDGD → OpenDSS v%s' % _versao(), sub),
+    ]
+    for tit, par in laudo.laudo_da_concessao(agregado):
+        pecas += [_p(tit, h2), _p(_negrito(par), corpo)]
+
+    # os números, na mesma tabela de duas colunas do relatório da subestação
+    linhas = [
+        ['subestações', agregado.get('ses'), 'com veredicto OK',
+         agregado.get('ok')],
+        ['cargas sem tensão', _fmt(agregado.get('cargas_sem_tensao')),
+         'perda mediana (%)', _fmt2(agregado.get('perda_mediana'))],
+        ['perda nas linhas (kW)', _fmt(agregado.get('perdas_linhas_kW')),
+         'perda nos trafos (kW)', _fmt(agregado.get('perdas_trafos_kW'))],
+    ]
+    t = Table([[str(c) if c is not None else '—' for c in L] for L in linhas],
+              colWidths=[42 * mm, 30 * mm, 42 * mm, 30 * mm])
+    t.setStyle(TableStyle([
+        ('FONTSIZE', (0, 0), (-1, -1), 8.5),
+        ('TEXTCOLOR', (0, 0), (0, -1), colors.HexColor('#555')),
+        ('TEXTCOLOR', (2, 0), (2, -1), colors.HexColor('#555')),
+        ('ALIGN', (1, 0), (1, -1), 'RIGHT'),
+        ('ALIGN', (3, 0), (3, -1), 'RIGHT'),
+        ('LINEBELOW', (0, 0), (-1, -2), 0.25, colors.HexColor('#ddd')),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
+    ]))
+    pecas += [Spacer(1, 4 * mm), t]
+
+    nomes = dict(PLOTS_GERAL)
+    primeira = True
+    for chave in chaves:
+        png = os.path.join(pasta_fig, '%s.png' % chave)
+        if not os.path.exists(png):
+            continue
+        texto = laudo.analise_da_concessao(chave, agregado)
+        if not texto:
+            continue
+        pecas.append(PageBreak() if primeira else Spacer(1, 8 * mm))
+        primeira = False
+        pecas += [
+            _p(nomes.get(chave, chave), h2),
+            _p(_negrito(texto), corpo),
+            Spacer(1, 3 * mm),
+            Image(png, width=150 * mm, height=150 * mm * _proporcao(png)),
+        ]
+    doc.build(pecas)
+    return caminho
+
+
+def _fmt2(x):
+    try:
+        return '%.2f' % float(x)
+    except (TypeError, ValueError):
+        return '—'
 
 
 if __name__ == '__main__':

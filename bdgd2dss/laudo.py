@@ -446,3 +446,70 @@ def analise_da_figura(chave, v, e, g, extra=None):
         return t
 
     return ''
+
+
+def analise_da_concessao(chave, ag):
+    """O paragrafo de cada figura da concessao."""
+    n = ag.get('ses') or 0
+    ok = ag.get('ok') or 0
+    med = ag.get('perda_mediana')
+    if chave == 'veredictos':
+        p = _pct(ok, n) or 0
+        t = ('Quantas subestacoes passam nos criterios de aceite: %d de %d '
+             '(%.1f%%).' % (ok, n, p))
+        if p < 100:
+            t += (' As barras vermelhas sao os motivos de reprovacao, e a '
+                  'altura delas diz se o problema e disperso ou concentrado — '
+                  'na pratica, poucas bases costumam responder por quase tudo.')
+        return t
+    if chave == 'perdas_hist':
+        t = 'Como a perda se distribui entre as subestacoes da concessao.'
+        if med is not None:
+            t += (' A mediana e **%.2f%%**. A linha tracejada marca 10%%: o que '
+                  'esta a direita dela nao se explica por rede de media tensao '
+                  'e merece diagnostico individual.' % med)
+        return t
+    if chave == 'perdas_rank':
+        return ('As subestacoes de maior perda, em vermelho as que passam de '
+                '10%. Esta figura existe porque o agregado esconde quem domina: '
+                'costuma ser um punhado de subestacoes respondendo pela maior '
+                'parte da perda da concessao.')
+    if chave == 'dia':
+        return ('A curva de carga somada de todas as subestacoes. E o perfil '
+                'da concessao inteira em passos de 15 min — o que a soma dos '
+                'medidores da distribuidora deveria mostrar.')
+    if chave == 'gd_fluxo':
+        return ('Carga e geracao distribuida agregadas. No nivel da concessao '
+                'o fluxo reverso e raro mesmo quando existe em alimentadores '
+                'individuais: a soma dilui o efeito, e por isso a analise por '
+                'subestacao nao pode ser substituida por esta.')
+    if chave == 'gd_cobre':
+        return ('Que fracao do consumo da concessao a geracao distribuida '
+                'cobre ao longo do dia, e onde fica o pico de carga em relacao '
+                'ao pico de geracao.')
+    if chave == 'tensao_hist':
+        return ('A tensao MINIMA de cada subestacao. A linha tracejada e o '
+                'limite do PRODIST: cada barra a esquerda dela e uma '
+                'subestacao com pelo menos um ponto fora do adequado.')
+    if chave == 'km_rank':
+        return ('As maiores redes da concessao, em km de media tensao. Serve '
+                'de denominador: perda alta numa rede de 2.000 km e outra '
+                'coisa que perda alta numa de 50 km.')
+    if chave == 'perda_km':
+        return ('Perda contra tamanho. Se a perda fosse explicada por '
+                'comprimento, os pontos subiriam em diagonal. Dispersao sem '
+                'tendencia significa que o que domina e outra coisa — condutor, '
+                'carregamento ou defeito de modelagem.')
+    if chave == 'composicao':
+        lin = ag.get('perdas_linhas_kW') or 0
+        tra = ag.get('perdas_trafos_kW') or 0
+        pt = _pct(tra, lin + tra)
+        if pt is None:
+            return ''
+        return ('A perda da concessao inteira, separada entre linhas e '
+                'transformadores: **%.0f%% esta nos transformadores**. Essa '
+                'parcela e perda a vazio e independe de carga, e e ela que a '
+                'comparacao com a perda declarada pela distribuidora costuma '
+                'nao contemplar — o achado 13 deste projeto vive nesta '
+                'figura.' % pt)
+    return ''
