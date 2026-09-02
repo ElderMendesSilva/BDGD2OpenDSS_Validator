@@ -635,10 +635,28 @@ def pdf_da_subestacao(caminho, pasta, se, v, e, g, figura,
     for tit, par in laudo.laudo_da_subestacao(v, e, g, extra):
         pecas += [_p(tit, h2), _p(_negrito(par), corpo)]
 
-    if figura and os.path.exists(figura):
-        pecas += [Spacer(1, 6 * mm), _p('Figuras', h2),
-                  Image(figura, width=170 * mm,
-                        height=170 * mm * _proporcao(figura))]
+    # CADA FIGURA COM A SUA ANALISE, e nao um bloco de figuras no fim. O
+    # painelao servia para ter tudo de relance; num relatorio, figura sem
+    # leitura ao lado obriga quem le a redescobrir sozinho o que ela mostra —
+    # e a maior parte das pessoas nao redescobre, so passa a pagina.
+    from reportlab.platypus import PageBreak
+    pasta_fig = os.path.join(os.path.dirname(caminho))
+    primeira = True
+    for chave, titulo_fig in PLOTS_SE:
+        png = os.path.join(pasta_fig, '%s.png' % chave)
+        if not os.path.exists(png):
+            continue
+        texto = laudo.analise_da_figura(chave, v, e, g, extra)
+        if not texto:
+            continue
+        pecas.append(PageBreak() if primeira else Spacer(1, 8 * mm))
+        primeira = False
+        pecas += [
+            _p(titulo_fig, h2),
+            _p(_negrito(texto), corpo),
+            Spacer(1, 3 * mm),
+            Image(png, width=150 * mm, height=150 * mm * _proporcao(png)),
+        ]
     doc.build(pecas)
     return caminho
 

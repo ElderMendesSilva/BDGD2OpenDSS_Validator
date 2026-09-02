@@ -289,3 +289,160 @@ def laudo_da_concessao(resumo):
         'transformadores. Separar as duas coisas exige referência externa à '
         'BDGD, que este relatório não tem.'))
     return secoes
+
+
+# ===========================================================================
+#  UMA ANALISE POR FIGURA
+# ===========================================================================
+#
+# O PDF nao empilha as figuras no fim com um texto generico antes. Cada figura
+# vem com o paragrafo que a LE — o que ela mostra, o que naquele desenho e
+# normal, e o que naquele desenho e sintoma.
+#
+# A diferenca importa: "47% das barras fora da faixa" e um numero; "o perfil
+# desce continuamente da fonte ate a ponta, sem degrau, o que e queda ohmica e
+# nao ilhamento" e uma leitura. A segunda e o que alguem precisa para decidir o
+# que fazer.
+
+def _n(x, casas=2):
+    try:
+        return ('%%.%df' % casas) % float(x)
+    except (TypeError, ValueError):
+        return '—'
+
+
+def analise_da_figura(chave, v, e, g, extra=None):
+    """O parágrafo que acompanha UMA figura. Vazio quando não há o que dizer."""
+    extra = extra or {}
+    vmin, vmed = v.get('V_MT_min'), v.get('V_MT_mediana')
+    fora = extra.get('pct_fora_faixa')
+    sob = extra.get('pct_sobrecarga')
+    rev = extra.get('passos_reversos')
+    pp = e.get('perdas_pct')
+
+    if chave == 'perfil':
+        if vmed is None:
+            return ''
+        t = ('Cada ponto é uma barra de média tensão: a distância elétrica até '
+             'a fonte no eixo horizontal, a tensão em pu no vertical. A faixa '
+             'verde é o limite adequado do PRODIST (%.2f a %.2f pu).'
+             % V_ADEQUADA)
+        if vmin is not None and (vmed - vmin) > 0.15:
+            t += (' A nuvem desce de %s a %s pu, o que é **queda ao longo do '
+                  'tronco**: quanto mais longe da fonte, menor a tensão. Um '
+                  'degrau vertical seria regulador ou transformador; um '
+                  'patamar horizontal seria rede sem corrente.'
+                  % (_n(vmed, 3), _n(vmin, 3)))
+        else:
+            t += (' A nuvem é compacta: a tensão varia pouco com a distância, '
+                  'o que indica rede curta ou bem regulada.')
+        return t
+
+    if chave == 'tensao':
+        if fora is None:
+            return ('Distribuição da tensão nas barras de média tensão, com as '
+                    'linhas tracejadas nos limites do PRODIST.')
+        t = ('Distribuição da tensão nas barras de média tensão. **%.1f%% '
+             'estão fora da faixa adequada.**' % fora)
+        if fora > 20:
+            t += (' Com mais de um quinto da rede fora do limite, o problema '
+                  'não é local: ou o tronco é longo demais para o condutor, ou '
+                  'falta regulação, ou há laço de regulador drenando corrente '
+                  '(achado 22).')
+        elif fora > 0:
+            t += (' A fração é pequena e costuma se concentrar nas pontas de '
+                  'alimentador — o perfil de tensão mostra se é isso.')
+        return t
+
+    if chave == 'mapa':
+        t = ('A rede desenhada nas coordenadas da BDGD, com a cor indicando a '
+             'tensão de cada barra: verde dentro da faixa, âmbar abaixo de '
+             '0,95 pu, vermelho fora do limite.')
+        if fora is not None and fora > 20:
+            t += (' As manchas vermelhas mostram ONDE a tensão cai — nas '
+                  'pontas, é comprimento; em bloco, é um trecho específico.')
+        t += (' Coordenada trocada e alimentador que atravessa a concessão '
+              'aparecem aqui num segundo, e em nenhuma tabela.')
+        return t
+
+    if chave == 'dia':
+        if pp is None:
+            return ''
+        return ('As 24 h em passos de 15 min. A linha escura é a potência que '
+                'entra pela subestação, a verde é a geração distribuída e a '
+                'vermelha são as perdas. É a única figura que mostra a rede em '
+                'OPERAÇÃO, e não num instante — e é o modo `daily` do OpenDSS '
+                'que a torna possível.')
+
+    if chave == 'perdas_dia':
+        if pp is None:
+            return ''
+        return ('A perda em percentual, hora a hora. Ela **não é constante**: '
+                'cresce com o carregamento, porque perda ôhmica vai com o '
+                'quadrado da corrente. O valor único do resumo (%s%%) é a '
+                'integral do dia, e ler o pico como se fosse a média '
+                'superestima a perda.' % _n(pp))
+
+    if chave == 'gd_fluxo':
+        if not (e.get('kWh_gd') or 0):
+            return ''
+        t = 'A carga total contra a geração distribuída, ao longo do dia.'
+        if rev:
+            t += (' A faixa vermelha marca os **%d passos (%.1f h) de FLUXO '
+                  'REVERSO**, quando a injeção local supera o consumo e o '
+                  'alimentador exporta para a subestação. É ali que aparecem '
+                  'sobretensão e atuação indevida de regulador — e nada disso '
+                  'é visível num estudo de ponta.' % (rev, rev * 0.25))
+        else:
+            t += (' Não há fluxo reverso: a geração fica sempre abaixo do '
+                  'consumo local, então a rede nunca exporta.')
+        return t
+
+    if chave == 'gd_cobre':
+        if not (e.get('kWh_gd') or 0):
+            return ''
+        return ('Que fração da carga a geração cobre, passo a passo. A linha '
+                'pontilhada marca o **pico de carga**, e o número ali é o que '
+                'decide se a GD alivia a rede ou apenas desloca energia: '
+                'geração solar tem pico ao meio-dia e a carga tem pico à '
+                'noite, e a não-coincidência é a regra.')
+
+    if chave == 'liquido':
+        return ('O que a subestação vê: carga menos geração. O **mínimo** '
+                'importa tanto quanto o máximo — é quando a rede está mais '
+                'descarregada e a tensão mais alta, a condição crítica de '
+                'sobretensão por geração distribuída. Valor negativo significa '
+                'que a rede exporta naquele instante.')
+
+    if chave == 'condutor':
+        if sob is None:
+            return ''
+        t = ('Corrente sobre a ampacidade declarada, trecho a trecho. A linha '
+             'vermelha é 100%: à direita dela o condutor conduz mais do que a '
+             'placa dele permite.')
+        if sob > SOBRECARGA_PREOCUPA:
+            t += (' Com **%.1f%% dos trechos acima do limite**, a leitura mais '
+                  'provável não é rede sobrecarregada: é o par (resistência, '
+                  'ampacidade) do cadastro não descrevendo o cabo que está no '
+                  'poste.' % sob)
+        elif sob > 0:
+            t += (' %.1f%% dos trechos passam do limite, o que em rede real '
+                  'aparece em ponta de alimentador no horário de pico.' % sob)
+        else:
+            t += ' Nenhum trecho ultrapassa a própria ampacidade.'
+        return t
+
+    if chave == 'composicao':
+        pt = v.get('perdas_trafos_pct')
+        if pt is None:
+            return ''
+        t = ('Onde a perda acontece. **%.0f%% está nos transformadores** e o '
+             'resto nas linhas.' % pt)
+        if pt > 60:
+            t += (' Com a maior parte no ferro, a perda desta subestação '
+                  'depende pouco da carga: existe 24 h por dia. Isso muda a '
+                  'comparação com a perda declarada pela distribuidora, que '
+                  'costuma reportar só a parcela dependente de carga.')
+        return t
+
+    return ''
