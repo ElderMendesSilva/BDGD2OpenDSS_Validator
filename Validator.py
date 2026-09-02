@@ -139,8 +139,43 @@ class Menu(tk.Tk):
                             'quando a pergunta for técnica.',
                   foreground='#555').pack(anchor='w')
 
-        corpo = ttk.Frame(self, padding=(14, 0, 14, 6))
-        corpo.pack(fill='both', expand=True)
+        # ------------------------------------------------- AREA COM ROLAGEM
+        # OS DOZE CARTOES NAO CABEM NA TELA, e sem rolagem o log — que fica
+        # abaixo deles — era inalcancavel: a janela mostrava as ferramentas e
+        # escondia justamente a resposta do que se mandou rodar.
+        #
+        # O `Canvas` e o unico jeito de rolar um conjunto de widgets no Tk. A
+        # roda do mouse NAO vem de graca: precisa de `bind` explicito, e o
+        # nome do evento muda entre Windows (`<MouseWheel>`) e Linux
+        # (`<Button-4>`/`<Button-5>`).
+        fora = ttk.Frame(self)
+        fora.pack(fill='both', expand=True)
+        tela = tk.Canvas(fora, highlightthickness=0)
+        rolagem = ttk.Scrollbar(fora, orient='vertical', command=tela.yview)
+        tela.configure(yscrollcommand=rolagem.set)
+        rolagem.pack(side='right', fill='y')
+        tela.pack(side='left', fill='both', expand=True)
+
+        corpo = ttk.Frame(tela, padding=(14, 0, 14, 6))
+        janela = tela.create_window((0, 0), window=corpo, anchor='nw')
+
+        def _ajusta(_=None):
+            tela.configure(scrollregion=tela.bbox('all'))
+            tela.itemconfigure(janela, width=tela.winfo_width())
+
+        corpo.bind('<Configure>', _ajusta)
+        tela.bind('<Configure>', _ajusta)
+
+        def _roda_mouse(ev):
+            if ev.num == 4:
+                tela.yview_scroll(-3, 'units')
+            elif ev.num == 5:
+                tela.yview_scroll(3, 'units')
+            else:
+                tela.yview_scroll(int(-1 * (ev.delta / 40)), 'units')
+
+        for ev in ('<MouseWheel>', '<Button-4>', '<Button-5>'):
+            self.bind_all(ev, _roda_mouse)
 
         # ------------------------------------------------------------ SIMPLES
         # A PORTA DE ENTRADA E UMA SO PERGUNTA: qual .gdb. Ate 02/09/2026 esta
@@ -201,7 +236,12 @@ class Menu(tk.Tk):
         lista.columnconfigure(0, weight=1)
         lista.columnconfigure(1, weight=1)
 
-        barra = ttk.Frame(corpo)
+        # O LOG FICA FORA DA AREA ROLAVEL, com altura propria: dentro dela
+        # ele rolaria junto com os cartoes e sumiria da vista justamente
+        # quando comecasse a imprimir.
+        rodape = ttk.Frame(self, padding=(14, 0, 14, 8))
+        rodape.pack(fill='both', side='bottom')
+        barra = ttk.Frame(rodape)
         barra.pack(fill='x', pady=(8, 2))
         self.b_parar = ttk.Button(barra, text='Interromper', width=14,
                                   command=self.parar, state='disabled')
@@ -216,10 +256,10 @@ class Menu(tk.Tk):
         # 8 LINHAS NAO DAVAM PARA LER: uma conversao imprime uma linha por
         # subestacao, e o que interessa some antes de ser lido. 22 linhas
         # mostram uma base pequena inteira sem rolar.
-        self.log = tk.Text(corpo, wrap='none', height=22, bg='#1e1e1e',
+        self.log = tk.Text(rodape, wrap='none', height=14, bg='#1e1e1e',
                            fg='#d4d4d4', insertbackground='#d4d4d4',
                            font=('Consolas', 9))
-        sb = ttk.Scrollbar(corpo, command=self.log.yview)
+        sb = ttk.Scrollbar(rodape, command=self.log.yview)
         self.log.configure(yscrollcommand=sb.set)
         sb.pack(side='right', fill='y')
         self.log.pack(fill='both', expand=True)
