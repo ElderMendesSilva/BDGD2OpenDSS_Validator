@@ -103,13 +103,31 @@ def criterios(v, e, g, fic=None, fdia=None, extra=None):
     c = []
 
     # 1 — ELIMINATORIO. Sem isto nenhum numero abaixo vale nada.
-    ver = str(v.get('veredicto') or '').split('[')[0]
-    if not ver:
+    # O `validador.py` NAO escreve um campo chamado `veredicto`: ele escreve
+    # `compila`, `converge`, `resolve` e a `causa` classificada. A primeira
+    # versao deste modulo procurava `veredicto`, nao achava, e carimbava
+    # INCONCLUSIVO uma base que estava inteiramente medida — o defeito espelha
+    # o anterior (ausencia lida como aprovacao), so que para o outro lado.
+    ver = str(v.get('veredicto') or v.get('causa') or '').split('[')[0].strip()
+    compila = v.get('compila')
+    converge = v.get('converge')
+    resolve = v.get('resolve')
+    nan = v.get('barras_nan') or v.get('nos_nan') or 0
+    if compila is None and not ver:
         resultado, mostrado = SEM_DADO, 'a etapa de validação não rodou'
+    elif compila is False:
+        resultado, mostrado = FALHA, 'não compila'
+    elif converge is False:
+        resultado, mostrado = FALHA, 'não converge'
+    elif nan:
+        resultado, mostrado = FALHA, '%s barras com potência indefinida' % _mil(nan)
     elif ver in ('NAO_COMPILA', 'NAO_CONVERGE', 'POTENCIA_NAN'):
         resultado, mostrado = FALHA, 'não (%s)' % ver
     else:
-        resultado, mostrado = PASSA, 'sim (%s)' % ver
+        mostrado = 'sim'
+        if resolve is not None:
+            mostrado += ' (compila, converge e resolve)'
+        resultado = PASSA
     c.append({
         'nome': 'Fecha eletricamente',
         'valor': mostrado,
