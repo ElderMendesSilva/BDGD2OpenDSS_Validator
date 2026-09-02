@@ -493,6 +493,41 @@ def _gravador(destino):
     return gravar
 
 
+# AS ETAPAS DO CICLO, na ordem em que rodam. A ordem NAO e arbitraria:
+# `ligacao` e `ampacidade` mudam a rede e por isso vem antes de qualquer
+# medicao; `energia` precisa do modelo verificado; as duas validacoes precisam
+# do `energia_dia.json`.
+ETAPAS = ['converter', 'ligacao', 'ampacidade', 'verifica', 'energia',
+          'validador', 'valida_perdas', 'valida_balanco', 'relatorio']
+
+
+def escolher_etapas(pedidas=None, desde=None):
+    """Quais etapas rodar, na ordem do ciclo.
+
+    POR QUE ISTO EXISTE. Ate 02/09/2026 so havia tudo ou nada: mudar uma linha
+    no `validador` obrigava a reconverter 99 bases para ver o efeito, e a
+    conversao e 80% do tempo. Com `--etapas validador relatorio` a mesma
+    pergunta se responde em minutos, sobre os modelos que ja estao no disco.
+
+    `--desde verifica` roda dali em diante, que e o caso comum quando a
+    conversao ja esta boa e o que mudou foi a medicao.
+    """
+    if desde:
+        if desde not in ETAPAS:
+            raise SystemExit('etapa desconhecida: %s' % desde)
+        return ETAPAS[ETAPAS.index(desde):]
+    if not pedidas:
+        return list(ETAPAS)
+    ruins = [x for x in pedidas if x not in ETAPAS]
+    if ruins:
+        raise SystemExit('etapa desconhecida: %s\n'
+                         'etapas: %s'
+                         % (', '.join(ruins), ' '.join(ETAPAS)))
+    # na ORDEM DO CICLO, e nao na ordem em que foram digitadas: pedir
+    # `energia verifica` nao pode fazer a energia rodar antes da verificacao.
+    return [e for e in ETAPAS if e in set(pedidas)]
+
+
 def passo(rot, cmd, log, limite):
     """Roda um comando, despeja a saida no log, devolve (ok, minutos).
 
@@ -725,6 +760,13 @@ def main():
                          'quanto do resultado depende de premissa nossa')
     ap.add_argument('--so', nargs='+', metavar='TAG',
                     help='apenas estas bases (RR ENCE EQPA SP LT CPFL CMIG)')
+    ap.add_argument('--etapas', nargs='*', default=None, metavar='ETAPA',
+                    help='roda so estas etapas, sobre os modelos que ja '
+                         'existem. Sem isto, o ciclo inteiro')
+    ap.add_argument('--desde', default=None, metavar='ETAPA',
+                    help='roda desta etapa em diante')
+    ap.add_argument('--etapas-lista', action='store_true',
+                    help='mostra as etapas do ciclo e sai')
     ap.add_argument('--basico', action='store_true',
                     help='painel de DUAS perguntas: qual base e como chamar a '
                          'rodada. O resto vai nos padroes medidos')
@@ -784,6 +826,18 @@ def main():
     # O ERRO GUARDADO NO IMPORT COBRA AQUI. Sem isto a rodada seguiria com
     # `BASES` vazia, imprimiria "0 bases" e sairia com rc=0 — falha silenciosa
     # no lugar de uma guarda que existe justamente para evitar uma.
+    # A LISTA DE ETAPAS SAI ANTES DE PROCURAR BASE: quem quer saber os nomes
+    # nao deveria precisar de uma .gdb no disco para descobri-los.
+    if a.etapas_lista:
+        print('as etapas do ciclo, na ordem:')
+        for e in ETAPAS:
+            print('  %s' % e)
+        print('\n  --etapas verifica energia   roda so essas')
+        print('  --desde verifica            roda dali em diante')
+        return 0
+
+    etapas = escolher_etapas(a.etapas, a.desde)
+
     if _ERRO_BASES is not None:
         print('ERRO: %s' % _ERRO_BASES, file=sys.stderr, flush=True)
         return 2
@@ -810,8 +864,12 @@ def main():
     print(f'REGERACAO V10 — {len(bases)} bases, inicio '
           f'{time.strftime("%d/%m/%Y %H:%M")}')
     print(f'conversao prevista: {prev:.0f} min{_falta(sem_previsao)}; '
-          f'ciclo completo, ~2,7x isso\n',
+          f'ciclo completo, ~2,7x isso',
           flush=True)
+    if etapas != ETAPAS:
+        print('etapas: %s  (das %d do ciclo)'
+              % (' '.join(etapas), len(ETAPAS)), flush=True)
+    print(flush=True)
 
     proc = procedencia()
     # Tres estados, e nao dois. O terceiro — nao verificado — nao existia, e
@@ -867,9 +925,21 @@ def main():
                     '--max-ctmt', str(a.max_ctmt), '--bt', a.bt]
         if a.se:
             cmd_conv += ['--se'] + list(a.se)
-        ok, reg['min_converter'] = passo(
-            'converter', cmd_conv, log, limite=8 * 3600)
-        reg['converter_ok'] = ok
+        if 'converter' in etapas:
+            ok, reg['min_converter'] = passo(
+                'converter', cmd_conv, log, limite=8 * 3600)
+            reg['converter_ok'] = ok
+        else:
+            # PULAR A CONVERSAO E O CASO DE USO PRINCIPAL: mexer no validador e
+            # querer ver o efeito sobre os modelos que ja estao no disco, sem
+            # pagar as horas de conversao de novo.
+            # `log` aqui e o CAMINHO do arquivo de log, e nao uma funcao — o
+            # `passo` e que escreve nele. Chamar `log(...)` levantava
+            # `TypeError: 'str' object is not callable`.
+            ok = os.path.isdir(os.path.join(AQUI, saida))
+            if not ok:
+                print('   %s nao existe — nao ha modelo para reaproveitar'
+                      % saida, flush=True)
         if not ok:
             resumo.append(reg)
             # o canario: se a menor base nao converte, o codigo esta quebrado
@@ -893,38 +963,45 @@ def main():
         # que a BDGD declara. Ter esse caminho e o que permite dizer, com
         # numero, quanto do resultado depende de premissa nossa.
         if not a.sem_premissas:
-            ok, reg['min_ligacao'] = passo(
-                'ligacao', [PY, '-u', 'etapas/ligacao.py', saida,
-                            '--jobs', str(a.jobs)], log, 4 * 3600)
-            reg['ligacao_ok'] = ok
-            ok, reg['min_ampacidade'] = passo(
-                'ampacidade', [PY, '-u', 'etapas/ampacidade.py', saida,
-                            '--jobs', str(a.jobs)], log, 4 * 3600)
-            reg['ampacidade_ok'] = ok
+            if 'ligacao' in etapas:
+                ok, reg['min_ligacao'] = passo(
+                    'ligacao', [PY, '-u', 'etapas/ligacao.py', saida,
+                                '--jobs', str(a.jobs)], log, 4 * 3600)
+                reg['ligacao_ok'] = ok
+            if 'ampacidade' in etapas:
+                ok, reg['min_ampacidade'] = passo(
+                    'ampacidade', [PY, '-u', 'etapas/ampacidade.py', saida,
+                                '--jobs', str(a.jobs)], log, 4 * 3600)
+                reg['ampacidade_ok'] = ok
 
-        ok, reg['min_verifica'] = passo('verifica', [PY, '-u', 'etapas/verifica.py', saida,
-                                                     '--jobs', str(a.jobs)],
-                                        log, 6 * 3600)
-        reg['verifica_ok'] = ok
-        ok, reg['min_energia'] = passo('energia', [PY, '-u', 'etapas/energia.py', saida,
-                                                   '--jobs', str(a.jobs)],
-                                       log, 8 * 3600)
-        reg['energia_ok'] = ok
+        if 'verifica' in etapas:
+            ok, reg['min_verifica'] = passo('verifica', [PY, '-u', 'etapas/verifica.py', saida,
+                                                         '--jobs', str(a.jobs)],
+                                            log, 6 * 3600)
+            reg['verifica_ok'] = ok
+        if 'energia' in etapas:
+            ok, reg['min_energia'] = passo('energia', [PY, '-u', 'etapas/energia.py', saida,
+                                                       '--jobs', str(a.jobs)],
+                                           log, 8 * 3600)
+            reg['energia_ok'] = ok
         # O validador entra na fila porque e ele que exercita a mudanca do
         # achado 3 — o limiar de REDE_EXTENSA vindo da propria base. Sem ele
         # a correcao seria regerada sem nunca ser executada.
-        ok, reg['min_validador'] = passo('validador', [PY, '-u',
-                                                       'etapas/validador.py', saida,
-                                                       '--ses',
-                                                       '--jobs', str(a.jobs)],
-                                         log, 4 * 3600)
-        reg['validador_ok'] = ok
-        ok, _ = passo('valida_perdas', [PY, '-u', 'etapas/valida_perdas.py', saida,
-                                        gdb], log, 2 * 3600)
-        reg['perdas_ok'] = ok
-        ok, _ = passo('valida_balanco', [PY, '-u', 'etapas/valida_balanco.py', saida,
-                                         gdb], log, 3 * 3600)
-        reg['balanco_ok'] = ok
+        if 'validador' in etapas:
+            ok, reg['min_validador'] = passo('validador', [PY, '-u',
+                                                           'etapas/validador.py', saida,
+                                                           '--ses',
+                                                           '--jobs', str(a.jobs)],
+                                             log, 4 * 3600)
+            reg['validador_ok'] = ok
+        if 'valida_perdas' in etapas:
+            ok, _ = passo('valida_perdas', [PY, '-u', 'etapas/valida_perdas.py', saida,
+                                            gdb], log, 2 * 3600)
+            reg['perdas_ok'] = ok
+        if 'valida_balanco' in etapas:
+            ok, _ = passo('valida_balanco', [PY, '-u', 'etapas/valida_balanco.py', saida,
+                                             gdb], log, 3 * 3600)
+            reg['balanco_ok'] = ok
 
         # O RELATORIO VISUAL FECHA O CICLO, e sai junto com o modelo: uma
         # figura de doze paineis dentro da pasta de CADA subestacao, mais o
@@ -935,9 +1012,10 @@ def main():
         # NAO ENTRA NA CONTA DE FALHA DA BASE: figura e apresentacao, e uma
         # rodada de 11 h nao pode ser marcada como falha porque o matplotlib
         # nao estava instalado no no.
-        ok, reg['min_relatorio'] = passo(
-            'relatorio', [PY, '-u', 'relatorio.py', saida], log, 2 * 3600)
-        reg['relatorio_ok'] = ok
+        if 'relatorio' in etapas:
+            ok, reg['min_relatorio'] = passo(
+                'relatorio', [PY, '-u', 'relatorio.py', saida], log, 2 * 3600)
+            reg['relatorio_ok'] = ok
 
         resumo.append(colher(tag, reg))
         r = resumo[-1]

@@ -340,5 +340,48 @@ class OMotorEntraNaProcedencia(unittest.TestCase):
         self.assertIsNone(v['pyogrio'])
 
 
+class RodarPorPartes(unittest.TestCase):
+    """Mexer numa etapa nao pode obrigar a refazer o ciclo inteiro.
+
+    Ate 02/09/2026 so havia tudo ou nada: mudar uma linha no `validador`
+    obrigava a reconverter 99 bases para ver o efeito, e a conversao e cerca de
+    80% do tempo. Com `--etapas validador relatorio` a mesma pergunta se
+    responde em minutos, sobre os modelos que ja estao no disco.
+    """
+
+    def test_sem_pedido_roda_o_ciclo_inteiro(self):
+        self.assertEqual(rg.escolher_etapas(), rg.ETAPAS)
+
+    def test_a_ordem_e_a_do_CICLO_e_nao_a_digitada(self):
+        """Pedir `energia verifica` nao pode fazer a energia rodar antes da
+        verificacao: `ligacao` e `ampacidade` mudam a rede, e medir antes delas
+        mede outro modelo."""
+        self.assertEqual(rg.escolher_etapas(['energia', 'verifica']),
+                         ['verifica', 'energia'])
+
+    def test_desde_pega_dali_em_diante(self):
+        e = rg.escolher_etapas(desde='validador')
+        self.assertEqual(e[0], 'validador')
+        self.assertIn('relatorio', e)
+        self.assertNotIn('converter', e)
+
+    def test_etapa_desconhecida_e_recusada(self):
+        """Errar o nome nao pode virar rodada silenciosa de zero etapas."""
+        with self.assertRaises(SystemExit):
+            rg.escolher_etapas(['validadorr'])
+        with self.assertRaises(SystemExit):
+            rg.escolher_etapas(desde='nao_existe')
+
+    def test_a_ordem_do_catalogo_respeita_as_dependencias(self):
+        """`ligacao` e `ampacidade` antes de qualquer medicao; `energia` antes
+        das duas validacoes, que leem o `energia_dia.json`."""
+        i = rg.ETAPAS.index
+        self.assertLess(i('ligacao'), i('verifica'))
+        self.assertLess(i('ampacidade'), i('verifica'))
+        self.assertLess(i('energia'), i('valida_perdas'))
+        self.assertLess(i('energia'), i('valida_balanco'))
+        self.assertEqual(rg.ETAPAS[-1], 'relatorio')
+
+
 if __name__ == '__main__':
     unittest.main()
