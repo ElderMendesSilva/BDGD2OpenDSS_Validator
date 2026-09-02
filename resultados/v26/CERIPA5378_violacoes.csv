@@ -1,0 +1,4 @@
+base,sub,ctmt,motivo,pct_tecnica_modelo,pct_total_medido,pct_nao_tecnica_implicita,GWh_injetado,GWh_faturado,ucs,cobertura,viola_limite,medida_degenerada,faturado_maior_que_injetado,declarado_pct,razao_vs_declarado,se_kv_mt,se_trafos,se_km_MT,se_alimentadores,se_convergiu,se_nos_nan,se_veredicto,se_V_MT_min,se_V_MT_mediana,se_barras_criticas,se_perdas_trafos_pct,se_n_linhas,se_ramos_isolados
+CERIPA5378,HOLA,105_HOLA_3,medida quase sem perda: 2.02% total medido,9.598,2.019,-7.579,2.1722,2.1283,391,475.3,True,False,False,,,34.5,538,274.05,7,True,0,OK,0.715,0.892,2865,88.9,4958,5
+CERIPA5378,RONC,101_RONC_2,medida quase sem perda: 2.93% total medido,7.516,2.927,-4.589,2.7882,2.7066,481,256.8,True,False,False,,,34.5,433,294.97,7,True,0,OK,0.815,0.984,1121,79.2,4423,8
+CERIPA5378,HOLA,102_HOLA_3,a investigar,6.436,4.467,-1.969,8.3801,8.0057,2185,144.1,True,False,False,,,34.5,538,274.05,7,True,0,OK,0.715,0.892,2865,88.9,4958,5

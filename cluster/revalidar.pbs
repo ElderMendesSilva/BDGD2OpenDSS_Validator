@@ -1,0 +1,73 @@
+#!/bin/bash
+#PBS -N revalidar
+#PBS -l nodes=1:ppn=16
+#PBS -l mem=64gb
+#PBS -l walltime=12:00:00
+#PBS -q BIRA_Q3
+#PBS -j oe
+#PBS -o logs/cluster/
+#
+# Roda SO O VALIDADOR sobre modelos que ja existem. Nao converte nada.
+#
+#     qsub -v "PROJETO=$PWD,SUFIXO=V25" cluster/revalidar.pbs
+#
+# POR QUE ISTO EXISTE. O achado 21 mostrou que `ramos_isolados` vinha de
+# `Topology.AllIsolatedBranches()`, que percorre a arvore a partir de UMA fonte
+# e reporta como isolada toda a rede alimentada pelas demais — energizada e
+# funcionando. Quatro achados publicados se apoiaram nesse numero.
+#
+# O `validador` foi corrigido para medir por TENSAO. Mas os numeros publicados
+# em `resultados/v25/` continuam sendo os antigos, e refaze-los NAO exige
+# conversao: os `MODELOS_*_V25` estao no disco. So o validador precisa rodar de
+# novo em cima deles.
+#
+# A ALTERNATIVA ERA UMA RODADA INTEIRA, de horas, para refazer uma medida de
+# segundos por subestacao. Este job leva minutos.
+#
+# E SEM ISTO A COMPARACAO NAO FECHA: a V26 usa safra 2025 E metodo novo. Sem a
+# V25 remedida pelo metodo novo, nao da para saber quanto da queda de 25,70%
+# para 8,62% e correcao de medida e quanto e diferenca entre safras.
+#
+# `--jobs 0` deixa o codigo decidir pelo que o PBS deu. Le e resolve modelo,
+# entao e job: o head node nao processa (regra de 28/08/2026).
+set -uo pipefail
+cd "${PBS_O_WORKDIR:-$PROJETO}"
+source .venv/bin/activate
+export BDGD2DSS_MODO=cluster
+
+: "${SUFIXO:?defina o sufixo da rodada, ex.: V25}"
+
+echo "## revalidando MODELOS_*_$SUFIXO — $(date)"
+echo "## no: $(hostname)"
+
+n=0
+falhou=0
+for d in MODELOS_*_"$SUFIXO"; do
+    [[ -d "$d" ]] || continue
+    # Sem MASTER nao ha o que validar, e a pasta pode ser de rodada
+    # interrompida. Pular em silencio esconderia isso, entao conta.
+    if ! ls "$d"/MASTER-*.dss >/dev/null 2>&1 && [[ ! -f "$d/MASTER-GERAL.dss" ]]; then
+        echo "   $d: sem MASTER, pulando"
+        continue
+    fi
+    n=$((n + 1))
+    echo "[$n] $d"
+    if ! python -u validador.py "$d" --jobs 0 >>"logs/cluster/revalidar_$SUFIXO.log" 2>&1; then
+        echo "   $d: FALHOU (veja logs/cluster/revalidar_$SUFIXO.log)"
+        falhou=$((falhou + 1))
+    fi
+done
+
+echo
+echo "## $n modelos revalidados, $falhou com falha"
+echo "## fim $(date)"
+
+# MEDIR NADA NAO E MEDIR. Job que nao encontrou modelo nenhum e sai 0 vira
+# "sucesso" no historico da fila — o padrao de falha silenciosa que ja custou
+# duas colheitas neste projeto.
+if [[ "$n" -eq 0 ]]; then
+    echo "nenhum MODELOS_*_$SUFIXO encontrado" >&2
+    exit 1
+fi
+[[ "$falhou" -gt 0 ]] && exit 1
+exit 0

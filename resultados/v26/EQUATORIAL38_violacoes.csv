@@ -1,0 +1,15 @@
+base,sub,ctmt,motivo,pct_tecnica_modelo,pct_total_medido,pct_nao_tecnica_implicita,GWh_injetado,GWh_faturado,ucs,cobertura,viola_limite,medida_degenerada,faturado_maior_que_injetado,declarado_pct,razao_vs_declarado,se_kv_mt,se_trafos,se_km_MT,se_alimentadores,se_convergiu,se_nos_nan,se_veredicto,se_V_MT_min,se_V_MT_mediana,se_barras_criticas,se_perdas_trafos_pct,se_n_linhas,se_ramos_isolados
+EQUATORIAL38,SPP,SPP09F7,perda modelada absurda: 1071638.7%,1071638.733,7.88,-1071630.853,11.3088,10.4177,7069,13600275.1,True,False,False,,,13.8,2972,2751.3,8,True,0,OK,0.06,0.669,26659,29.6,30876,651
+EQUATORIAL38,JER,JER01C1,denominador minusculo: 0.127 GWh injetados,101.65,93.221,-8.429,0.127,0.0086,5,109.0,True,False,False,,,13.8,249,432.1,2,True,0,OK,0.963,0.974,0,81.3,3853,3
+EQUATORIAL38,MAD,MAD01C3,perda modelada absurda: 63.8%,63.757,22.824,-40.933,4.6494,3.5883,3037,279.3,True,False,False,,,13.8,3114,2558.62,7,True,0,OK,0.196,0.973,3301,75.2,25525,700
+EQUATORIAL38,SJP,SJP09F1,perda modelada absurda: 42.4%,42.394,30.447,-11.947,5.6995,3.9641,1521,139.2,True,False,False,,,34.5,4660,4447.43,6,True,0,OK,0.096,1.002,2711,90.9,44388,11470
+EQUATORIAL38,SPM,SPM01C5,perda modelada absurda: 30.7%,30.654,17.523,-13.131,6.7961,5.6052,2895,174.9,True,False,False,,,34.5,3548,3103.04,5,True,0,OK,0.127,0.977,3616,89.8,29943,37
+EQUATORIAL38,SRO,SRO09F3,perda modelada absurda: 27.5%,27.481,19.362,-8.119,13.8159,11.1409,9248,141.9,True,False,False,,,34.5,5031,4545.81,7,True,0,OK,0.023,0.995,7551,67.3,47546,3193
+EQUATORIAL38,CPM,CPM09F2,perda modelada absurda: 22.3%,22.303,15.441,-6.862,3.3059,2.7954,1841,144.4,True,False,False,,,34.5,2600,2189.82,7,True,0,OK,0.256,0.987,1660,90.1,22436,756
+EQUATORIAL38,CRI,CRI09S1,perda modelada absurda: 18.6%,18.573,14.61,-3.963,4.8574,4.1477,816,127.1,True,False,False,,,34.5,494,721.29,3,True,0,OK,0.391,0.994,2,97.0,7647,757
+EQUATORIAL38,RGD,RGD09L1,perda modelada absurda: 17.9%,17.926,5.209,-12.717,7.7262,7.3237,2641,344.1,True,False,False,,,34.5,125,147.77,1,True,0,OK,0.388,0.959,1,88.3,1574,87
+EQUATORIAL38,TBL,TBL01C5,no limite: modelo 1.04x o total medido,14.011,13.412,-0.599,5.4215,4.6944,3734,104.5,True,False,False,,,13.8,988,846.28,5,True,0,OK,0.239,0.986,218,94.6,9565,720
+EQUATORIAL38,TSA,TSA01Y6,no limite: modelo 1.16x o total medido,9.397,8.07,-1.327,27.6267,25.3973,1,116.4,True,False,False,,,13.8,808,208.22,8,True,0,OK,0.906,0.996,129,62.5,6095,46
+EQUATORIAL38,GBS,GBS09F9,a investigar,8.545,6.633,-1.912,4.6863,4.3755,1386,128.8,True,False,False,,,34.5,2344,2661.36,6,True,0,OK,0.069,0.998,2479,83.8,28357,1908
+EQUATORIAL38,LUZ,LUZ01C2,no limite: modelo 1.03x o total medido,6.133,5.983,-0.15,8.9799,8.4426,5012,102.5,True,False,False,,,13.8,1403,1144.11,4,True,0,OK,0.054,0.982,179,90.0,11947,8
+EQUATORIAL38,BRL,BRL01C2,no limite: modelo 1.10x o total medido,3.272,2.978,-0.294,9.1082,8.837,4964,109.9,True,False,False,,,34.5,1007,1550.58,3,True,0,OK,0.899,0.995,117,91.1,15398,4800

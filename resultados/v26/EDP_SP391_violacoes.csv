@@ -1,0 +1,10 @@
+base,sub,ctmt,motivo,pct_tecnica_modelo,pct_total_medido,pct_nao_tecnica_implicita,GWh_injetado,GWh_faturado,ucs,cobertura,viola_limite,medida_degenerada,faturado_maior_que_injetado,declarado_pct,razao_vs_declarado,se_kv_mt,se_trafos,se_km_MT,se_alimentadores,se_convergiu,se_nos_nan,se_veredicto,se_V_MT_min,se_V_MT_mediana,se_barras_criticas,se_perdas_trafos_pct,se_n_linhas,se_ramos_isolados
+EDP_SP391,CJO,RPIC1301,denominador minusculo: 0.215 GWh injetados,9.558,3.706,-5.852,0.2153,0.2073,30,257.9,True,False,False,,,13.8,13,7.52,1,True,0,OK,0.999,1.0,0,99.5,180,0
+EDP_SP391,PID,RPID1306,medida quase sem perda: 2.49% total medido,5.33,2.491,-2.839,35.5085,34.6239,9265,213.9,True,False,False,,,13.8,2704,742.67,13,True,0,OK,0.946,0.985,0,44.2,23620,0
+EDP_SP391,SLU,RSLU0113,medida quase sem perda: 2.32% total medido,4.653,2.322,-2.331,24.3592,23.7936,2832,200.4,True,False,False,,,13.8,1261,151.57,16,True,0,OK,0.939,0.992,0,49.5,8629,0
+EDP_SP391,BOI,RBOI1304,no limite: modelo 1.05x o total medido,4.084,3.888,-0.196,9.1983,8.8407,1012,105.0,True,False,False,,,13.8,522,99.4,6,True,0,OK,0.96,0.988,0,61.3,4399,0
+EDP_SP391,SLU,RSLU0109,medida quase sem perda: 2.14% total medido,3.804,2.144,-1.66,18.7544,18.3524,1741,177.4,True,False,False,,,13.8,1261,151.57,16,True,0,OK,0.939,0.992,0,49.5,8629,0
+EDP_SP391,SKO,RSKO0102,denominador minusculo: 0.386 GWh injetados,3.657,3.47,-0.187,0.3858,0.3724,38,105.4,True,False,False,,,13.8,581,127.4,4,True,0,OK,0.954,0.979,0,41.9,5563,0
+EDP_SP391,CAC,RCAC1301,no limite: modelo 1.15x o total medido,3.577,3.121,-0.456,28.7894,27.8909,11185,114.6,True,False,False,,,13.8,1689,512.9,9,True,0,OK,0.964,0.995,0,76.2,15014,0
+EDP_SP391,JAR,RJAR3401,medida quase sem perda: 2.42% total medido,3.177,2.425,-0.752,128.6565,125.5366,21105,131.0,True,False,False,,,34.5,784,66.13,1,True,0,OK,0.196,0.198,3366,21.2,3979,0
+EDP_SP391,SLU,RSLU0107,medida quase sem perda: 2.37% total medido,3.093,2.366,-0.727,9.8755,9.6419,2175,130.7,True,False,False,,,13.8,1261,151.57,16,True,0,OK,0.939,0.992,0,49.5,8629,0

@@ -1,0 +1,11 @@
+base,sub,ctmt,motivo,pct_tecnica_modelo,pct_total_medido,pct_nao_tecnica_implicita,GWh_injetado,GWh_faturado,ucs,cobertura,viola_limite,medida_degenerada,faturado_maior_que_injetado,declarado_pct,razao_vs_declarado,se_kv_mt,se_trafos,se_km_MT,se_alimentadores,se_convergiu,se_nos_nan,se_veredicto,se_V_MT_min,se_V_MT_mediana,se_barras_criticas,se_perdas_trafos_pct,se_n_linhas,se_ramos_isolados
+EQUATORIAL44,SMC,SMCY3,perda modelada absurda: 460.6%,460.594,13.769,-446.825,1.6133,1.3911,5,3345.2,True,False,False,,,13.8,649,424.07,6,True,0,OK,0.893,0.984,111,75.4,6846,982
+EQUATORIAL44,CPE,CPEY5,perda modelada absurda: 47.9%,47.927,7.301,-40.626,7.7132,7.1501,4010,656.4,True,False,False,,,13.8,634,479.3,5,True,0,OK,0.476,0.995,416,82.5,7360,130
+EQUATORIAL44,CRA,CRAC1,perda modelada absurda: 18.5%,18.549,4.967,-13.582,4.1054,3.9015,2679,373.4,True,False,False,,,13.8,1125,735.87,4,True,0,OK,0.971,0.99,0,86.8,11907,3541
+EQUATORIAL44,CPT,CPTY4,no limite: modelo 1.15x o total medido,15.4,13.353,-2.047,9.8895,8.5689,6220,115.3,True,False,False,,,13.8,591,501.52,3,True,0,OK,0.683,0.989,321,93.6,6708,36
+EQUATORIAL44,PCA,PCAY5,a investigar,9.334,3.325,-6.009,5.3581,5.1799,1592,280.7,True,False,False,,,13.8,411,181.07,6,True,0,OK,0.903,0.993,454,87.3,4174,522
+EQUATORIAL44,SMC,SMCY2,a investigar,9.141,6.324,-2.817,22.6086,21.1789,8974,144.6,True,False,False,,,13.8,649,424.07,6,True,0,OK,0.893,0.984,111,75.4,6846,982
+EQUATORIAL44,PEP,PEPY2,a investigar,7.683,5.282,-2.401,9.6844,9.1729,3310,145.5,True,False,False,,,13.8,707,582.42,7,True,0,OK,0.877,0.988,309,53.1,9108,337
+EQUATORIAL44,JDH,JDHY4,a investigar,5.965,3.418,-2.547,3.3852,3.2695,856,174.5,True,False,False,,,13.8,1595,1383.15,6,True,0,OK,0.129,0.987,1646,87.4,18614,2213
+EQUATORIAL44,MGI,MGIY2,medida quase sem perda: 2.61% total medido,4.153,2.606,-1.547,12.0466,11.7327,4642,159.4,True,False,False,,,13.8,605,290.0,5,True,0,OK,0.515,0.981,167,75.6,5841,1065
+EQUATORIAL44,PNO,PNOY7,medida quase sem perda: 2.16% total medido,3.026,2.156,-0.87,22.0717,21.5957,3697,140.3,True,False,False,,,13.8,778,106.44,10,True,0,OK,0.982,0.987,0,93.9,4307,25

@@ -1,0 +1,30 @@
+base,sub,ctmt,motivo,pct_tecnica_modelo,pct_total_medido,pct_nao_tecnica_implicita,GWh_injetado,GWh_faturado,ucs,cobertura,viola_limite,medida_degenerada,faturado_maior_que_injetado,declarado_pct,razao_vs_declarado,se_kv_mt,se_trafos,se_km_MT,se_alimentadores,se_convergiu,se_nos_nan,se_veredicto,se_V_MT_min,se_V_MT_mediana,se_barras_criticas,se_perdas_trafos_pct,se_n_linhas,se_ramos_isolados
+EDP_ES380,SMJ,SMJ06,perda modelada absurda: 161.4%,161.433,10.375,-151.058,13.9567,12.5086,3077,1555.9,True,False,False,,,13.2,5672,1553.76,7,True,0,OK,0.201,0.982,9295,46.4,21732,0
+EDP_ES380,CIT,CIT30,perda modelada absurda: 98.7%,98.701,24.77,-73.931,15.2839,11.498,310,398.5,True,False,False,,,13.8,3123,1107.79,12,True,0,OK,0.072,1.007,4043,53.9,19465,33
+EDP_ES380,AVI,AVI04,denominador minusculo: 0.005 GWh injetados,43.242,25.251,-17.991,0.005,0.0037,3,171.3,True,False,False,,,13.8,583,181.74,4,True,0,OK,0.974,0.987,0,50.9,3253,0
+EDP_ES380,CAN,CAN06,a investigar,13.98,9.429,-4.551,3.8913,3.5244,2083,148.3,True,False,False,,,34.5,1365,500.34,7,True,0,OK,0.979,1.022,0,56.7,9683,0
+EDP_ES380,MFL,MFL02,a investigar,12.864,8.276,-4.588,13.4321,12.3205,3303,155.4,True,False,False,,,13.2,5093,1746.76,8,True,0,OK,0.929,1.028,1,65.3,22191,0
+EDP_ES380,VPA,VPA01,a investigar,11.771,5.249,-6.522,7.2788,6.8968,1298,224.3,True,False,False,,,13.8,2203,823.39,4,True,0,OK,0.999,1.03,0,93.1,9419,0
+EDP_ES380,MSU,MSU03,no limite: modelo 1.15x o total medido,11.578,10.074,-1.504,16.5749,14.9051,2283,114.9,True,False,False,,,13.2,3968,1556.39,5,True,0,OK,0.455,1.018,536,67.7,17271,0
+EDP_ES380,IBT,IBT03,denominador minusculo: 0.413 GWh injetados,11.459,10.806,-0.653,0.4128,0.3682,177,106.0,True,False,False,,,13.8,1765,611.38,4,True,0,OK,0.951,0.986,0,85.4,6304,0
+EDP_ES380,TBA,TBA02,a investigar,11.281,6.248,-5.033,12.4603,11.6818,4602,180.6,True,False,False,,,13.8,2155,861.37,2,True,0,OK,0.972,1.027,0,69.9,8689,0
+EDP_ES380,MSU,MSU01,a investigar,11.001,8.449,-2.552,21.3533,19.5491,8320,130.2,True,False,False,,,13.2,3968,1556.39,5,True,0,OK,0.455,1.018,536,67.7,17271,0
+EDP_ES380,STR,STR04,a investigar,10.646,5.143,-5.503,6.1154,5.8009,2144,207.0,True,False,False,,,13.2,2483,750.7,4,True,0,OK,0.957,0.992,0,93.4,10739,0
+EDP_ES380,SMJ,SMJ04,a investigar,10.643,3.173,-7.47,18.3513,17.769,4480,335.4,True,False,False,,,13.2,5672,1553.76,7,True,0,OK,0.201,0.982,9295,46.4,21732,0
+EDP_ES380,FGU,FGU01,a investigar,10.625,5.442,-5.183,3.8768,3.6658,1197,195.2,True,False,False,,,13.2,1745,613.97,4,True,0,OK,0.991,1.032,0,95.0,7497,0
+EDP_ES380,NVE,NVE04,a investigar,10.289,4.648,-5.641,17.0964,16.3018,3436,221.4,True,False,False,,,13.8,4490,1740.08,8,True,0,OK,0.284,1.032,5,85.5,22472,0
+EDP_ES380,SFR,SFR06,a investigar,8.767,4.988,-3.779,13.0168,12.3676,2944,175.8,True,False,False,,,13.8,2304,772.39,7,True,0,OK,0.962,1.019,0,69.9,10611,0
+EDP_ES380,JMO,JMO01,medida quase sem perda: 2.55% total medido,7.875,2.552,-5.323,5.6314,5.4877,2128,308.6,True,False,False,,,13.2,1075,414.93,2,True,0,OK,0.953,1.028,0,92.2,5011,0
+EDP_ES380,PIU,PIU02,a investigar,7.653,4.79,-2.863,19.7221,18.7774,5592,159.8,True,False,False,,,13.8,2093,662.84,7,True,0,OK,0.866,0.999,1208,52.8,11603,0
+EDP_ES380,PLT,PLT01,no limite: modelo 1.00x o total medido,7.591,7.591,-0.0,16.3987,15.1539,2206,100.0,True,False,False,,,13.8,1544,547.16,4,True,0,OK,1.007,1.028,0,68.9,6099,0
+EDP_ES380,ECP,ECP03,a investigar,7.261,5.389,-1.872,12.8528,12.1601,4765,134.7,True,False,False,,,13.2,2529,1310.19,2,True,0,OK,0.987,1.026,0,88.7,12411,0
+EDP_ES380,BES,BES02,medida quase sem perda: 2.43% total medido,7.077,2.431,-4.646,11.9124,11.6228,1786,291.1,True,False,False,,,13.2,1868,710.32,4,True,0,OK,0.966,1.029,0,82.5,8684,0
+EDP_ES380,MON,MON03,no limite: modelo 1.11x o total medido,7.03,6.339,-0.691,7.9557,7.4514,71,110.9,True,False,False,,,13.2,918,525.94,4,True,0,OK,0.92,0.963,692,72.4,6167,0
+EDP_ES380,VNO,VNO12,a investigar,6.684,3.838,-2.846,18.516,17.8054,4324,174.2,True,False,False,,,13.2,5482,1866.29,6,True,0,OK,0.947,1.026,0,87.4,23980,0
+EDP_ES380,FUN,FUN01,a investigar,5.397,3.4,-1.997,12.717,12.2846,4490,158.7,True,False,False,,,13.8,1823,742.38,3,True,0,OK,0.971,0.995,0,84.1,9457,0
+EDP_ES380,BGU,BGU01,a investigar,5.353,3.307,-2.046,24.4975,23.6874,6892,161.9,True,False,False,,,13.2,2095,979.68,4,True,0,OK,0.946,1.022,0,65.4,11211,0
+EDP_ES380,FRU,FRU01,a investigar,5.33,3.733,-1.597,14.6231,14.0772,2864,142.8,True,False,False,,,34.5,3531,1422.85,10,True,0,OK,0.088,1.03,265,52.1,19417,70
+EDP_ES380,BSA,BSA01,medida quase sem perda: 2.00% total medido,5.247,2.0,-3.247,18.1036,17.7415,4411,262.3,True,False,False,,,13.8,745,282.71,3,True,0,OK,0.972,1.011,0,54.0,6115,0
+EDP_ES380,PLT,PLT04,medida quase sem perda: 2.31% total medido,4.076,2.306,-1.77,17.4331,17.0311,1860,176.8,True,False,False,,,13.8,1544,547.16,4,True,0,OK,1.007,1.028,0,68.9,6099,0
+EDP_ES380,LIN,LIN15,medida quase sem perda: 2.75% total medido,3.918,2.748,-1.17,21.4937,20.903,5824,142.6,True,False,False,,,13.8,3223,1404.34,15,True,0,OK,0.98,1.023,0,68.3,23386,0
+EDP_ES380,MFL,MFL07,medida quase sem perda: 2.73% total medido,3.799,2.727,-1.072,2.1979,2.138,626,139.3,True,False,False,,,13.2,5093,1746.76,8,True,0,OK,0.929,1.028,1,65.3,22191,0

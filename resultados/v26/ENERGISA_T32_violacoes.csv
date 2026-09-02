@@ -1,0 +1,16 @@
+base,sub,ctmt,motivo,pct_tecnica_modelo,pct_total_medido,pct_nao_tecnica_implicita,GWh_injetado,GWh_faturado,ucs,cobertura,viola_limite,medida_degenerada,faturado_maior_que_injetado,declarado_pct,razao_vs_declarado,se_kv_mt,se_trafos,se_km_MT,se_alimentadores,se_convergiu,se_nos_nan,se_veredicto,se_V_MT_min,se_V_MT_mediana,se_barras_criticas,se_perdas_trafos_pct,se_n_linhas,se_ramos_isolados
+ENERGISA_T32,12,30143796,perda modelada absurda: 458.7%,458.691,32.753,-425.938,1.719,1.156,386,1400.4,True,False,False,,,34.5,563,342.24,3,True,0,OK,0.209,1.036,1,99.7,5348,1
+ENERGISA_T32,12,864074,perda modelada absurda: 60.8%,60.83,29.874,-30.956,5.4363,3.8123,1102,203.6,True,False,False,,,34.5,563,342.24,3,True,0,OK,0.209,1.036,1,99.7,5348,1
+ENERGISA_T32,80,864338,perda modelada absurda: 34.5%,34.499,5.341,-29.158,0.5101,0.4829,177,645.9,True,False,False,,,34.5,2073,2737.73,6,True,0,OK,0.156,1.06,12587,81.7,28915,6
+ENERGISA_T32,80,4647,perda modelada absurda: 31.3%,31.261,6.126,-25.135,24.5079,23.0065,6271,510.3,True,False,False,,,34.5,2073,2737.73,6,True,0,OK,0.156,1.06,12587,81.7,28915,6
+ENERGISA_T32,378234,502578,perda modelada absurda: 29.3%,29.282,3.201,-26.081,14.0682,13.6179,5996,914.7,True,False,False,0.6295367940131967,46.51356406562342,34.5,2398,3091.6,4,True,0,OK,0.057,1.051,5869,95.9,31621,246
+ENERGISA_T32,80,864302,medida quase sem perda: 2.65% total medido,26.057,2.647,-23.41,1.4504,1.412,353,984.5,True,False,False,,,34.5,2073,2737.73,6,True,0,OK,0.156,1.06,12587,81.7,28915,6
+ENERGISA_T32,378234,502574,medida quase sem perda: 2.66% total medido,23.599,2.662,-20.937,4.9897,4.8569,2560,886.4,True,False,False,,,34.5,2398,3091.6,4,True,0,OK,0.057,1.051,5869,95.9,31621,246
+ENERGISA_T32,91,863694,medida quase sem perda: 2.89% total medido,19.014,2.891,-16.123,10.8553,10.5415,3758,657.7,True,False,False,0.7506558070338413,25.329851340433052,34.5,4733,4578.28,7,True,0,OK,0.031,1.081,27179,44.7,48568,153
+ENERGISA_T32,82,863369,perda modelada absurda: 15.5%,15.517,4.455,-11.062,7.7641,7.4182,2092,348.3,True,False,False,18.626790639476663,0.8330474261687393,13.8,3759,4804.98,4,True,0,OK,0.047,1.071,28736,97.3,47998,171
+ENERGISA_T32,61,863456,medida quase sem perda: 2.61% total medido,10.315,2.612,-7.703,18.4357,17.9541,1753,394.9,True,False,False,,,13.8,1330,1416.24,3,True,0,OK,0.276,1.021,215,95.0,14598,445
+ENERGISA_T32,98762,48208758,a investigar,8.677,6.152,-2.525,0.9792,0.919,135,141.0,True,False,False,0.7763491110719497,11.176672808988174,13.8,583,466.72,4,True,0,OK,0.084,0.993,8,80.2,5848,1
+ENERGISA_T32,91,864294,a investigar,7.505,4.642,-2.863,4.5689,4.3568,1659,161.7,True,False,False,,,34.5,4733,4578.28,7,True,0,OK,0.031,1.081,27179,44.7,48568,153
+ENERGISA_T32,32,1147072,medida quase sem perda: 2.74% total medido,7.27,2.739,-4.531,14.7211,14.3178,7904,265.4,True,False,False,,,13.8,2766,1864.3,5,True,0,OK,1.017,1.025,0,86.2,24915,16875
+ENERGISA_T32,50,863690,medida quase sem perda: 2.57% total medido,5.29,2.568,-2.722,1.4163,1.38,93,206.0,True,False,False,0.5260952886702542,10.055212646687783,13.8,482,518.26,2,True,0,OK,0.207,1.039,2,94.4,5270,0
+ENERGISA_T32,85,863534,no limite: modelo 1.15x o total medido,2.709,2.364,-0.345,15.15,14.7919,4807,114.6,True,False,False,1.4022177929556854,1.9319395414957576,69,1723,2076.91,5,True,0,OK,0.088,1.06,5290,59.6,21084,106

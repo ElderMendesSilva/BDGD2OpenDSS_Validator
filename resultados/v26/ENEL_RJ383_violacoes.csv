@@ -1,0 +1,4 @@
+base,sub,ctmt,motivo,pct_tecnica_modelo,pct_total_medido,pct_nao_tecnica_implicita,GWh_injetado,GWh_faturado,ucs,cobertura,viola_limite,medida_degenerada,faturado_maior_que_injetado,declarado_pct,razao_vs_declarado,se_kv_mt,se_trafos,se_km_MT,se_alimentadores,se_convergiu,se_nos_nan,se_veredicto,se_V_MT_min,se_V_MT_mediana,se_barras_criticas,se_perdas_trafos_pct,se_n_linhas,se_ramos_isolados
+ENEL_RJ383,CRZ,CRZ/FRA-1C,perda modelada absurda: 102.9%,102.9,7.08,-95.82,60.0031,55.7548,18285,1453.4,True,False,False,,,34.5,1994,757.19,3,True,0,OK,0.249,0.676,4335,0.2,7324,4
+ENEL_RJ383,NAT,NAT03,no limite: modelo 1.13x o total medido,19.938,17.638,-2.3,17.8627,14.7122,6636,113.0,True,False,False,,,13.8,3486,1265.24,5,True,0,OK,0.912,1.028,565,64.4,11361,3
+ENEL_RJ383,TER,TER/PNV-1C,perda modelada absurda: 16.8%,16.811,7.242,-9.569,59.4754,55.1681,11595,232.1,True,False,False,,,34.5,3810,1044.5,7,True,0,OK,0.142,0.923,11110,69.9,22022,123

@@ -1,0 +1,22 @@
+base,sub,ctmt,motivo,pct_tecnica_modelo,pct_total_medido,pct_nao_tecnica_implicita,GWh_injetado,GWh_faturado,ucs,cobertura,viola_limite,medida_degenerada,faturado_maior_que_injetado,declarado_pct,razao_vs_declarado,se_kv_mt,se_trafos,se_km_MT,se_alimentadores,se_convergiu,se_nos_nan,se_veredicto,se_V_MT_min,se_V_MT_mediana,se_barras_criticas,se_perdas_trafos_pct,se_n_linhas,se_ramos_isolados
+ENERGISA_M405,46,786007,denominador minusculo: 0.203 GWh injetados,107.65,96.872,-10.778,0.2035,0.0064,1,111.1,True,False,False,,,34.5,2057,2467.76,10,True,0,OK,0.073,1.063,12091,10.0,25900,1276
+ENERGISA_M405,270568,785822,denominador minusculo: 0.092 GWh injetados,35.031,12.747,-22.284,0.0924,0.0806,2,274.8,True,False,False,,,13.8,663,117.45,12,True,0,OK,1.008,1.014,0,92.3,4990,8
+ENERGISA_M405,1477137,2014965,perda modelada absurda: 23.7%,23.665,9.519,-14.146,3.8563,3.4892,12,248.6,True,False,False,,,34.5,208,667.61,6,True,0,OK,0.332,1.038,1134,7.5,7422,1453
+ENERGISA_M405,245401,786143,denominador minusculo: 0.426 GWh injetados,20.267,10.454,-9.813,0.4262,0.3817,221,193.9,True,False,False,,,34.5,5803,6201.23,6,True,0,OK,0.01,1.078,40836,82.5,65700,9853
+ENERGISA_M405,245401,786151,perda modelada absurda: 15.9%,15.937,4.044,-11.893,18.8898,18.126,4944,394.1,True,False,False,,,34.5,5803,6201.23,6,True,0,OK,0.01,1.078,40836,82.5,65700,9853
+ENERGISA_M405,245401,786139,perda modelada absurda: 15.2%,15.184,3.338,-11.846,28.3625,27.4157,8132,454.8,True,False,False,,,34.5,5803,6201.23,6,True,0,OK,0.01,1.078,40836,82.5,65700,9853
+ENERGISA_M405,9,820174,a investigar,13.5,9.234,-4.266,11.5484,10.482,3845,146.2,True,False,False,,,13.8,4517,2045.25,12,True,0,OK,0.01,0.988,2900,4.5,29426,66
+ENERGISA_M405,30,2014427,a investigar,11.494,9.215,-2.279,1.258,1.1421,139,124.7,True,False,False,,,34.5,3582,4632.51,7,True,0,OK,0.012,1.031,15332,56.4,49878,288
+ENERGISA_M405,738657,5372270,denominador minusculo: 0.068 GWh injetados,11.376,2.278,-9.098,0.0679,0.0663,3,499.4,True,False,False,,,34.5,857,1298.33,3,True,0,OK,0.108,1.03,2900,1.6,12597,75
+ENERGISA_M405,92,2014575,a investigar,11.295,5.043,-6.252,39.7311,37.7276,7219,224.0,True,False,False,,,34.5,8351,7133.89,6,True,0,OK,0.01,1.144,53831,43.4,79785,9513
+ENERGISA_M405,161,777317,no limite: modelo 1.01x o total medido,10.848,10.784,-0.064,17.182,15.3291,1956,100.6,True,False,False,,,13.8,2510,3700.09,9,True,0,OK,0.162,1.079,26913,83.5,37027,198
+ENERGISA_M405,201818,785849,a investigar,7.165,4.088,-3.077,17.4347,16.722,88,175.3,True,False,False,,,34.5,857,1238.59,4,True,0,OK,0.755,1.033,2,89.1,12687,727
+ENERGISA_M405,245401,786147,a investigar,6.036,4.616,-1.42,5.9504,5.6758,914,130.8,True,False,False,,,34.5,5803,6201.23,6,True,0,OK,0.01,1.078,40836,82.5,65700,9853
+ENERGISA_M405,62,1438569,no limite: modelo 1.02x o total medido,6.002,5.868,-0.134,18.1297,17.0659,262,102.3,True,False,False,,,34.5,1443,1168.8,8,True,0,OK,0.732,1.028,2088,33.0,15954,788
+ENERGISA_M405,161,777321,a investigar,5.104,3.923,-1.181,1.7128,1.6456,365,130.1,True,False,False,,,13.8,2510,3700.09,9,True,0,OK,0.162,1.079,26913,83.5,37027,198
+ENERGISA_M405,205,70318834,no limite: modelo 1.14x o total medido,4.442,3.906,-0.536,11.6904,11.2337,34,113.7,True,False,False,,,34.5,1348,1188.09,8,True,0,OK,0.01,1.022,1915,25.7,16565,964
+ENERGISA_M405,85,1434252,medida quase sem perda: 2.06% total medido,3.659,2.063,-1.596,13.8198,13.5348,2538,177.4,True,False,False,,,13.8,2969,1065.79,14,True,0,OK,0.2,1.011,180,85.5,22091,23
+ENERGISA_M405,206,101274005,medida quase sem perda: 2.05% total medido,3.593,2.048,-1.545,6.2459,6.118,180,175.5,True,False,False,,,34.5,2552,2793.56,7,True,0,OK,0.263,0.993,4385,10.6,30913,279
+ENERGISA_M405,67,807379,medida quase sem perda: 2.12% total medido,2.985,2.117,-0.868,26.5119,25.9506,2269,141.0,True,False,False,,,34.5,3503,2606.65,15,True,0,OK,0.01,1.007,2398,42.4,32830,182
+ENERGISA_M405,70,798729,medida quase sem perda: 2.29% total medido,2.967,2.289,-0.678,23.5053,22.9674,929,129.6,True,False,False,,,34.5,4182,4088.66,21,True,0,OK,0.056,1.009,419,46.0,51353,8328
+ENERGISA_M405,70,798737,no limite: modelo 1.17x o total medido,2.504,2.134,-0.37,17.8694,17.4881,138,117.4,True,False,False,,,34.5,4182,4088.66,21,True,0,OK,0.056,1.009,419,46.0,51353,8328

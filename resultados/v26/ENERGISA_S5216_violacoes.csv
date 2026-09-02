@@ -1,0 +1,7 @@
+base,sub,ctmt,motivo,pct_tecnica_modelo,pct_total_medido,pct_nao_tecnica_implicita,GWh_injetado,GWh_faturado,ucs,cobertura,viola_limite,medida_degenerada,faturado_maior_que_injetado,declarado_pct,razao_vs_declarado,se_kv_mt,se_trafos,se_km_MT,se_alimentadores,se_convergiu,se_nos_nan,se_veredicto,se_V_MT_min,se_V_MT_mediana,se_barras_criticas,se_perdas_trafos_pct,se_n_linhas,se_ramos_isolados
+ENERGISA_S5216,5,407996,a investigar,5.811,4.765,-1.046,9.8014,9.3344,4538,122.0,True,False,False,,,34.5,4142,1650.84,11,True,0,OK,0.489,1.02,1039,85.3,30801,2259
+ENERGISA_S5216,11,412333,medida quase sem perda: 2.70% total medido,5.026,2.702,-2.324,12.8998,12.5513,3569,186.0,True,False,False,,,13.8,1353,436.7,7,True,0,OK,0.985,0.997,0,90.5,11557,19
+ENERGISA_S5216,22,438058,a investigar,4.922,4.017,-0.905,8.4637,8.1237,3315,122.5,True,False,False,,,34.5,2438,921.46,10,True,0,OK,0.482,1.016,2350,89.0,20176,759
+ENERGISA_S5216,82,845965,medida quase sem perda: 2.34% total medido,3.159,2.337,-0.822,12.3164,12.0285,4340,135.2,True,False,False,,,13.8,485,229.6,4,True,0,OK,0.979,0.985,1,80.7,5174,0
+ENERGISA_S5216,790466,691772,no limite: modelo 1.02x o total medido,2.71,2.653,-0.057,21.0132,20.4558,4511,102.2,True,False,False,,,59.8,1808,658.0,8,True,0,OK,0.312,1.024,703,15.2,11717,47
+ENERGISA_S5216,790466,790596,no limite: modelo 1.11x o total medido,2.659,2.386,-0.273,14.3122,13.9708,3536,111.5,True,False,False,,,59.8,1808,658.0,8,True,0,OK,0.312,1.024,703,15.2,11717,47

@@ -1,0 +1,13 @@
+base,sub,ctmt,motivo,pct_tecnica_modelo,pct_total_medido,pct_nao_tecnica_implicita,GWh_injetado,GWh_faturado,ucs,cobertura,viola_limite,medida_degenerada,faturado_maior_que_injetado,declarado_pct,razao_vs_declarado,se_kv_mt,se_trafos,se_km_MT,se_alimentadores,se_convergiu,se_nos_nan,se_veredicto,se_V_MT_min,se_V_MT_mediana,se_barras_criticas,se_perdas_trafos_pct,se_n_linhas,se_ramos_isolados
+SP,DAUG,AUG0204,perda modelada absurda: 84.8%,84.793,9.664,-75.129,0.5335,0.482,1,877.4,True,False,False,,,21,176,38.51,8,True,0,OK,0.985,0.988,0,94.0,2942,0
+SP,DBRG,BRG0202,denominador minusculo: 0.430 GWh injetados,69.584,12.936,-56.648,0.43,0.3744,17,537.9,True,False,False,,,21,307,84.73,12,True,0,OK,0.978,0.987,0,89.5,4859,1
+SP,DIBP,IBP0203,perda modelada absurda: 44.8%,44.75,13.33,-31.42,1.2041,1.0436,59,335.7,True,False,False,,,21,688,55.61,9,True,0,OK,0.979,0.988,0,83.8,5191,12
+SP,DBRG,BRG0209,perda modelada absurda: 31.3%,31.276,13.833,-17.443,1.8043,1.5547,593,226.1,True,False,False,,,21,307,84.73,12,True,0,OK,0.978,0.987,0,89.5,4859,1
+SP,TBAN,BAN0203,perda modelada absurda: 30.6%,30.646,4.31,-26.336,1.2277,1.1748,36,711.1,True,False,False,,,21,1148,381.89,39,True,0,OK,0.162,0.97,9,69.1,20885,25
+SP,TCTR,CTR0203,perda modelada absurda: 26.5%,26.511,11.55,-14.961,1.4734,1.3033,298,229.5,True,False,False,,,21,1074,235.98,24,True,0,OK,0.964,0.977,0,86.7,14216,0
+SP,TCTR,CTR0211,perda modelada absurda: 26.0%,26.036,6.177,-19.859,2.2036,2.0675,322,421.5,True,False,False,,,21,1074,235.98,24,True,0,OK,0.964,0.977,0,86.7,14216,0
+SP,DAUG,AUG0203,perda modelada absurda: 22.9%,22.888,13.179,-9.709,2.4594,2.1353,320,173.7,True,False,False,,,21,176,38.51,8,True,0,OK,0.985,0.988,0,94.0,2942,0
+SP,DAUG,AUG0207,no limite: modelo 1.18x o total medido,15.271,12.975,-2.296,0.5963,0.519,14,117.7,True,False,False,,,21,176,38.51,8,True,0,OK,0.985,0.988,0,94.0,2942,0
+SP,DBUT,BUT0102,a investigar,12.544,6.55,-5.994,39.6448,37.048,2723,191.5,True,False,False,,,13.8,1167,119.06,16,True,0,OK,0.95,0.968,0,84.1,9742,9
+SP,TCTR,CTR0212,a investigar,12.141,7.488,-4.653,3.843,3.5553,1,162.1,True,False,False,,,21,1074,235.98,24,True,0,OK,0.964,0.977,0,86.7,14216,0
+SP,DJAN,JAN0114,no limite: modelo 1.02x o total medido,10.06,9.842,-0.218,44.3921,40.0232,1503,102.2,True,False,False,,,13.8,1395,219.38,16,True,0,OK,0.827,0.94,2855,22.4,15445,12

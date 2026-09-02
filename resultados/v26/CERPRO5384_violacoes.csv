@@ -1,0 +1,4 @@
+base,sub,ctmt,motivo,pct_tecnica_modelo,pct_total_medido,pct_nao_tecnica_implicita,GWh_injetado,GWh_faturado,ucs,cobertura,viola_limite,medida_degenerada,faturado_maior_que_injetado,declarado_pct,razao_vs_declarado,se_kv_mt,se_trafos,se_km_MT,se_alimentadores,se_convergiu,se_nos_nan,se_veredicto,se_V_MT_min,se_V_MT_mediana,se_barras_criticas,se_perdas_trafos_pct,se_n_linhas,se_ramos_isolados
+CERPRO5384,R04,1_R04_1,denominador minusculo: 0.175 GWh injetados,25.814,18.573,-7.241,0.1755,0.1429,39,139.0,True,False,False,,,13.8,38,26.35,1,True,0,OK,0.999,1.0,0,99.8,346,0
+CERPRO5384,R03,1_R03_1,perda modelada absurda: 18.2%,18.179,10.225,-7.954,0.6361,0.5711,139,177.8,True,False,False,,,13.8,112,59.44,1,True,0,OK,0.996,0.997,0,99.0,782,1
+CERPRO5384,R05,1_R05_1,denominador minusculo: 0.386 GWh injetados,14.454,11.401,-3.053,0.3859,0.3419,58,126.8,True,False,False,,,13.8,49,35.27,1,True,0,OK,0.997,0.999,0,99.2,483,1

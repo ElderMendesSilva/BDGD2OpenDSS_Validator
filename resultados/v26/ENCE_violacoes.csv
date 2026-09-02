@@ -1,0 +1,7 @@
+base,sub,ctmt,motivo,pct_tecnica_modelo,pct_total_medido,pct_nao_tecnica_implicita,GWh_injetado,GWh_faturado,ucs,cobertura,viola_limite,medida_degenerada,faturado_maior_que_injetado,declarado_pct,razao_vs_declarado,se_kv_mt,se_trafos,se_km_MT,se_alimentadores,se_convergiu,se_nos_nan,se_veredicto,se_V_MT_min,se_V_MT_mediana,se_barras_criticas,se_perdas_trafos_pct,se_n_linhas,se_ramos_isolados
+ENCE,ITC,ITC01I1,denominador minusculo: 0.004 GWh injetados,553.739,87.498,-466.241,0.0041,0.0005,1,632.9,True,False,False,,,13.8,989,758.58,4,True,0,OK,0.924,0.991,337,21.3,8974,1
+ENCE,PRB,PRB01P3,denominador minusculo: 0.013 GWh injetados,242.344,18.56,-223.784,0.0127,0.0103,3,1305.7,True,False,False,,,13.8,230,107.11,10,True,0,OK,0.971,0.979,0,90.1,2531,0
+ENCE,GRJ,GRJ01N3,perda modelada absurda: 74.3%,74.3,42.738,-31.562,27.4804,15.7359,10090,173.9,True,False,False,,,13.8,2588,1929.97,4,True,0,OK,0.205,0.736,21506,12.7,27072,2
+ENCE,CPS,CPS01L4,perda modelada absurda: 57.2%,57.183,40.73,-16.453,15.9551,9.4567,7377,140.4,True,False,False,,,13.8,2167,1465.07,3,True,0,OK,0.39,0.914,9232,29.7,15755,1
+ENCE,CMM,CMM01C1,perda modelada absurda: 36.8%,36.777,26.36,-10.417,23.8007,17.5269,10251,139.5,True,False,False,,,13.8,1193,740.28,4,True,0,OK,0.827,0.933,5651,21.2,12428,5
+ENCE,JGB,JGB01M5,perda modelada absurda: 36.7%,36.736,30.47,-6.266,32.7086,22.7422,10544,120.6,True,False,False,,,13.8,2809,1966.38,6,True,0,OK,0.152,0.986,5150,32.3,20993,6

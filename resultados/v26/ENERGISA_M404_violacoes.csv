@@ -1,0 +1,4 @@
+base,sub,ctmt,motivo,pct_tecnica_modelo,pct_total_medido,pct_nao_tecnica_implicita,GWh_injetado,GWh_faturado,ucs,cobertura,viola_limite,medida_degenerada,faturado_maior_que_injetado,declarado_pct,razao_vs_declarado,se_kv_mt,se_trafos,se_km_MT,se_alimentadores,se_convergiu,se_nos_nan,se_veredicto,se_V_MT_min,se_V_MT_mediana,se_barras_criticas,se_perdas_trafos_pct,se_n_linhas,se_ramos_isolados
+ENERGISA_M404,79,949290,a investigar,8.328,5.06,-3.268,10.9615,10.4069,2788,164.6,True,False,False,,,34.5,3588,2568.38,6,True,0,OK,0.043,1.006,970,55.1,36325,10243
+ENERGISA_M404,81,215285479,a investigar,6.476,5.387,-1.089,17.5812,16.634,1428,120.2,True,False,False,,,13.8,2113,1289.78,13,True,0,OK,0.047,0.98,1678,70.7,22009,852
+ENERGISA_M404,62,748849,a investigar,5.976,4.652,-1.324,3.0512,2.9093,344,128.5,True,False,False,,,13.8,495,742.95,2,True,0,OK,0.948,0.981,0,82.3,7833,0

@@ -1,0 +1,18 @@
+base,sub,ctmt,motivo,pct_tecnica_modelo,pct_total_medido,pct_nao_tecnica_implicita,GWh_injetado,GWh_faturado,ucs,cobertura,viola_limite,medida_degenerada,faturado_maior_que_injetado,declarado_pct,razao_vs_declarado,se_kv_mt,se_trafos,se_km_MT,se_alimentadores,se_convergiu,se_nos_nan,se_veredicto,se_V_MT_min,se_V_MT_mediana,se_barras_criticas,se_perdas_trafos_pct,se_n_linhas,se_ramos_isolados
+EQPA,REN,REN09W1,perda modelada absurda: 210.9%,210.865,99.997,-110.868,19.4046,0.0006,1,210.9,True,False,False,,,34.5,7806,8195.78,15,True,0,OK,0.017,1.163,20823,24.8,94795,61300
+EQPA,CHR,CHR09W2,perda modelada absurda: 187.9%,187.872,15.526,-172.346,3.6036,3.0441,2318,1210.0,True,False,False,,,34.5,1776,1436.02,5,True,0,OK,0.022,0.975,6392,80.6,20011,9
+EQPA,GUR,GURGR-02,perda modelada absurda: 186.4%,186.444,71.169,-115.275,2.5581,0.7375,819,262.0,True,False,False,,,13.8,237,207.18,2,True,0,OK,0.215,0.99,3,93.8,2799,0
+EQPA,REN,REN09W5,perda modelada absurda: 106.0%,106.007,45.547,-60.46,19.9728,10.8757,4002,232.7,True,False,False,,,34.5,7806,8195.78,15,True,0,OK,0.017,1.163,20823,24.8,94795,61300
+EQPA,STO,STO09W4,no limite: modelo 1.02x o total medido,90.73,88.966,-1.764,1.7244,0.1903,63,102.0,True,False,False,,,34.5,954,913.79,6,True,0,OK,0.908,1.0,58,99.2,11046,1053
+EQPA,MD1,MD101M2,perda modelada absurda: 50.1%,50.074,16.982,-33.092,1.3791,1.1449,1075,294.9,True,False,False,,,34.5,559,540.14,4,True,0,OK,0.952,0.997,0,53.9,7782,4865
+EQPA,VCO,VCO09C4,no limite: modelo 1.11x o total medido,28.688,25.766,-2.922,17.2847,12.8311,6933,111.3,True,False,False,,,34.5,5344,3450.02,7,True,0,OK,0.029,0.998,2843,95.8,43834,11
+EQPA,ALR,ALR01C2,perda modelada absurda: 19.9%,19.926,12.521,-7.405,13.9957,12.2433,5394,159.1,True,False,False,,,13.8,375,268.62,3,True,0,OK,0.994,0.997,0,96.8,4114,3161
+EQPA,ORI,ORIOX-02,no limite: modelo 1.20x o total medido,7.861,6.572,-1.289,26.4067,24.6714,5665,119.6,True,False,False,,,13.8,439,150.61,3,True,0,OK,0.977,0.989,0,81.7,3355,13
+EQPA,DEC,DECDC-04,a investigar,7.27,5.068,-2.202,4.4623,4.2361,540,143.4,True,False,False,,,13.8,1463,1335.05,4,True,0,OK,0.018,0.986,771,91.3,14600,6
+EQPA,XIN,XINXN-02,no limite: modelo 1.20x o total medido,5.56,4.651,-0.909,41.8628,39.9159,3428,119.6,True,False,False,,,13.8,2648,2098.79,6,True,0,OK,0.962,0.992,0,52.9,23439,14654
+EQPA,ANP,ANPAP-03,medida quase sem perda: 2.22% total medido,2.994,2.218,-0.776,16.1448,15.7867,5751,135.0,True,False,False,,,34.5,8223,5821.22,5,True,0,OK,0.047,1.001,1280,94.0,66879,40
+EQPA,CAS,CASCS-06,medida quase sem perda: 2.40% total medido,2.947,2.395,-0.552,17.1811,16.7696,5940,123.0,True,False,False,,,13.8,1674,390.17,10,True,0,OK,0.122,0.982,458,81.8,10310,30
+EQPA,RED,REDRD-09,no limite: modelo 1.08x o total medido,2.709,2.505,-0.204,27.104,26.4251,1533,108.2,True,False,False,,,13.8,1274,81.63,19,True,0,OK,0.964,0.973,0,91.3,4671,58
+EQPA,REN,REN01C5,medida quase sem perda: 2.09% total medido,2.579,2.086,-0.493,15.3537,15.0334,2001,123.7,True,False,False,,,34.5,7806,8195.78,15,True,0,OK,0.017,1.163,20823,24.8,94795,61300
+EQPA,IND,IND01M1,medida quase sem perda: 2.08% total medido,2.554,2.082,-0.472,19.2396,18.839,2417,122.7,True,False,False,,,13.8,1022,67.63,16,True,0,OK,0.962,0.971,0,91.3,3571,52
+EQPA,MAB,MABMB-06,no limite: modelo 1.18x o total medido,2.482,2.105,-0.377,23.5259,23.0308,4678,117.9,True,False,False,,,34.5,4985,3371.61,11,True,0,OK,0.076,0.965,3589,87.4,40665,2916

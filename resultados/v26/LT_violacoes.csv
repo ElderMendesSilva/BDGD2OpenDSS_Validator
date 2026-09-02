@@ -1,0 +1,46 @@
+base,sub,ctmt,motivo,pct_tecnica_modelo,pct_total_medido,pct_nao_tecnica_implicita,GWh_injetado,GWh_faturado,ucs,cobertura,viola_limite,medida_degenerada,faturado_maior_que_injetado,declarado_pct,razao_vs_declarado,se_kv_mt,se_trafos,se_km_MT,se_alimentadores,se_convergiu,se_nos_nan,se_veredicto,se_V_MT_min,se_V_MT_mediana,se_barras_criticas,se_perdas_trafos_pct,se_n_linhas,se_ramos_isolados
+LT,1186,CCD1288,denominador minusculo: 0.029 GWh injetados,819.136,98.767,-720.369,0.0292,0.0004,1,829.4,True,False,False,,,25,1448,310.01,36,True,0,OK,0.959,1.027,0,52.1,15964,31
+LT,10385934,BFG00001,perda modelada absurda: 589.7%,589.736,96.176,-493.56,0.5201,0.0199,1,613.2,True,False,False,,,13.8,364,112.98,29,True,0,OK,0.979,1.035,0,93.3,15477,4
+LT,10385988,ITP38335,perda modelada absurda: 155.6%,155.553,66.458,-89.095,0.8263,0.2772,27,234.1,True,False,False,,,13.8,1067,245.95,20,True,0,OK,0.897,0.942,5084,64.9,20054,6
+LT,457474244,GDN0022,perda modelada absurda: 121.4%,121.433,67.564,-53.869,9.9087,3.214,77,179.7,True,False,False,,,13.8,518,124.09,24,True,0,OK,0.883,0.964,2481,74.5,8013,0
+LT,10385970,SAT2645,perda modelada absurda: 98.5%,98.495,8.497,-89.998,4.7691,4.3639,51,1159.2,True,False,False,,,13.8,479,171.45,66,True,0,OK,0.955,0.991,0,95.3,22198,21
+LT,10386015,CMR2642,perda modelada absurda: 50.7%,50.667,26.712,-23.955,0.9323,0.6833,34,189.7,True,False,False,,,13.8,460,134.95,54,True,0,OK,0.98,1.038,2,93.7,16028,12
+LT,345834478,BRR0003,perda modelada absurda: 50.2%,50.153,14.011,-36.142,19.3315,16.623,1199,358.0,True,False,False,,,13.8,478,169.01,25,True,0,OK,0.956,1.026,0,85.5,14300,6
+LT,345834478,BRR24810,perda modelada absurda: 47.9%,47.861,21.635,-26.226,6.6094,5.1795,239,221.2,True,False,False,,,13.8,478,169.01,25,True,0,OK,0.956,1.026,0,85.5,14300,6
+LT,10385988,ITP33143,denominador minusculo: 0.037 GWh injetados,43.874,13.679,-30.195,0.0368,0.0318,1,320.7,True,False,False,,,13.8,1067,245.95,20,True,0,OK,0.897,0.942,5084,64.9,20054,6
+LT,10385970,SAT2752,perda modelada absurda: 40.7%,40.726,19.524,-21.202,2.1159,1.7028,10,208.6,True,False,False,,,13.8,479,171.45,66,True,0,OK,0.955,0.991,0,95.3,22198,21
+LT,55813421,LBN00012,perda modelada absurda: 36.4%,36.429,8.582,-27.847,5.6274,5.1445,323,424.5,True,False,False,,,13.8,401,107.0,36,True,0,OK,0.973,0.979,0,93.2,17409,8
+LT,10385970,SAT2514,perda modelada absurda: 26.7%,26.661,15.969,-10.692,2.9296,2.4618,79,167.0,True,False,False,,,13.8,479,171.45,66,True,0,OK,0.955,0.991,0,95.3,22198,21
+LT,10385961,BPD9612,perda modelada absurda: 26.4%,26.434,15.109,-11.325,5.4552,4.631,289,175.0,True,False,False,,,13.8,566,209.16,39,True,0,OK,0.965,0.975,0,90.0,21839,18
+LT,10385970,SAT9540,perda modelada absurda: 24.7%,24.651,13.533,-11.118,4.2662,3.6888,183,182.2,True,False,False,,,13.8,479,171.45,66,True,0,OK,0.955,0.991,0,95.3,22198,21
+LT,457474244,GDN000,perda modelada absurda: 23.8%,23.803,16.904,-6.899,2.0394,1.6946,270,140.8,True,False,False,,,13.8,518,124.09,24,True,0,OK,0.883,0.964,2481,74.5,8013,0
+LT,10386015,CMR2990,perda modelada absurda: 22.3%,22.257,5.314,-16.943,7.9453,7.5231,733,418.8,True,False,False,,,13.8,460,134.95,54,True,0,OK,0.98,1.038,2,93.7,16028,12
+LT,10386069,SLZ4500,no limite: modelo 1.10x o total medido,21.017,19.025,-1.992,3.1956,2.5876,9,110.5,True,False,False,,,13.8,271,85.67,31,True,0,OK,0.972,0.985,0,91.7,11584,21
+LT,132097219,REC00008,perda modelada absurda: 20.2%,20.234,13.941,-6.293,27.4673,23.6379,5535,145.1,True,False,False,,,13.8,1360,262.44,23,True,0,OK,0.79,0.904,12590,60.3,16817,5
+LT,345834478,BRR37101,perda modelada absurda: 20.0%,19.985,12.682,-7.303,7.3483,6.4164,485,157.6,True,False,False,,,13.8,478,169.01,25,True,0,OK,0.956,1.026,0,85.5,14300,6
+LT,345834478,BRR37090,perda modelada absurda: 19.4%,19.386,10.491,-8.895,15.5354,13.9057,660,184.8,True,False,False,,,13.8,478,169.01,25,True,0,OK,0.956,1.026,0,85.5,14300,6
+LT,10386015,CMR2760,perda modelada absurda: 18.7%,18.723,5.221,-13.502,9.1002,8.6251,326,358.6,True,False,False,,,13.8,460,134.95,54,True,0,OK,0.98,1.038,2,93.7,16028,12
+LT,10385934,BFG3607,perda modelada absurda: 18.5%,18.506,9.846,-8.66,7.0449,6.3513,370,188.0,True,False,False,,,13.8,364,112.98,29,True,0,OK,0.979,1.035,0,93.3,15477,4
+LT,10385943,AVD30006,perda modelada absurda: 17.9%,17.921,11.027,-6.894,3.4859,3.1015,410,162.5,True,False,False,,,13.8,702,283.18,24,True,0,OK,0.931,1.022,0,81.6,25275,7
+LT,10385970,SAT9430,perda modelada absurda: 17.4%,17.393,10.747,-6.646,4.4293,3.9533,740,161.8,True,False,False,,,13.8,479,171.45,66,True,0,OK,0.955,0.991,0,95.3,22198,21
+LT,18521064,FTL002,no limite: modelo 1.09x o total medido,15.59,14.241,-1.349,25.2879,21.6865,10694,109.5,True,False,False,,,13.8,1179,287.14,14,True,0,OK,0.858,0.961,562,36.2,9027,6
+LT,10386015,CMR2770,perda modelada absurda: 15.5%,15.484,6.976,-8.508,2.5957,2.4146,391,221.9,True,False,False,,,13.8,460,134.95,54,True,0,OK,0.98,1.038,2,93.7,16028,12
+LT,10386105,FCN9460,no limite: modelo 1.15x o total medido,15.247,13.244,-2.003,3.9284,3.4081,251,115.1,True,False,False,,,13.8,941,242.14,60,True,0,OK,0.973,0.992,0,92.3,21299,0
+LT,10385907,BAR2477,a investigar,14.789,5.395,-9.394,21.0056,19.8723,3290,274.1,True,False,False,,,13.8,1197,218.72,24,True,0,OK,0.886,0.925,11672,71.6,17361,6
+LT,10385943,AVD30028,no limite: modelo 1.01x o total medido,14.601,14.518,-0.083,11.9315,10.1993,937,100.6,True,False,False,,,13.8,702,283.18,24,True,0,OK,0.931,1.022,0,81.6,25275,7
+LT,457474244,GDN0003,no limite: modelo 1.03x o total medido,14.35,13.891,-0.459,9.483,8.1658,1579,103.3,True,False,False,,,13.8,518,124.09,24,True,0,OK,0.883,0.964,2481,74.5,8013,0
+LT,10386015,CMR0002,no limite: modelo 1.20x o total medido,12.786,10.656,-2.13,2.0112,1.7969,489,120.0,True,False,False,,,13.8,460,134.95,54,True,0,OK,0.98,1.038,2,93.7,16028,12
+LT,345834478,BRR30655,a investigar,12.749,3.584,-9.165,3.618,3.4883,641,355.7,True,False,False,,,13.8,478,169.01,25,True,0,OK,0.956,1.026,0,85.5,14300,6
+LT,10385907,BAR3462,a investigar,11.43,8.945,-2.485,8.7025,7.9241,833,127.8,True,False,False,,,13.8,1197,218.72,24,True,0,OK,0.886,0.925,11672,71.6,17361,6
+LT,10385961,BPD24814,a investigar,10.131,6.379,-3.752,9.9477,9.3131,886,158.8,True,False,False,,,13.8,566,209.16,39,True,0,OK,0.965,0.975,0,90.0,21839,18
+LT,10386069,SLZ2100,no limite: modelo 1.04x o total medido,10.027,9.673,-0.354,11.343,10.2458,730,103.7,True,False,False,,,13.8,271,85.67,31,True,0,OK,0.972,0.985,0,91.7,11584,21
+LT,1141,CBI00003,a investigar,9.236,7.041,-2.195,20.3147,18.8844,5,131.2,True,False,False,,,13.8,1048,118.45,24,True,0,OK,0.899,0.935,2682,78.9,8053,22
+LT,10386015,CMR2800,a investigar,9.183,5.937,-3.246,2.9752,2.7986,140,154.7,True,False,False,,,13.8,460,134.95,54,True,0,OK,0.98,1.038,2,93.7,16028,12
+LT,10385970,SAT1162,medida quase sem perda: 2.83% total medido,6.841,2.827,-4.014,4.9307,4.7913,7,242.0,True,False,False,,,13.8,479,171.45,66,True,0,OK,0.955,0.991,0,95.3,22198,21
+LT,10385997,SMT9715,a investigar,6.024,4.503,-1.521,11.0324,10.5356,1950,133.8,True,False,False,,,13.8,231,71.54,17,True,0,OK,0.966,0.98,0,92.9,9431,34
+LT,10385988,ITP3164,no limite: modelo 1.08x o total medido,4.638,4.306,-0.332,21.1635,20.2522,1755,107.7,True,False,False,,,13.8,1067,245.95,20,True,0,OK,0.897,0.942,5084,64.9,20054,6
+LT,10386087,PTS9088,a investigar,4.019,3.069,-0.95,12.144,11.7713,1816,131.0,True,False,False,,,13.8,431,157.53,41,True,0,OK,0.948,0.97,0,93.0,17575,955
+LT,10386015,CMR2405,medida quase sem perda: 2.59% total medido,3.879,2.594,-1.285,12.1409,11.8259,410,149.5,True,False,False,,,13.8,460,134.95,54,True,0,OK,0.98,1.038,2,93.7,16028,12
+LT,18520470,VRD019,medida quase sem perda: 2.26% total medido,3.552,2.258,-1.294,24.6113,24.0555,9727,157.3,True,False,False,,,25,3937,1441.94,21,True,0,OK,0.41,1.014,17416,14.4,29150,14
+LT,55813421,LBN00041,no limite: modelo 1.04x o total medido,2.762,2.656,-0.106,15.0232,14.6241,1815,104.0,True,False,False,,,13.8,401,107.0,36,True,0,OK,0.973,0.979,0,93.2,17409,8
+LT,18520470,VRD010,no limite: modelo 1.18x o total medido,2.738,2.321,-0.417,23.76,23.2085,6662,118.0,True,False,False,,,25,3937,1441.94,21,True,0,OK,0.41,1.014,17416,14.4,29150,14

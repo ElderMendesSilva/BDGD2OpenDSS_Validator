@@ -1,0 +1,122 @@
+{
+ "base": "COOPERA5370",
+ "pasta": "MODELOS_COOPERA5370_V26",
+ "procedencia": {
+  "versao": "1.0.0",
+  "commit": "9bec9db8ca5a3ea6159ed764264cea90aed44219",
+  "commit_origem": "submissao",
+  "descricao": "O log do job vai para logscluster e a arvore para de sujar s",
+  "sujo": null,
+  "git_respondeu": false,
+  "python": "3.11.4",
+  "versoes": {
+   "opendssdirect": "0.9.4",
+   "opendss_motor": "DSS C-API Library version 0.14.5 revision 87d85c2622c8281b92255335bc7c09b11191b21d based on OpenDSS SVN 3723 [FPC 3.2.2] (64-bit build) MVMULT INCREMENTAL_Y CONTEXT_API PM 20240329033721; License Status: Open \nDSS-Python version: 0.15.7\nOpenDSSDirect.py version: 0.9.4",
+   "numpy": "2.4.6",
+   "pyogrio": "0.13.0"
+  },
+  "gerado_em": "2026-09-01 20:55:30",
+  "base": "COOPERA5370"
+ },
+ "bdgd": "Coopera_5370_2025-12-31_V11_20260822-0914.gdb",
+ "dist": "5370",
+ "bt": "agregado",
+ "mes": 1,
+ "dia": "DU",
+ "clima_fonte": "sintetico",
+ "subestacoes_na_bdgd": 2,
+ "subestacoes_geradas": 2,
+ "alimentadores": 16,
+ "rollup": {
+  "ses": 2,
+  "sadias": 2,
+  "nao_convergiu": 0,
+  "com_nan": 0,
+  "trafos": 2225,
+  "n_linhas": 20881,
+  "ramos_isolados": 66,
+  "km_MT": 787.6,
+  "chaves_ilhadas": 124,
+  "reguladores_pendurados": 0,
+  "trafos_pac_invertido": 0,
+  "kW_morto": 0,
+  "kW_nominal": 27236.8
+ },
+ "perdas": {
+  "agregado": null,
+  "referencia_externa": null,
+  "populacao": null,
+  "modelo_implausivel": null,
+  "parcelas": null
+ },
+ "balanco": {
+  "alimentadores": 15,
+  "viola_de_verdade": 0,
+  "pct_viola": 0.0,
+  "por_motivo": {}
+ },
+ "tabelas_nao_lidas": {
+  "EQSE": {
+   "registros": 4441,
+   "motivo": "detalhe de equipamento da chave; COR_NOM identico ao da UNSEMT (23.962/23.962 em RR). ELO_FSV e MEI_ISO sao dados de protecao e patrimonio, fora do fluxo de potencia"
+  },
+  "UNCRBT": {
+   "registros": 0,
+   "motivo": "capacitor de BAIXA tensao; zero registros nas sete"
+  },
+  "UNREBT": {
+   "registros": null,
+   "motivo": "regulador de BAIXA tensao; a camada nao existe em base nenhuma"
+  },
+  "UNSEBT": {
+   "registros": 0,
+   "motivo": "chave de BAIXA tensao; so vale com a rede de BT modelada (criterio 5, em aberto), e falta em tres das sete bases"
+  }
+ },
+ "subestacoes": [
+  {
+   "se": "CVO",
+   "veredicto": "OK",
+   "convergiu": true,
+   "iteracoes": 2,
+   "nos_nan": 0,
+   "perdas_pct": 2.03,
+   "perdas_trafos_pct": 88.9,
+   "V_MT_min": 0.967,
+   "V_MT_mediana": 0.97,
+   "barras_criticas": 0,
+   "cargas_sem_tensao": 0,
+   "ramos_isolados": 10,
+   "n_linhas": 1423,
+   "causa": "OK",
+   "alimentadores": 4,
+   "trafos": 167,
+   "km_MT": 41.72,
+   "chaves_ilhadas": 49,
+   "reguladores_pendurados": 0,
+   "trafos_pac_invertido": 0
+  },
+  {
+   "se": "FSC",
+   "veredicto": "OK",
+   "convergiu": true,
+   "iteracoes": 3,
+   "nos_nan": 0,
+   "perdas_pct": 5.04,
+   "perdas_trafos_pct": 63.2,
+   "V_MT_min": 0.819,
+   "V_MT_mediana": 0.952,
+   "barras_criticas": 8726,
+   "cargas_sem_tensao": 0,
+   "ramos_isolados": 56,
+   "n_linhas": 19458,
+   "causa": "OK",
+   "alimentadores": 12,
+   "trafos": 2058,
+   "km_MT": 745.85,
+   "chaves_ilhadas": 75,
+   "reguladores_pendurados": 0,
+   "trafos_pac_invertido": 0
+  }
+ ]
+}

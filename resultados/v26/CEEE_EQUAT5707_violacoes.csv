@@ -1,0 +1,29 @@
+base,sub,ctmt,motivo,pct_tecnica_modelo,pct_total_medido,pct_nao_tecnica_implicita,GWh_injetado,GWh_faturado,ucs,cobertura,viola_limite,medida_degenerada,faturado_maior_que_injetado,declarado_pct,razao_vs_declarado,se_kv_mt,se_trafos,se_km_MT,se_alimentadores,se_convergiu,se_nos_nan,se_veredicto,se_V_MT_min,se_V_MT_mediana,se_barras_criticas,se_perdas_trafos_pct,se_n_linhas,se_ramos_isolados
+CEEE_EQUAT5707,MFE,MFEMFEFC,perda modelada absurda: 97.1%,97.105,23.971,-73.134,0.6299,0.4789,336,405.1,True,False,False,,,23,192,190.97,1,True,0,OK,1.036,1.041,0,97.2,1851,0
+CEEE_EQUAT5707,MRE,MREMRE04,perda modelada absurda: 58.3%,58.266,17.397,-40.869,10.8666,8.9761,3518,334.9,True,False,False,,,23,2300,1030.89,4,True,0,OK,0.013,1.03,1037,98.2,12752,30
+CEEE_EQUAT5707,ARE,AREARE02,perda modelada absurda: 41.5%,41.547,12.581,-28.966,20.7797,18.1655,6058,330.2,True,False,False,,,23,1554,1008.07,5,True,0,OK,0.058,1.032,1508,97.2,15632,62
+CEEE_EQUAT5707,P10,P10P1001,perda modelada absurda: 29.0%,28.983,4.511,-24.472,18.119,17.3017,3397,642.5,True,False,False,,,13.8,925,89.43,12,True,0,OK,1.019,1.022,0,97.5,4830,114
+CEEE_EQUAT5707,POS,POSPOS01,no limite: modelo 1.09x o total medido,20.248,18.645,-1.603,11.4127,9.2847,3664,108.6,True,False,False,,,23,1456,1227.58,4,True,0,OK,0.01,1.015,945,91.5,12927,928
+CEEE_EQUAT5707,AV1,AV1AV106,perda modelada absurda: 15.2%,15.171,3.381,-11.79,40.4005,39.0346,705,448.7,True,False,False,,,23,636,191.41,6,True,0,OK,1.005,1.016,0,87.5,5367,140
+CEEE_EQUAT5707,SAS,SASSAS03,no limite: modelo 1.04x o total medido,13.666,13.139,-0.527,3.7537,3.2605,68,104.0,True,False,False,,,23,321,397.99,4,True,0,OK,1.001,1.043,0,91.6,4809,1204
+CEEE_EQUAT5707,SLO,SLOSLO03,a investigar,11.685,5.74,-5.945,8.5068,8.0185,1351,203.6,True,False,False,,,23,3860,1895.74,6,True,0,OK,0.032,1.017,1663,95.3,24340,382
+CEEE_EQUAT5707,RIN,RINRIN10,a investigar,11.559,5.49,-6.069,11.8102,11.1619,2459,210.6,True,False,False,,,13.8,841,181.83,8,True,0,OK,1.002,1.024,0,88.4,6611,21
+CEEE_EQUAT5707,P04,P047PW,a investigar,11.032,7.347,-3.685,2.0756,1.9231,173,150.2,True,False,False,,,13.8,1638,252.96,47,True,0,OK,1.029,1.039,0,96.3,27032,496
+CEEE_EQUAT5707,P07,P07P0713,a investigar,8.799,5.129,-3.67,11.0298,10.4641,1725,171.6,True,False,False,,,23,703,59.63,32,True,0,OK,0.267,1.003,1,86.5,4562,172
+CEEE_EQUAT5707,P04,P044RW,no limite: modelo 1.01x o total medido,8.329,8.24,-0.089,3.0687,2.8159,699,101.1,True,False,False,,,13.8,1638,252.96,47,True,0,OK,1.029,1.039,0,96.3,27032,496
+CEEE_EQUAT5707,P04,P04451,no limite: modelo 1.01x o total medido,8.121,8.01,-0.111,9.7199,8.9413,2199,101.4,True,False,False,,,13.8,1638,252.96,47,True,0,OK,1.029,1.039,0,96.3,27032,496
+CEEE_EQUAT5707,MRE,MREMRE03,a investigar,7.254,4.324,-2.93,2.0793,1.9894,746,167.8,True,False,False,,,23,2300,1030.89,4,True,0,OK,0.013,1.03,1037,98.2,12752,30
+CEEE_EQUAT5707,RG3,RG3RG304,a investigar,6.629,4.825,-1.804,15.3776,14.6356,1676,137.4,True,False,False,,,23,1623,725.9,6,True,0,OK,0.999,1.034,111,94.5,11622,368
+CEEE_EQUAT5707,P20,P20P2007,a investigar,6.298,5.183,-1.115,10.6463,10.0945,345,121.5,True,False,False,,,23,493,67.43,8,True,0,OK,0.261,0.977,1,95.9,2876,20
+CEEE_EQUAT5707,P09,P09P0905,a investigar,6.214,4.598,-1.616,8.9168,8.5068,150,135.1,True,False,False,,,13.8,727,129.33,10,True,0,OK,1.015,1.027,0,94.2,5345,330
+CEEE_EQUAT5707,P08,P08P0802,no limite: modelo 1.14x o total medido,6.052,5.311,-0.741,19.2187,18.198,4361,113.9,True,False,False,,,13.8,855,103.14,9,True,0,OK,0.993,1.0,0,95.1,5028,168
+CEEE_EQUAT5707,P04,P049PW,medida quase sem perda: 2.26% total medido,5.757,2.264,-3.493,2.2278,2.1773,13,254.3,True,False,False,,,13.8,1638,252.96,47,True,0,OK,1.029,1.039,0,96.3,27032,496
+CEEE_EQUAT5707,P09,P09P0903,a investigar,5.733,4.006,-1.727,3.0585,2.936,68,143.1,True,False,False,,,13.8,727,129.33,10,True,0,OK,1.015,1.027,0,94.2,5345,330
+CEEE_EQUAT5707,P04,P041PW,a investigar,5.175,3.361,-1.814,5.4791,5.295,379,154.0,True,False,False,,,13.8,1638,252.96,47,True,0,OK,1.029,1.039,0,96.3,27032,496
+CEEE_EQUAT5707,P13,P13P1312,medida quase sem perda: 2.23% total medido,4.895,2.233,-2.662,28.9771,28.33,434,219.2,True,False,False,,,13.8,1389,188.3,14,True,0,OK,1.009,1.013,0,97.1,8372,277
+CEEE_EQUAT5707,P05,P05P0508,no limite: modelo 1.00x o total medido,4.543,4.523,-0.02,12.339,11.7809,3254,100.4,True,False,False,,,13.8,974,57.16,16,True,0,OK,0.265,1.019,1,95.1,4301,135
+CEEE_EQUAT5707,P07,P07P0712,medida quase sem perda: 2.48% total medido,4.229,2.475,-1.754,22.2127,21.663,2337,170.9,True,False,False,,,23,703,59.63,32,True,0,OK,0.267,1.003,1,86.5,4562,172
+CEEE_EQUAT5707,P05,P05P0511,medida quase sem perda: 2.26% total medido,3.874,2.259,-1.615,34.2657,33.4917,2968,171.5,True,False,False,,,13.8,974,57.16,16,True,0,OK,0.265,1.019,1,95.1,4301,135
+CEEE_EQUAT5707,P04,P04455,medida quase sem perda: 2.36% total medido,2.864,2.364,-0.5,22.621,22.0861,3370,121.1,True,False,False,,,13.8,1638,252.96,47,True,0,OK,1.029,1.039,0,96.3,27032,496
+CEEE_EQUAT5707,P02,P02P0204,no limite: modelo 1.11x o total medido,2.663,2.395,-0.268,20.5063,20.0151,803,111.2,True,False,False,,,13.8,1111,97.05,13,True,0,OK,1.009,1.013,0,97.5,5897,219
+CEEE_EQUAT5707,MDE,MDEMDE13,medida quase sem perda: 2.11% total medido,2.534,2.109,-0.425,13.203,12.9245,199,120.1,True,False,False,,,23,488,62.99,10,True,0,OK,0.262,0.982,1,98.5,2974,93
