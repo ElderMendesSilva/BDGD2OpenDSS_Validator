@@ -293,9 +293,20 @@ class Menu(tk.Tk):
             # "0 bases" — que foi o que aconteceu na primeira vez que isto
             # rodou de verdade.
             os.environ['BDGD2DSS_BASES'] = os.path.dirname(os.path.abspath(alvo))
-            # `--so` espera a TAG, e o `regerar` a deriva do nome do arquivo
+            # A TAG VEM DE `descobrir`, e NAO de `_sigla`. As duas discordam
+            # quando ha duas safras da mesma distribuidora na pasta: `_sigla`
+            # devolve `RR` e o `descobrir` desambigua para `RR_2025`. Pedir
+            # `RR` entao nao acha nada — foi o que aconteceu na primeira vez
+            # que isto rodou com as duas Roraimas lado a lado.
+            import importlib
             import regerar_v10 as rg
-            tag = rg._sigla(alvo)[0]
+            importlib.reload(rg)          # `BASES` e resolvido no import
+            alvo_abs = os.path.abspath(alvo)
+            tag = next((t for t, c, _ in rg.BASES
+                        if os.path.abspath(c) == alvo_abs), None)
+            if not tag:
+                self.escreve('Nao consegui identificar essa .gdb: %s' % alvo)
+                return
             args += ['--so', tag]
             self.escreve('\nRodando %s (%s)\n'
                          % (tag, os.path.basename(alvo)))
