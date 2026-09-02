@@ -291,6 +291,86 @@ def _do_modelo(pasta, se):
             {'kms': kms, 'segs': segs, 'por_alim': por_alim})
 
 
+
+def _fonte(tamanho):
+    """Uma fonte com acentos, ou a embutida se nao houver jeito."""
+    try:
+        import matplotlib
+        from PIL import ImageFont
+        return ImageFont.truetype(
+            os.path.join(matplotlib.get_data_path(), 'fonts', 'ttf',
+                         'DejaVuSans.ttf'), tamanho)
+    except Exception:                                        # noqa: BLE001
+        try:
+            from PIL import ImageFont
+            return ImageFont.load_default()
+        except Exception:                                    # noqa: BLE001
+            return None
+
+
+def _monta_painel(pngs, destino, titulo, colunas=3, largura=1100, margem=26):
+    """O painelao, COLADO a partir das figuras ja salvas.
+
+    Antes ele redesenhava as vinte figuras em eixos pequenos, e nao funcionava:
+    cada figura foi desenhada para uma pagina inteira — titulo com 48 pontos de
+    afastamento, faixa de numeros acima do eixo, caixas de anotacao
+    dimensionadas em pontos e nao em fracao. Num eixo de um nono da area, nada
+    disso encolhe junto: o titulo invade o grafico de cima, a legenda cobre a
+    curva, e o que estava a direita e cortado. O painel saia ilegivel enquanto
+    as figuras soltas estavam certas.
+
+    Colar resolve na origem, porque o painel passa a ser exatamente o que as
+    figuras sao, so que menor — e nunca mais pode divergir delas. Custa tambem
+    menos: nao ha segunda renderizacao de vinte graficos.
+    """
+    try:
+        from PIL import Image, ImageDraw
+    except Exception:                                        # noqa: BLE001
+        return None                       # sem Pillow nao ha painel, e tudo bem
+    fotos = [p for p in pngs if os.path.exists(p)]
+    if not fotos:
+        return None
+
+    cel = (largura - margem * (colunas + 1)) // colunas
+    escaladas = []
+    for p in fotos:
+        try:
+            im = Image.open(p).convert('RGB')
+        except Exception:                                    # noqa: BLE001
+            continue
+        alt = max(1, int(im.height * cel / im.width))
+        escaladas.append(im.resize((cel, alt), Image.LANCZOS))
+    if not escaladas:
+        return None
+
+    # ALTURA POR FILEIRA, e nao uma altura unica: o mapa e quadrado e a curva
+    # do dia e larga. Forcar todas ao mesmo tamanho distorceria umas e sobraria
+    # branco nas outras.
+    linhas = (len(escaladas) + colunas - 1) // colunas
+    alturas = [max(im.height for im in escaladas[i * colunas:(i + 1) * colunas])
+               for i in range(linhas)]
+    topo = 52
+    total = topo + sum(alturas) + margem * (linhas + 1)
+    folha = Image.new('RGB', (largura, total), 'white')
+    d = ImageDraw.Draw(folha)
+    # A FONTE EMBUTIDA DO PILLOW E BITMAP E SO TEM ASCII: «subestação» saia
+    # «subesta▯▯▯o» e o travessao virava um quadrado. A DejaVuSans vem com o
+    # matplotlib, que ja e dependencia obrigatoria para desenhar as figuras —
+    # entao usa-la nao acrescenta nada ao `requirements.txt`.
+    d.text((margem, 16), titulo, fill=(38, 50, 56), font=_fonte(17))
+    d.line([(margem, topo - 8), (largura - margem, topo - 8)],
+           fill=(207, 216, 220), width=1)
+
+    y = topo
+    for i in range(linhas):
+        x = margem
+        for im in escaladas[i * colunas:(i + 1) * colunas]:
+            folha.paste(im, (x, y))
+            x += cel + margem
+        y += alturas[i] + margem
+    folha.save(destino)
+    return destino
+
 def _extra_do_modelo(pus, carga, fonte, gd):
     """O QUE SO O MODELO ABERTO SABE, e que o laudo e o veredicto precisam.
 
@@ -359,7 +439,10 @@ def uma_subestacao(pasta, se, val, ene, ger, destino, abrir=True,
             a, fonte, serie.get('fonte_kvar')),
         'composicao': lambda a: graficos.composicao_da_perda(
             a, v.get('perdas_linhas_kW'), v.get('perdas_trafos_kW')),
-        'resumo': lambda a: graficos.texto(a, _resumo_se(v, e, g), 'Resumo'),
+        'resumo': lambda a: graficos.texto(
+            a, _resumo_se(v, e, g, fic, fdia,
+                          _extra_do_modelo(pus, carga, fonte, gd), anom),
+            'Resumo'),
         'energia': lambda a: graficos.texto(a, _energia_se(e, g),
                                             'Energia do dia e anomalias'),
     }
@@ -396,27 +479,13 @@ def uma_subestacao(pasta, se, val, ene, ger, destino, abrir=True,
                    bbox_inches='tight')
         _plt.close(f1)
 
-    # O painelao continua saindo: e o que se olha primeiro, e o que entra no
-    # PDF. As figuras soltas sao para usar.
-    linhas = max(1, (len(chaves) + 2) // 3)
-    fig, ax = _figura(linhas, 3, '%s — subestacao %s'
-                      % (os.path.basename(pasta), se))
-    for k, chave in enumerate(chaves):
-        desenha[chave](ax[k])
-    for sobra in ax[len(chaves):]:
-        sobra.axis('off')
-
-    fig.tight_layout(rect=[0, 0, 1, 0.97])
     # A FIGURA MORA COM O MODELO. Quem abre a pasta de uma subestacao para
     # olhar o `.dss` acha o retrato dela do lado, sem precisar saber que existe
     # uma pasta de relatorio em outro lugar.
     base = os.path.join(dest_se, '_PAINEL')
-    # OS DOIS FORMATOS, e nao um. O PNG abre com dois cliques e serve para
-    # olhar; o PDF e vetorial, imprime sem borrar e e o que se manda por
-    # e-mail ou anexa a um relatorio maior.
     alvo = base + '.png'
-    fig.savefig(alvo, dpi=110)
-    plt.close(fig)
+    _monta_painel([os.path.join(dest_se, '%s.png' % c) for c in chaves],
+                  alvo, '%s — subestação %s' % (os.path.basename(pasta), se))
     # O VEREDICTO NO TERMINAL. Quem roda o ciclo inteiro ve o selo de cada
     # subestacao passando, e nao precisa abrir 450 PDFs para descobrir que
     # duas reprovaram.
@@ -478,9 +547,19 @@ def _energia_geral(ses, ene, num):
     ]
 
 
-def _resumo_se(v, e, g):
+def _resumo_se(v, e, g, fic=None, fdia=None, extra=None, anom=None):
+    # O VEREDICTO SAI DO MODULO QUE O CALCULA, e nao de um campo que ninguem
+    # escreve: `v['veredicto']` nunca existiu — o `validador.py` grava
+    # `compila`, `converge`, `resolve` e `causa` —, e por isso este painel
+    # imprimia «veredicto —» em toda subestacao desde sempre.
+    try:
+        selo = veredicto.completo(v, e, g, fic or {}, fdia or {},
+                                  extra or {}, anom)[0]
+    except Exception:                                        # noqa: BLE001
+        selo = '—'
     return [
-        'veredicto      %s' % (v.get('veredicto') or '—'),
+        'veredicto      %s' % selo,
+        'causa          %s' % (v.get('causa') or '—'),
         'converge       %s em %s iteracoes' % (v.get('converge'),
                                                v.get('iteracoes')),
         'alimentadores  %s' % (g.get('alimentadores') or '—'),
