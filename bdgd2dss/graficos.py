@@ -49,6 +49,14 @@ def _rotulo(x):
     return ('%.2f' % f).replace('.', ',')
 
 
+def _dec(x, casas=2):
+    """Numero com VIRGULA decimal, que e como se escreve em portugues."""
+    try:
+        return (('%%.%df' % casas) % float(x)).replace('.', ',')
+    except (TypeError, ValueError):
+        return '—'
+
+
 def _mil(x):
     """Número com ponto de milhar, à brasileira."""
     try:
@@ -95,6 +103,77 @@ def _cor_da_tensao(pu):
 #  POR SUBESTACAO
 # ===========================================================================
 
+def _percentil(v, q):
+    """O percentil `q` (0 a 1) de uma lista ja ORDENADA, sem numpy."""
+    if not v:
+        return None
+    k = min(len(v) - 1, max(0, int(round(q * (len(v) - 1)))))
+    return v[k]
+
+
+def _faixa_util(valores, referencia=None, cobertura=0.998, folga=0.06,
+                alcance=float('inf')):
+    """O intervalo do eixo que mostra O DADO, e nao o vazio em volta dele.
+
+    UM ponto perdido em 1,55 pu estica o eixo ate la e espreme os outros dez
+    mil numa tira de um centimetro no rodape — a figura fica tecnicamente
+    correta e analiticamente inutil, que foi exatamente o que aconteceu com o
+    perfil da 5003305.
+
+    A regra: o eixo cobre 99,8% dos pontos, e SEMPRE inclui as linhas de
+    referencia (a faixa do PRODIST), porque e contra elas que se julga. O que
+    sobrar fora vira contagem anotada na figura, e nao escala desperdicada —
+    saber que existem tres barras acima de 1,4 pu e a informacao util; ver o
+    espaco vazio ate la nao e.
+
+    `alcance` limita ate onde vale a pena esticar o eixo para alcancar uma
+    referencia, em multiplos da largura do dado. Com tudo carregando abaixo de
+    40% da ampacidade, arrastar o eixo ate a linha de 100% gasta seis decimos
+    da figura para desenhar nada — ali `alcance=1` deixa a linha de fora e a
+    figura anota que ela nao cabe. Ja na tensao a faixa do PRODIST fica logo ao
+    lado do dado e e o criterio de julgamento, entao ela entra sempre.
+
+    Devolve (baixo, alto, n_abaixo, n_acima).
+    """
+    v = sorted(x for x in valores if x is not None)
+    if not v:
+        return None, None, 0, 0
+    lo = _percentil(v, (1.0 - cobertura) / 2.0)
+    hi = _percentil(v, 1.0 - (1.0 - cobertura) / 2.0)
+    if referencia:
+        limite = (hi - lo) * alcance if alcance != float('inf') else None
+        for r in referencia:
+            if limite is not None and not (lo - limite <= r <= hi + limite):
+                continue
+            lo, hi = min(lo, r), max(hi, r)
+    if hi <= lo:
+        lo, hi = lo - 0.05, hi + 0.05
+    m = (hi - lo) * folga
+    lo, hi = lo - m, hi + m
+    return lo, hi, sum(1 for x in v if x < lo), sum(1 for x in v if x > hi)
+
+
+def _avisa_cortados(ax, n_abaixo, n_alto, unidade='', vertical=True):
+    """A contagem do que ficou fora do eixo, escrita na propria figura.
+
+    Sem isto o corte de escala vira mentira: quem olha ve uma nuvem inteira
+    dentro da faixa e nao fica sabendo que ha pontos alem do quadro.
+    """
+    partes = []
+    if n_abaixo:
+        partes.append('%d abaixo do eixo' % n_abaixo)
+    if n_alto:
+        partes.append('%d acima do eixo' % n_alto)
+    if not partes:
+        return
+    ax.text(0.99, 0.97 if vertical else 0.03, ' · '.join(partes) + unidade,
+            transform=ax.transAxes, ha='right',
+            va='top' if vertical else 'bottom',
+            fontsize=7.5, color=COR_RUIM,
+            bbox=dict(boxstyle='round,pad=0.3', fc='white', ec=COR_RUIM,
+                      lw=0.6, alpha=0.9))
+
+
 def perfil_de_tensao(ax, distancias, pus):
     """Tensao contra distancia eletrica da fonte — a figura mais informativa
     de um alimentador.
@@ -108,24 +187,107 @@ def perfil_de_tensao(ax, distancias, pus):
         return _vazio(ax, 'sem barras de MT com tensao')
     cores = [_cor_da_tensao(p) for p in pus]
     ax.scatter(distancias, pus, s=3, c=cores, alpha=0.55, linewidths=0)
-    ax.axhline(V_ADEQUADA[0], color=COR_RUIM, lw=0.8, ls='--')
-    ax.axhline(V_ADEQUADA[1], color=COR_RUIM, lw=0.8, ls='--')
-    ax.axhspan(V_ADEQUADA[0], V_ADEQUADA[1], color=COR_OK, alpha=0.06)
-    return _acaba(ax, 'Perfil de tensão', 'distância elétrica da fonte (km)', 'pu')
+    ax.axhspan(V_ADEQUADA[0], V_ADEQUADA[1], color=COR_OK, alpha=0.07, lw=0)
+    for y, txt in ((V_ADEQUADA[0], 'limite inferior do PRODIST  %s pu'),
+                   (V_ADEQUADA[1], 'limite superior do PRODIST  %s pu')):
+        ax.axhline(y, color=COR_RUIM, lw=0.8, ls='--')
+        ax.text(0.005, y, txt % _dec(y), transform=ax.get_yaxis_transform(),
+                fontsize=7, color=COR_RUIM, va='bottom', ha='left')
+
+    # A ESCALA SEGUE O DADO, e nao o ponto perdido. Ver `_faixa_util`.
+    lo, hi, n_b, n_a = _faixa_util(pus, referencia=V_ADEQUADA)
+    ax.set_ylim(lo, hi)
+    _avisa_cortados(ax, n_b, n_a)
+
+    # A TENDENCIA, tracada sobre a nuvem. E ela que separa queda ohmica (desce
+    # continuamente) de ilhamento (patamar) e de regulador (degrau), e a olho
+    # nu numa nuvem de dez mil pontos essa distincao nao se faz.
+    ordem = sorted(zip(distancias, pus))
+    n = len(ordem)
+    if n >= 20:
+        faixas = 24
+        px, py = [], []
+        for k in range(faixas):
+            pedaco = ordem[k * n // faixas:(k + 1) * n // faixas]
+            if pedaco:
+                px.append(sum(d for d, _ in pedaco) / len(pedaco))
+                py.append(sum(p for _, p in pedaco) / len(pedaco))
+        if len(px) > 2:
+            ax.plot(px, py, color='#263238', lw=1.6, alpha=0.85,
+                    label='tensão média por faixa de distância')
+
+    # OS NUMEROS NA PROPRIA FIGURA. Antes era preciso ir a tabela para saber a
+    # tensao minima; agora a figura responde sozinha o que ela mesma levanta.
+    vmin, vmax = min(pus), max(pus)
+    dmax = max(distancias)
+    fora = sum(1 for p in pus if p < V_ADEQUADA[0] or p > V_ADEQUADA[1])
+    resumo = ('%s barras  ·  mín %s pu  ·  máx %s pu  ·  queda %s pu\n'
+              '%s km até a barra mais distante  ·  %s fora da faixa (%s%%)'
+              % (_mil(len(pus)), _dec(vmin, 3), _dec(vmax, 3),
+                 _dec(vmax - vmin, 3), _dec(dmax, 1), _mil(fora),
+                 _dec(100.0 * fora / len(pus), 1)))
+    ax.text(0.99, 0.03, resumo, transform=ax.transAxes, ha='right',
+            va='bottom', fontsize=7.5, color=COR_NEUTRA, linespacing=1.5,
+            bbox=dict(boxstyle='round,pad=0.4', fc='white', ec=COR_CLARA,
+                      lw=0.6, alpha=0.92))
+    # a barra de menor tensao, marcada onde ela esta
+    i_pior = min(range(len(pus)), key=lambda k: pus[k])
+    if lo <= pus[i_pior] <= hi:
+        ax.annotate('mínimo %s pu' % _dec(vmin, 3),
+                    xy=(distancias[i_pior], pus[i_pior]),
+                    xytext=(8, 14), textcoords='offset points', fontsize=7.5,
+                    color=COR_RUIM,
+                    arrowprops=dict(arrowstyle='->', color=COR_RUIM, lw=0.8))
+    if ax.get_legend_handles_labels()[0]:
+        # canto INFERIOR esquerdo: o superior direito e do aviso de pontos
+        # fora do eixo, e a legenda o cobria por inteiro.
+        ax.legend(fontsize=7.5, loc='lower left', framealpha=0.9)
+    return _acaba(ax, 'Perfil de tensão contra distância da fonte',
+                  'distância elétrica da fonte (km)', 'tensão (pu)')
 
 
 def histograma_de_tensao(ax, pus):
     """Quanto da rede esta fora da faixa adequada, e para que lado."""
     if not pus:
         return _vazio(ax, 'sem barras de MT com tensao')
-    ax.hist(pus, bins=40, color=COR_NEUTRA, alpha=0.8)
-    ax.axvline(V_ADEQUADA[0], color=COR_RUIM, lw=0.9, ls='--')
-    ax.axvline(V_ADEQUADA[1], color=COR_RUIM, lw=0.9, ls='--')
-    fora = sum(1 for p in pus if p < V_ADEQUADA[0] or p > V_ADEQUADA[1])
-    ax.set_title('Tensão nas barras de MT — %d de %d fora da faixa (%.1f%%)'
-                 % (fora, len(pus), 100.0 * fora / len(pus)),
-                 fontsize=10, loc='left')
-    return _acaba(ax, ax.get_title(), 'pu', 'barras')
+    # Mesma regra do perfil: a escala segue o dado. Um punhado de barras em
+    # 1,5 pu fazia o histograma inteiro virar uma barra unica encostada na
+    # esquerda, e nao se enxergava mais NADA da distribuicao que importa.
+    lo, hi, n_b, n_a = _faixa_util(pus, referencia=V_ADEQUADA)
+    dentro = [p for p in pus if lo <= p <= hi]
+    ax.hist(dentro or pus, bins=48, range=(lo, hi), color=COR_NEUTRA,
+            alpha=0.85)
+    ax.axvspan(V_ADEQUADA[0], V_ADEQUADA[1], color=COR_OK, alpha=0.07, lw=0)
+    for x in V_ADEQUADA:
+        ax.axvline(x, color=COR_RUIM, lw=0.9, ls='--')
+        ax.text(x, 0.98, ' %s pu' % _dec(x), transform=ax.get_xaxis_transform(),
+                fontsize=7, color=COR_RUIM, va='top', rotation=90)
+    ax.set_xlim(lo, hi)
+    _avisa_cortados(ax, n_b, n_a)
+
+    baixo = sum(1 for p in pus if p < V_ADEQUADA[0])
+    alto = sum(1 for p in pus if p > V_ADEQUADA[1])
+    med = sorted(pus)[len(pus) // 2]
+    ax.axvline(med, color='#263238', lw=1.4)
+    ax.text(med, 0.55, ' mediana %s pu' % _dec(med, 3), fontsize=7.5,
+            transform=ax.get_xaxis_transform(), color='#263238', rotation=90,
+            va='center')
+    # PARA QUE LADO a rede sai da faixa, que e a pergunta que o histograma
+    # existe para responder: abaixo e queda de tensao, acima e geracao ou
+    # regulador alto, e o tratamento e oposto.
+    ax.text(0.99, 0.97,
+            '%s barras  ·  %s abaixo de %s pu  ·  %s acima de %s pu'
+            % (_mil(len(pus)), _mil(baixo), _dec(V_ADEQUADA[0]),
+               _mil(alto), _dec(V_ADEQUADA[1])),
+            transform=ax.transAxes, ha='right', va='top', fontsize=7.5,
+            color=COR_NEUTRA,
+            bbox=dict(boxstyle='round,pad=0.35', fc='white', ec=COR_CLARA,
+                      lw=0.6, alpha=0.92))
+    fora = baixo + alto
+    return _acaba(ax, 'Tensão nas barras de MT — %s de %s fora da faixa (%s%%)'
+                  % (_mil(fora), _mil(len(pus)),
+                     _dec(100.0 * fora / len(pus), 1)),
+                  'tensão (pu)', 'número de barras')
 
 
 def curva_do_dia(ax, fonte_kw, gd_kw=None, perdas_kw=None):
@@ -168,13 +330,46 @@ def carregamento(ax, pcts):
     """
     if not pcts:
         return _vazio(ax, 'sem dados de carregamento')
-    teto = max(200.0, min(400.0, max(pcts) if pcts else 200.0))
-    dados = [min(p, teto) for p in pcts]
-    ax.hist(dados, bins=40, color=COR_NEUTRA, alpha=0.85)
-    ax.axvline(100, color=COR_RUIM, lw=1.0, ls='--')
+    # O teto fixo de 200% a 400% resolvia metade do problema: numa rede em que
+    # tudo carrega abaixo de 20%, o histograma ficava espremido no primeiro
+    # decimo do eixo. A faixa util resolve os dois lados.
+    lo, hi, _n_b, n_a = _faixa_util(pcts, referencia=(0.0, 100.0), folga=0.04,
+                                    alcance=1.0)
+    lo = max(0.0, lo)
+    dentro = [min(max(p, lo), hi) for p in pcts]
+    ax.hist(dentro, bins=48, range=(lo, hi), color=COR_NEUTRA, alpha=0.85)
+    ax.axvspan(lo, min(100.0, hi), color=COR_OK, alpha=0.06, lw=0)
+    if hi >= 100.0:
+        ax.axvline(100, color=COR_RUIM, lw=1.1, ls='--')
+        ax.text(100, 0.98, ' ampacidade declarada (100%)',
+                transform=ax.get_xaxis_transform(), fontsize=7,
+                color=COR_RUIM, va='top', rotation=90)
+    else:
+        # A LINHA DE 100% NAO CABE, e isso e a boa noticia: dizer por escrito
+        # onde ela ficaria informa mais do que desenhar meio grafico vazio ate
+        # ela.
+        ax.text(0.99, 0.86, 'a linha de 100%% fica fora do eixo — o trecho '
+                'mais carregado chega a %s%%' % _dec(max(pcts), 1),
+                transform=ax.transAxes, ha='right', va='top', fontsize=7.5,
+                color=COR_OK, style='italic')
+    ax.set_xlim(lo, hi)
+    _avisa_cortados(ax, 0, n_a)
+
     acima = sum(1 for p in pcts if p > 100)
-    return _acaba(ax, 'Carregamento dos condutores — %d acima de 100%%' % acima,
-                  '% da ampacidade declarada', 'trechos')
+    pior = max(pcts)
+    med = sorted(pcts)[len(pcts) // 2]
+    ax.text(0.99, 0.97,
+            '%s trechos  ·  mediana %s%%  ·  pior %s%%\n'
+            '%s acima da ampacidade (%s%%)'
+            % (_mil(len(pcts)), _dec(med, 1), _dec(pior, 1), _mil(acima),
+               _dec(100.0 * acima / len(pcts), 1)),
+            transform=ax.transAxes, ha='right', va='top', fontsize=7.5,
+            color=COR_NEUTRA, linespacing=1.5,
+            bbox=dict(boxstyle='round,pad=0.35', fc='white', ec=COR_CLARA,
+                      lw=0.6, alpha=0.92))
+    return _acaba(ax, 'Carregamento dos condutores — %s de %s acima de 100%%'
+                  % (_mil(acima), _mil(len(pcts))),
+                  '% da ampacidade declarada', 'número de trechos')
 
 
 def por_alimentador(ax, nomes, valores, titulo, unidade, destacar=None):
