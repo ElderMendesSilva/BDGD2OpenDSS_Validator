@@ -28,6 +28,66 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from bdgd2dss import graficos                            # noqa: E402
 
 
+
+# ===========================================================================
+#  O CATALOGO — que figuras existem, e com que nome se pedem
+# ===========================================================================
+#
+# CADA FIGURA TEM UMA CHAVE CURTA, e e por ela que se escolhe o que plotar:
+#
+#     python relatorio.py MODELOS_LT_V26 --plots perfil tensao gd_fluxo
+#     python relatorio.py MODELOS_LT_V26 --plots-lista
+#
+# Sem `--plots`, saem todas. A ordem do catalogo e a ordem na pagina, e ela
+# nao e alfabetica de proposito: primeiro o estado da rede (tensao), depois a
+# operacao ao longo do dia, depois a geracao distribuida, e por fim os
+# numeros. E a ordem em que a pergunta costuma ser feita.
+
+PLOTS_SE = [
+    ('perfil',      'Perfil de tensao contra distancia da fonte'),
+    ('tensao',      'Histograma de tensao nas barras de MT'),
+    ('mapa',        'A rede no espaco, colorida por tensao'),
+    ('dia',         'Curva do dia: fonte, GD e perdas'),
+    ('perdas_dia',  'Perda em % ao longo do dia'),
+    ('gd_fluxo',    'Geracao no dia, com o fluxo reverso destacado'),
+    ('gd_cobre',    'Quanto da carga a GD cobre, passo a passo'),
+    ('liquido',     'Carregamento liquido na cabeceira (o MINIMO importa)'),
+    ('condutor',    'Carregamento dos condutores, em % da ampacidade'),
+    ('composicao',  'Onde a perda acontece: linhas contra transformadores'),
+    ('resumo',      'Painel de numeros da subestacao'),
+    ('energia',     'Energia do dia e anomalias'),
+]
+
+PLOTS_GERAL = [
+    ('veredictos',  'Quantas subestacoes passam, e por que as outras nao'),
+    ('perdas_hist', 'Distribuicao da perda entre subestacoes'),
+    ('perdas_rank', 'As piores perdas'),
+    ('dia',         'Curva do dia somada na concessao'),
+    ('gd_fluxo',    'Geracao no dia, agregada'),
+    ('gd_cobre',    'Cobertura da carga pela GD, agregada'),
+    ('tensao_hist', 'Tensao minima por subestacao'),
+    ('km_rank',     'As maiores redes'),
+    ('perda_km',    'Perda contra tamanho'),
+    ('composicao',  'Linhas contra transformadores, na concessao'),
+    ('resumo',      'A concessao em numeros'),
+    ('energia',     'Energia do dia'),
+]
+
+
+def _escolhidos(pedidos, catalogo):
+    """As chaves pedidas que EXISTEM neste catalogo, na ordem dele.
+
+    Filtra em silencio o que nao e deste catalogo: `perfil` so existe na
+    subestacao e `veredictos` so na concessao, e pedir os dois na mesma
+    execucao e legitimo. Nome que nao existe em catalogo NENHUM e recusado no
+    `main`, onde da para ver os dois de uma vez.
+    """
+    validas = [k for k, _ in catalogo]
+    if not pedidos:
+        return validas
+    return [k for k in validas if k in set(pedidos)]
+
+
 def _le(caminho):
     try:
         with open(caminho, encoding='utf-8') as fh:
@@ -127,7 +187,8 @@ def _do_modelo(pasta, se):
     return dist, pus, carga, xs, ys, cor
 
 
-def uma_subestacao(pasta, se, val, ene, ger, destino, abrir=True):
+def uma_subestacao(pasta, se, val, ene, ger, destino, abrir=True,
+                   plots=None, pdf=True):
     """As dez figuras de uma subestacao."""
     import matplotlib.pyplot as plt
     v = val.get(se) or {}
@@ -141,42 +202,33 @@ def uma_subestacao(pasta, se, val, ene, ger, destino, abrir=True):
     dist, pus, carga, xs, ys, cor = (_do_modelo(pasta, se) if abrir
                                      else ([], [], [], [], [], []))
 
-    fig, ax = _figura(4, 3, '%s — subestacao %s' % (os.path.basename(pasta), se))
-    graficos.perfil_de_tensao(ax[0], dist, pus)
-    graficos.histograma_de_tensao(ax[1], pus)
-    graficos.mapa(ax[2], xs, ys, cor, 'Rede (cor = tensao)')
-    graficos.curva_do_dia(ax[3], fonte, gd, perdas)
-    graficos.perdas_do_dia(ax[4], fonte, perdas)
-    graficos.geracao_no_dia(ax[5], fonte, gd)
-    graficos.cobertura_da_gd(ax[6], fonte, gd)
-    graficos.carregamento_liquido(ax[7], fonte)
-    graficos.carregamento(ax[8], carga)
-    graficos.composicao_da_perda(ax[9], v.get('perdas_linhas_kW'),
-                                 v.get('perdas_trafos_kW'))
-    graficos.texto(ax[10], [
-        'veredicto      %s' % (v.get('veredicto') or '—'),
-        'converge       %s em %s iteracoes' % (v.get('converge'),
-                                               v.get('iteracoes')),
-        'alimentadores  %s' % (g.get('alimentadores') or '—'),
-        'trafos         %s' % (g.get('trafos') or '—'),
-        'km de MT       %s' % (g.get('km_MT') or '—'),
-        'linhas         %s' % (v.get('n_linhas') or '—'),
-        'cargas         %s' % (v.get('n_cargas') or '—'),
-        'sem tensao     %s' % (v.get('cargas_sem_tensao') or 0),
-        'perda do dia   %s%%' % (e.get('perdas_pct') or '—'),
-        'V_MT min/med   %s / %s' % (v.get('V_MT_min'), v.get('V_MT_mediana')),
-    ], 'Resumo')
-    graficos.texto(ax[11], [
-        'kWh injetado   %s' % _fmt(e.get('kWh_injetado')),
-        'kWh perdas     %s' % _fmt(e.get('kWh_perdas')),
-        'kWh da GD      %s' % _fmt(e.get('kWh_gd')),
-        'pico da GD     %s kW' % _fmt(e.get('pico_gd_kW')),
-        'passos ok      %s de %s' % (e.get('passos_ok'), e.get('passos')),
-        '',
-        'reg. pendurado %s' % (g.get('reguladores_pendurados') or 0),
-        'chave ilhada   %s' % (g.get('chaves_ilhadas') or 0),
-        'PAC invertido  %s' % (g.get('trafos_pac_invertido') or 0),
-    ], 'Energia do dia e anomalias')
+    # CADA CHAVE DO CATALOGO VIRA UMA FUNCAO SEM ARGUMENTO, e so as pedidas
+    # sao desenhadas. Assim acrescentar uma figura e escrever uma linha aqui e
+    # outra no catalogo — e nao mexer no layout, que se ajusta ao numero.
+    desenha = {
+        'perfil': lambda a: graficos.perfil_de_tensao(a, dist, pus),
+        'tensao': lambda a: graficos.histograma_de_tensao(a, pus),
+        'mapa': lambda a: graficos.mapa(a, xs, ys, cor, 'Rede (cor = tensao)'),
+        'dia': lambda a: graficos.curva_do_dia(a, fonte, gd, perdas),
+        'perdas_dia': lambda a: graficos.perdas_do_dia(a, fonte, perdas),
+        'gd_fluxo': lambda a: graficos.geracao_no_dia(a, fonte, gd),
+        'gd_cobre': lambda a: graficos.cobertura_da_gd(a, fonte, gd),
+        'liquido': lambda a: graficos.carregamento_liquido(a, fonte),
+        'condutor': lambda a: graficos.carregamento(a, carga),
+        'composicao': lambda a: graficos.composicao_da_perda(
+            a, v.get('perdas_linhas_kW'), v.get('perdas_trafos_kW')),
+        'resumo': lambda a: graficos.texto(a, _resumo_se(v, e, g), 'Resumo'),
+        'energia': lambda a: graficos.texto(a, _energia_se(e, g),
+                                            'Energia do dia e anomalias'),
+    }
+    chaves = _escolhidos(plots, PLOTS_SE)
+    linhas = max(1, (len(chaves) + 2) // 3)
+    fig, ax = _figura(linhas, 3, '%s — subestacao %s'
+                      % (os.path.basename(pasta), se))
+    for k, chave in enumerate(chaves):
+        desenha[chave](ax[k])
+    for sobra in ax[len(chaves):]:
+        sobra.axis('off')
 
     fig.tight_layout(rect=[0, 0, 1, 0.97])
     # A FIGURA MORA COM O MODELO. Quem abre a pasta de uma subestacao para
@@ -190,9 +242,79 @@ def uma_subestacao(pasta, se, val, ene, ger, destino, abrir=True):
     # e-mail ou anexa a um relatorio maior.
     alvo = base + '.png'
     fig.savefig(alvo, dpi=110)
-    fig.savefig(base + '.pdf')
     plt.close(fig)
+    # O PDF E DOCUMENTO, e nao a figura salva noutro formato: texto, tabela e
+    # as figuras dentro. E o que se anexa a um e-mail e o que alguem le sem
+    # ter o projeto aberto do lado.
+    if pdf:
+        try:
+            pdf_da_subestacao(base + '.pdf', pasta, se, v, e, g, alvo)
+        except Exception as erro:                            # noqa: BLE001
+            print('   PDF de %s falhou: %s' % (se, erro), flush=True)
     return alvo
+
+
+def _resumo_geral(ses, cont, ger, kms, perdas, val, num):
+    ok = cont.get('OK', 0)
+    return [
+        'subestacoes    %d' % len(ses),
+        'com veredicto OK %d (%.1f%%)' % (ok, 100.0 * ok / len(ses) if ses else 0),
+        'alimentadores  %d' % sum(int(num(ger, x, 'alimentadores') or 0)
+                                  for x in ses),
+        'trafos         %s' % _fmt(sum(int(num(ger, x, 'trafos') or 0)
+                                       for x in ses)),
+        'km de MT       %s' % _fmt(sum(v for v, _ in kms)),
+        'cargas s/tensao %s' % _fmt(sum(int(num(val, x, 'cargas_sem_tensao') or 0)
+                                        for x in ses)),
+        'perda mediana  %.2f%%' % (sorted(v for v, _ in perdas)[len(perdas) // 2]
+                                   if perdas else 0),
+    ]
+
+
+def _energia_geral(ses, ene, num):
+    return [
+        'kWh injetado   %s' % _fmt(sum(num(ene, x, 'kWh_injetado') or 0
+                                       for x in ses)),
+        'kWh perdas     %s' % _fmt(sum(num(ene, x, 'kWh_perdas') or 0
+                                       for x in ses)),
+        'kWh da GD      %s' % _fmt(sum(num(ene, x, 'kWh_gd') or 0 for x in ses)),
+        '',
+        'A SERIE DE 96 PASSOS e o que permite',
+        'o modo daily, e o modo daily e o que',
+        'torna a GD analisavel: fluxo reverso,',
+        'nao-coincidencia com o pico e o',
+        'carregamento MINIMO so aparecem nela.',
+    ]
+
+
+def _resumo_se(v, e, g):
+    return [
+        'veredicto      %s' % (v.get('veredicto') or '—'),
+        'converge       %s em %s iteracoes' % (v.get('converge'),
+                                               v.get('iteracoes')),
+        'alimentadores  %s' % (g.get('alimentadores') or '—'),
+        'trafos         %s' % (g.get('trafos') or '—'),
+        'km de MT       %s' % (g.get('km_MT') or '—'),
+        'linhas         %s' % (v.get('n_linhas') or '—'),
+        'cargas         %s' % (v.get('n_cargas') or '—'),
+        'sem tensao     %s' % (v.get('cargas_sem_tensao') or 0),
+        'perda do dia   %s%%' % (e.get('perdas_pct') or '—'),
+        'V_MT min/med   %s / %s' % (v.get('V_MT_min'), v.get('V_MT_mediana')),
+    ]
+
+
+def _energia_se(e, g):
+    return [
+        'kWh injetado   %s' % _fmt(e.get('kWh_injetado')),
+        'kWh perdas     %s' % _fmt(e.get('kWh_perdas')),
+        'kWh da GD      %s' % _fmt(e.get('kWh_gd')),
+        'pico da GD     %s kW' % _fmt(e.get('pico_gd_kW')),
+        'passos ok      %s de %s' % (e.get('passos_ok'), e.get('passos')),
+        '',
+        'reg. pendurado %s' % (g.get('reguladores_pendurados') or 0),
+        'chave ilhada   %s' % (g.get('chaves_ilhadas') or 0),
+        'PAC invertido  %s' % (g.get('trafos_pac_invertido') or 0),
+    ]
 
 
 def _fmt(x):
@@ -206,7 +328,7 @@ def _fmt(x):
 
 # ----------------------------------------------------------------- concessao
 
-def a_concessao(pasta, val, ene, ger, ver, destino):
+def a_concessao(pasta, val, ene, ger, ver, destino, plots=None):
     """As dez figuras da base inteira."""
     import collections
     import matplotlib.pyplot as plt
@@ -248,56 +370,44 @@ def a_concessao(pasta, val, ene, ger, ver, destino):
             for i in range(min(len(v), passos)):
                 alvo[i] += v[i] or 0.0
 
-    fig, ax = _figura(4, 3, '%s — concessao (%d subestacoes)'
+    desenha = {
+        'veredictos': lambda a: graficos.veredictos(a, cont),
+        'perdas_hist': lambda a: graficos.histograma(
+            a, [v for v, _ in perdas], 'Perda por subestacao',
+            '% da injecao', corte=10.0),
+        'perdas_rank': lambda a: graficos.ranking(
+            a, [x for _, x in perdas], [v for v, _ in perdas],
+            'Maiores perdas', '% da injecao', limite=10.0),
+        'dia': lambda a: graficos.curva_do_dia(a, soma_f, soma_g, soma_p),
+        'gd_fluxo': lambda a: graficos.geracao_no_dia(a, soma_f, soma_g),
+        'gd_cobre': lambda a: graficos.cobertura_da_gd(a, soma_f, soma_g),
+        'tensao_hist': lambda a: graficos.histograma(
+            a, [v for v, _ in vmin], 'Tensao minima por subestacao', 'pu',
+            corte=0.93),
+        'km_rank': lambda a: graficos.ranking(
+            a, [x for _, x in kms], [v for v, _ in kms], 'Maiores redes',
+            'km de MT'),
+        'perda_km': lambda a: graficos.dispersao(
+            a, [num(ger, x, 'km_MT') or 0 for x in ses],
+            [num(ene, x, 'perdas_pct') or 0 for x in ses],
+            'Perda contra tamanho', 'km de MT', '% de perda'),
+        'composicao': lambda a: graficos.composicao_da_perda(
+            a, sum(num(val, x, 'perdas_linhas_kW') or 0 for x in ses),
+            sum(num(val, x, 'perdas_trafos_kW') or 0 for x in ses)),
+        'resumo': lambda a: graficos.texto(
+            a, _resumo_geral(ses, cont, ger, kms, perdas, val, num),
+            'Concessao em numeros'),
+        'energia': lambda a: graficos.texto(
+            a, _energia_geral(ses, ene, num), 'Energia do dia'),
+    }
+    chaves = _escolhidos(plots, PLOTS_GERAL)
+    linhas = max(1, (len(chaves) + 2) // 3)
+    fig, ax = _figura(linhas, 3, '%s — concessao (%d subestacoes)'
                       % (os.path.basename(pasta), len(ses)))
-    graficos.veredictos(ax[0], cont)
-    graficos.histograma(ax[1], [v for v, _ in perdas],
-                        'Perda por subestacao', '% da injecao', corte=10.0)
-    graficos.ranking(ax[2], [s for _, s in perdas], [v for v, _ in perdas],
-                     'Maiores perdas', '% da injecao', limite=10.0)
-    graficos.curva_do_dia(ax[3], soma_f, soma_g, soma_p)
-    graficos.geracao_no_dia(ax[4], soma_f, soma_g)
-    graficos.cobertura_da_gd(ax[5], soma_f, soma_g)
-    graficos.histograma(ax[6], [v for v, _ in vmin],
-                        'Tensao minima por subestacao', 'pu', corte=0.93)
-    graficos.ranking(ax[7], [s for _, s in kms], [v for v, _ in kms],
-                     'Maiores redes', 'km de MT')
-    graficos.dispersao(ax[8], [num(ger, s, 'km_MT') or 0 for s, in
-                               [(s,) for s in ses]],
-                       [num(ene, s, 'perdas_pct') or 0 for s in ses],
-                       'Perda contra tamanho', 'km de MT', '% de perda')
-    tot_l = sum(num(val, s, 'perdas_linhas_kW') or 0 for s in ses)
-    tot_t = sum(num(val, s, 'perdas_trafos_kW') or 0 for s in ses)
-    graficos.composicao_da_perda(ax[9], tot_l, tot_t)
-    sem_v = sum(int(num(val, s, 'cargas_sem_tensao') or 0) for s in ses)
-    graficos.texto(ax[10], [
-        'subestacoes    %d' % len(ses),
-        'com veredicto OK %d (%.1f%%)' % (cont.get('OK', 0),
-                                          100.0 * cont.get('OK', 0) / len(ses)
-                                          if ses else 0),
-        'alimentadores  %d' % sum(int(num(ger, s, 'alimentadores') or 0)
-                                  for s in ses),
-        'trafos         %s' % _fmt(sum(int(num(ger, s, 'trafos') or 0)
-                                       for s in ses)),
-        'km de MT       %s' % _fmt(sum(v for v, _ in kms)),
-        'cargas s/tensao %s' % _fmt(sem_v),
-        'perda mediana  %.2f%%' % (sorted(v for v, _ in perdas)[len(perdas) // 2]
-                                   if perdas else 0),
-    ], 'Concessao em numeros')
-    graficos.texto(ax[11], [
-        'kWh injetado   %s' % _fmt(sum(num(ene, s, 'kWh_injetado') or 0
-                                       for s in ses)),
-        'kWh perdas     %s' % _fmt(sum(num(ene, s, 'kWh_perdas') or 0
-                                       for s in ses)),
-        'kWh da GD      %s' % _fmt(sum(num(ene, s, 'kWh_gd') or 0
-                                       for s in ses)),
-        '',
-        'A SERIE DE 96 PASSOS e o que permite',
-        'o modo daily, e o modo daily e o que',
-        'torna a GD analisavel: fluxo reverso,',
-        'nao-coincidencia com o pico e o',
-        'carregamento MINIMO so aparecem nela.',
-    ], 'Energia do dia')
+    for k, chave in enumerate(chaves):
+        desenha[chave](ax[k])
+    for sobra in ax[len(chaves):]:
+        sobra.axis('off')
 
     fig.tight_layout(rect=[0, 0, 1, 0.97])
     alvo = os.path.join(destino, '_GERAL.png')
@@ -316,8 +426,36 @@ def main(argv=None):
                     help='so o painel da concessao')
     ap.add_argument('--sem-modelo', action='store_true',
                     help='nao compila: pula perfil, carregamento e mapa')
+    ap.add_argument('--plots', nargs='*', default=None, metavar='CHAVE',
+                    help='quais figuras desenhar. Sem isto, TODAS — o caminho '
+                         'normal e so passar a pasta. Ver --plots-lista')
+    ap.add_argument('--plots-lista', action='store_true',
+                    help='mostra as figuras disponiveis e sai')
+    ap.add_argument('--sem-pdf', action='store_true',
+                    help='so as figuras, sem o relatorio escrito')
     ap.add_argument('--saida', default=None)
     a = ap.parse_args(argv)
+
+    if a.plots:
+        # A RECUSA E CONTRA OS DOIS CATALOGOS JUNTOS. Chave desconhecida nao
+        # pode passar em silencio: quem digitou `tensoes` receberia um painel
+        # a menos e nenhum aviso.
+        todas = {k for k, _ in PLOTS_SE} | {k for k, _ in PLOTS_GERAL}
+        ruins = [x for x in a.plots if x not in todas]
+        if ruins:
+            print('plot desconhecido: %s' % ', '.join(ruins), file=sys.stderr)
+            print('use --plots-lista para ver os nomes', file=sys.stderr)
+            return 2
+
+    if a.plots_lista:
+        print('figuras da SUBESTACAO:')
+        for k, d in PLOTS_SE:
+            print('  %-13s %s' % (k, d))
+        print('\nfiguras da CONCESSAO:')
+        for k, d in PLOTS_GERAL:
+            print('  %-13s %s' % (k, d))
+        print('\nsem --plots, saem todas.')
+        return 0
 
     if not os.path.isdir(a.pasta):
         print('pasta nao encontrada: %s' % a.pasta, file=sys.stderr)
@@ -339,7 +477,8 @@ def main(argv=None):
         return 1
 
     feitos = []
-    feitos.append(a_concessao(a.pasta, val, ene, ger, ver, destino))
+    feitos.append(a_concessao(a.pasta, val, ene, ger, ver, destino,
+                              a.plots))
     print('concessao -> %s' % feitos[-1], flush=True)
 
     if not a.so_geral:
@@ -348,7 +487,8 @@ def main(argv=None):
         for k, se in enumerate(alvo, 1):
             try:
                 p = uma_subestacao(a.pasta, se, val, ene, ger, destino,
-                                   abrir=not a.sem_modelo)
+                                   abrir=not a.sem_modelo,
+                                   plots=a.plots, pdf=not a.sem_pdf)
                 feitos.append(p)
                 print('[%d/%d] %s' % (k, len(alvo), p), flush=True)
             except Exception as e:                          # noqa: BLE001
@@ -358,6 +498,152 @@ def main(argv=None):
     print('\n%d figuras em %s' % (len(feitos), destino))
     # Gerar nada nao e gerar: relatorio vazio que sai 0 vira "sucesso".
     return 0 if len(feitos) > 1 or a.so_geral else 1
+
+
+# ===========================================================================
+#  O RELATORIO ESCRITO
+# ===========================================================================
+#
+# O PDF NAO E A FIGURA SALVA EM PDF. E um documento com texto, tabela e as
+# figuras dentro — o que se anexa a um e-mail ou a um relatorio maior, e o que
+# alguem le sem ter o projeto aberto do lado.
+#
+# A ESTRUTURA E FIXA de proposito. Relatorio que muda de forma a cada rodada
+# nao se compara com o anterior, e comparar duas rodadas e metade do trabalho
+# deste projeto.
+
+def _p(texto, estilo):
+    from reportlab.platypus import Paragraph
+    return Paragraph(texto, estilo)
+
+
+def pdf_da_subestacao(caminho, pasta, se, v, e, g, figura):
+    """Um documento por subestacao: o que e, o que deu, e a figura."""
+    from reportlab.lib.pagesizes import A4
+    from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+    from reportlab.lib.units import mm
+    from reportlab.lib import colors
+    from reportlab.platypus import (SimpleDocTemplate, Spacer, Table,
+                                    TableStyle, Image)
+
+    est = getSampleStyleSheet()
+    titulo = ParagraphStyle('t', parent=est['Title'], fontSize=16, spaceAfter=2)
+    sub = ParagraphStyle('s', parent=est['Normal'], fontSize=9,
+                         textColor=colors.HexColor('#666'), spaceAfter=10)
+    h2 = ParagraphStyle('h', parent=est['Heading2'], fontSize=11, spaceBefore=8)
+    corpo = ParagraphStyle('c', parent=est['Normal'], fontSize=9, leading=13)
+
+    doc = SimpleDocTemplate(caminho, pagesize=A4,
+                            leftMargin=18 * mm, rightMargin=18 * mm,
+                            topMargin=16 * mm, bottomMargin=16 * mm,
+                            title='Subestacao %s' % se)
+    ver = str(v.get('veredicto') or '—')
+    pecas = [
+        _p('Subestação %s' % se, titulo),
+        _p('%s &nbsp;·&nbsp; gerado por BDGD → OpenDSS v%s'
+           % (os.path.basename(pasta), _versao()), sub),
+        _p('Veredicto', h2),
+        _p(_frase_do_veredicto(ver, v), corpo),
+        Spacer(1, 4 * mm),
+        _p('A rede', h2),
+    ]
+    linhas = [
+        ['alimentadores', g.get('alimentadores'), 'transformadores',
+         g.get('trafos')],
+        ['km de MT', g.get('km_MT'), 'trechos', v.get('n_linhas')],
+        ['cargas', v.get('n_cargas'), 'cargas sem tensão',
+         v.get('cargas_sem_tensao')],
+        ['tensão mínima (pu)', v.get('V_MT_min'), 'tensão mediana (pu)',
+         v.get('V_MT_mediana')],
+        ['perda do dia (%)', e.get('perdas_pct'), 'perda nos trafos (%)',
+         v.get('perdas_trafos_pct')],
+        ['kWh injetado', _fmt(e.get('kWh_injetado')), 'kWh de perdas',
+         _fmt(e.get('kWh_perdas'))],
+        ['kWh da GD', _fmt(e.get('kWh_gd')), 'pico da GD (kW)',
+         _fmt(e.get('pico_gd_kW'))],
+    ]
+    t = Table([[str(c) if c is not None else '—' for c in L] for L in linhas],
+              colWidths=[42 * mm, 30 * mm, 42 * mm, 30 * mm])
+    t.setStyle(TableStyle([
+        ('FONTSIZE', (0, 0), (-1, -1), 8.5),
+        ('TEXTCOLOR', (0, 0), (0, -1), colors.HexColor('#555')),
+        ('TEXTCOLOR', (2, 0), (2, -1), colors.HexColor('#555')),
+        ('ALIGN', (1, 0), (1, -1), 'RIGHT'),
+        ('ALIGN', (3, 0), (3, -1), 'RIGHT'),
+        ('LINEBELOW', (0, 0), (-1, -2), 0.25, colors.HexColor('#ddd')),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
+    ]))
+    pecas.append(t)
+
+    anom = _anomalias(g, v)
+    if anom:
+        pecas += [_p('O que merece olhar', h2), _p(anom, corpo)]
+
+    if figura and os.path.exists(figura):
+        pecas += [Spacer(1, 6 * mm), _p('Figuras', h2),
+                  Image(figura, width=170 * mm,
+                        height=170 * mm * _proporcao(figura))]
+    doc.build(pecas)
+    return caminho
+
+
+def _versao():
+    try:
+        from bdgd2dss import __version__
+        return __version__
+    except Exception:                                        # noqa: BLE001
+        return '?'
+
+
+def _proporcao(png):
+    """Altura por largura da figura, para nao deformar no PDF."""
+    try:
+        from PIL import Image as _I
+        with _I.open(png) as im:
+            return im.height / float(im.width)
+    except Exception:                                        # noqa: BLE001
+        return 0.72
+
+
+def _frase_do_veredicto(ver, v):
+    """O veredicto em uma frase, e o que ele significa.
+
+    Codigo cru num relatorio obriga o leitor a procurar o significado em outro
+    lugar — e ninguem procura.
+    """
+    mapa = {
+        'OK': 'A subestação compila, converge, não tem barra com NaN e as '
+              'tensões ficam na faixa esperada.',
+        'NAO_COMPILA': 'O modelo não compila no OpenDSS. Nada abaixo foi '
+                       'medido nesta subestação.',
+        'NAO_CONVERGE': 'O fluxo de potência não converge. Os números de '
+                        'perda e tensão não devem ser usados.',
+        'POTENCIA_NAN': 'A solução tem potência NaN — há barra sem referência '
+                        'de tensão ou elemento com impedância nula.',
+        'TENSAO_IMPLAUSIVEL': 'A tensão mediana da média tensão está muito '
+                              'abaixo do esperado. Isso costuma ser rede '
+                              'longa demais, condutor incoerente ou regulador '
+                              'atuando contra um laço.',
+    }
+    base = mapa.get(ver.split('[')[0], 'Veredicto não reconhecido.')
+    return '<b>%s</b> — %s' % (ver, base)
+
+
+def _anomalias(g, v):
+    """Só o que estiver diferente de zero. Lista de zeros não informa nada."""
+    itens = []
+    for chave, texto in (
+            ('reguladores_pendurados', 'regulador com um PAC fora da rede'),
+            ('chaves_ilhadas', 'chave que não toca a rede em ponta nenhuma'),
+            ('trafos_pac_invertido', 'transformador com o PAC invertido')):
+        n = g.get(chave) or 0
+        if n:
+            itens.append('%d %s' % (n, texto))
+    n = v.get('cargas_sem_tensao') or 0
+    if n:
+        itens.append('%d carga(s) sem tensão' % n)
+    return '; '.join(itens) + '.' if itens else ''
+
 
 
 if __name__ == '__main__':

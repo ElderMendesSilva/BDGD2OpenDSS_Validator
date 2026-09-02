@@ -147,14 +147,17 @@ class Menu(tk.Tk):
         # tela abria com doze cartoes tecnicos e nenhuma indicacao de por onde
         # comecar — quem so queria rodar uma base tinha de saber que "CICLO
         # COMPLETO" era o decimo segundo, e que os onze acima sao etapas DELE.
-        simples = ttk.LabelFrame(corpo, text=' Rodar uma BDGD ', padding=12)
-        simples.pack(fill='x', pady=(0, 10))
+        simples = ttk.LabelFrame(corpo, text=' O CAMINHO NORMAL ', padding=14)
+        simples.pack(fill='x', pady=(0, 12))
+        ttk.Label(simples, text='Escolha a .gdb. O resto é automático.',
+                  font=('Segoe UI', 12, 'bold')).pack(anchor='w')
         ttk.Label(simples,
-                  text='Converte, aplica as premissas, verifica, mede energia '
-                       'e perdas, valida, e grava o relatório visual dentro da '
-                       'pasta de cada subestação.',
+                  text='Converte, religa a rede sem tensão, troca condutor '
+                       'sobrecarregado, verifica nos dois motores, roda as '
+                       '24 h em passos de 15 min, valida e grava o relatório '
+                       '— figuras e PDF — dentro da pasta de cada subestação.',
                   wraplength=940, justify='left',
-                  foreground='#444').pack(anchor='w', pady=(0, 8))
+                  foreground='#444').pack(anchor='w', pady=(4, 10))
         linha = ttk.Frame(simples)
         linha.pack(fill='x')
         self.gdb = tk.StringVar()
@@ -163,8 +166,9 @@ class Menu(tk.Tk):
             side='left', padx=6, fill='x', expand=True)
         ttk.Button(linha, text='Procurar…', width=12,
                    command=self._escolhe_gdb).pack(side='left', padx=(0, 6))
-        ttk.Button(linha, text='RODAR TUDO', width=16,
-                   command=self._roda_simples).pack(side='left')
+        b = ttk.Button(linha, text='RODAR TUDO', width=18,
+                       command=self._roda_simples)
+        b.pack(side='left')
         ttk.Label(simples,
                   text='Sem escolher arquivo, roda TODAS as .gdb encontradas '
                        'na pasta de bases — são horas.',

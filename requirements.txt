@@ -25,7 +25,8 @@ opendssdirect.py>=0.9  # motor DSS C-API
 # A ferramenta funciona sem estas; o `doutor.py` avisa em vez de quebrar.
 matplotlib>=3.8        # graficos de verifica, energia e valida_perdas
 openpyxl>=3.1          # planilhas da transmissora (--excel)
-reportlab>=4.0         # PDF de analise/relatorio_estudo.py
+reportlab>=4.0         # o PDF escrito do `relatorio.py`
+Pillow>=10.0           # so para nao deformar a figura dentro do PDF
 
 # NAO INSTALE `pywin32` EM LINUX: o motor COM da EPRI so existe registrado no
 # Windows, e la o `pip install` simplesmente falha. O `verifica` cai sozinho
