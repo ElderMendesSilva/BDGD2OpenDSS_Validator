@@ -213,7 +213,7 @@ class Menu(tk.Tk):
         # ----------------------------------------------------------- AVANCADO
         self.avancado_aberto = tk.BooleanVar(value=False)
         self.b_avancado = ttk.Button(
-            corpo, text='▸  Avançado — as %d etapas, uma a uma'
+            corpo, text='[ + ]  Avançado — as %d etapas, uma a uma'
                         % len(FERRAMENTAS),
             command=self._alterna_avancado)
         self.b_avancado.pack(anchor='w', pady=(0, 6))
@@ -302,11 +302,11 @@ class Menu(tk.Tk):
         self.avancado_aberto.set(aberto)
         if aberto:
             self.lista.pack(fill='x', before=self.b_avancado)
-            self.b_avancado.config(text='▾  Avançado — ocultar as etapas')
+            self.b_avancado.config(text='[ - ]  Avançado — ocultar as etapas')
         else:
             self.lista.pack_forget()
             self.b_avancado.config(
-                text='▸  Avançado — as %d etapas, uma a uma' % len(FERRAMENTAS))
+                text='[ + ]  Avançado — as %d etapas, uma a uma' % len(FERRAMENTAS))
 
     def roda(self, script, nome, args=None):
         if self.proc and self.proc.poll() is None:
