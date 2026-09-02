@@ -1114,6 +1114,69 @@ tensão**, com veredicto `OK`. Duas medidas do mesmo arquivo se contradiziam, e
 ninguém — nem eu — cruzou uma com a outra até que `ramos_isolados` excedesse
 `n_linhas`, o que é aritmeticamente impossível.
 
+## Achado 24 — o efeito nacional da correção do regulador (V26 → V27)
+
+**Medido em 02/09/2026**, comparando as duas rodadas completas das mesmas 99
+bases e 4.078 subestações, com os `validacao.json` trazidos por `scp` e somados
+fora do cluster.
+
+A correção do achado 22 — o regulador que era emitido **em paralelo** com o
+trecho, fechando um laço por onde a corrente circulava — foi aplicada entre a
+V26 e a V27. O resultado responde a pergunta que ficou em aberto quando a Light
+saiu idêntica nas duas rodadas.
+
+| causa | V26 | V27 | delta |
+|---|---:|---:|---:|
+| `OK` | 2.388 | **2.505** | **+117** |
+| `MODELO_QUEBRADO` | 1.284 | 1.250 | −34 |
+| `TENSAO_BAIXA` | 199 | 208 | +9 |
+| `REGULADOR_SATURADO` | 172 | **80** | **−92** |
+| `REDE_EXTENSA` | 20 | 20 | 0 |
+| `CARGA_ALTA` | 15 | 15 | 0 |
+
+**Duas bases mudaram. Noventa e sete não mudaram em nada.**
+
+| base | subestações | `OK` V26 → V27 | tensão mediana de MT | perda mediana |
+|---|---:|---|---|---|
+| NEOENERGIA385 | 153 | 16 → **128** | 0,698 → **0,987 pu** | 86,3% → **7,3%** |
+| COPREL2351 | 8 | 0 → **5** | 0,267 → **0,987 pu** | 95,2% → **8,7%** |
+
+Perda mediana de 86% nunca foi rede: era o laço drenando corrente por um
+caminho paralelo. Depois da correção, as duas bases caem para 7,3% e 8,7%, que
+é a faixa em que uma rede de média tensão vive.
+
+### O que este achado corrige de uma expectativa nossa
+
+Depois da comparação da Light — 95 subestações **idênticas** nas duas rodadas —
+o projeto registrou que a correção atingia 4,56% dos reguladores do país e que
+o efeito seria "local, não nacional". A extensão estava certa e a importância
+estava errada.
+
+Dos **2.266 reguladores em paralelo**, 2.152 estavam na NEOENERGIA385 e 114 na
+COPREL2351. **Concentrado não é o mesmo que pequeno**: onde o defeito ocorre,
+ele reprovava 89 de 153 subestações de uma distribuidora inteira.
+
+### O que as 97 bases inalteradas provam
+
+Elas são o controle do experimento, e valem tanto quanto as duas que mudaram: a
+correção **não mexeu em nada onde não havia laço**. Nenhuma subestação mudou de
+causa, de tensão ou de perda por efeito colateral. Uma correção que melhora o
+alvo e desloca o resto seria indistinguível de um ajuste de parâmetro.
+
+### Uma comparação que NÃO se pode fazer com estes números
+
+Os 58,6% → 61,4% de `OK` acima **não são** os 97,4% que o `CHANGELOG` publica
+para a v1.0, e misturar os dois seria erro grosseiro. São métricas diferentes:
+
+- o **veredicto da v1.0** exige compilar, convergir, não ter `NaN` e passar nos
+  limites de tensão e ampacidade;
+- a **`causa` do `diagnostico.classificar`** é muito mais estrita — **uma única
+  carga sem tensão** já classifica a subestação como `MODELO_QUEBRADO`.
+
+É por isso que `MODELO_QUEBRADO` soma 1.284 subestações (31%) enquanto as
+`NAO_COMPILA` e `NAO_CONVERGE` da v1.0 somam 29. Os dois números descrevem a
+mesma realidade com réguas diferentes, e cada tabela deve dizer qual régua usa.
+
 ## Validação externa e contaminação
 
 A âncora nacional de 7,4% de perda técnica total da ANEEL é apenas um **teste
