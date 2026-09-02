@@ -180,54 +180,71 @@ class OQueNaoPodeVoltar(unittest.TestCase):
             importlib.reload(rg)
 
 
-class DuasSafrasNaMesmaPastaSaoRecusadas(unittest.TestCase):
+class DuasSafrasNaMesmaPastaSaoDESAMBIGUADAS(unittest.TestCase):
     """`Sulgipe_46_2024-12-31` e `Sulgipe_46_2025-12-31` viram a MESMA tag.
 
     E isso e CORRETO: `_sigla` ignora data, versao e carimbo de proposito, e e
     o que permite comparar SULGIPE46 entre safras. O efeito colateral e que as
-    duas gravariam em `MODELOS_SULGIPE46_<sufixo>` e o resumo mesclaria por
-    tag — a rodada misturaria 2024 e 2025 SEM ERRO NENHUM.
+    duas gravariam em `MODELOS_SULGIPE46_<sufixo>` — a rodada misturaria 2024
+    e 2025 sem erro nenhum.
 
-    Recusar e a unica saida honesta. Escolher uma das duas seria adivinhar qual
-    safra o usuario quis, e adivinhar errado custa uma rodada inteira
-    respondendo a pergunta de outro ano.
+    ATE 02/09/2026 ISTO ERA RECUSADO, e a rodada travava. Defensavel em lote,
+    errado quando a pessoa aponta uma `.gdb` especifica e a irma dela por acaso
+    mora na mesma pasta: transferia ao usuario um trabalho que o codigo sabe
+    fazer.
+
+    Agora a tag ganha a safra SO nas bases que colidem. `MODELOS_RR_2025_V27`
+    diz de que safra saiu, e a base que nao colide mantem a tag de sempre —
+    que e o que preserva a comparacao com todas as rodadas anteriores.
     """
 
     def setUp(self):
         self.dir = tempfile.mkdtemp()
 
-    def test_duas_safras_da_mesma_base_levantam(self):
+    def test_as_duas_safras_ganham_a_data_na_tag(self):
         _gdb(self.dir, 'Sulgipe_46_2024-12-31_V11_a.gdb')
         _gdb(self.dir, 'Sulgipe_46_2025-12-31_V11_b.gdb')
+        tags = sorted(t for t, _, _ in rg.descobrir(self.dir))
+        self.assertEqual(tags, ['SULGIPE46_2024', 'SULGIPE46_2025'])
+
+    def test_quem_NAO_colide_mantem_a_tag_de_sempre(self):
+        """O contraste que da sentido a tudo: desambiguar a base errada
+        quebraria a comparacao com as rodadas anteriores."""
+        _gdb(self.dir, 'Sulgipe_46_2024-12-31_V11_a.gdb')
+        _gdb(self.dir, 'Sulgipe_46_2025-12-31_V11_b.gdb')
+        _gdb(self.dir, 'Cedrap_5381_2025-12-31_V11_c.gdb')
+        tags = sorted(t for t, _, _ in rg.descobrir(self.dir))
+        self.assertIn('CEDRAP5381', tags, 'a base unica nao pode mudar de nome')
+
+    def test_base_CONHECIDA_tambem_e_desambiguada(self):
+        """A Cemig cai no APELIDO e nao no ramo das novas — outro caminho, que
+        uma correcao posta so num dos dois deixaria passar."""
+        _gdb(self.dir, 'Cemig-D_4950_2024-12-31_V11_a.gdb')
+        _gdb(self.dir, 'Cemig-D_4950_2025-12-31_V11_b.gdb')
+        tags = sorted(t for t, _, _ in rg.descobrir(self.dir))
+        self.assertEqual(tags, ['CMIG_2024', 'CMIG_2025'])
+
+    def test_as_pastas_de_modelo_ficam_DIFERENTES(self):
+        """O ponto todo: sem isso as duas gravariam uma por cima da outra."""
+        _gdb(self.dir, 'Sulgipe_46_2024-12-31_V11_a.gdb')
+        _gdb(self.dir, 'Sulgipe_46_2025-12-31_V11_b.gdb')
+        pastas = {rg.saida_de(t) for t, _, _ in rg.descobrir(self.dir)}
+        self.assertEqual(len(pastas), 2, 'as duas safras colidiriam no disco')
+
+    def test_MESMA_safra_duas_vezes_ainda_e_recusado(self):
+        """Duas republicacoes do mesmo periodo nao tem como ser separadas sem
+        inventar criterio — e inventar seria escolher por acaso qual das duas
+        vira o modelo."""
+        _gdb(self.dir, 'Sulgipe_46_2025-12-31_V11_20260830-1351.gdb')
+        _gdb(self.dir, 'Sulgipe_46_2025-12-31_V11_20260901-0900.gdb')
         with self.assertRaises(rg.SafrasMisturadas):
             rg.descobrir(self.dir)
 
-    def test_a_mensagem_diz_QUAL_base_e_QUAIS_arquivos(self):
-        """Mensagem que so diz "duplicata" obriga a cacar a mao entre 97."""
-        _gdb(self.dir, 'Sulgipe_46_2024-12-31_V11_a.gdb')
-        _gdb(self.dir, 'Sulgipe_46_2025-12-31_V11_b.gdb')
-        with self.assertRaises(rg.SafrasMisturadas) as c:
-            rg.descobrir(self.dir)
-        m = str(c.exception)
-        self.assertIn('SULGIPE46', m)
-        self.assertIn('2024-12-31', m)
-        self.assertIn('2025-12-31', m)
-        self.assertIn('BDGD2DSS_BASES', m, 'tem de dizer o que fazer')
-
     def test_uma_safra_so_continua_passando(self):
-        """O contraste: a guarda nao pode reprovar a operacao normal."""
         _gdb(self.dir, 'Sulgipe_46_2025-12-31_V11_b.gdb')
         _gdb(self.dir, 'Cedrap_5381_2025-12-31_V11_c.gdb')
         tags = sorted(t for t, _, _ in rg.descobrir(self.dir))
         self.assertEqual(tags, ['CEDRAP5381', 'SULGIPE46'])
-
-    def test_base_CONHECIDA_tambem_e_pega(self):
-        """A Cemig cai no APELIDO e nao no ramo das novas — outro caminho, que
-        uma guarda posta so num dos dois deixaria passar."""
-        _gdb(self.dir, 'Cemig-D_4950_2024-12-31_V11_a.gdb')
-        _gdb(self.dir, 'Cemig-D_4950_2025-12-31_V11_b.gdb')
-        with self.assertRaises(rg.SafrasMisturadas):
-            rg.descobrir(self.dir)
 
 
 if __name__ == '__main__':

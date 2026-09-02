@@ -201,18 +201,56 @@ def descobrir(pasta=None):
     for tag, cam, _ in saida:
         porta.setdefault(tag, []).append(cam)
     repetidas = {t: v for t, v in porta.items() if len(v) > 1}
-    if repetidas:
+    if not repetidas:
+        return saida
+
+    # DESAMBIGUAR, E NAO RECUSAR. Ate 02/09/2026 isto levantava
+    # `SafrasMisturadas` e travava a rodada — defensavel em lote, errado
+    # quando a pessoa apontou uma .gdb especifica e a irma dela por acaso mora
+    # na mesma pasta. Recusar transferia ao usuario um trabalho que o codigo
+    # sabe fazer: as duas safras podem coexistir, desde que NAO gravem na
+    # mesma pasta de modelo.
+    #
+    # A tag ganha a safra SO nas bases que colidem: `RR` continua `RR` quando
+    # e unica, e vira `RR_2024` e `RR_2025` quando as duas aparecem juntas.
+    # Isso preserva a comparacao com as rodadas anteriores — o motivo de a tag
+    # existir — e deixa a diferenca visivel no nome: `MODELOS_RR_2025_V27`
+    # diz de que safra saiu.
+    final = []
+    for tag, cam, minutos in saida:
+        if tag in repetidas:
+            safra = _safra(cam)
+            tag = '%s_%s' % (tag, safra) if safra else tag
+        final.append((tag, cam, minutos))
+
+    # Se mesmo com a safra houver colisao, sao republicacoes da MESMA safra —
+    # e ai nao ha como escolher sem inventar criterio.
+    conta = {}
+    for tag, cam, _ in final:
+        conta.setdefault(tag, []).append(cam)
+    ainda = {t: v for t, v in conta.items() if len(v) > 1}
+    if ainda:
         linhas = []
-        for t, v in sorted(repetidas.items()):
+        for t, v in sorted(ainda.items()):
             linhas.append('  %s:' % t)
             linhas += ['    %s' % os.path.basename(x) for x in sorted(v)]
         raise SafrasMisturadas(
-            'a mesma distribuidora aparece mais de uma vez:\n'
+            'a mesma distribuidora aparece duas vezes NA MESMA SAFRA:\n'
             + '\n'.join(linhas)
-            + '\n\nAs duas gravariam na mesma pasta de modelo. '
-              'Separe as safras em pastas diferentes e aponte '
-              'BDGD2DSS_BASES para uma de cada vez.')
-    return saida
+            + '\n\nSao republicacoes do mesmo periodo. Deixe so a que '
+              'interessa na pasta.')
+    return final
+
+
+def _safra(caminho):
+    """O ano da safra no nome do arquivo, ou vazio.
+
+    O padrao da ANEEL e `<Nome>_<codigo>_<AAAA-MM-DD>_V11_<carimbo>`, e a
+    data-base e o que separa duas publicacoes da mesma distribuidora.
+    """
+    import re
+    m = re.search(r'_(\d{4})-\d{2}-\d{2}_', os.path.basename(caminho))
+    return m.group(1) if m else ''
 
 
 # O IMPORT NAO PODE MORRER. `descobrir` roda aqui, e uma excecao crua

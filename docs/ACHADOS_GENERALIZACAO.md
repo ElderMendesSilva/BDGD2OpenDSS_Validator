@@ -35,6 +35,7 @@ resultado.
 | Transformadores | Respeitar fases reais dos enrolamentos; um primário bifásico não pode ser escrito como trifásico. |
 | Chaves e reguladores | Emitir elementos conectados à rede, preservar o estado aberto e manter reguladores entre chaves no modelo. |
 | Nomes de elemento | O nome leva a camada: `COD_ID` é único DENTRO da tabela, não entre tabelas (achado 4). |
+| Safras na mesma pasta | A tag ganha a data-base só quando duas safras da mesma distribuidora colidem — `RR_2024` e `RR_2025`. Recusar a rodada, como se fazia antes, transferia ao usuário um trabalho que o código sabe fazer (DESAMBIGUADA em 02/09/2026). |
 | Leitura e escala | Ler tabelas grandes por fatias/lotes, tratar `dtype` heterogêneo e rejeitar comprimentos nulos antes de gerar DSS. |
 | Execução | Ordenar subestações maiores primeiro, retomar etapas concluídas e manter a saída determinística entre laptop e cluster. |
 

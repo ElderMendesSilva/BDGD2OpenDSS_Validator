@@ -40,12 +40,16 @@ as duas gravam em `MODELOS_SULGIPE46_<sufixo>`.
 A rodada misturaria 2024 e 2025 **sem erro nenhum**. É falha silenciosa, o
 padrão que já custou três colheitas neste projeto.
 
-Solução em duas camadas, porque só a primeira é disciplina e disciplina falha
-às 3 da manhã:
+**RESOLVIDO EM 02/09/2026, e melhor do que estava planejado.** A guarda passou
+a **desambiguar** em vez de recusar: a tag ganha a data-base só nas bases que
+colidem (`RR_2024` e `RR_2025`), e a base única mantém a tag de sempre — o que
+preserva a comparação com as rodadas anteriores. As duas safras podem ficar na
+mesma pasta.
 
-- safras em **pastas separadas**, `BDGD2DSS_BASES` apontando para uma por vez;
-- **guarda em `descobrir()` que recusa tag duplicada** em vez de processar as
-  duas.
+Recusar era defensável em lote e errado quando alguém aponta uma `.gdb`
+específica e a irmã dela por acaso mora ao lado: transferia ao usuário um
+trabalho que o código sabe fazer. O que continua recusado é a **mesma safra
+duas vezes**, onde não há critério para escolher sem inventar um.
 
 O sufixo de rodada já protege parcialmente — `MODELOS_SULGIPE46_V25` e
 `_V26` não colidem —, mas só se as safras nunca forem lidas na mesma execução.
