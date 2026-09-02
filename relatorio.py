@@ -29,6 +29,7 @@ from bdgd2dss import graficos                            # noqa: E402
 from bdgd2dss import laudo                               # noqa: E402
 from bdgd2dss import ficha                               # noqa: E402
 from bdgd2dss import anomalias                           # noqa: E402
+from bdgd2dss import veredicto                           # noqa: E402
 
 
 
@@ -215,6 +216,28 @@ def _do_modelo(pasta, se):
     return dist, pus, carga, xs, ys, cor, ficha_, anom
 
 
+def _extra_do_modelo(pus, carga, fonte, gd):
+    """O QUE SO O MODELO ABERTO SABE, e que o laudo e o veredicto precisam.
+
+    Sao as tres medidas que respondem se a rede e boa: quantas barras fora da
+    faixa, quantos condutores acima da ampacidade, e em quantos passos o fluxo
+    se inverte. Ficava embutido no bloco do PDF, e por isso o veredicto
+    impresso no terminal nao as via.
+    """
+    extra = {}
+    if pus:
+        fora = sum(1 for x in pus
+                   if x < graficos.V_ADEQUADA[0] or x > graficos.V_ADEQUADA[1])
+        extra['pct_fora_faixa'] = 100.0 * fora / len(pus)
+    if carga:
+        extra['pct_sobrecarga'] = (100.0 * sum(1 for x in carga if x > 100)
+                                   / len(carga))
+    if gd and any(gd):
+        total = [(f or 0) + (x or 0) for f, x in zip(fonte, gd)]
+        extra['passos_reversos'] = sum(1 for x, t in zip(gd, total) if x > t)
+    return extra
+
+
 def uma_subestacao(pasta, se, val, ene, ger, destino, abrir=True,
                    plots=None, pdf=True):
     """As dez figuras de uma subestacao."""
@@ -308,6 +331,16 @@ def uma_subestacao(pasta, se, val, ene, ger, destino, abrir=True,
     alvo = base + '.png'
     fig.savefig(alvo, dpi=110)
     plt.close(fig)
+    # O VEREDICTO NO TERMINAL. Quem roda o ciclo inteiro ve o selo de cada
+    # subestacao passando, e nao precisa abrir 450 PDFs para descobrir que
+    # duas reprovaram.
+    try:
+        classe = veredicto.completo(v, e, g, fic, fdia,
+                                    _extra_do_modelo(pus, carga, fonte, gd),
+                                    anom)[0]
+        print('      veredicto: %s' % classe, flush=True)
+    except Exception:                                        # noqa: BLE001
+        pass
     # O PDF E DOCUMENTO, e nao a figura salva noutro formato: texto, tabela e
     # as figuras dentro. E o que se anexa a um e-mail e o que alguem le sem
     # ter o projeto aberto do lado.
@@ -316,21 +349,8 @@ def uma_subestacao(pasta, se, val, ene, ger, destino, abrir=True,
         # em tres secoes — e elas sao justamente as que respondem se a rede e
         # boa: quantas barras fora da faixa, quantos condutores acima da
         # ampacidade, e em quantos passos o fluxo se inverte.
-        # A FICHA DO DIA VIAJA DENTRO DO `extra`, para que as analises das
-        # figuras possam citar fator de carga e coincidencia sem que cada uma
-        # tenha de recalcular a serie.
-        extra = {'dia': fdia}
-        if pus:
-            fora = sum(1 for x in pus
-                       if x < graficos.V_ADEQUADA[0] or x > graficos.V_ADEQUADA[1])
-            extra['pct_fora_faixa'] = 100.0 * fora / len(pus)
-        if carga:
-            extra['pct_sobrecarga'] = (100.0 * sum(1 for x in carga if x > 100)
-                                       / len(carga))
-        if gd and any(gd):
-            total = [(f or 0) + (x or 0) for f, x in zip(fonte, gd)]
-            extra['passos_reversos'] = sum(1 for x, t in zip(gd, total)
-                                           if x > t)
+        extra = _extra_do_modelo(pus, carga, fonte, gd)
+        extra['dia'] = fdia
         try:
             pdf_da_subestacao(base + '.pdf', pasta, se, v, e, g, alvo, extra,
                               fic, fdia, anom)
@@ -674,6 +694,10 @@ def pdf_da_subestacao(caminho, pasta, se, v, e, g, figura,
     # numeros aqui saem da interface do OpenDSS com o circuito ja resolvido —
     # e nao do `.dss` lido como texto —, entao contam o que o motor de fato
     # montou, e nao o que foi escrito.
+    pecas += _bloco_do_veredicto(v, e, g, fic or {}, fdia or {}, extra, anom,
+                                 'Veredicto', h2, corpo)
+    pecas.append(PageBreak())
+
     if fic or fdia:
         pecas += _bloco_da_ficha(fic or {}, fdia or {}, h2, corpo)
         pecas.append(PageBreak())
@@ -752,6 +776,90 @@ def pdf_da_subestacao(caminho, pasta, se, v, e, g, figura,
         pecas += achados_daqui
     doc.build(pecas)
     return caminho
+
+
+def _bloco_do_veredicto(v, e, g, fic, fdia, extra, anom, titulo, h2, corpo):
+    """A PRIMEIRA COISA DA PRIMEIRA PAGINA: o julgamento e por que.
+
+    O relatorio abria pela ficha, e a ficha e evidencia. Quem recebe um
+    documento quer a conclusao primeiro e a evidencia depois — e sobretudo quer
+    saber PARA QUE aquele modelo serve, que e a pergunta que ninguem estava
+    respondendo.
+    """
+    from reportlab.lib.styles import ParagraphStyle
+    from reportlab.lib.units import mm
+    from reportlab.lib import colors
+    from reportlab.platypus import Spacer, Table, TableStyle
+
+    classe, crits, frase, serve, nao = veredicto.completo(
+        v, e, g, fic, fdia, extra, anom)
+    cor = colors.HexColor(veredicto.COR.get(classe, '#546e7a'))
+
+    selo = ParagraphStyle('selo', parent=corpo, fontSize=15, leading=19,
+                          textColor=colors.white)
+    peq = ParagraphStyle('peq', parent=corpo, fontSize=7.4, leading=10,
+                         textColor=colors.HexColor('#666'))
+    item = ParagraphStyle('it', parent=corpo, fontSize=8.6, leading=12,
+                          leftIndent=4 * mm)
+
+    faixa = Table([[_p('<b>%s</b>' % classe, selo)]], colWidths=[164 * mm])
+    faixa.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (-1, -1), cor),
+        ('LEFTPADDING', (0, 0), (-1, -1), 6),
+        ('TOPPADDING', (0, 0), (-1, -1), 5),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 5),
+    ]))
+    pecas = [_p(titulo, h2), faixa, Spacer(1, 2.5 * mm),
+             _p(_negrito(frase), corpo), Spacer(1, 3 * mm)]
+
+    # A TABELA DE CRITERIOS. Valor medido e limite lado a lado: sem o limite
+    # visivel, "2,9%" nao diz se passou, e o leitor tem de confiar no selo em
+    # vez de conferir.
+    simbolo = {veredicto.PASSA: ('passa', '#2e7d32'),
+               veredicto.ATENCAO: ('atenção', '#f9a825'),
+               veredicto.FALHA: ('REPROVA', '#c62828'),
+               veredicto.SEM_DADO: ('sem dado', '#9e9e9e')}
+    linhas = [[_p('<b>critério</b>', peq), _p('<b>medido</b>', peq),
+               _p('<b>limite</b>', peq), _p('<b>resultado</b>', peq)]]
+    estilo = [
+        ('FONTSIZE', (0, 0), (-1, -1), 7.6),
+        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+        ('LINEBELOW', (0, 0), (-1, -2), 0.25, colors.HexColor('#e0e0e0')),
+        ('LINEBELOW', (0, 0), (-1, 0), 0.8, colors.HexColor('#9e9e9e')),
+        ('TOPPADDING', (0, 0), (-1, -1), 3),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 3),
+    ]
+    for k, x in enumerate(crits, start=1):
+        txt, c_res = simbolo.get(x['resultado'], simbolo[veredicto.SEM_DADO])
+        linhas.append([
+            _p(x['nome'] + (' <font size=6 color="#999">(eliminatório)</font>'
+                            if x['eliminatorio'] else ''), peq),
+            _p(str(x['valor']), peq), _p(str(x['limite']), peq),
+            _p('<b><font color="%s">%s</font></b>' % (c_res, txt), peq)])
+        if x['resultado'] in (veredicto.FALHA, veredicto.ATENCAO):
+            estilo.append(('BACKGROUND', (0, k), (-1, k),
+                           colors.HexColor('#fff8e1'
+                                           if x['resultado'] == veredicto.ATENCAO
+                                           else '#ffebee')))
+    t = Table(linhas, colWidths=[52 * mm, 45 * mm, 42 * mm, 25 * mm])
+    t.setStyle(TableStyle(estilo))
+    pecas.append(t)
+
+    # PARA QUE SERVE / PARA QUE NAO SERVE — a parte que nao existia.
+    pecas += [Spacer(1, 4 * mm), _p('Este modelo serve para', h2)]
+    for f in serve:
+        pecas.append(_p('• ' + _negrito(f), item))
+    pecas += [Spacer(1, 2 * mm), _p('Este modelo NÃO serve para', h2)]
+    for f in nao:
+        pecas.append(_p('• ' + _negrito(f), item))
+
+    # O criterio que reprovou merece a razao dele por extenso.
+    ruins = [x for x in crits if x['resultado'] == veredicto.FALHA]
+    if ruins:
+        pecas += [Spacer(1, 3 * mm), _p('Por que cada critério reprovou', h2)]
+        for x in ruins:
+            pecas.append(_p('<b>%s</b> — %s' % (x['nome'], x['porque']), corpo))
+    return pecas
 
 
 def _bloco_da_ficha(fic, fdia, h2, corpo):
