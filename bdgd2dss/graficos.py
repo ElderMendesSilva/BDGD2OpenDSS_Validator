@@ -35,6 +35,28 @@ COR_CLARA = '#b0bec5'
 V_ADEQUADA = (0.93, 1.05)
 
 
+def _rotulo(x):
+    """O valor da barra, na escala certa: 4,2 e 4,2%; 1.850 vira 1.850."""
+    try:
+        f = float(x)
+    except (TypeError, ValueError):
+        return ''
+    # DUAS CASAS ATE 1.000. A regra anterior arredondava a partir de 10, e
+    # `16,29%` virava `16` — perdendo justamente a precisao que distingue as
+    # tres piores subestacoes entre si.
+    if abs(f) >= 1000:
+        return _mil(f)
+    return ('%.2f' % f).replace('.', ',')
+
+
+def _mil(x):
+    """Número com ponto de milhar, à brasileira."""
+    try:
+        return '{:,.0f}'.format(float(x)).replace(',', '.')
+    except (TypeError, ValueError):
+        return '—'
+
+
 def _vazio(ax, motivo):
     """Diz por que nao ha figura, em vez de deixar o eixo em branco."""
     ax.text(0.5, 0.5, motivo, ha='center', va='center', fontsize=9,
@@ -89,7 +111,7 @@ def perfil_de_tensao(ax, distancias, pus):
     ax.axhline(V_ADEQUADA[0], color=COR_RUIM, lw=0.8, ls='--')
     ax.axhline(V_ADEQUADA[1], color=COR_RUIM, lw=0.8, ls='--')
     ax.axhspan(V_ADEQUADA[0], V_ADEQUADA[1], color=COR_OK, alpha=0.06)
-    return _acaba(ax, 'Perfil de tensao', 'distancia da fonte (km)', 'pu')
+    return _acaba(ax, 'Perfil de tensão', 'distância elétrica da fonte (km)', 'pu')
 
 
 def histograma_de_tensao(ax, pus):
@@ -100,7 +122,7 @@ def histograma_de_tensao(ax, pus):
     ax.axvline(V_ADEQUADA[0], color=COR_RUIM, lw=0.9, ls='--')
     ax.axvline(V_ADEQUADA[1], color=COR_RUIM, lw=0.9, ls='--')
     fora = sum(1 for p in pus if p < V_ADEQUADA[0] or p > V_ADEQUADA[1])
-    ax.set_title('Tensao nas barras de MT — %d de %d fora da faixa (%.1f%%)'
+    ax.set_title('Tensão nas barras de MT — %d de %d fora da faixa (%.1f%%)'
                  % (fora, len(pus), 100.0 * fora / len(pus)),
                  fontsize=10, loc='left')
     return _acaba(ax, ax.get_title(), 'pu', 'barras')
@@ -136,7 +158,7 @@ def perdas_do_dia(ax, fonte_kw, perdas_kw):
     ax.fill_between(h, pct, color=COR_RUIM, alpha=0.12)
     ax.set_xlim(0, 24)
     ax.set_xticks(range(0, 25, 3))
-    return _acaba(ax, 'Perda ao longo do dia', 'hora', '% da injecao')
+    return _acaba(ax, 'Perda ao longo do dia', 'hora', '% da injeção')
 
 
 def carregamento(ax, pcts):
@@ -152,7 +174,7 @@ def carregamento(ax, pcts):
     ax.axvline(100, color=COR_RUIM, lw=1.0, ls='--')
     acima = sum(1 for p in pcts if p > 100)
     return _acaba(ax, 'Carregamento dos condutores — %d acima de 100%%' % acima,
-                  '% da ampacidade', 'trechos')
+                  '% da ampacidade declarada', 'trechos')
 
 
 def por_alimentador(ax, nomes, valores, titulo, unidade, destacar=None):
@@ -169,9 +191,19 @@ def por_alimentador(ax, nomes, valores, titulo, unidade, destacar=None):
     n = [x[1] for x in par]
     cores = [COR_RUIM if (destacar and x > destacar) else COR_NEUTRA for x in v]
     ax.barh(range(len(v)), v, color=cores, height=0.7)
+    # O NUMERO NO FIM DA BARRA. Sem ele o leitor compara comprimentos e nao
+    # sabe a grandeza — "a maior e o dobro da segunda" nao diz se sao 4% ou
+    # 40%. Com o valor escrito, ranking e magnitude cabem na mesma figura.
+    largura = max(v) if v else 1
+    for k, x in enumerate(v):
+        ax.text(x + largura * 0.012, k, _rotulo(x), va='center', fontsize=7,
+                color=COR_RUIM if (destacar and x > destacar) else COR_NEUTRA)
+    ax.set_xlim(0, largura * 1.16)
     ax.set_yticks(range(len(v)))
     ax.set_yticklabels(n, fontsize=6)
     ax.invert_yaxis()
+    if destacar:
+        ax.axvline(destacar, color=COR_RUIM, lw=0.8, ls='--')
     return _acaba(ax, titulo, unidade, None)
 
 
@@ -185,13 +217,26 @@ def composicao_da_perda(ax, linhas_kw, trafos_kw):
     tot = (linhas_kw or 0) + (trafos_kw or 0)
     if tot <= 0:
         return _vazio(ax, 'perda total nula ou negativa')
-    ax.barh([0], [linhas_kw], color=COR_NEUTRA, height=0.5, label='linhas')
-    ax.barh([0], [trafos_kw], left=[linhas_kw], color=COR_ATENCAO, height=0.5,
-            label='transformadores')
+    ax.barh([0], [linhas_kw], color=COR_NEUTRA, height=0.45)
+    ax.barh([0], [trafos_kw], left=[linhas_kw], color=COR_ATENCAO, height=0.45)
+    # O VALOR VAI DENTRO DA BARRA. Barra empilhada sem numero obriga o leitor a
+    # medir o comprimento contra o eixo, e ninguem faz isso — le "mais ou menos
+    # metade" e segue. Com o kW e o percentual escritos, a figura responde
+    # sozinha.
+    for x0, larg, rot, cor in ((0, linhas_kw, 'linhas', 'white'),
+                               (linhas_kw, trafos_kw, 'transformadores',
+                                '#3e2723')):
+        if larg <= 0:
+            continue
+        ax.text(x0 + larg / 2.0, 0,
+                '%s\n%s kW\n%.0f%%' % (rot, _mil(larg),
+                                          100.0 * larg / tot),
+                ha='center', va='center', fontsize=9, color=cor,
+                linespacing=1.5)
     ax.set_yticks([])
-    ax.legend(fontsize=7, frameon=False, loc='upper right')
-    ax.set_title('Composicao da perda — trafos %.0f%%'
-                 % (100.0 * (trafos_kw or 0) / tot), fontsize=10, loc='left')
+    ax.set_ylim(-0.45, 0.45)
+    ax.set_title('Onde a perda acontece — %s kW no total' % _mil(tot),
+                 fontsize=10, loc='left')
     return _acaba(ax, ax.get_title(), 'kW', None)
 
 
@@ -234,11 +279,16 @@ def veredictos(ax, contagem):
     v = [x for _, x in ordem]
     cores = [COR_OK if k == 'OK' else COR_RUIM for k in n]
     ax.bar(range(len(v)), v, color=cores)
+    for k, x in enumerate(v):
+        ax.text(k, x, ' %d\n %.1f%%' % (x, 100.0 * x / sum(v)),
+                ha='center', va='bottom', fontsize=7, color=cores[k],
+                linespacing=1.3)
+    ax.set_ylim(0, max(v) * 1.25)
     ax.set_xticks(range(len(v)))
     ax.set_xticklabels(n, fontsize=6, rotation=20, ha='right')
     tot = sum(v)
     ok = contagem.get('OK', 0)
-    return _acaba(ax, 'Veredictos — %d de %d OK (%.1f%%)'
+    return _acaba(ax, 'Veredictos — %d de %d aprovadas (%.1f%%)'
                   % (ok, tot, 100.0 * ok / tot if tot else 0), None,
                   'subestacoes')
 
@@ -269,10 +319,24 @@ def histograma(ax, valores, titulo, xlabel, corte=None):
     """Distribuicao de uma metrica pela concessao."""
     if not valores:
         return _vazio(ax, 'sem valores')
+    import statistics as _st
     ax.hist(valores, bins=30, color=COR_NEUTRA, alpha=0.85)
+    # MEDIANA E CORTE ANOTADOS COM O NUMERO. Linha tracejada sem rotulo obriga
+    # a olhar o eixo e adivinhar onde ela cai.
+    med = _st.median(valores)
+    ax.axvline(med, color=COR_OK, lw=1.2)
+    ax.annotate('mediana %.2f' % med, (med, ax.get_ylim()[1] * 0.92),
+                fontsize=7, color=COR_OK, ha='left',
+                xytext=(4, 0), textcoords='offset points')
     if corte is not None:
         ax.axvline(corte, color=COR_RUIM, lw=1.0, ls='--')
-    return _acaba(ax, titulo, xlabel, 'subestacoes')
+        acima = sum(1 for x in valores if x > corte)
+        ax.annotate('%d acima de %g' % (acima, corte),
+                    (corte, ax.get_ylim()[1] * 0.78), fontsize=7,
+                    color=COR_RUIM, ha='left', xytext=(4, 0),
+                    textcoords='offset points')
+    return _acaba(ax, '%s — %d subestações' % (titulo, len(valores)),
+                  xlabel, 'subestações')
 
 
 def pizza(ax, rotulos, valores, titulo):
@@ -361,11 +425,11 @@ def geracao_no_dia(ax, fonte_kw, gd_kw):
         ax.fill_between(h, 0, max(carga) if carga else 1,
                         where=[i in set(reverso) for i in range(len(h))],
                         color=COR_RUIM, alpha=0.10)
-        ax.set_title('Geracao no dia — FLUXO REVERSO em %d passos (%.1f h)'
+        ax.set_title('Geração no dia — FLUXO REVERSO em %d passos (%.1f h)'
                      % (len(reverso), len(reverso) * 0.25),
                      fontsize=10, loc='left')
     else:
-        ax.set_title('Geracao no dia — sem fluxo reverso', fontsize=10,
+        ax.set_title('Geração no dia — sem fluxo reverso', fontsize=10,
                      loc='left')
     ax.set_xlim(0, 24)
     ax.set_xticks(range(0, 25, 3))
@@ -394,7 +458,7 @@ def cobertura_da_gd(ax, fonte_kw, gd_kw):
         i_pico = max(range(len(carga)), key=lambda k: carga[k])
         ax.axvline(h[i_pico], color=COR_NEUTRA, lw=0.9, ls=':')
         ax.text(h[i_pico], max(pct) * 0.95 if pct else 1,
-                ' pico de carga: GD cobre %.0f%%' % pct[i_pico],
+                ' pico de carga: a GD cobre %.0f%%' % pct[i_pico],
                 fontsize=7, color=COR_NEUTRA, va='top')
     ax.set_xlim(0, 24)
     ax.set_xticks(range(0, 25, 3))
@@ -417,12 +481,12 @@ def carregamento_liquido(ax, fonte_kw):
     hi = max(fonte_kw)
     i_lo = fonte_kw.index(lo)
     ax.scatter([h[i_lo]], [lo], s=28, color=COR_RUIM, zorder=5)
-    ax.annotate('minimo %.0f kW (%.1f h)' % (lo, h[i_lo]),
+    ax.annotate('mínimo de %s kW às %.1f h' % (_mil(lo), h[i_lo]),
                 (h[i_lo], lo), textcoords='offset points', xytext=(6, 8),
                 fontsize=7, color=COR_RUIM)
     if lo < 0:
         ax.axhline(0, color=COR_RUIM, lw=1.0)
     ax.set_xlim(0, 24)
     ax.set_xticks(range(0, 25, 3))
-    return _acaba(ax, 'Carregamento liquido na cabeceira — variacao %.0fx'
+    return _acaba(ax, 'Carregamento líquido na cabeceira — variação de %.0fx'
                   % (hi / lo if lo > 0 else float('inf')), 'hora', 'kW')

@@ -449,67 +449,105 @@ def analise_da_figura(chave, v, e, g, extra=None):
 
 
 def analise_da_concessao(chave, ag):
-    """O paragrafo de cada figura da concessao."""
+    """O parágrafo que acompanha cada figura da concessão."""
     n = ag.get('ses') or 0
     ok = ag.get('ok') or 0
     med = ag.get('perda_mediana')
+
     if chave == 'veredictos':
         p = _pct(ok, n) or 0
-        t = ('Quantas subestacoes passam nos criterios de aceite: %d de %d '
-             '(%.1f%%).' % (ok, n, p))
+        t = ('Quantas subestações passam nos critérios de aceite: **%d de %d '
+             '(%.1f%%)**. Passar significa compilar nos dois motores do '
+             'OpenDSS, convergir, não ter barra com potência indefinida e '
+             'manter a tensão mediana da média tensão dentro do plausível.'
+             % (ok, n, p))
         if p < 100:
-            t += (' As barras vermelhas sao os motivos de reprovacao, e a '
-                  'altura delas diz se o problema e disperso ou concentrado — '
-                  'na pratica, poucas bases costumam responder por quase tudo.')
+            t += (' As barras vermelhas são os motivos de reprovação. A altura '
+                  'delas diz se o problema está espalhado pela concessão ou '
+                  'concentrado em poucas subestações — e, na prática, costuma '
+                  'ser concentrado.')
         return t
+
     if chave == 'perdas_hist':
-        t = 'Como a perda se distribui entre as subestacoes da concessao.'
+        t = ('Como a perda técnica se distribui entre as subestações. Cada '
+             'barra conta quantas subestações caem naquela faixa de perda.')
         if med is not None:
-            t += (' A mediana e **%.2f%%**. A linha tracejada marca 10%%: o que '
-                  'esta a direita dela nao se explica por rede de media tensao '
-                  'e merece diagnostico individual.' % med)
+            t += (' A mediana da concessão é **%.2f%%**. A linha tracejada '
+                  'marca 10%%: o que está à direita dela não se explica por '
+                  'uma rede de média tensão, e merece diagnóstico individual.'
+                  % med)
         return t
+
     if chave == 'perdas_rank':
-        return ('As subestacoes de maior perda, em vermelho as que passam de '
-                '10%. Esta figura existe porque o agregado esconde quem domina: '
-                'costuma ser um punhado de subestacoes respondendo pela maior '
-                'parte da perda da concessao.')
+        return ('As subestações de maior perda, em vermelho as que passam de '
+                '10%. Esta figura existe porque o valor agregado esconde quem '
+                'domina: é comum um punhado de subestações responder pela '
+                'maior parte da perda de toda a concessão, e trabalhar sobre a '
+                'média seria tratar o sintoma errado.')
+
     if chave == 'dia':
-        return ('A curva de carga somada de todas as subestacoes. E o perfil '
-                'da concessao inteira em passos de 15 min — o que a soma dos '
-                'medidores da distribuidora deveria mostrar.')
+        return ('A curva de carga somada de todas as subestações, em passos de '
+                '15 minutos. É o perfil da concessão inteira ao longo do dia — '
+                'aproximadamente o que a soma dos medidores de fronteira da '
+                'distribuidora deveria registrar.')
+
     if chave == 'gd_fluxo':
-        return ('Carga e geracao distribuida agregadas. No nivel da concessao '
-                'o fluxo reverso e raro mesmo quando existe em alimentadores '
-                'individuais: a soma dilui o efeito, e por isso a analise por '
-                'subestacao nao pode ser substituida por esta.')
+        return ('Carga e geração distribuída somadas. No nível da concessão o '
+                'fluxo reverso é raro mesmo quando existe em alimentadores '
+                'individuais, porque a soma dilui o efeito: um alimentador '
+                'exportando some dentro de dezenas que importam. Por isso esta '
+                'figura **não substitui** a análise por subestação.')
+
     if chave == 'gd_cobre':
-        return ('Que fracao do consumo da concessao a geracao distribuida '
-                'cobre ao longo do dia, e onde fica o pico de carga em relacao '
-                'ao pico de geracao.')
+        return ('Que fração do consumo da concessão a geração distribuída '
+                'cobre ao longo do dia. A linha pontilhada marca o pico de '
+                'carga, e a distância entre ele e o pico de geração é o que '
+                'decide se a GD alivia a rede ou apenas desloca energia no '
+                'tempo.')
+
     if chave == 'tensao_hist':
-        return ('A tensao MINIMA de cada subestacao. A linha tracejada e o '
-                'limite do PRODIST: cada barra a esquerda dela e uma '
-                'subestacao com pelo menos um ponto fora do adequado.')
+        return ('A tensão **mínima** de cada subestação. A linha tracejada é o '
+                'limite inferior do PRODIST (0,93 pu): cada barra à esquerda '
+                'dela é uma subestação com pelo menos um ponto fora da faixa '
+                'adequada. Uma subestação pode aparecer aqui e ainda assim '
+                'estar sadia — o mínimo é uma ponta, não a rede toda.')
+
     if chave == 'km_rank':
-        return ('As maiores redes da concessao, em km de media tensao. Serve '
-                'de denominador: perda alta numa rede de 2.000 km e outra '
-                'coisa que perda alta numa de 50 km.')
+        return ('As maiores redes da concessão, em quilômetros de média '
+                'tensão. Serve de denominador para as outras figuras: perda '
+                'alta numa rede de 2.000 km significa uma coisa, e a mesma '
+                'perda numa de 50 km significa outra bem diferente.')
+
     if chave == 'perda_km':
-        return ('Perda contra tamanho. Se a perda fosse explicada por '
-                'comprimento, os pontos subiriam em diagonal. Dispersao sem '
-                'tendencia significa que o que domina e outra coisa — condutor, '
-                'carregamento ou defeito de modelagem.')
+        return ('Perda contra tamanho, uma subestação por ponto. Se a perda '
+                'fosse explicada pelo comprimento da rede, os pontos subiriam '
+                'em diagonal. **Dispersão sem tendência significa que o que '
+                'domina é outra coisa** — condutor incoerente, carregamento, '
+                'ou defeito de modelagem.')
+
     if chave == 'composicao':
         lin = ag.get('perdas_linhas_kW') or 0
         tra = ag.get('perdas_trafos_kW') or 0
         pt = _pct(tra, lin + tra)
         if pt is None:
             return ''
-        return ('A perda da concessao inteira, separada entre linhas e '
-                'transformadores: **%.0f%% esta nos transformadores**. Essa '
-                'parcela e perda a vazio e independe de carga, e e ela que a '
-                'comparacao com a perda declarada pela distribuidora costuma '
-                'nao contemplar — o achado 13 deste projeto vive nesta '
-                'figura.' % pt)
+        return ('A perda da concessão inteira, separada entre linhas e '
+                'transformadores: **%.0f%% está nos transformadores** e %.0f%% '
+                'nas linhas. A parcela dos transformadores é perda a vazio — '
+                'existe 24 horas por dia, com ou sem carga, e depende do '
+                'número de transformadores e não de quilômetros. É justamente '
+                'essa parcela que a perda declarada pela distribuidora costuma '
+                'não contemplar, e é aí que mora o achado 13 deste projeto.'
+                % (pt, 100 - pt))
+
+    if chave == 'resumo':
+        return ('Os números da concessão em uma tabela, para consulta rápida '
+                'sem precisar voltar às figuras.')
+
+    if chave == 'energia':
+        return ('A energia do dia somada, e uma nota sobre por que a série de '
+                '96 passos importa: é ela que permite o modo diário do '
+                'OpenDSS, e é o modo diário que torna a geração distribuída '
+                'analisável.')
+
     return ''

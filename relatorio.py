@@ -430,16 +430,16 @@ def a_concessao(pasta, val, ene, ger, ver, destino, plots=None,
     desenha = {
         'veredictos': lambda a: graficos.veredictos(a, cont),
         'perdas_hist': lambda a: graficos.histograma(
-            a, [v for v, _ in perdas], 'Perda por subestacao',
-            '% da injecao', corte=10.0),
+            a, [v for v, _ in perdas], 'Perda por subestação',
+            '% da injeção', corte=10.0),
         'perdas_rank': lambda a: graficos.ranking(
             a, [x for _, x in perdas], [v for v, _ in perdas],
-            'Maiores perdas', '% da injecao', limite=10.0),
+            'Maiores perdas', '% da injeção', limite=10.0),
         'dia': lambda a: graficos.curva_do_dia(a, soma_f, soma_g, soma_p),
         'gd_fluxo': lambda a: graficos.geracao_no_dia(a, soma_f, soma_g),
         'gd_cobre': lambda a: graficos.cobertura_da_gd(a, soma_f, soma_g),
         'tensao_hist': lambda a: graficos.histograma(
-            a, [v for v, _ in vmin], 'Tensao minima por subestacao', 'pu',
+            a, [v for v, _ in vmin], 'Tensão mínima por subestação', 'pu',
             corte=0.93),
         'km_rank': lambda a: graficos.ranking(
             a, [x for _, x in kms], [v for v, _ in kms], 'Maiores redes',
@@ -453,7 +453,7 @@ def a_concessao(pasta, val, ene, ger, ver, destino, plots=None,
             sum(num(val, x, 'perdas_trafos_kW') or 0 for x in ses)),
         'resumo': lambda a: graficos.texto(
             a, _resumo_geral(ses, cont, ger, kms, perdas, val, num),
-            'Concessao em numeros'),
+            'A concessão em números'),
         'energia': lambda a: graficos.texto(
             a, _energia_geral(ses, ene, num), 'Energia do dia'),
     }
@@ -679,7 +679,6 @@ def pdf_da_subestacao(caminho, pasta, se, v, e, g, figura,
     # e a maior parte das pessoas nao redescobre, so passa a pagina.
     from reportlab.platypus import PageBreak
     pasta_fig = os.path.join(os.path.dirname(caminho))
-    primeira = True
     for chave, titulo_fig in PLOTS_SE:
         png = os.path.join(pasta_fig, '%s.png' % chave)
         if not os.path.exists(png):
@@ -687,13 +686,16 @@ def pdf_da_subestacao(caminho, pasta, se, v, e, g, figura,
         texto = laudo.analise_da_figura(chave, v, e, g, extra)
         if not texto:
             continue
-        pecas.append(PageBreak() if primeira else Spacer(1, 8 * mm))
-        primeira = False
+        # UMA PAGINA POR SECAO. Duas secoes na mesma pagina fazem a figura
+        # de baixo brigar por espaco com o texto de cima, e a leitura vira
+        # rolagem. Com uma por pagina, cada figura tem a largura toda e o
+        # paragrafo fica acima dela, onde e lido antes.
+        pecas.append(PageBreak())
         pecas += [
             _p(titulo_fig, h2),
             _p(_negrito(texto), corpo),
-            Spacer(1, 3 * mm),
-            Image(png, width=150 * mm, height=150 * mm * _proporcao(png)),
+            Spacer(1, 5 * mm),
+            Image(png, width=168 * mm, height=168 * mm * _proporcao(png)),
         ]
     doc.build(pecas)
     return caminho
@@ -825,7 +827,6 @@ def pdf_da_concessao(caminho, pasta, agregado, pasta_fig, chaves):
     pecas += [Spacer(1, 4 * mm), t]
 
     nomes = dict(PLOTS_GERAL)
-    primeira = True
     for chave in chaves:
         png = os.path.join(pasta_fig, '%s.png' % chave)
         if not os.path.exists(png):
@@ -833,13 +834,12 @@ def pdf_da_concessao(caminho, pasta, agregado, pasta_fig, chaves):
         texto = laudo.analise_da_concessao(chave, agregado)
         if not texto:
             continue
-        pecas.append(PageBreak() if primeira else Spacer(1, 8 * mm))
-        primeira = False
+        pecas.append(PageBreak())
         pecas += [
             _p(nomes.get(chave, chave), h2),
             _p(_negrito(texto), corpo),
-            Spacer(1, 3 * mm),
-            Image(png, width=150 * mm, height=150 * mm * _proporcao(png)),
+            Spacer(1, 5 * mm),
+            Image(png, width=168 * mm, height=168 * mm * _proporcao(png)),
         ]
     doc.build(pecas)
     return caminho
