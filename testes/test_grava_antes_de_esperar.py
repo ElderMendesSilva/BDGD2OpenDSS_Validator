@@ -75,7 +75,7 @@ class GravaAntesDeEsperar(unittest.TestCase):
     def test_toda_etapa_paralela_grava_dentro_do_with(self):
         sem_gravar = []
         for script in ETAPAS:
-            caminho = os.path.join(RAIZ, script)
+            caminho = os.path.join(RAIZ, 'etapas', script)
             arvore = _arvore(caminho)
             funcoes = {f.name: f for f in ast.walk(arvore)
                        if isinstance(f, ast.FunctionDef)}

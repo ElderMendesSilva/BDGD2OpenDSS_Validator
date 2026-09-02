@@ -3,7 +3,7 @@
 MENU — a porta de entrada do projeto
 ====================================
 
-    python menu.py
+    python Validator.py
 
 Uma janela com as sete ferramentas na ordem em que se usa, cada uma com o
 que faz e o que ela exige que ja exista. Clicar abre a ferramenta num
@@ -34,42 +34,42 @@ sys.path.insert(0, RAIZ)
 
 # nome, script, o que faz, o que precisa existir antes
 FERRAMENTAS = [
-    ('Converter a BDGD', 'converter.py',
+    ('Converter a BDGD', 'etapas/converter.py',
      'Lê o .gdb e gera os modelos OpenDSS — um MASTER por subestação mais o '
      'MASTER-GERAL com a alta tensão.',
      'a BDGD (.gdb). Leva ~50 min para a concessão inteira.'),
-    ('Religar a rede sem tensão  (premissa)', 'ligacao.py',
+    ('Religar a rede sem tensão  (premissa)', 'etapas/ligacao.py',
      'PREMISSA DE MODELAGEM: liga a barra de MT da subestação à rede que '
      'ficou desenergizada. INVENTA um elo que a BDGD não declara — escreve '
      'em _LIGACAO.dss, que dá para apagar. Elo que faz divergir é recusado.',
      'os modelos gerados. Rode ANTES da ampacidade: religar muda a corrente.'),
-    ('Trocar condutor sobrecarregado  (premissa)', 'ampacidade.py',
+    ('Trocar condutor sobrecarregado  (premissa)', 'etapas/ampacidade.py',
      'PREMISSA DE MODELAGEM: troca a resistência do trecho cuja corrente '
      'calculada excede a ampacidade declarada. Escreve em _AMPACIDADE.dss, '
      'que dá para apagar.',
      'os modelos gerados, e a ligação já rodada se for usá-la.'),
-    ('Verificar as subestações', 'verifica.py',
+    ('Verificar as subestações', 'etapas/verifica.py',
      'Compila e resolve cada subestação nos DOIS motores do OpenDSS e aponta '
      'NaN, não convergência e falha de compilação.',
      'os modelos gerados. É o primeiro teste depois de converter.'),
-    ('Validar (causa raiz)', 'validador.py',
+    ('Validar (causa raiz)', 'etapas/validador.py',
      'Classifica o que está fora do esperado e separa defeito do conversor '
      'de característica da rede.',
      'os modelos gerados.'),
-    ('Energia e perdas do dia', 'energia.py',
+    ('Energia e perdas do dia', 'etapas/energia.py',
      'Roda as 24 h em passos de 15 min e integra energia e perdas por '
      'alimentador. Escreve o energia_dia.json.',
      'os modelos gerados. É o passo mais demorado depois da conversão.'),
-    ('Validar as perdas', 'valida_perdas.py',
+    ('Validar as perdas', 'etapas/valida_perdas.py',
      'Cruza a perda do modelo com a declarada na CTMT (PERD_A4 + PERD_B + '
      'PERD_A4_B), alimentador a alimentador.',
      'o energia_dia.json (rode antes "Energia e perdas do dia") e a BDGD.'),
-    ('Validar o balanço de energia', 'valida_balanco.py',
+    ('Validar o balanço de energia', 'etapas/valida_balanco.py',
      'Confronta a perda técnica do modelo com a energia MEDIDA na BDGD — '
      'injetada contra faturada — e separa o modelo impossível da medição '
      'degenerada.',
      'o energia_dia.json e a BDGD.'),
-    ('Análise e gráficos (COM)', 'analise_com.py',
+    ('Análise e gráficos (COM)', 'etapas/analise_com.py',
      'Resolve um MASTER pelo motor da EPRI e desenha o traçado geográfico, '
      'o perfil de tensão, o carregamento e as perdas.',
      'um arquivo MASTER. Exige pywin32 e matplotlib.'),
@@ -77,7 +77,7 @@ FERRAMENTAS = [
      'Janela com todas as subestações listadas: validar uma ou todas, ver as '
      'figuras e abrir o Plot nativo do OpenDSS.',
      'os modelos gerados.'),
-    ('Pausar / retomar o ciclo', 'pausa.py',
+    ('Pausar / retomar o ciclo', 'etapas/pausa.py',
      'Segura um ciclo em andamento sem cancelar nada: as subestações em '
      'andamento terminam, nenhuma nova começa, e retomar continua de onde '
      'parou. Serve para quando a máquina for necessária para outra coisa.',

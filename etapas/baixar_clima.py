@@ -28,7 +28,7 @@ import os
 import sys
 import time
 
-RAIZ = os.path.dirname(os.path.abspath(__file__))
+RAIZ = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, RAIZ)
 
 from bdgd2dss import clima                             # noqa: E402

@@ -25,6 +25,7 @@ import unittest
 AQUI = os.path.dirname(os.path.abspath(__file__))
 RAIZ = os.path.dirname(AQUI)
 sys.path.insert(0, RAIZ)
+sys.path.insert(0, os.path.join(RAIZ, 'etapas'))
 
 try:
     import opendssdirect                              # noqa: F401
@@ -55,7 +56,7 @@ def _modelo(destino, nome, trechos):
 
 def _roda(pasta, jobs):
     r = subprocess.run([sys.executable, '-u',
-                        os.path.join(RAIZ, 'validador.py'), pasta,
+                        os.path.join(RAIZ, 'etapas', 'validador.py'), pasta,
                         '--ses', '--jobs', str(jobs)],
                        capture_output=True, text=True, timeout=900)
     arq = os.path.join(pasta, 'validacao.json')
@@ -122,7 +123,7 @@ class AReferenciaDaBase(unittest.TestCase):
     @staticmethod
     def _main():
         import ast
-        with open(os.path.join(RAIZ, 'validador.py'), encoding='utf-8') as fh:
+        with open(os.path.join(RAIZ, 'etapas', 'validador.py'), encoding='utf-8') as fh:
             arvore = ast.parse(fh.read())
         return next(n for n in arvore.body
                     if isinstance(n, ast.FunctionDef) and n.name == 'main')

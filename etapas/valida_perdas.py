@@ -37,7 +37,11 @@ import os
 import statistics
 import sys
 
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+# O PACOTE ESTA NO PAI: estes executaveis moraram na raiz ate
+# 02/09/2026, e la `dirname(__file__)` era a propria raiz. Depois da
+# mudanca para `etapas/`, apontar para o proprio diretorio nao acha
+# `bdgd2dss` — e o erro so aparece ao RODAR, nunca ao importar.
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from bdgd2dss.leitor import BDGD, num, txt          # noqa: E402
 from bdgd2dss import escrita
 from bdgd2dss import concordancia
@@ -235,7 +239,7 @@ def grafico(pares, raiz, faixas, parcelas=None):
     Barras por porte: a discordancia ESTRUTURAL — o declarado e plano com o
     tamanho do alimentador e o do modelo cresce com ele.
     """
-    import interativo
+    from bdgd2dss import interativo
     plt = interativo.pyplot()
 
     m = [x[2] for x in pares]
@@ -291,7 +295,7 @@ def grafico(pares, raiz, faixas, parcelas=None):
 
 
 def _painel():
-    import interativo
+    from bdgd2dss import interativo
     v = interativo.formulario('valida_perdas', 'Validação das perdas', [
         {'chave': 'raiz', 'tipo': 'pasta', 'rotulo': 'Pasta dos modelos',
          'padrao': interativo.modelos_recentes(),

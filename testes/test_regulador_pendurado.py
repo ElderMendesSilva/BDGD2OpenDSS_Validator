@@ -51,6 +51,7 @@ import unittest
 AQUI = os.path.dirname(os.path.abspath(__file__))
 RAIZ = os.path.dirname(AQUI)
 sys.path.insert(0, RAIZ)
+sys.path.insert(0, os.path.join(RAIZ, 'etapas'))
 from bdgd2dss import complementos                          # noqa: E402
 
 
@@ -140,7 +141,7 @@ class AAssinaturaNaoPodeQuebrarOChamador(unittest.TestCase):
     quebrado, porque nenhum teste exercitava o caminho."""
 
     def setUp(self):
-        with open(os.path.join(RAIZ, 'converter.py'), encoding='utf-8') as fh:
+        with open(os.path.join(RAIZ, 'etapas', 'converter.py'), encoding='utf-8') as fh:
             self.fonte = fh.read().lstrip('﻿')
 
     def test_devolve_tupla_de_dois(self):

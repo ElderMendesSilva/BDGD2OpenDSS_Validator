@@ -29,7 +29,10 @@ import sys
 import time
 
 AQUI = os.path.dirname(os.path.abspath(__file__))
-sys.path.insert(0, AQUI)
+# A RAIZ E O PAI, desde a mudanca de 02/09/2026: estes executaveis
+# sairam da raiz para `etapas/`, e `AQUI` deixou de ser onde mora o
+# pacote `bdgd2dss`.
+sys.path.insert(0, os.path.dirname(AQUI))
 from bdgd2dss import ampacidade, lote, pausa, plataforma, pool                        # noqa: E402
 from bdgd2dss import escrita
 
@@ -124,8 +127,8 @@ def uma(pasta, se, margem):
 
 
 def _painel():
-    """Sem argumento, pergunta na janela — o `menu.py` conta com isso."""
-    import interativo
+    """Sem argumento, pergunta na janela — o `Validator.py` conta com isso."""
+    from bdgd2dss import interativo
     v = interativo.formulario('ampacidade', 'Substituição por ampacidade', [
         {'chave': 'pasta', 'tipo': 'pasta', 'rotulo': 'Pasta dos modelos',
          'padrao': interativo.modelos_recentes(),

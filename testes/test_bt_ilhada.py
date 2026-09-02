@@ -51,6 +51,7 @@ import unittest
 AQUI = os.path.dirname(os.path.abspath(__file__))
 RAIZ = os.path.dirname(AQUI)
 sys.path.insert(0, RAIZ)
+sys.path.insert(0, os.path.join(RAIZ, 'etapas'))
 from bdgd2dss import linhas                                # noqa: E402
 
 
@@ -102,7 +103,7 @@ class AUniaoDosDoisConjuntos(unittest.TestCase):
 class OConversorUsaCerto(unittest.TestCase):
 
     def setUp(self):
-        with open(os.path.join(RAIZ, 'converter.py'), encoding='utf-8') as fh:
+        with open(os.path.join(RAIZ, 'etapas', 'converter.py'), encoding='utf-8') as fh:
             self.fonte = fh.read().lstrip('﻿')
 
     def test_a_conta_e_sobre_os_dois_conjuntos(self):

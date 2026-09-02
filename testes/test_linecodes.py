@@ -26,6 +26,7 @@ import unittest
 
 AQUI = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.dirname(AQUI))
+sys.path.insert(0, os.path.join(os.path.dirname(AQUI), 'etapas'))
 sys.path.insert(0, AQUI)
 import fixture                                    # noqa: E402
 from bdgd2dss import linecodes                    # noqa: E402

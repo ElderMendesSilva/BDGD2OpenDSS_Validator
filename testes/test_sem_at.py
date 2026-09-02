@@ -48,11 +48,12 @@ import unittest
 AQUI = os.path.dirname(os.path.abspath(__file__))
 RAIZ = os.path.dirname(AQUI)
 sys.path.insert(0, RAIZ)
+sys.path.insert(0, os.path.join(RAIZ, 'etapas'))
 
 
 def _fallback():
     """O trecho do `converter` que decide a fonte quando nao ha vao."""
-    with open(os.path.join(RAIZ, 'converter.py'), encoding='utf-8') as fh:
+    with open(os.path.join(RAIZ, 'etapas', 'converter.py'), encoding='utf-8') as fh:
         fonte = fh.read().lstrip('﻿')
     i = fonte.index('SEM VAO NENHUM')
     return fonte[i:i + 1400]
@@ -96,7 +97,7 @@ class OQueNaoPodeMudar(unittest.TestCase):
         Se subisse na ordem, passaria a alimentar por cabeceira subestacao que
         tem barramento, e ai o modelo deixaria de ter barra: era o achado 47.
         """
-        with open(os.path.join(RAIZ, 'converter.py'), encoding='utf-8') as fh:
+        with open(os.path.join(RAIZ, 'etapas', 'converter.py'), encoding='utf-8') as fh:
             fonte = fh.read().lstrip('﻿')
         i_derivada = fonte.index("not vaos_lig[c].get('derivada')")
         i_origem = fonte.index("v.get('origem')")
@@ -108,7 +109,7 @@ class OQueNaoPodeMudar(unittest.TestCase):
                         'cabeceira — senao volta o achado 47')
 
     def test_a_flag_continua_existindo(self):
-        with open(os.path.join(RAIZ, 'converter.py'), encoding='utf-8') as fh:
+        with open(os.path.join(RAIZ, 'etapas', 'converter.py'), encoding='utf-8') as fh:
             arvore = ast.parse(fh.read().lstrip('﻿'))
         nomes = {c.args[0].value for c in ast.walk(arvore)
                  if isinstance(c, ast.Call)

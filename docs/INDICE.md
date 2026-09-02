@@ -3,7 +3,7 @@
 ## Comece aqui
 
 - README.md: instalação, uso e arquitetura do conversor.
-- menu.py: interface das ferramentas na ordem operacional.
+- Validator.py: interface das ferramentas na ordem operacional.
 - doutor.py: diagnóstico do ambiente antes de uma rodada.
 
 ## Fluxo principal

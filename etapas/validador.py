@@ -17,7 +17,11 @@ Checa, nesta ordem:
 """
 import argparse
 import os, sys, math, json, glob, statistics
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+# O PACOTE ESTA NO PAI: estes executaveis moraram na raiz ate
+# 02/09/2026, e la `dirname(__file__)` era a propria raiz. Depois da
+# mudanca para `etapas/`, apontar para o proprio diretorio nao acha
+# `bdgd2dss` — e o erro so aparece ao RODAR, nunca ao importar.
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from bdgd2dss import diagnostico, lote, pausa, plataforma, pool
 from bdgd2dss import escrita
 
@@ -278,7 +282,7 @@ def grafico(out, alvo):
     no esperado, vermelho o que e acionavel aqui.
     """
     import collections
-    import interativo
+    from bdgd2dss import interativo
     plt = interativo.pyplot()
 
     c = collections.Counter(r.get('causa') or '(sem causa)' for r in out)
@@ -348,7 +352,7 @@ def _linha(r):
 
 
 def _painel():
-    import interativo
+    from bdgd2dss import interativo
     v = interativo.formulario('validador', 'Validador dos modelos', [
         {'chave': 'alvo', 'tipo': 'pasta', 'rotulo': 'Pasta',
          'padrao': interativo.modelos_recentes(),

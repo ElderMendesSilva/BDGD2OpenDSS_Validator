@@ -12,6 +12,7 @@ import unittest
 AQUI = os.path.dirname(os.path.abspath(__file__))
 RAIZ = os.path.dirname(AQUI)
 sys.path.insert(0, RAIZ)
+sys.path.insert(0, os.path.join(RAIZ, 'etapas'))
 sys.path.insert(0, os.path.join(RAIZ, 'diagnosticos'))
 
 import perfil_violacao as pv        # noqa: E402

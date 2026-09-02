@@ -62,6 +62,7 @@ import unittest
 AQUI = os.path.dirname(os.path.abspath(__file__))
 RAIZ = os.path.dirname(AQUI)
 sys.path.insert(0, RAIZ)
+sys.path.insert(0, os.path.join(RAIZ, 'etapas'))
 from bdgd2dss import transformadores as tr                # noqa: E402
 
 # codigos da TPOTAPRT: '16' = 75 kVA, '20' = 112,5 kVA, '2' = 5 kVA

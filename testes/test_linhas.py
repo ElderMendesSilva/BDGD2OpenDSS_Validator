@@ -26,6 +26,7 @@ import numpy as np
 
 AQUI = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.dirname(AQUI))
+sys.path.insert(0, os.path.join(os.path.dirname(AQUI), 'etapas'))
 from bdgd2dss import linhas                          # noqa: E402
 
 MAPA = {'C1': {1: 'CND_C1_1F', 2: 'CND_C1_2F', 3: 'CND_C1_3F',

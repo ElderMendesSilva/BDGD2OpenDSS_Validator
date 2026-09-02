@@ -7,7 +7,8 @@ começo** — mover depois quebra caminho que alguém já escreveu.
 
 | pasta | o que vai nela |
 |---|---|
-| **raiz** | só os `.py` executáveis (`converter.py`, `verifica.py`, `energia.py`, `validador.py`, `valida_*.py`, `ampacidade.py`, `ligacao.py`, `regerar_v10.py`, `decompor.py`, `menu.py`, `painel.py`, `app.py`), o `README.md`, o `CHANGELOG.md` e o `requirements.txt` |
+| **raiz** | só as PORTAS DE ENTRADA: `Validator.py` (o menu, com todas as opções), `painel.py`, `app.py`, `regerar_v10.py` e `relatorio.py`. Mais o `README.md`, o `CHANGELOG.md` e o `requirements.txt` |
+| **`etapas/`** | os executáveis do ciclo, chamados pelo `regerar_v10` e pelo menu: `converter.py`, `verifica.py`, `energia.py`, `validador.py`, `valida_*.py`, `ampacidade.py`, `ligacao.py`, `auditoria.py`, `decompor.py`, `doutor.py`, `pausa.py`, `baixar_*.py`, `analise_com.py` |
 | **`docs/`** | todo `.md` que não seja o `README.md` — achados, planos, relatórios, respostas |
 | **`logs/`** | log de execução. A regeração escreve em `logs/<sufixo>/`: `logs/v13/`, `logs/v14/`… Log solto de script avulso fica em `logs/` mesmo |
 | **`medicoes/`** | JSON de medição avulsa: alcance, censo de condutor, e o que mais sair de script de diagnóstico |
@@ -16,6 +17,22 @@ começo** — mover depois quebra caminho que alguém já escreveu.
 | **`analise/`** | scripts de análise que rodam sobre modelos já gerados |
 | **`dados/`** | insumo do conversor, versionado — hoje o `de_para_mnemonicos.csv` |
 | **`MODELOS_<TAG>_<SUFIXO>/`** | saída do conversor. **Não versionada e não reorganizável** |
+
+## Reorganização de 02/09/2026
+
+A raiz tinha **21 executáveis** e virou impossível achar o que se roda. Agora
+ela tem **cinco**, que são as portas de entrada; as dezesseis etapas do ciclo
+foram para `etapas/`, e o `interativo.py` — que é biblioteca, não executável —
+para `bdgd2dss/`.
+
+O que a mudança exigiu, e serve de aviso para a próxima: **o `sys.path` dos
+arquivos movidos** (o pacote passou a ser o pai), a **ordem** entre `sys.path`
+e `import` em três deles (funcionava por acidente, com o diretório de trabalho
+achando o pacote), as **chamadas por subprocesso** no `regerar` e no menu, os
+**`.pbs` do cluster**, e **56 testes** que importavam os módulos pelo nome ou
+abriam o arquivo por caminho.
+
+`menu.py` virou **`Validator.py`**: é o ponto de entrada com todas as opções.
 
 ## O que NÃO pode mudar de lugar
 

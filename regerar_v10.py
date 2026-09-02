@@ -591,7 +591,7 @@ def _painel_basico():
     resposta ficam de pe: QUAL base e ONDE gravar. O avancado continua um
     clique ao lado, para quando a pergunta for tecnica.
     """
-    import interativo
+    from bdgd2dss import interativo
     achadas = ' '.join(t for t, _, _ in BASES[:6])
     v = interativo.formulario('regerar_basico', 'Rodar — basico', [
         {'chave': 'so', 'tipo': 'texto', 'rotulo': 'Qual base rodar',
@@ -616,12 +616,12 @@ def _painel_basico():
 
 
 def _painel():
-    """Sem argumento, pergunta na janela — o `menu.py` conta com isso.
+    """Sem argumento, pergunta na janela — o `Validator.py` conta com isso.
 
     Este e o unico script que dispara HORAS de trabalho num clique, entao ele
     pergunta antes: quais bases, com que sufixo e se as premissas entram.
     """
-    import interativo
+    from bdgd2dss import interativo
     v = interativo.formulario('regerar', 'Ciclo completo das bases', [
         {'chave': 'sufixo', 'tipo': 'texto', 'rotulo': 'Sufixo da rodada',
          'padrao': 'V15',
@@ -808,7 +808,7 @@ def main():
         # quatro em diante passa de 20%. Sem repassar `--se`, a unica escolha
         # era rodar a base INTEIRA — e ai as 249 subestacoes fragmentadas da
         # Cemig condenam as 163 trataveis junto.
-        cmd_conv = [PY, '-u', 'converter.py', gdb, '--saida', saida,
+        cmd_conv = [PY, '-u', 'etapas/converter.py', gdb, '--saida', saida,
                     '--max-ctmt', str(a.max_ctmt), '--bt', a.bt]
         if a.se:
             cmd_conv += ['--se'] + list(a.se)
@@ -839,19 +839,19 @@ def main():
         # numero, quanto do resultado depende de premissa nossa.
         if not a.sem_premissas:
             ok, reg['min_ligacao'] = passo(
-                'ligacao', [PY, '-u', 'ligacao.py', saida,
+                'ligacao', [PY, '-u', 'etapas/ligacao.py', saida,
                             '--jobs', str(a.jobs)], log, 4 * 3600)
             reg['ligacao_ok'] = ok
             ok, reg['min_ampacidade'] = passo(
-                'ampacidade', [PY, '-u', 'ampacidade.py', saida,
+                'ampacidade', [PY, '-u', 'etapas/ampacidade.py', saida,
                             '--jobs', str(a.jobs)], log, 4 * 3600)
             reg['ampacidade_ok'] = ok
 
-        ok, reg['min_verifica'] = passo('verifica', [PY, '-u', 'verifica.py', saida,
+        ok, reg['min_verifica'] = passo('verifica', [PY, '-u', 'etapas/verifica.py', saida,
                                                      '--jobs', str(a.jobs)],
                                         log, 6 * 3600)
         reg['verifica_ok'] = ok
-        ok, reg['min_energia'] = passo('energia', [PY, '-u', 'energia.py', saida,
+        ok, reg['min_energia'] = passo('energia', [PY, '-u', 'etapas/energia.py', saida,
                                                    '--jobs', str(a.jobs)],
                                        log, 8 * 3600)
         reg['energia_ok'] = ok
@@ -859,15 +859,15 @@ def main():
         # achado 3 — o limiar de REDE_EXTENSA vindo da propria base. Sem ele
         # a correcao seria regerada sem nunca ser executada.
         ok, reg['min_validador'] = passo('validador', [PY, '-u',
-                                                       'validador.py', saida,
+                                                       'etapas/validador.py', saida,
                                                        '--ses',
                                                        '--jobs', str(a.jobs)],
                                          log, 4 * 3600)
         reg['validador_ok'] = ok
-        ok, _ = passo('valida_perdas', [PY, '-u', 'valida_perdas.py', saida,
+        ok, _ = passo('valida_perdas', [PY, '-u', 'etapas/valida_perdas.py', saida,
                                         gdb], log, 2 * 3600)
         reg['perdas_ok'] = ok
-        ok, _ = passo('valida_balanco', [PY, '-u', 'valida_balanco.py', saida,
+        ok, _ = passo('valida_balanco', [PY, '-u', 'etapas/valida_balanco.py', saida,
                                          gdb], log, 3 * 3600)
         reg['balanco_ok'] = ok
 

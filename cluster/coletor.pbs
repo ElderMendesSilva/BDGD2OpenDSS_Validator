@@ -22,7 +22,7 @@ export BDGD2DSS_MODO=cluster
 # venceu. O job imprimia o sufixo cru e nao achava pasta nenhuma.
 SUF_COLETA="${SUF_COLETA:?quem submete resolve o carimbo e passa por -v}"
 echo "## coletor de $SUF_COLETA — $(date)"
-python -u auditoria.py --sufixo "$SUF_COLETA" --saida saida_cluster
+python -u etapas/auditoria.py --sufixo "$SUF_COLETA" --saida saida_cluster
 rc=$?
 
 MIN=$(echo "$SUF_COLETA" | tr 'A-Z' 'a-z')

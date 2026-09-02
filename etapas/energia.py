@@ -44,7 +44,11 @@ import math
 import os
 import sys
 
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+# O PACOTE ESTA NO PAI: estes executaveis moraram na raiz ate
+# 02/09/2026, e la `dirname(__file__)` era a propria raiz. Depois da
+# mudanca para `etapas/`, apontar para o proprio diretorio nao acha
+# `bdgd2dss` — e o erro so aparece ao RODAR, nunca ao importar.
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from bdgd2dss import lote, pausa, plataforma                # noqa: E402
 from bdgd2dss import escrita
 
@@ -205,7 +209,7 @@ def curva_dia(serie, passos, titulo, caminho, plt=None, mostrar=False):
     `fonte` e a potencia vinda da subtransmissao (negativa = fluxo reverso).
     `carga` sai do balanco: fonte + GD - perdas.
     """
-    import interativo
+    from bdgd2dss import interativo
     plt = plt or interativo.pyplot()
 
     h = [k * 24.0 / passos for k in range(passos)]
@@ -277,7 +281,7 @@ def _soma_series(saida, passos):
 
 def grafico(saida, raiz):
     """Onde estao as perdas: por alimentador e por subestacao."""
-    import interativo
+    from bdgd2dss import interativo
     plt = interativo.pyplot()
 
     alim = [(v['perdas_pct'], v['kWh'])
@@ -318,7 +322,7 @@ def grafico(saida, raiz):
 
 
 def _painel():
-    import interativo
+    from bdgd2dss import interativo
     v = interativo.formulario('energia', 'Energia e perdas do dia', [
         {'chave': 'raiz', 'tipo': 'pasta', 'rotulo': 'Pasta dos modelos',
          'padrao': interativo.modelos_recentes()},
@@ -536,7 +540,7 @@ def main():
                           for k, v in sorted(por_alim.items())}})
         grava()
         if a.curvas:
-            import interativo
+            from bdgd2dss import interativo
             plt = plt or interativo.pyplot()
             if curva_dia(serie, a.passos, f'{se} — dia útil',
                          os.path.join(raiz, se, 'curva_gd.png'), plt):
@@ -555,7 +559,7 @@ def main():
     print(f'detalhe em {os.path.join(raiz, "energia_dia.json")}')
 
     if a.grafico or a.curvas:
-        import interativo
+        from bdgd2dss import interativo
         plt = plt or interativo.pyplot()
         gd_tot = sum(x['kWh_gd'] for x in saida) / 1e6
         ent_tot = sum(x['kWh_injetado'] for x in saida) / 1e6
@@ -568,7 +572,7 @@ def main():
     if a.grafico:
         grafico(saida, raiz)
     elif a.curvas:
-        import interativo
+        from bdgd2dss import interativo
         interativo.mostra(plt)
 
 

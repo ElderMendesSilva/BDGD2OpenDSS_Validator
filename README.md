@@ -54,7 +54,7 @@ Os dezessete achados, com número e método, estão em
 ## Sem decorar nada
 
 ```bash
-python menu.py
+python Validator.py
 ```
 
 Abre uma janela com as sete ferramentas na ordem em que se usa. Cada uma

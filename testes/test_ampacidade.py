@@ -17,6 +17,7 @@ import unittest
 
 AQUI = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.dirname(AQUI))
+sys.path.insert(0, os.path.join(os.path.dirname(AQUI), 'etapas'))
 from bdgd2dss import ampacidade                       # noqa: E402
 
 

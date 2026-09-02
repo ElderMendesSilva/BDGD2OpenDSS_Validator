@@ -87,7 +87,7 @@ def extrai(gdb, saida):
 
 
 def _painel():
-    import interativo
+    from bdgd2dss import interativo
     v = interativo.formulario('extrai_mt', 'Extrair a MT e a GD da BDGD', [
         {'chave': 'gdb', 'tipo': 'pasta', 'rotulo': 'BDGD (.gdb)',
          'padrao': interativo.bdgd_recente() or GDB,

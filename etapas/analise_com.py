@@ -508,7 +508,7 @@ def g_diario(rede, saida, passos=96):
 # ======================================================================= main
 def _painel():
     """Sem argumento, pergunta o que falta em vez de mostrar o usage."""
-    import interativo
+    from bdgd2dss import interativo
     v = interativo.formulario('analise_com', 'Análise da rede (OpenDSS COM)', [
         {'chave': 'master', 'tipo': 'arquivo', 'rotulo': 'Arquivo MASTER',
          'filtros': [('MASTER do OpenDSS', 'MASTER-*.dss'), ('Arquivo .dss', '*.dss')],
@@ -638,7 +638,7 @@ def main():
     if do_painel:
         # quem abriu pelo painel nao viu o caminho passar no terminal:
         # abre a pasta das figuras, que e o resultado que ele foi buscar
-        import interativo
+        from bdgd2dss import interativo
         interativo.abrir(saida)
 
 

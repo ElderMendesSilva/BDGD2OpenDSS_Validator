@@ -33,6 +33,7 @@ import unittest
 AQUI = os.path.dirname(os.path.abspath(__file__))
 RAIZ = os.path.dirname(AQUI)
 sys.path.insert(0, RAIZ)
+sys.path.insert(0, os.path.join(RAIZ, 'etapas'))
 from bdgd2dss import cargas                             # noqa: E402
 
 
@@ -77,7 +78,7 @@ class ASsinaturaNaoPodeQuebrarOChamador(unittest.TestCase):
             'quem chama, em silencio')
 
     def test_o_conversor_passa_o_pip_por_palavra_chave(self):
-        arvore = ast.parse(open(os.path.join(RAIZ, 'converter.py'),
+        arvore = ast.parse(open(os.path.join(RAIZ, 'etapas', 'converter.py'),
                                 encoding='utf-8').read())
         chamadas = [n for n in ast.walk(arvore)
                     if isinstance(n, ast.Call)
@@ -98,7 +99,7 @@ class ACargaEhPreAgregada(unittest.TestCase):
     """Custo. Sem pre-agregar, cada subestacao varre a tabela inteira."""
 
     def test_o_conversor_agrega_a_pip_uma_vez_so(self):
-        fonte = open(os.path.join(RAIZ, 'converter.py'), encoding='utf-8').read()
+        fonte = open(os.path.join(RAIZ, 'etapas', 'converter.py'), encoding='utf-8').read()
         self.assertIn('cargas._agrega_pip(', fonte,
                       'o conversor nao pre-agrega a PIP: 2,4 milhoes de '
                       'registros seriam varridos uma vez por subestacao')
@@ -107,7 +108,7 @@ class ACargaEhPreAgregada(unittest.TestCase):
 
     def test_o_cache_aceita_a_forma_antiga(self):
         """Cache gravado antes da PIP e so o dicionario da BT."""
-        fonte = open(os.path.join(RAIZ, 'converter.py'), encoding='utf-8').read()
+        fonte = open(os.path.join(RAIZ, 'etapas', 'converter.py'), encoding='utf-8').read()
         self.assertIn('isinstance(_g, tuple)', fonte,
                       'o cache antigo, que e um dict, vai quebrar a leitura')
 

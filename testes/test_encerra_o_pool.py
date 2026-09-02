@@ -34,6 +34,7 @@ import unittest
 AQUI = os.path.dirname(os.path.abspath(__file__))
 RAIZ = os.path.dirname(AQUI)
 sys.path.insert(0, RAIZ)
+sys.path.insert(0, os.path.join(RAIZ, 'etapas'))
 from bdgd2dss import pool                                  # noqa: E402
 
 ETAPAS = ('verifica.py', 'ampacidade.py', 'validador.py', 'ligacao.py')
@@ -56,7 +57,7 @@ def _with_do_pool(arvore):
 class AsQuatroEtapasEncerramOPool(unittest.TestCase):
 
     def _arvore(self, f):
-        with open(os.path.join(RAIZ, f), encoding='utf-8') as fh:
+        with open(os.path.join(RAIZ, 'etapas', f), encoding='utf-8') as fh:
             return ast.parse(fh.read().lstrip('﻿'))
 
     def test_toda_etapa_com_pool_chama_encerrar(self):
@@ -93,7 +94,7 @@ class AsQuatroEtapasEncerramOPool(unittest.TestCase):
     def test_o_modulo_e_importado(self):
         for f in ETAPAS:
             with self.subTest(etapa=f):
-                fonte = open(os.path.join(RAIZ, f), encoding='utf-8').read()
+                fonte = open(os.path.join(RAIZ, 'etapas', f), encoding='utf-8').read()
                 self.assertIn('pool', fonte.split('def ')[0],
                               f'{f} nao importa bdgd2dss.pool')
 

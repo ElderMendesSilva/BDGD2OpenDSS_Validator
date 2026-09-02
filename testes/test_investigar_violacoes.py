@@ -12,6 +12,7 @@ import unittest
 AQUI = os.path.dirname(os.path.abspath(__file__))
 RAIZ = os.path.dirname(AQUI)
 sys.path.insert(0, RAIZ)
+sys.path.insert(0, os.path.join(RAIZ, 'etapas'))
 sys.path.insert(0, os.path.join(RAIZ, 'analise'))
 
 import investigar_violacoes as iv     # noqa: E402

@@ -27,6 +27,7 @@ import unittest
 AQUI = os.path.dirname(os.path.abspath(__file__))
 RAIZ = os.path.dirname(AQUI)
 sys.path.insert(0, RAIZ)
+sys.path.insert(0, os.path.join(RAIZ, 'etapas'))
 from bdgd2dss import pausa                             # noqa: E402
 
 # etapa -> a funcao que roda uma subestacao. Todas tem de esperar antes.
@@ -107,7 +108,7 @@ class OndeAEsperaAcontece(unittest.TestCase):
     """A espera fica ANTES do trabalho, em todo caminho que roda uma SE."""
 
     def _corpo(self, script, assinatura):
-        with open(os.path.join(RAIZ, script), encoding='utf-8') as fh:
+        with open(os.path.join(RAIZ, 'etapas', script), encoding='utf-8') as fh:
             linhas = fh.read().split('\n')
         i = next(k for k, l in enumerate(linhas) if l.startswith(assinatura))
         return linhas[i:i + 25]
@@ -126,7 +127,7 @@ class OndeAEsperaAcontece(unittest.TestCase):
                                 f'circuito — seguraria a memoria toda')
 
     def test_o_conversor_para_entre_subestacoes(self):
-        with open(os.path.join(RAIZ, 'converter.py'), encoding='utf-8') as fh:
+        with open(os.path.join(RAIZ, 'etapas', 'converter.py'), encoding='utf-8') as fh:
             self.assertIn('pausa.espera()', fh.read())
 
     def test_o_regerar_desconta_a_pausa_do_limite(self):
@@ -145,7 +146,7 @@ class PelaLinhaDeComando(unittest.TestCase):
         pausa.retomar()
 
     def _roda(self, *args):
-        return subprocess.run([sys.executable, os.path.join(RAIZ, 'pausa.py'),
+        return subprocess.run([sys.executable, os.path.join(RAIZ, 'etapas', 'pausa.py'),
                                *args], capture_output=True, text=True,
                               timeout=120)
 

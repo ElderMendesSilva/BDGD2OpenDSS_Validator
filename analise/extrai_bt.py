@@ -91,7 +91,7 @@ def extrai(gdb, saida, ini=0, fim=None, passo=PASSO):
 
 
 def _painel():
-    import interativo
+    from bdgd2dss import interativo
     v = interativo.formulario('extrai_bt', 'Extrair a baixa tensão da BDGD', [
         {'chave': 'gdb', 'tipo': 'pasta', 'rotulo': 'BDGD (.gdb)',
          'padrao': interativo.bdgd_recente() or GDB,

@@ -31,7 +31,11 @@ Os dois compartilham os mesmos arquivos de rede, entao nao divergem.
 import os, sys, json, time, argparse, collections, gc
 import numpy as np
 
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+# O PACOTE ESTA NO PAI: estes executaveis moraram na raiz ate
+# 02/09/2026, e la `dirname(__file__)` era a propria raiz. Depois da
+# mudanca para `etapas/`, apontar para o proprio diretorio nao acha
+# `bdgd2dss` — e o erro so aparece ao RODAR, nunca ao importar.
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from bdgd2dss.leitor import BDGD, num, txt
 CANCELAR = None   # a interface grafica injeta um threading.Event aqui
 

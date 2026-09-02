@@ -75,7 +75,7 @@ echo "## nucleos: ${PBS_NP:-?}   memoria livre: $(free -g 2>/dev/null | awk '/^M
 
 # O autoteste custa segundos e evita a falha classica do cluster: o job espera
 # na fila, comeca de madrugada, e morre no minuto 2 por falta de biblioteca.
-python doutor.py --bases "$BDGD2DSS_BASES" || exit 1
+python etapas/doutor.py --bases "$BDGD2DSS_BASES" || exit 1
 
 # --jobs 0 deixa o codigo decidir: o menor entre os nucleos que o PBS deu e a
 # memoria livre dividida por processo. Passar numero na mao aqui e a forma mais

@@ -34,6 +34,7 @@ import unittest
 AQUI = os.path.dirname(os.path.abspath(__file__))
 RAIZ = os.path.dirname(AQUI)
 sys.path.insert(0, RAIZ)
+sys.path.insert(0, os.path.join(RAIZ, 'etapas'))
 sys.path.insert(0, AQUI)
 import fixture                                           # noqa: E402
 
@@ -46,7 +47,10 @@ def _roda(script, *args):
     entre etapas e o proprio `if __name__ == '__main__'`. O `regerar_v10` saia
     0 mesmo recusando a rodada por causa disso.
     """
-    return subprocess.run([sys.executable, '-u', os.path.join(RAIZ, script)]
+    # OS EXECUTAVEIS MORAM EM `etapas/` desde 02/09/2026. O caminho e montado
+    # aqui, e nao no chamador, para que este teste seja o primeiro a quebrar se
+    # alguem mover de novo — que e exatamente o que ele existe para pegar.
+    return subprocess.run([sys.executable, '-u', os.path.join(RAIZ, 'etapas', script)]
                           + list(args), cwd=RAIZ, capture_output=True,
                           text=True, timeout=600)
 

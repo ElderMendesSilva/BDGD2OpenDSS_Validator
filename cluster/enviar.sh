@@ -101,7 +101,7 @@ Agora, NO NO:
 
     cd "$(dirname "$DESTINO")"/BDGD2OpenDSS_Validator   # conta compartilhada: NAO e ~/
     export BDGD2DSS_BASES=$DESTINO
-    python doutor.py --bases "\$BDGD2DSS_BASES"
+    python etapas/doutor.py --bases "\$BDGD2DSS_BASES"
 
 E so entao submeter. A Roraima primeiro, sempre:
 

@@ -49,7 +49,7 @@ class NenhumaFalhaDeUmaSEDerrubaAEtapa(unittest.TestCase):
     def test_todo_trabalhador_captura_e_devolve_o_erro(self):
         sem_rede = []
         for script, nome in TRABALHADORES.items():
-            f = _funcao(os.path.join(RAIZ, script), nome)
+            f = _funcao(os.path.join(RAIZ, 'etapas', script), nome)
             self.assertIsNotNone(f, f'{script}: {nome} sumiu')
             captura = [h for n in ast.walk(f)
                        if isinstance(n, ast.Try) for h in n.handlers]
@@ -79,7 +79,7 @@ class NenhumaFalhaDeUmaSEDerrubaAEtapa(unittest.TestCase):
         IDENT = {'se', 'pasta', 'modelo', 'master'}
         sem_nome = []
         for script, nome in TRABALHADORES.items():
-            f = _funcao(os.path.join(RAIZ, script), nome)
+            f = _funcao(os.path.join(RAIZ, 'etapas', script), nome)
             largo = [h for n in ast.walk(f) if isinstance(n, ast.Try)
                      for h in n.handlers
                      if h.type is None or (isinstance(h.type, ast.Name)

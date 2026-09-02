@@ -24,6 +24,7 @@ import unittest
 AQUI = os.path.dirname(os.path.abspath(__file__))
 RAIZ = os.path.dirname(AQUI)
 sys.path.insert(0, RAIZ)
+sys.path.insert(0, os.path.join(RAIZ, 'etapas'))
 from bdgd2dss import cobertura                          # noqa: E402
 
 
@@ -112,7 +113,9 @@ class QuemUsa(unittest.TestCase):
     """
 
     def test_ligacao_e_regerar_chamam_o_modulo(self):
-        for script in ('ligacao.py', 'regerar_v10.py'):
+        # `ligacao` foi para `etapas/` em 02/09/2026; `regerar_v10` ficou na
+        # raiz, por ser porta de entrada. O caminho tem de aceitar os dois.
+        for script in ('etapas/ligacao.py', 'regerar_v10.py'):
             with open(os.path.join(RAIZ, script), encoding='utf-8') as fh:
                 fonte = fh.read()
             self.assertIn('cobertura.energizada(', fonte,
@@ -120,7 +123,7 @@ class QuemUsa(unittest.TestCase):
 
     def test_ligacao_grava_o_kW_por_subestacao(self):
         """Sem `kW_nominal` no JSON, o agregador nao tem o que somar."""
-        with open(os.path.join(RAIZ, 'ligacao.py'), encoding='utf-8') as fh:
+        with open(os.path.join(RAIZ, 'etapas', 'ligacao.py'), encoding='utf-8') as fh:
             fonte = fh.read()
         for campo in ("'kW_nominal'", "'kW_morto'"):
             self.assertIn(campo, fonte, f'ligacao.py nao grava {campo}')

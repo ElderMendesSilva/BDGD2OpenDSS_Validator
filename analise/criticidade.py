@@ -62,7 +62,7 @@ def norm(x, lo, hi):
 
 
 def _painel():
-    import interativo
+    from bdgd2dss import interativo
     v = interativo.formulario('criticidade', 'Estudo de criticidade dos alimentadores', [
         {'chave': 'dados', 'tipo': 'pasta', 'rotulo': 'Dados extraídos da BDGD',
          'padrao': ENTRADA,

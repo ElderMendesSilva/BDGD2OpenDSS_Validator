@@ -21,6 +21,7 @@ import unittest
 AQUI = os.path.dirname(os.path.abspath(__file__))
 RAIZ = os.path.dirname(AQUI)
 sys.path.insert(0, RAIZ)
+sys.path.insert(0, os.path.join(RAIZ, 'etapas'))
 from bdgd2dss import escrita, plataforma              # noqa: E402
 
 # Modulos que geram ou leem artefato comparado byte a byte. As interfaces

@@ -79,7 +79,7 @@ def extrai(gdb, saida, passo=PASSO):
 
 
 def _painel():
-    import interativo
+    from bdgd2dss import interativo
     v = interativo.formulario('extrai_ampacidade',
                               'Extrair a ampacidade dos alimentadores', [
         {'chave': 'gdb', 'tipo': 'pasta', 'rotulo': 'BDGD (.gdb)',

@@ -44,6 +44,7 @@ import unittest
 AQUI = os.path.dirname(os.path.abspath(__file__))
 RAIZ = os.path.dirname(AQUI)
 sys.path.insert(0, RAIZ)
+sys.path.insert(0, os.path.join(RAIZ, 'etapas'))
 from bdgd2dss import concordancia as cc                  # noqa: E402
 
 
@@ -112,7 +113,7 @@ class QuemUsa(unittest.TestCase):
     """Exige o USO, e nao a palavra — a licao do `test_valida_perdas`."""
 
     def setUp(self):
-        with open(os.path.join(RAIZ, 'valida_perdas.py'), encoding='utf-8') as fh:
+        with open(os.path.join(RAIZ, 'etapas', 'valida_perdas.py'), encoding='utf-8') as fh:
             self.arvore = ast.parse(fh.read().lstrip('\ufeff'))
             fh.seek(0)
 
@@ -125,7 +126,7 @@ class QuemUsa(unittest.TestCase):
         self.assertIn('populacao', chamadas)
 
     def test_o_json_leva_a_populacao_e_a_lista_nomeada(self):
-        fonte = open(os.path.join(RAIZ, 'valida_perdas.py'),
+        fonte = open(os.path.join(RAIZ, 'etapas', 'valida_perdas.py'),
                      encoding='utf-8').read()
         self.assertIn("'populacao': pop", fonte)
         self.assertIn("'declarados_e_mortos': declarados_e_mortos", fonte,
@@ -133,7 +134,7 @@ class QuemUsa(unittest.TestCase):
 
     def test_a_lista_nao_tem_teto_silencioso(self):
         """Cortar em top-N faria 5.000 problemas parecerem 20."""
-        fonte = open(os.path.join(RAIZ, 'valida_perdas.py'),
+        fonte = open(os.path.join(RAIZ, 'etapas', 'valida_perdas.py'),
                      encoding='utf-8').read()
         i = fonte.index("'declarados_e_mortos'")
         self.assertNotIn('[:', fonte[i:i + 120],

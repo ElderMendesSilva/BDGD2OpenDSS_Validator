@@ -52,7 +52,7 @@ for d in MODELOS_*_"$SUFIXO"; do
     fi
     n=$((n + 1))
     echo "[$n] $d"
-    if ! python -u validador.py "$d" --jobs 0 >>"logs/cluster/revalidar_$SUFIXO.log" 2>&1; then
+    if ! python -u etapas/validador.py "$d" --jobs 0 >>"logs/cluster/revalidar_$SUFIXO.log" 2>&1; then
         echo "   $d: FALHOU (veja logs/cluster/revalidar_$SUFIXO.log)"
         falhou=$((falhou + 1))
     fi

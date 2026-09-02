@@ -24,6 +24,7 @@ import unittest
 AQUI = os.path.dirname(os.path.abspath(__file__))
 RAIZ = os.path.dirname(AQUI)
 sys.path.insert(0, RAIZ)
+sys.path.insert(0, os.path.join(RAIZ, 'etapas'))
 from bdgd2dss import lote                              # noqa: E402
 
 # etapa -> nome da lista ORIGINAL, a que define a ordem do arquivo
@@ -103,7 +104,7 @@ class AOrdemDaSaida(unittest.TestCase):
         itera. E a propriedade que permite comparar duas geracoes byte a byte.
         """
         for script, original in ETAPAS.items():
-            with open(os.path.join(RAIZ, script), encoding='utf-8') as fh:
+            with open(os.path.join(RAIZ, 'etapas', script), encoding='utf-8') as fh:
                 fonte = fh.read()
             self.assertIn('lote.maior_primeiro', fonte,
                           f'{script} nao despacha a maior primeiro')
@@ -134,7 +135,7 @@ class AOrdemDaSaida(unittest.TestCase):
         """`fila` alimentando qualquer coisa fora do `submit` e o erro que
         este teste existe para pegar."""
         for script in list(ETAPAS) + ['energia.py']:
-            with open(os.path.join(RAIZ, script), encoding='utf-8') as fh:
+            with open(os.path.join(RAIZ, 'etapas', script), encoding='utf-8') as fh:
                 fonte = fh.read()
             usos = re.findall(r'^.*\bfila\b.*$', fonte, re.M)
             for u in usos:
@@ -145,7 +146,7 @@ class AOrdemDaSaida(unittest.TestCase):
                     f'{script}: uso inesperado da fila -> {u.strip()}')
 
     def test_energia_mantem_a_ordem_pela_lista_original(self):
-        with open(os.path.join(RAIZ, 'energia.py'), encoding='utf-8') as fh:
+        with open(os.path.join(RAIZ, 'etapas', 'energia.py'), encoding='utf-8') as fh:
             fonte = fh.read()
         self.assertIn('ordem = [se for se, _ in itens]', fonte)
 

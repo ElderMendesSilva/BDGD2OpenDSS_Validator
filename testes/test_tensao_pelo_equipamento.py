@@ -41,6 +41,7 @@ import unittest
 AQUI = os.path.dirname(os.path.abspath(__file__))
 RAIZ = os.path.dirname(AQUI)
 sys.path.insert(0, RAIZ)
+sys.path.insert(0, os.path.join(RAIZ, 'etapas'))
 from bdgd2dss import tensoes                              # noqa: E402
 
 
@@ -173,7 +174,7 @@ class QuandoNaoDaParaDecidir(unittest.TestCase):
 class QuemUsa(unittest.TestCase):
 
     def test_o_conversor_concilia_ao_ler_o_ctmt(self):
-        with open(os.path.join(RAIZ, 'converter.py'), encoding='utf-8') as fh:
+        with open(os.path.join(RAIZ, 'etapas', 'converter.py'), encoding='utf-8') as fh:
             fonte = fh.read().lstrip('﻿')
         arvore = ast.parse(fonte)
         f = [n for n in ast.walk(arvore)

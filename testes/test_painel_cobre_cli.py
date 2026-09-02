@@ -34,9 +34,16 @@ ALVOS = {
 
 
 def _opcoes(script):
-    h = subprocess.run([sys.executable, os.path.join(RAIZ, script), '--help'],
+    h = subprocess.run([sys.executable, os.path.join(RAIZ, 'etapas', script), '--help'],
                        capture_output=True, text=True, timeout=120).stdout
     return sorted(set(re.findall(r'--[a-z][a-z0-9-]+', h)) - {'--help'})
+
+
+def _caminho(nome):
+    """Onde o executavel mora: `etapas/` para as etapas do ciclo, raiz para as
+    portas de entrada (`Validator`, `painel`, `app`, `regerar_v10`)."""
+    de_etapas = os.path.join(RAIZ, 'etapas', nome)
+    return de_etapas if os.path.exists(de_etapas) else os.path.join(RAIZ, nome)
 
 
 class OPainelCobreALinhaDeComando(unittest.TestCase):
@@ -44,8 +51,7 @@ class OPainelCobreALinhaDeComando(unittest.TestCase):
     def test_toda_opcao_tem_caminho_pela_interface(self):
         faltando = {}
         for script, ui in ALVOS.items():
-            fonte = open(os.path.join(RAIZ, ui or script),
-                         encoding='utf-8').read()
+            fonte = open(_caminho(ui or script), encoding='utf-8').read()
             f = [o for o in _opcoes(script) if o not in fonte]
             if f:
                 faltando[script] = f
@@ -57,13 +63,15 @@ class OPainelCobreALinhaDeComando(unittest.TestCase):
     def test_todo_executavel_esta_no_menu(self):
         """Ferramenta que nao esta no menu so existe para quem sabe o nome do
         arquivo."""
-        menu = open(os.path.join(RAIZ, 'menu.py'), encoding='utf-8').read()
+        menu = open(os.path.join(RAIZ, 'Validator.py'), encoding='utf-8').read()
         fora = [s for s in ALVOS if s not in menu and s != 'converter.py']
         self.assertEqual(fora, [], 'executavel fora do menu.py')
 
     def test_o_menu_aponta_para_arquivos_que_existem(self):
-        menu = open(os.path.join(RAIZ, 'menu.py'), encoding='utf-8').read()
-        for nome in re.findall(r"'(\w+\.py)'", menu):
+        menu = open(os.path.join(RAIZ, 'Validator.py'), encoding='utf-8').read()
+        # o menu cita `etapas/x.py` para o que se moveu e `x.py` para o que
+        # ficou na raiz — os dois formatos tem de existir onde dizem estar
+        for nome in re.findall(r"'((?:etapas/)?\w+\.py)'", menu):
             self.assertTrue(os.path.exists(os.path.join(RAIZ, nome)),
                             f'{nome} esta no menu e nao existe')
 

@@ -23,7 +23,7 @@ PDF = 'ESTUDO_CRITICIDADE_ENEL_SP.pdf'
 
 
 def _painel():
-    import interativo
+    from bdgd2dss import interativo
     v = interativo.formulario('relatorio_estudo', 'Relatório do estudo de criticidade', [
         {'chave': 'dados', 'tipo': 'pasta', 'rotulo': 'Resultados do estudo',
          'padrao': RESULTADOS,

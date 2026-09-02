@@ -140,10 +140,10 @@ class Painel(tk.Tk):
                   foreground='#666', wraplength=300, justify='left',
                   font=('Segoe UI', 8)).pack(anchor='w', padx=6, pady=(2, 4))
         ttk.Button(val, text='Balanço de energia  (medição)',
-                   command=lambda: self.validar_bdgd('valida_balanco.py')
+                   command=lambda: self.validar_bdgd('etapas/valida_balanco.py')
                    ).pack(fill='x', padx=6, pady=3)
         ttk.Button(val, text='Perda declarada PERD_*  (cruzamento)',
-                   command=lambda: self.validar_bdgd('valida_perdas.py')
+                   command=lambda: self.validar_bdgd('etapas/valida_perdas.py')
                    ).pack(fill='x', padx=6, pady=3)
 
         self.abas = ttk.Notebook(dir_)
@@ -408,7 +408,7 @@ class Painel(tk.Tk):
         .gdb. O .gdb e pedido uma vez e lembrado pelo `interativo`, para nao
         perguntar a cada clique.
         """
-        import interativo
+        from bdgd2dss import interativo
         p = self.pasta.get()
         if not os.path.exists(os.path.join(p, 'energia_dia.json')):
             messagebox.showwarning(
@@ -448,7 +448,7 @@ class Painel(tk.Tk):
         def tarefa():
             self.fila.put(('status', f'analisando {se} (COM)...'))
             m = self._master(se)
-            r = subprocess.run([sys.executable, os.path.join(RAIZ, 'analise_com.py'), m],
+            r = subprocess.run([sys.executable, os.path.join(RAIZ, 'etapas/analise_com.py'), m],
                                capture_output=True, text=True, cwd=RAIZ)
             for l in (r.stdout or '').splitlines():
                 self._diz('  ' + l)
@@ -466,7 +466,7 @@ class Painel(tk.Tk):
             for i, se in enumerate(ses, 1):
                 self.fila.put(('status', f'analisando {se} ({i}/{len(ses)})'))
                 r = subprocess.run(
-                    [sys.executable, os.path.join(RAIZ, 'analise_com.py'),
+                    [sys.executable, os.path.join(RAIZ, 'etapas/analise_com.py'),
                      self._master(se)], capture_output=True, text=True, cwd=RAIZ)
                 self._diz(f"  {se}: {'ok' if not r.returncode else 'ERRO'}")
             self.fila.put(('status', 'pronto'))
@@ -542,7 +542,7 @@ if __name__ == '__main__':
     # modelos mais recente que de fato tem MASTER dentro.
     inicial = sys.argv[1] if len(sys.argv) > 1 else None
     if not inicial:
-        import interativo
+        from bdgd2dss import interativo
         p = interativo.modelos_recentes(RAIZ)
         inicial = p if os.path.isdir(p) else None
     Painel(inicial).mainloop()

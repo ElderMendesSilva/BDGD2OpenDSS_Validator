@@ -44,6 +44,7 @@ import unittest
 AQUI = os.path.dirname(os.path.abspath(__file__))
 RAIZ = os.path.dirname(AQUI)
 sys.path.insert(0, RAIZ)
+sys.path.insert(0, os.path.join(RAIZ, 'etapas'))
 from bdgd2dss import referencia as ref                    # noqa: E402
 
 
@@ -144,7 +145,7 @@ class QuemUsa(unittest.TestCase):
     """Exige o USO, e nao a palavra."""
 
     def setUp(self):
-        with open(os.path.join(RAIZ, 'valida_perdas.py'), encoding='utf-8') as fh:
+        with open(os.path.join(RAIZ, 'etapas', 'valida_perdas.py'), encoding='utf-8') as fh:
             self.fonte = fh.read().lstrip('\ufeff')
         self.arvore = ast.parse(self.fonte)
 

@@ -69,7 +69,7 @@ echo
 
 # O autoteste custa segundos e evita a falha classica: o job espera na fila,
 # comeca de madrugada e morre no minuto 2 por falta de biblioteca.
-python doutor.py --bases "$BDGD2DSS_BASES" || exit 1
+python etapas/doutor.py --bases "$BDGD2DSS_BASES" || exit 1
 echo
 
 # `--trabalho` no scratch do proprio no: e disco local, mais rapido, e o que

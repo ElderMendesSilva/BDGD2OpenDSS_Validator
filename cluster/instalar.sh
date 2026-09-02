@@ -122,14 +122,14 @@ PY
 
 # --------------------------------------------------------- 4. autoteste
 diz "autoteste da maquina"
-"$VPY" doutor.py --bases "${BDGD2DSS_BASES:-}" || true
+"$VPY" etapas/doutor.py --bases "${BDGD2DSS_BASES:-}" || true
 
 cat <<FIM
 
 === pronto ===
   source .venv/bin/activate
   export BDGD2DSS_BASES=/caminho/para/as/gdb
-  python doutor.py
+  python etapas/doutor.py
   qsub -v TAG=RR,SUFIXO=V1_cluster cluster/uma_base.pbs   # a Roraima primeiro, sempre
 
 FIM

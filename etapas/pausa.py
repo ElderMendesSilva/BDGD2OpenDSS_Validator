@@ -22,7 +22,10 @@ import sys
 import time
 
 AQUI = os.path.dirname(os.path.abspath(__file__))
-sys.path.insert(0, AQUI)
+# A RAIZ E O PAI, desde a mudanca de 02/09/2026: estes executaveis
+# sairam da raiz para `etapas/`, e `AQUI` deixou de ser onde mora o
+# pacote `bdgd2dss`.
+sys.path.insert(0, os.path.dirname(AQUI))
 from bdgd2dss import pausa                             # noqa: E402
 
 
@@ -38,7 +41,7 @@ def estado():
 
 
 def _painel():
-    import interativo
+    from bdgd2dss import interativo
     ligado = pausa.pausado()
     v = interativo.formulario('pausa', 'Pausar o ciclo', [
         {'chave': 'acao', 'tipo': 'opcao', 'rotulo': 'O que fazer',
@@ -60,7 +63,7 @@ def _painel():
 
 def main():
     # Sem argumento nenhum abre o formulario, como todo executavel do projeto —
-    # e assim que o `menu.py` dispara. Quem esta no terminal usa as opcoes, que
+    # e assim que o `Validator.py` dispara. Quem esta no terminal usa as opcoes, que
     # sao mais rapidas do que abrir janela para uma decisao de uma palavra.
     if len(sys.argv) == 1 and not _painel():
         return

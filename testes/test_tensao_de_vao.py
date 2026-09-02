@@ -27,6 +27,7 @@ import unittest
 AQUI = os.path.dirname(os.path.abspath(__file__))
 RAIZ = os.path.dirname(AQUI)
 sys.path.insert(0, RAIZ)
+sys.path.insert(0, os.path.join(RAIZ, 'etapas'))
 from bdgd2dss import ligacao                            # noqa: E402
 
 R3 = 3 ** 0.5
@@ -100,7 +101,7 @@ class OUsoNoRadiografia(unittest.TestCase):
     """
 
     def test_ligacao_py_converte_a_tensao_do_enrolamento(self):
-        with open(os.path.join(RAIZ, 'ligacao.py'), encoding='utf-8') as fh:
+        with open(os.path.join(RAIZ, 'etapas', 'ligacao.py'), encoding='utf-8') as fh:
             fonte = fh.read()
         self.assertIn('kv_de_fase(', fonte,
                       'ligacao.py le Transformers.kV() sem converter para '

@@ -11,6 +11,7 @@ import unittest
 
 AQUI = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.dirname(AQUI))
+sys.path.insert(0, os.path.join(os.path.dirname(AQUI), 'etapas'))
 sys.path.insert(0, AQUI)          # o `fixture` mora aqui; sem isto o modulo
                                   # so importava quando outro teste rodava antes
 from bdgd2dss.leitor import BDGD, no, num, txt    # noqa: E402

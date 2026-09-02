@@ -125,10 +125,10 @@ PY
 )"
 t0=$SECONDS
 if [[ -n "$UMA" ]]; then
-    python -u converter.py "$GDB" --saida "$SAIDA" --se "$UMA" --refazer >/dev/null 2>&1
+    python -u etapas/converter.py "$GDB" --saida "$SAIDA" --se "$UMA" --refazer >/dev/null 2>&1
 else
     echo "    (nao consegui listar subestacoes; caindo para conversao completa)"
-    python -u converter.py "$GDB" --saida "$SAIDA" >/dev/null 2>&1
+    python -u etapas/converter.py "$GDB" --saida "$SAIDA" >/dev/null 2>&1
 fi
 echo "    cache pronto em $(( (SECONDS - t0) / 60 )) min"
 ls -la "$SAIDA"/_cache_ucbt* 2>/dev/null | sed 's/^/    /'
@@ -164,7 +164,7 @@ for linha in "${MATRIZ[@]}"; do
     amostra_memoria "$memarq" & amostrador=$!
 
     t0=$SECONDS
-    timeout "$MAXFASE" python -u converter.py "$GDB" \
+    timeout "$MAXFASE" python -u etapas/converter.py "$GDB" \
         --saida "$SAIDA" --lote "$LOTE" --jobs "$JOBS" --refazer \
         > "logs/cluster/conv_l${LOTE}_j${JOBS}.log" 2>&1
     rc=$?

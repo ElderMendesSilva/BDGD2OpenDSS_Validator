@@ -56,7 +56,11 @@ import os
 import statistics
 import sys
 
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+# O PACOTE ESTA NO PAI: estes executaveis moraram na raiz ate
+# 02/09/2026, e la `dirname(__file__)` era a propria raiz. Depois da
+# mudanca para `etapas/`, apontar para o proprio diretorio nao acha
+# `bdgd2dss` — e o erro so aparece ao RODAR, nunca ao importar.
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from bdgd2dss.leitor import BDGD, num, txt          # noqa: E402
 from bdgd2dss import escrita
 
@@ -169,7 +173,7 @@ def cruzar(modelo, inj, fat, sub, n_uc, piso=PISO_MEDIDA):
 
 
 def grafico(linhas, raiz):
-    import interativo
+    from bdgd2dss import interativo
     plt = interativo.pyplot()
     tot = [x['pct_total_medido'] for x in linhas]
     tec = [x['pct_tecnica_modelo'] for x in linhas]
@@ -212,7 +216,7 @@ def grafico(linhas, raiz):
 
 
 def _painel():
-    import interativo
+    from bdgd2dss import interativo
     v = interativo.formulario('valida_balanco', 'Validação por balanço de energia', [
         {'chave': 'raiz', 'tipo': 'pasta', 'rotulo': 'Pasta dos modelos',
          'padrao': interativo.modelos_recentes(),

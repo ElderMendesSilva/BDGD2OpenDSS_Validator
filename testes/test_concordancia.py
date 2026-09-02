@@ -24,6 +24,7 @@ import unittest
 AQUI = os.path.dirname(os.path.abspath(__file__))
 RAIZ = os.path.dirname(AQUI)
 sys.path.insert(0, RAIZ)
+sys.path.insert(0, os.path.join(RAIZ, 'etapas'))
 from bdgd2dss import concordancia as cc                 # noqa: E402
 
 
@@ -132,7 +133,7 @@ class QuemUsa(unittest.TestCase):
         existir e pior que teste nenhum: ele da tranquilidade falsa.
         """
         import ast
-        with open(os.path.join(RAIZ, 'valida_perdas.py'), encoding='utf-8') as fh:
+        with open(os.path.join(RAIZ, 'etapas', 'valida_perdas.py'), encoding='utf-8') as fh:
             arvore = ast.parse(fh.read().lstrip('﻿'))
         importado = any(
             isinstance(n, ast.ImportFrom)

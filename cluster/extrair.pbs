@@ -28,7 +28,7 @@
 #
 # Entao o fluxo virou dois passos:
 #
-#     1. head node:  python3 baixar_bdgds.py --sem-extrair ...   (so bytes)
+#     1. head node:  python3 etapas/baixar_bdgds.py --sem-extrair ...   (so bytes)
 #     2. no PBS:     qsub -v "PASTA=..." cluster/extrair.pbs     (o unzip)
 #
 # Nao e contorno da regra: e por a parte que e calculo onde o calculo deve

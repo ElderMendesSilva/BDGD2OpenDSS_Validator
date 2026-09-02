@@ -18,7 +18,10 @@ import os
 import sys
 
 AQUI = os.path.dirname(os.path.abspath(__file__))
-sys.path.insert(0, AQUI)
+# A RAIZ E O PAI, desde a mudanca de 02/09/2026: estes executaveis
+# sairam da raiz para `etapas/`, e `AQUI` deixou de ser onde mora o
+# pacote `bdgd2dss`.
+sys.path.insert(0, os.path.dirname(AQUI))
 
 OK, AVISO, ERRO = 'ok', 'aviso', 'ERRO'
 _cores = {OK: '  ok  ', AVISO: ' aviso', ERRO: ' ERRO '}

@@ -16,6 +16,7 @@ import unittest
 
 AQUI = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.dirname(AQUI))
+sys.path.insert(0, os.path.join(os.path.dirname(AQUI), 'etapas'))
 sys.path.insert(0, os.path.join(os.path.dirname(AQUI), 'diagnosticos'))
 import ferro                                            # noqa: E402
 

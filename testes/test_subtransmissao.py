@@ -13,6 +13,7 @@ import tempfile
 import unittest
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'etapas'))
 from bdgd2dss import malha_at                     # noqa: E402
 from bdgd2dss import subtransmissao as st         # noqa: E402
 
@@ -337,7 +338,7 @@ class TensaoDeCabeceiraUnica(unittest.TestCase):
         Se alguem voltar a derivar o pu de `ten_ope` diretamente ali, as duas
         tensoes de cabeceira divergem de novo e ninguem percebe."""
         raiz = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-        with open(os.path.join(raiz, 'converter.py'), encoding='utf-8') as fh:
+        with open(os.path.join(raiz, 'etapas', 'converter.py'), encoding='utf-8') as fh:
             fonte = fh.read()
         self.assertIn("tap_se = (est_at.get('tap_por_se') or {}).get(se)", fonte,
                       'o pu do isolado tem de vir do mesmo tap do trafo de AT')
