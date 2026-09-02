@@ -408,6 +408,23 @@ def do_dia(fdia):
             'estudo de ponta de carga, e é por isso que a série de 15 minutos '
             'não é luxo neste projeto.'))
 
+    if fdia.get('exporta_no_dia'):
+        a.append(_achado(
+            'dia', GRAVE, 'A subestação exporta energia no balanço do dia',
+            'A fonte entrega **%s kWh** no dia — valor negativo — contra %s kWh '
+            'gerados pela geração distribuída.'
+            % (_mil(fdia.get('kWh_fonte')), _mil(fdia.get('kWh_gd'))),
+            'Somando as 24 horas, esta subestação **devolve mais energia ao '
+            'sistema do que recebe**. Isso é possível numa hora do dia, e é o '
+            'fluxo reverso; no balanço de um dia inteiro, não é operação — é '
+            'declaração. A leitura provável é **geração distribuída cadastrada '
+            'sem a carga correspondente**: a unidade consumidora que recebeu o '
+            'sistema fotovoltaico está na BDGD, e o consumo dela não está, ou '
+            'está registrado sob outra subestação. Enquanto isso não for '
+            'reconciliado, a energia, a perda percentual e a penetração desta '
+            'subestação não têm significado físico — o denominador delas é uma '
+            'carga que o cadastro não declara.'))
+
     pf = fdia.get('passos_falhos')
     if pf:
         a.append(_achado(

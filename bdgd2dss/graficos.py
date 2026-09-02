@@ -985,11 +985,30 @@ def reativo_no_dia(ax, fonte_kw, fonte_kvar):
         s = (p * p + x * x) ** 0.5
         fp.append(abs(p) / s if s else None)
     b.plot(h, fp, color=COR_ATENCAO, lw=1.8)
-    b.axhline(0.92, color=COR_RUIM, lw=0.9, ls=':')
-    b.set_ylim(0, 1.06)
+    b.axhline(0.92, color=COR_RUIM, lw=1.0, ls=':')
+    # O EIXO DO FP TAMBEM SEGUE O DADO. Fixo em 0 a 1,06 ele espremia toda a
+    # variacao — que numa subestacao real cabe entre 0,87 e 0,93 — em cinco por
+    # cento da altura, e a curva virava uma reta colada no teto. Aqui o
+    # intervalo interessante e estreito por natureza, e e nele que se decide se
+    # ha excedente de reativo.
+    bons = [x for x in fp if x is not None]
+    if bons:
+        pmin, pmax = min(bons), max(bons)
+        alvo_lo = min(pmin, 0.92) - 0.02
+        alvo_hi = max(pmax, 0.92) + 0.02
+        b.set_ylim(max(0.0, alvo_lo), min(1.02, alvo_hi))
+    else:
+        b.set_ylim(0, 1.06)
     b.set_ylabel('fator de potência', fontsize=_fs(8), color=COR_ATENCAO)
     b.tick_params(labelsize=_fs(7), colors=COR_ATENCAO)
-    validos = [x for x in fp if x is not None]
+    # FP SO TEM SENTIDO ONDE HA POTENCIA ATIVA. Quando P cruza o zero — e na
+    # Roraima ha subestacoes que exportam metade do dia — o fator de potencia
+    # despenca para 0,000 sem que nada de fisico tenha acontecido: e a divisao
+    # de um numero pequeno por outro. Reportar esse minimo como "o fator de
+    # potencia da subestacao" seria descrever um artefato aritmetico.
+    pico = max((abs(x) for x in fonte_kw if x is not None), default=0)
+    validos = [x for x, p in zip(fp, fonte_kw)
+               if x is not None and p is not None and abs(p) > 0.05 * pico]
     if validos:
         abaixo = sum(1 for x in validos if x < 0.92) * 24.0 / n
         ax.text(0.0, 1.01, 'fator de potência entre %s e %s  ·  %s h abaixo de '

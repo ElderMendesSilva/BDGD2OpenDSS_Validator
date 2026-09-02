@@ -193,3 +193,35 @@ class TestLeituraEscrita(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+
+
+class TestExportacaoNoDia(unittest.TestCase):
+    """A subestação que devolve mais energia do que recebe, no dia inteiro.
+
+    Cinco das dezenove subestações da Roraima 2025 estão assim. Não é operação
+    — é declaração: geração distribuída cadastrada sem a carga correspondente.
+    """
+
+    def _serie(self, fonte, gd, perdas=None):
+        return {'fonte_kw': fonte, 'gd_kw': gd,
+                'perdas_kw': perdas or [0] * len(fonte)}
+
+    def test_penetracao_contra_o_consumo_e_nao_a_injecao(self):
+        """A fórmula antiga dividia por (fonte + GD), que só é o denominador
+        certo enquanto a fonte é positiva — e dava 576% na 5003645."""
+        d = ficha.ficha_do_dia(self._serie([100] * 96, [20] * 96))
+        self.assertAlmostEqual(d['penetracao_gd_pct'], 100.0 * 20 / 120, places=6)
+
+    def test_fonte_negativa_no_dia_marca_exportacao(self):
+        d = ficha.ficha_do_dia(self._serie([-40] * 96, [100] * 96))
+        self.assertTrue(d['exporta_no_dia'])
+
+    def test_consumo_nao_positivo_nao_inventa_penetracao(self):
+        """Sem carga declarada, a penetração não tem denominador — e um número
+        sem significado é pior que um travessão."""
+        d = ficha.ficha_do_dia(self._serie([-100] * 96, [50] * 96))
+        self.assertIsNone(d['penetracao_gd_pct'])
+
+    def test_subestacao_normal_nao_e_marcada(self):
+        d = ficha.ficha_do_dia(self._serie([100] * 96, [10] * 96))
+        self.assertFalse(d['exporta_no_dia'])

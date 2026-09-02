@@ -287,8 +287,17 @@ def ficha_do_dia(serie, passos=96):
                                                        and max(gv)) else None)
         carga = [(fo or 0) + (g or 0) for fo, g in zip(fonte, gd)]
         f['passos_reversos'] = sum(1 for g, t in zip(gv, carga) if g > t)
-        f['penetracao_gd_pct'] = (100.0 * f['kWh_gd'] / (f['kWh_fonte'] + f['kWh_gd'])
-                                  if (f['kWh_fonte'] + f['kWh_gd']) else None)
+        # PENETRACAO CONTRA O CONSUMO, e nao contra a energia injetada. A
+        # formula antiga dividia pela soma (fonte + GD), que e o denominador
+        # certo so enquanto a fonte e positiva. Em cinco subestacoes da Roraima
+        # a fonte fica NEGATIVA no balanco do dia — a GD declarada supera a
+        # carga declarada —, o denominador encolhe e a penetracao saia 533%,
+        # que nao quer dizer nada.
+        consumo = f['kWh_fonte'] + f['kWh_gd'] - (f.get('kWh_perdas') or 0)
+        f['kWh_consumo'] = consumo
+        f['exporta_no_dia'] = f['kWh_fonte'] < 0
+        f['penetracao_gd_pct'] = (100.0 * f['kWh_gd'] / consumo
+                                  if consumo > 0 else None)
     return f
 
 
@@ -381,6 +390,7 @@ LINHAS_DIA = [
     ('perda no vale (kW)', 'perda_vale_kW', 1, False),
     ('razão perda pico/vale', 'razao_perda_pico_vale', 2, False),
     ('energia gerada pela GD (kWh)', 'kWh_gd', 0, True),
+    ('energia consumida (kWh)', 'kWh_consumo', 0, True),
     ('penetração da GD (%)', 'penetracao_gd_pct', 2, False),
     ('pico da GD (kW)', 'gd_pico_kW', 0, True),
     ('hora do pico da GD', 'hora_gd_pico', 'h', False),

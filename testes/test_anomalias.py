@@ -237,3 +237,20 @@ class TestEstrutura(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+
+
+class TestExportacao(unittest.TestCase):
+
+    def test_exportar_no_dia_e_achado_grave(self):
+        a = anomalias.do_dia({'exporta_no_dia': True, 'kWh_fonte': -3388,
+                              'kWh_gd': 11000})
+        grave = [x for x in a if x['gravidade'] == anomalias.GRAVE]
+        self.assertEqual(len(grave), 1)
+        self.assertIn('sem a carga correspondente', grave[0]['causa'])
+
+    def test_a_causa_nao_culpa_o_conversor(self):
+        """É declaração, não modelagem — e o texto tem de dizer isso, porque é
+        a tese do projeto."""
+        a = anomalias.do_dia({'exporta_no_dia': True, 'kWh_fonte': -1,
+                              'kWh_gd': 2})
+        self.assertIn('não é operação', a[0]['causa'])
