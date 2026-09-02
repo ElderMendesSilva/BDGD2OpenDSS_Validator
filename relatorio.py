@@ -131,14 +131,21 @@ def _do_modelo(pasta, se):
         import opendssdirect as dss
     except Exception:
         return vazio
+    # O OpenDSS FAZ `chdir` AO COMPILAR, para a pasta do arquivo. Todo caminho
+    # relativo depois disso passa a resolver a partir da subestacao — foi
+    # assim que o relatorio comecou a gravar no lugar errado, sem erro nenhum:
+    # `os.path.isdir('MODELOS_X/SE1')` dava False porque o processo ja estava
+    # DENTRO de `MODELOS_X/SE1`.
+    voltar = os.getcwd()
     d = os.path.join(pasta, se)
     master = os.path.join(d, 'MASTER-%s.dss' % se)
     if not os.path.exists(master):
         return vazio
     try:
-        dss.Text.Command('compile "%s"' % master)
+        dss.Text.Command('compile "%s"' % os.path.abspath(master))
         dss.Text.Command('solve')
     except Exception:
+        os.chdir(voltar)
         return vazio
 
     dist, pus = [], []
@@ -184,6 +191,7 @@ def _do_modelo(pasta, se):
                         cor.append(pu_de.get(p[0].strip().lower()))
                     except ValueError:
                         pass
+    os.chdir(voltar)
     return dist, pus, carga, xs, ys, cor
 
 
@@ -222,6 +230,32 @@ def uma_subestacao(pasta, se, val, ene, ger, destino, abrir=True,
                                             'Energia do dia e anomalias'),
     }
     chaves = _escolhidos(plots, PLOTS_SE)
+
+    # UMA FIGURA POR ARQUIVO, numa pasta `RELATORIO/` dentro da subestacao.
+    # O painelao de doze quadros servia para ter tudo de relance, mas nao serve
+    # para USAR: quem quer o perfil de tensao numa apresentacao teria de
+    # recortar da imagem grande, e cada quadro sai pequeno demais para ser lido
+    # sozinho. Em arquivos separados cada figura tem a pagina inteira.
+    # `destino` JA E a pasta de relatorio; so a pasta da subestacao ganha uma
+    # subpasta. Sem esta distincao sai `RELATORIO/RELATORIO/`.
+    dse = os.path.join(pasta, se)
+    dest_se = os.path.join(dse, 'RELATORIO') if os.path.isdir(dse) else destino
+    os.makedirs(dest_se, exist_ok=True)
+    import matplotlib.pyplot as _plt
+    for chave in chaves:
+        f1, a1 = _plt.subplots(figsize=(9, 5.5))
+        try:
+            desenha[chave](a1)
+        except Exception as erro:                            # noqa: BLE001
+            graficos._vazio(a1, 'falhou: %s' % erro)
+        f1.suptitle('%s — %s' % (se, dict(PLOTS_SE).get(chave, chave)),
+                    fontsize=11, x=0.02, ha='left')
+        f1.tight_layout(rect=[0, 0, 1, 0.95])
+        f1.savefig(os.path.join(dest_se, '%s.png' % chave), dpi=120)
+        _plt.close(f1)
+
+    # O painelao continua saindo: e o que se olha primeiro, e o que entra no
+    # PDF. As figuras soltas sao para usar.
     linhas = max(1, (len(chaves) + 2) // 3)
     fig, ax = _figura(linhas, 3, '%s — subestacao %s'
                       % (os.path.basename(pasta), se))
@@ -234,9 +268,7 @@ def uma_subestacao(pasta, se, val, ene, ger, destino, abrir=True,
     # A FIGURA MORA COM O MODELO. Quem abre a pasta de uma subestacao para
     # olhar o `.dss` acha o retrato dela do lado, sem precisar saber que existe
     # uma pasta de relatorio em outro lugar.
-    dse = os.path.join(pasta, se)
-    base = (os.path.join(dse, 'RELATORIO') if os.path.isdir(dse)
-            else os.path.join(destino, se))
+    base = os.path.join(dest_se, '_PAINEL')
     # OS DOIS FORMATOS, e nao um. O PNG abre com dois cliques e serve para
     # olhar; o PDF e vetorial, imprime sem borrar e e o que se manda por
     # e-mail ou anexa a um relatorio maior.

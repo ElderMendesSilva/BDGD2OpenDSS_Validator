@@ -331,7 +331,12 @@ def main():
     ap.add_argument('--se', nargs='+')
     a = ap.parse_args()
 
-    raiz = a.pasta if os.path.isabs(a.pasta) else os.path.join(AQUI, a.pasta)
+    # O CAMINHO RELATIVO E CONTRA A RAIZ DO PROJETO, e nao contra
+    # `etapas/`. Depois da mudanca de 02/09/2026 este arquivo mora um
+    # nivel abaixo, e `MODELOS_X` passou a ser procurado dentro de
+    # `etapas/` — onde nunca vai estar.
+    raiz = (a.pasta if os.path.isabs(a.pasta)
+            else os.path.join(os.path.dirname(AQUI), a.pasta))
     if not os.path.isdir(raiz):
         raise SystemExit(f'pasta nao encontrada: {raiz}')
     ses = a.se or sorted(x for x in os.listdir(raiz)
