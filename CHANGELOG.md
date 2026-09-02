@@ -55,8 +55,10 @@ Primeira versão declarada. Fecha a safra BDGD **2024-12-31**.
 
 Não são defeitos do conversor — são o que a BDGD publica:
 
-- **25,70% dos trechos de MT modelados no país não chegam eletricamente à
-  fonte.** Só 27 das 97 bases declaram uma subestação mediana conexa.
+- **Cerca de 7% dos trechos de MT modelados não recebem tensão** (medido em
+  02/09/2026 sobre 4.237 subestações; 19% delas têm zero). O valor de 25,70%
+  publicado antes era artefato de `Topology.AllIsolatedBranches`, que reporta
+  como isolada a rede alimentada pela segunda fonte de uma subestação.
 - **Em 40 de 81 bases, a perda técnica declarada é menor que o ferro dos
   próprios transformadores cadastrados** — a declaração não fecha consigo
   mesma, e isso não depende do nosso modelo.

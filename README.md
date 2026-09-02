@@ -26,9 +26,11 @@ limites de tensão e ampacidade.
 que ele responde é sobre a **qualidade do dado publicado**, e os achados que
 mais pesam são medidos direto na BDGD:
 
-- **25,70% dos trechos de média tensão modelados no país não chegam
-  eletricamente à fonte.** A fragmentação está no dado de origem — só 27 das 97
-  bases declaram uma subestação mediana conexa.
+- **Cerca de 7% dos trechos de média tensão modelados não recebem tensão**,
+  medido sobre 4.237 subestações; 19% delas têm zero. Este número substitui os
+  25,70% que o projeto publicou antes — aquele valor vinha de uma função do
+  OpenDSS que reporta como isolada a rede alimentada pela segunda fonte de uma
+  subestação, e a correção está registrada nos achados 21 e 23.
 - **A perda declarada pela distribuidora não serve de árbitro.** Há casos
   fisicamente impossíveis, um quinto das bases repete um valor padrão, e em 40
   de 81 bases a perda declarada é menor que o ferro dos próprios

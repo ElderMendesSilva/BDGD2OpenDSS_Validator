@@ -15,9 +15,10 @@ resultado.
 - Validar compilação, convergência ou ausência de `NaN` **não basta**: redes
   fisicamente implausíveis convergem. A validação inclui tensão, ampacidade,
   cobertura e balanço de energia (achado 1).
-- **Um quarto da rede modelada do país não chega eletricamente à fonte** —
-  25,70% dos trechos —, e a causa está no dado de origem, não no conversor
-  (achados 15 e 16).
+- **Cerca de 7% da rede modelada do país não recebe tensão** (achado 23,
+  medido sobre 4.237 subestações). O valor de 25,70% que este documento
+  publicou era artefato de medição, e a história de como ele caiu está nos
+  achados 21 e 23 — vale ler, porque quatro achados se apoiaram nele.
 - **A perda declarada pela distribuidora não serve de árbitro.** Ela tem casos
   fisicamente impossíveis (achado 8), um quinto das bases repete um valor
   padrão (achado 9) e em 40 de 81 bases ela é menor que o ferro dos próprios
@@ -665,6 +666,11 @@ o que a amostra de 10 não permite tratar como inversão real.
 
 ### 16. Um quarto da rede modelada do país não chega à fonte
 
+> **SUBSTITUÍDO PELO ACHADO 23 (02/09/2026).** O número correto,
+> medido por tensão sobre os mesmos modelos, é **7,09%** — os 25,70%
+> vinham de `AllIsolatedBranches`, que reporta como isolada a rede
+> alimentada pela segunda fonte de uma subestação.
+
 > **REVERTIDO PELO ACHADO 21 (01/09/2026).** O numerador vinha de
 > `Topology.AllIsolatedBranches()`, que reporta como isolada toda a rede
 > alimentada pela segunda fonte de uma subestação — energizada e
@@ -1065,6 +1071,48 @@ isolado disponivel.
 o regulador sao o mesmo vao fisico declarado em duas tabelas — ou o trecho sai
 e o regulador o substitui, ou o regulador entra em serie, com barra
 intermediaria. Isto ainda nao esta implementado.
+
+### 23. Os números definitivos, depois de remedir as três safras
+
+Medido em 02/09/2026, revalidando os 97 modelos da V25 com o validador
+corrigido — **97 modelos, zero falhas, 4.237 subestações**. Este achado fecha a
+cadeia 12 → 15 → 16 → 20 → 21 com valores que não mudam mais.
+
+**As três medidas, agora separáveis:**
+
+| medida | valor |
+|---|---:|
+| V25 pelo método antigo (topológico) | 25,70% |
+| **V25 remedida, por tensão (safra 2024)** | **7,09%** |
+| V26 por tensão (safra 2025) | 8,62% |
+
+**Dois terços da queda são correção da medida.** Comparando a mesma safra e os
+mesmos modelos, 25,70% viram 7,09% só por trocar `AllIsolatedBranches` — que
+reporta como isolada a rede alimentada pela segunda fonte de uma subestação —
+por tensão medida barra a barra.
+
+**E a diferença entre safras é pequena:** 7,09% em 2024 contra 8,62% em 2025,
+com a safra nova ligeiramente pior. Nada que se compare com o artefato.
+
+**O número correto do isolamento da rede modelada do país é ~7%**, e **814 das
+4.237 subestações (19%) têm zero** trecho sem tensão.
+
+**O que isso encerra:**
+
+- o achado 16 (25,70%) fica **substituído** por este;
+- o achado 21 fica **confirmado** com número definitivo — o artefato era
+  responsável por dois terços da medida;
+- o achado 12 e o 15 seguem revertidos, e agora se sabe por quanto;
+- o achado 20 continua válido no que mediu (a rede declarada é 99,92%
+  alcançável) e inválido na atribuição, porque não há fragmentação a atribuir.
+
+**A lição que fica, e é metodológica.** Quatro achados publicados se apoiaram
+numa função cujo nome prometia uma coisa e cuja implementação fazia outra. O
+sinal de que algo estava errado esteve publicado o tempo todo em
+`resultados/`: subestações com 80% de "isolamento" e **zero cargas sem
+tensão**, com veredicto `OK`. Duas medidas do mesmo arquivo se contradiziam, e
+ninguém — nem eu — cruzou uma com a outra até que `ramos_isolados` excedesse
+`n_linhas`, o que é aritmeticamente impossível.
 
 ## Validação externa e contaminação
 

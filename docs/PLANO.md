@@ -99,7 +99,9 @@ Não bloqueia o download, mas bloqueia o rótulo.
 Os dezessete achados foram medidos sobre 2024. Com 2025 na mão o auditor
 responde o que hoje não responde: **a qualidade do dado melhorou?**
 
-- Os **25,70%** de trechos que não chegam à fonte (achado 16) caíram?
+- ~~Os 25,70% de trechos que não chegam à fonte caíram?~~ **RESPONDIDO:**
+  aquele número era artefato. O real é 7,09% em 2024 e 8,62% em 2025
+  (achado 23).
 - As **40 de 81 bases** cujo ferro declarado excede a perda técnica declarada
   (achado 13) continuam as mesmas?
 - A Cemig ganhou subestações conexas, ou as 5 com mais de cem componentes
