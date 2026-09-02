@@ -750,6 +750,23 @@ def main():
         print('ERRO: %s' % _ERRO_BASES, file=sys.stderr, flush=True)
         return 2
     bases = [b for b in BASES if not a.so or b[0] in a.so]
+    # PEDIR UMA BASE E NAO ACHAR NENHUMA E ERRO, e nao rodada vazia. Ate
+    # 02/09/2026 isso imprimia "0 bases", desenhava o resumo em branco e saia
+    # com codigo 0 — a ferramenta dizendo que fez o pedido quando nao fez
+    # nada. E o mesmo padrao de falha silenciosa que ja custou duas colheitas.
+    if a.so and not bases:
+        achadas = ', '.join(sorted(b[0] for b in BASES)) or '(nenhuma)'
+        print('ERRO: pedi %s e nao achei em %s'
+              % (' '.join(a.so), os.pathsep.join(PASTAS_BDGD)),
+              file=sys.stderr)
+        print('       bases visiveis: %s' % achadas, file=sys.stderr)
+        print('       aponte BDGD2DSS_BASES para a pasta das .gdb',
+              file=sys.stderr)
+        return 2
+    if not bases:
+        print('ERRO: nenhuma .gdb encontrada em %s'
+              % os.pathsep.join(PASTAS_BDGD), file=sys.stderr)
+        return 2
     prev, sem_previsao = previsao(bases)
     t0 = time.time()
     print(f'REGERACAO V10 — {len(bases)} bases, inicio '

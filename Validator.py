@@ -287,6 +287,12 @@ class Menu(tk.Tk):
             if not os.path.isdir(alvo):
                 self.escreve('\nEssa pasta .gdb nao existe: %s\n' % alvo)
                 return
+            # A PASTA DA .gdb ESCOLHIDA VIRA A PASTA DE BASES. Sem isto o
+            # `regerar` varre `BDGD2DSS_BASES` ou os caminhos padrao, nao acha
+            # o arquivo que a pessoa acabou de escolher no seletor, e imprime
+            # "0 bases" — que foi o que aconteceu na primeira vez que isto
+            # rodou de verdade.
+            os.environ['BDGD2DSS_BASES'] = os.path.dirname(os.path.abspath(alvo))
             # `--so` espera a TAG, e o `regerar` a deriva do nome do arquivo
             import regerar_v10 as rg
             tag = rg._sigla(alvo)[0]
