@@ -348,7 +348,7 @@ def _uma_se(C, se, k):
     col_mt = b.ler_filtrado('SSDMT', 'CTMT', ctmts,
                             ['COD_ID', 'PAC_1', 'PAC_2', 'CTMT', 'FAS_CON',
                              'TIP_CND', 'COMP'])
-    n_ln, km, barras = linhas.gerar(b, mapa_cnd, ctmts, os.path.join(d, 'Linhas.dss'),
+    n_ln, km, barras, pares_mt = linhas.gerar(b, mapa_cnd, ctmts, os.path.join(d, 'Linhas.dss'),
                                     'SSDMT', col=col_mt)
     # `barras` vem da rede de MT acima: chave cujos dois PACs estao fora
     # dela cria ilha flutuante, e o NaN dela contamina a perda da
@@ -387,7 +387,7 @@ def _uma_se(C, se, k):
         b, ctmts, os.path.join(d, 'Reguladores.dss'),
         a.kv_mt, kv_por_ctmt,
         a.reg_vreg, a.reg_band, a.reg_kva,
-        barras=barras_rede)
+        barras=barras_rede, pares=pares_mt)
     if a.bt == 'completo':
         info = cargas.gerar(b, ctmts, sec, os.path.join(d, 'Cargas.dss'), a.mes,
                             nomes_curva, a.fator_carga,

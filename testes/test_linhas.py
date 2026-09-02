@@ -134,7 +134,7 @@ class OPisoDeUmCentimetro(unittest.TestCase):
         """O `km` devolvido soma o comprimento REAL, nao o escrito. Um trecho
         de 1 mm nao move o total — o que confirma que o dano e so eletrico."""
         tmp = tempfile.mkdtemp()
-        _, km, _ = linhas.gerar(None, MAPA, ['F1'],
+        _, km, _, _ = linhas.gerar(None, MAPA, ['F1'],
                                 os.path.join(tmp, 'L.dss'),
                                 col=_col([1000.0, 0.001]))
         self.assertAlmostEqual(km, 1.0, places=5)

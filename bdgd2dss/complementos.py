@@ -323,7 +323,7 @@ def capacitores(bdgd, ctmts, caminho, kv=13.8, kv_por_ctmt=None, barras=None):
 
 # ------------------------------------------------------------------ reguladores
 def reguladores(bdgd, ctmts, caminho, kv=13.8, kv_por_ctmt=None,
-                vreg=122.0, band=2.0, kva=5000.0, barras=None):
+                vreg=122.0, band=2.0, kva=5000.0, barras=None, pares=None):
     """UNREMT -> autotrafo + RegControl.
 
     A exportacao original trazia kVs de linha num enrolamento monofasico,
@@ -339,6 +339,7 @@ def reguladores(bdgd, ctmts, caminho, kv=13.8, kv_por_ctmt=None,
     nao atrapalha a convergencia.
     """
     kv_por_ctmt = kv_por_ctmt or {}
+    serie = []
     try:
         col = bdgd.ler_filtrado('UNREMT', 'CTMT', ctmts,
                                 ['COD_ID', 'PAC_1', 'PAC_2', 'CTMT', 'FAS_CON'])
@@ -416,16 +417,49 @@ def reguladores(bdgd, ctmts, caminho, kv=13.8, kv_por_ctmt=None,
         _pot, _pu = eqre.get(cod, (None, None))
         kva_i = _pot if _pot else kva
         vreg_i = round(_pu * 120.0, 1) if _pu else vreg
+        # ACHADO 22 — O REGULADOR NAO PODE FICAR EM PARALELO COM O TRECHO.
+        #
+        # A UNREMT declara o regulador entre `PAC_1` e `PAC_2`; a SSDMT declara
+        # o TRECHO entre os mesmos dois PACs, que e o vao onde o equipamento
+        # esta instalado. Emitir os dois liga o mesmo par de barras por dois
+        # caminhos, um deles de impedancia quase nula — e o tap regulando
+        # contra esse curto produz corrente de laco.
+        #
+        # Medido na AGV da NEOENERGIA385: 9 de 9 reguladores assim, 2.506 A num
+        # condutor de 145 A, subestacao a 0,415 pu e 9,9 MW de perda que NAO
+        # some ao desligar todas as cargas. Sem os reguladores: 1,013 pu e
+        # 229 kW.
+        #
+        # A saida e por o regulador EM SERIE, e nao remover nada: ele existe na
+        # rede real. Cria-se a barra intermediaria, o regulador vai de `b1` ate
+        # ela, e as linhas do par sao RECONECTADAS para sair dela. O `Edit
+        # Line...` vale porque o `Reguladores.dss` e redirecionado DEPOIS do
+        # `Linhas.dss`.
+        #
+        #     antes:   b1 ---[linha]--- b2   e   b1 ---[regulador]--- b2
+        #     depois:  b1 ---[regulador]--- b1_regX ---[linha]--- b2
+        par = (b1, b2) if b1 <= b2 else (b2, b1)
+        em_paralelo = (pares or {}).get(par) or []
+        meio = f'{b1}_reg{cod}' if em_paralelo else None
+        if em_paralelo:
+            serie.append(cod)
         for f in [FASES[c] for c in txt(col['FAS_CON'][i], 'ABC').upper() if c in FASES] or ['1']:
             nome = f'REG_{cod}_{f}'
+            saida = f'{meio}.{f}' if meio else f'{b2}.{f}'
             out.append(f'New Transformer.{nome} phases=1 windings=2 XHL=0.04\n'
-                       f'~ buses=[{b1}.{f} {b2}.{f}] conns=[wye wye]\n'
+                       f'~ buses=[{b1}.{f} {saida}] conns=[wye wye]\n'
                        f'~ kVs=[{kv_fn:.4f} {kv_fn:.4f}] kVAs=[{kva_i:g} {kva_i:g}] %Rs=[0.01 0.01]\n'
                        f'~ maxtap=1.10 mintap=0.90 numtaps=32')
             out.append(f'New RegControl.RC_{nome} transformer={nome} winding=2 '
                        f'vreg={vreg_i:g} band={band:g} ptratio={ptratio} '
                        f'delay=15 maxtapchange=1')
             n += 1
+        for cod_ln, la, _lb in em_paralelo:
+            # QUAL PONTA reconectar importa: a que tocava `b1` passa a tocar a
+            # barra do meio. Sem olhar isso, metade das linhas sairia invertida
+            # e o regulador continuaria em paralelo — sem erro nenhum.
+            campo = 'bus1' if la == b1 else 'bus2'
+            out.append(f'Edit Line.{cod_ln} {campo}={meio}')
     if pendurados:
         out.append(f'! ATENCAO: {len(pendurados)} regulador(es) com um PAC que '
                    f'nao existe na rede.')
@@ -439,6 +473,11 @@ def reguladores(bdgd, ctmts, caminho, kv=13.8, kv_por_ctmt=None,
                    'achado 50.')
         out.append('! Ex.: ' + ', '.join(f'{c} (ponta solta {b})'
                                          for c, b in pendurados[:3]))
+    if serie:
+        out.append(f'! {len(serie)} regulador(es) estavam EM PARALELO com o '
+                   f'trecho da SSDMT e foram postos EM SERIE (achado 22).')
+        out.append('! Sem isto o tap regula contra um curto e circula corrente '
+                   'de laco: 2.506 A num condutor de 145 A, na AGV.')
     open(caminho, 'w', encoding='utf-8', newline=escrita.FIM_DE_LINHA).write('\n'.join(out) + '\n')
     return n, pendurados
 

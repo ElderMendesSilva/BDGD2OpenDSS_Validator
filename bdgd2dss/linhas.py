@@ -63,10 +63,21 @@ def _linecode(mapa, tip_cnd, nfases):
 
 
 def gerar(bdgd, mapa_cnd, ctmts, caminho_saida, camada='SSDMT', col=None):
-    """Gera as linhas dos CTMT pedidos. Devolve (n_linhas, km, barras).
+    """Gera as linhas dos CTMT pedidos. Devolve (n_linhas, km, barras, por_par).
 
     `col` permite reaproveitar uma leitura ja feita — evita varrer a mesma
     camada duas vezes por subestacao.
+
+    `por_par` mapeia `(pac_menor, pac_maior)` para os nomes das linhas que
+    ligam esse par. Existe por causa do ACHADO 22: a UNREMT declara o regulador
+    entre dois PACs e a SSDMT declara o TRECHO entre os mesmos dois — o vao
+    onde o equipamento esta instalado. Emitir os dois poe o regulador em
+    paralelo com um caminho de impedancia quase nula, e circula corrente de
+    laco: 2.506 A num condutor de 145 A, na AGV da NEOENERGIA385, com a
+    subestacao inteira a 0,415 pu.
+
+    Quem corrige e `complementos.reguladores`, que precisa saber QUAL linha
+    reconectar — dai o mapa sair daqui.
     """
     cols = ['COD_ID', 'PAC_1', 'PAC_2', 'CTMT', 'FAS_CON', 'TIP_CND', 'COMP']
     if col is None:
@@ -77,6 +88,7 @@ def gerar(bdgd, mapa_cnd, ctmts, caminho_saida, camada='SSDMT', col=None):
               f'! Barras = PAC_1 / PAC_2 da BDGD (preservados)',
               f'! ==========================================================']
     barras = set()
+    por_par = {}
     km = 0.0
     for i in range(n):
         b1 = no(col['PAC_1'][i])
@@ -92,9 +104,11 @@ def gerar(bdgd, mapa_cnd, ctmts, caminho_saida, camada='SSDMT', col=None):
                       f'Bus1={b1}{nd} Bus2={b2}{nd} '
                       f'LineCode={lc} Length={comp:.2f} Units=m')
         barras.add(b1); barras.add(b2)
+        por_par.setdefault((b1, b2) if b1 <= b2 else (b2, b1), []).append(
+            (txt(col['COD_ID'][i]), b1, b2))
         km += comp / 1000.0
     open(caminho_saida, 'w', encoding='utf-8', newline=escrita.FIM_DE_LINHA).write('\n'.join(linhas) + '\n')
-    return len(linhas) - 4, round(km, 2), barras
+    return len(linhas) - 4, round(km, 2), barras, por_par
 
 
 # fator entre a impedancia do neutro e a da fase. Em cabo multiplexado o
