@@ -28,6 +28,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from bdgd2dss import graficos                            # noqa: E402
 from bdgd2dss import laudo                               # noqa: E402
 from bdgd2dss import ficha                               # noqa: E402
+from bdgd2dss import anomalias                           # noqa: E402
 
 
 
@@ -130,7 +131,7 @@ def _do_modelo(pasta, se):
     quando o modelo nao abre: relatorio de subestacao quebrada tem de sair
     assim mesmo, com as figuras dizendo que nao ha dado.
     """
-    vazio = ([], [], [], [], [], [], {})
+    vazio = ([], [], [], [], [], [], {}, [])
     try:
         import opendssdirect as dss
     except Exception:
@@ -208,7 +209,10 @@ def _do_modelo(pasta, se):
         ficha_ = ficha.ficha_do_circuito(dss)
     except Exception:                                        # noqa: BLE001
         ficha_ = {}
-    return dist, pus, carga, xs, ys, cor, ficha_
+    # O DIAGNOSTICO, no mesmo circuito aberto. E aqui que "ha um ponto em
+    # 1,551 pu" vira "o Transformer.1019552488 declara 22 kV nesta barra".
+    anom = anomalias.do_modelo(dss)
+    return dist, pus, carga, xs, ys, cor, ficha_, anom
 
 
 def uma_subestacao(pasta, se, val, ene, ger, destino, abrir=True,
@@ -223,9 +227,11 @@ def uma_subestacao(pasta, se, val, ene, ger, destino, abrir=True,
     gd = serie.get('gd_kw') or []
     perdas = serie.get('perdas_kw') or []
 
-    dist, pus, carga, xs, ys, cor, fic = (_do_modelo(pasta, se) if abrir
-                                          else ([], [], [], [], [], [], {}))
+    dist, pus, carga, xs, ys, cor, fic, anom = (
+        _do_modelo(pasta, se) if abrir
+        else ([], [], [], [], [], [], {}, []))
     fdia = ficha.ficha_do_dia(serie)
+    anom = list(anom) + anomalias.do_dia(fdia)
 
     # CADA CHAVE DO CATALOGO VIRA UMA FUNCAO SEM ARGUMENTO, e so as pedidas
     # sao desenhadas. Assim acrescentar uma figura e escrever uma linha aqui e
@@ -273,7 +279,12 @@ def uma_subestacao(pasta, se, val, ene, ger, destino, abrir=True,
         f1.text(0.01, 0.01, '%s · %s' % (se, chave), fontsize=7,
                 color=graficos.COR_CLARA)
         f1.tight_layout(rect=[0, 0.02, 1, 1])
-        f1.savefig(os.path.join(dest_se, '%s.png' % chave), dpi=120)
+        # `bbox_inches='tight'` porque a faixa de numeros e o titulo ficam
+        # ACIMA do eixo: com o enquadramento fixo o titulo saia cortado da
+        # figura solta — no PDF ele nao faltava, porque ali o titulo e um
+        # cabecalho de secao, e por isso o corte passou despercebido.
+        f1.savefig(os.path.join(dest_se, '%s.png' % chave), dpi=120,
+                   bbox_inches='tight')
         _plt.close(f1)
 
     # O painelao continua saindo: e o que se olha primeiro, e o que entra no
@@ -322,7 +333,7 @@ def uma_subestacao(pasta, se, val, ene, ger, destino, abrir=True,
                                            if x > t)
         try:
             pdf_da_subestacao(base + '.pdf', pasta, se, v, e, g, alvo, extra,
-                              fic, fdia)
+                              fic, fdia, anom)
         except Exception as erro:                            # noqa: BLE001
             print('   PDF de %s falhou: %s' % (se, erro), flush=True)
     return alvo
@@ -630,7 +641,7 @@ def _p(texto, estilo):
 
 
 def pdf_da_subestacao(caminho, pasta, se, v, e, g, figura,
-                      extra=None, fic=None, fdia=None):
+                      extra=None, fic=None, fdia=None, anom=None):
     """Um documento por subestacao: o que e, o que deu, e a figura."""
     from reportlab.lib.pagesizes import A4
     from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
@@ -702,6 +713,15 @@ def pdf_da_subestacao(caminho, pasta, se, v, e, g, figura,
     for tit, par in laudo.laudo_da_subestacao(v, e, g, extra):
         pecas += [_p(tit, h2), _p(_negrito(par), corpo)]
 
+    # O DIAGNOSTICO EM PAGINA PROPRIA. O laudo diz que ha uma barra fora da
+    # faixa; esta secao diz QUAL barra e qual elemento a colocou la. E a
+    # diferenca entre um relatorio que se le e um que se usa.
+    diag = _bloco_de_anomalias(anom, h2, corpo,
+                               titulo='Diagnóstico das anomalias')
+    if diag:
+        pecas.append(PageBreak())
+        pecas += diag
+
     # CADA FIGURA COM A SUA ANALISE, e nao um bloco de figuras no fim. O
     # painelao servia para ter tudo de relance; num relatorio, figura sem
     # leitura ao lado obriga quem le a redescobrir sozinho o que ela mostra —
@@ -712,7 +732,8 @@ def pdf_da_subestacao(caminho, pasta, se, v, e, g, figura,
         if not os.path.exists(png):
             continue
         texto = laudo.analise_da_figura(chave, v, e, g, extra)
-        if not texto:
+        achados_daqui = _bloco_de_anomalias(anom, h2, corpo, apenas=chave)
+        if not texto and not achados_daqui:
             continue
         # UMA PAGINA POR SECAO. Duas secoes na mesma pagina fazem a figura
         # de baixo brigar por espaco com o texto de cima, e a leitura vira
@@ -725,6 +746,10 @@ def pdf_da_subestacao(caminho, pasta, se, v, e, g, figura,
             Spacer(1, 5 * mm),
             Image(png, width=168 * mm, height=168 * mm * _proporcao(png)),
         ]
+        # O ACHADO FICA COM A FIGURA. Quem esta olhando o ponto solitario no
+        # perfil tem a explicacao dele na mesma pagina, e nao vinte paginas
+        # atras numa secao geral.
+        pecas += achados_daqui
     doc.build(pecas)
     return caminho
 
@@ -780,6 +805,63 @@ def _bloco_da_ficha(fic, fdia, h2, corpo):
 
     for tit, par in laudo.leitura_da_ficha(fic, fdia):
         pecas += [_p(tit, h2), _p(_negrito(par), corpo)]
+    return pecas
+
+
+CORES_GRAVIDADE = {
+    'grave': ('#c62828', 'requer atenção'),
+    'atencao': ('#ef6c00', 'observar'),
+    'nota': ('#546e7a', 'informativo'),
+}
+
+
+def _bloco_de_anomalias(anom, h2, corpo, apenas=None, titulo=None):
+    """O diagnostico: o que foi medido, a causa provavel, e QUAIS elementos.
+
+    A separacao entre "medido" e "causa provavel" e deliberada e visivel na
+    pagina. Um relatorio que mistura as duas coisas ensina quem le a
+    desconfiar das duas; separando, o numero continua valendo mesmo quando a
+    explicacao estiver errada.
+    """
+    from reportlab.lib.styles import ParagraphStyle
+    from reportlab.lib.units import mm
+    from reportlab.lib import colors
+    from reportlab.platypus import Spacer, Table, TableStyle
+
+    itens = [a for a in (anom or [])
+             if apenas is None or a.get('figura') == apenas]
+    if not itens:
+        return []
+
+    rotulo = ParagraphStyle('rot', parent=corpo, fontSize=7.5, leading=10,
+                            textColor=colors.HexColor('#777'))
+    elem = ParagraphStyle('elem', parent=corpo, fontSize=7.6, leading=10.5,
+                          leftIndent=4 * mm, textColor=colors.HexColor('#37474f'))
+    pecas = []
+    if titulo:
+        pecas.append(_p(titulo, h2))
+    for a in itens:
+        cor, selo = CORES_GRAVIDADE.get(a['gravidade'], CORES_GRAVIDADE['nota'])
+        cab = Table([[_p('<b>%s</b>' % a['titulo'], corpo),
+                      _p('<font color="%s">%s</font>' % (cor, selo.upper()),
+                         rotulo)]],
+                    colWidths=[128 * mm, 36 * mm])
+        cab.setStyle(TableStyle([
+            ('LINEABOVE', (0, 0), (-1, 0), 1.2, colors.HexColor(cor)),
+            ('ALIGN', (1, 0), (1, 0), 'RIGHT'),
+            ('VALIGN', (0, 0), (-1, -1), 'BOTTOM'),
+            ('TOPPADDING', (0, 0), (-1, -1), 4),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 1),
+        ]))
+        pecas += [Spacer(1, 3 * mm), cab,
+                  _p('O QUE FOI MEDIDO', rotulo),
+                  _p(_negrito(a['medido']), corpo),
+                  _p('EXPLICAÇÃO PROVÁVEL', rotulo),
+                  _p(_negrito(a['causa']), corpo)]
+        if a.get('elementos'):
+            pecas.append(_p('ONDE OLHAR', rotulo))
+            for x in a['elementos']:
+                pecas.append(_p('• ' + _negrito(str(x)), elem))
     return pecas
 
 
@@ -923,6 +1005,10 @@ def pdf_da_concessao(caminho, pasta, agregado, pasta_fig, chaves):
             Spacer(1, 5 * mm),
             Image(png, width=168 * mm, height=168 * mm * _proporcao(png)),
         ]
+        # O ACHADO FICA COM A FIGURA. Quem esta olhando o ponto solitario no
+        # perfil tem a explicacao dele na mesma pagina, e nao vinte paginas
+        # atras numa secao geral.
+        pecas += achados_daqui
     doc.build(pecas)
     return caminho
 

@@ -65,9 +65,24 @@ def _mil(x):
         return '—'
 
 
+# ------------------------------------------------------------------ tipografia
+#
+# UMA ESCALA SO, e nao um numero solto em cada chamada. As figuras entram no
+# PDF com 150 mm de largura enquanto sao desenhadas com 9 polegadas (229 mm):
+# tudo encolhe para dois tercos no papel, e o rotulo de 7 pt que parecia bom na
+# tela vira 4,6 pt impresso — ilegivel. Mexer aqui mexe em todas as figuras de
+# uma vez, que e o unico jeito de manter o relatorio consistente.
+ESCALA_FONTE = 1.45
+
+
+def _fs(base):
+    """O tamanho de fonte, ja na escala do relatorio."""
+    return round(base * ESCALA_FONTE, 1)
+
+
 def _vazio(ax, motivo):
     """Diz por que nao ha figura, em vez de deixar o eixo em branco."""
-    ax.text(0.5, 0.5, motivo, ha='center', va='center', fontsize=9,
+    ax.text(0.5, 0.5, motivo, ha='center', va='center', fontsize=_fs(9),
             color=COR_NEUTRA, wrap=True, transform=ax.transAxes)
     ax.set_xticks([])
     ax.set_yticks([])
@@ -76,13 +91,19 @@ def _vazio(ax, motivo):
     return ax
 
 
-def _acaba(ax, titulo, x=None, y=None):
-    ax.set_title(titulo, fontsize=10, loc='left')
+def _acaba(ax, titulo, x=None, y=None, pad=None):
+    # `pad` afasta o titulo do eixo, para caber uma faixa de numeros embaixo
+    # dele. Passe-o AQUI: `ax.get_title()` devolve o titulo CENTRAL, e como
+    # este projeto usa `loc='left'`, reescrever o titulo depois com o que
+    # `get_title()` devolve apaga o titulo com uma string vazia — o que
+    # aconteceu, e a figura saiu sem titulo nenhum.
+    ax.set_title(titulo, fontsize=_fs(10), loc='left',
+                 **({'pad': pad} if pad else {}))
     if x:
-        ax.set_xlabel(x, fontsize=8)
+        ax.set_xlabel(x, fontsize=_fs(8))
     if y:
-        ax.set_ylabel(y, fontsize=8)
-    ax.tick_params(labelsize=7)
+        ax.set_ylabel(y, fontsize=_fs(8))
+    ax.tick_params(labelsize=_fs(7))
     ax.grid(alpha=0.25, linewidth=0.5)
     for lado in ('top', 'right'):
         ax.spines[lado].set_visible(False)
@@ -169,7 +190,7 @@ def _avisa_cortados(ax, n_abaixo, n_alto, unidade='', vertical=True):
     ax.text(0.99, 0.97 if vertical else 0.03, ' · '.join(partes) + unidade,
             transform=ax.transAxes, ha='right',
             va='top' if vertical else 'bottom',
-            fontsize=7.5, color=COR_RUIM,
+            fontsize=_fs(7.5), color=COR_RUIM,
             bbox=dict(boxstyle='round,pad=0.3', fc='white', ec=COR_RUIM,
                       lw=0.6, alpha=0.9))
 
@@ -192,7 +213,7 @@ def perfil_de_tensao(ax, distancias, pus):
                    (V_ADEQUADA[1], 'limite superior do PRODIST  %s pu')):
         ax.axhline(y, color=COR_RUIM, lw=0.8, ls='--')
         ax.text(0.005, y, txt % _dec(y), transform=ax.get_yaxis_transform(),
-                fontsize=7, color=COR_RUIM, va='bottom', ha='left')
+                fontsize=_fs(7), color=COR_RUIM, va='bottom', ha='left')
 
     # A ESCALA SEGUE O DADO, e nao o ponto perdido. Ver `_faixa_util`.
     lo, hi, n_b, n_a = _faixa_util(pus, referencia=V_ADEQUADA)
@@ -213,8 +234,22 @@ def perfil_de_tensao(ax, distancias, pus):
                 px.append(sum(d for d, _ in pedaco) / len(pedaco))
                 py.append(sum(p for _, p in pedaco) / len(pedaco))
         if len(px) > 2:
-            ax.plot(px, py, color='#263238', lw=1.6, alpha=0.85,
-                    label='tensão média por faixa de distância')
+            ax.plot(px, py, color='#263238', lw=1.8, alpha=0.9)
+            # ROTULO NA PROPRIA LINHA, e nao numa legenda. Com a fonte no
+            # tamanho legivel a caixa da legenda ocupava um quinto da figura e
+            # cobria o limite inferior do PRODIST; encostada na curva ela
+            # identifica a linha sem disputar espaco com o dado.
+            # No ALTO, acompanhando o inicio da curva: ali o eixo esta vazio
+            # em rede sadia (a nuvem fica embaixo) e a seta liga o rotulo a
+            # linha sem que ele encoste em nada.
+            ax.annotate('tensão média por faixa de distância',
+                        xy=(px[1], py[1]), xytext=(0.13, 0.80),
+                        textcoords='axes fraction',
+                        fontsize=_fs(7), color='#263238', ha='left',
+                        arrowprops=dict(arrowstyle='->', color='#263238',
+                                        lw=0.9, alpha=0.8),
+                        bbox=dict(boxstyle='round,pad=0.3', fc='white',
+                                  ec='#cfd8dc', lw=0.6, alpha=0.9))
 
     # OS NUMEROS NA PROPRIA FIGURA. Antes era preciso ir a tabela para saber a
     # tensao minima; agora a figura responde sozinha o que ela mesma levanta.
@@ -226,24 +261,23 @@ def perfil_de_tensao(ax, distancias, pus):
               % (_mil(len(pus)), _dec(vmin, 3), _dec(vmax, 3),
                  _dec(vmax - vmin, 3), _dec(dmax, 1), _mil(fora),
                  _dec(100.0 * fora / len(pus), 1)))
-    ax.text(0.99, 0.03, resumo, transform=ax.transAxes, ha='right',
-            va='bottom', fontsize=7.5, color=COR_NEUTRA, linespacing=1.5,
-            bbox=dict(boxstyle='round,pad=0.4', fc='white', ec=COR_CLARA,
-                      lw=0.6, alpha=0.92))
+    # A CAIXA SAI DE DENTRO DO GRAFICO. Dentro dela disputava espaco com a
+    # nuvem, com o rotulo do limite inferior e com a linha de tendencia, e nao
+    # havia canto livre em toda figura: rede boa enche o meio, rede ruim enche
+    # embaixo. Abaixo do titulo o espaco e sempre nosso, e o numero e lido
+    # ANTES da figura, que e a ordem certa.
+    ax.text(0.0, 1.01, resumo, transform=ax.transAxes, ha='left',
+            va='bottom', fontsize=_fs(7.5), color=COR_NEUTRA, linespacing=1.6)
     # a barra de menor tensao, marcada onde ela esta
     i_pior = min(range(len(pus)), key=lambda k: pus[k])
     if lo <= pus[i_pior] <= hi:
         ax.annotate('mínimo %s pu' % _dec(vmin, 3),
                     xy=(distancias[i_pior], pus[i_pior]),
-                    xytext=(8, 14), textcoords='offset points', fontsize=7.5,
+                    xytext=(8, 14), textcoords='offset points', fontsize=_fs(7.5),
                     color=COR_RUIM,
                     arrowprops=dict(arrowstyle='->', color=COR_RUIM, lw=0.8))
-    if ax.get_legend_handles_labels()[0]:
-        # canto INFERIOR esquerdo: o superior direito e do aviso de pontos
-        # fora do eixo, e a legenda o cobria por inteiro.
-        ax.legend(fontsize=7.5, loc='lower left', framealpha=0.9)
     return _acaba(ax, 'Perfil de tensão contra distância da fonte',
-                  'distância elétrica da fonte (km)', 'tensão (pu)')
+                  'distância elétrica da fonte (km)', 'tensão (pu)', pad=48)
 
 
 def histograma_de_tensao(ax, pus):
@@ -261,7 +295,7 @@ def histograma_de_tensao(ax, pus):
     for x in V_ADEQUADA:
         ax.axvline(x, color=COR_RUIM, lw=0.9, ls='--')
         ax.text(x, 0.98, ' %s pu' % _dec(x), transform=ax.get_xaxis_transform(),
-                fontsize=7, color=COR_RUIM, va='top', rotation=90)
+                fontsize=_fs(7), color=COR_RUIM, va='top', rotation=90)
     ax.set_xlim(lo, hi)
     _avisa_cortados(ax, n_b, n_a)
 
@@ -269,7 +303,7 @@ def histograma_de_tensao(ax, pus):
     alto = sum(1 for p in pus if p > V_ADEQUADA[1])
     med = sorted(pus)[len(pus) // 2]
     ax.axvline(med, color='#263238', lw=1.4)
-    ax.text(med, 0.55, ' mediana %s pu' % _dec(med, 3), fontsize=7.5,
+    ax.text(med, 0.55, ' mediana %s pu' % _dec(med, 3), fontsize=_fs(7.5),
             transform=ax.get_xaxis_transform(), color='#263238', rotation=90,
             va='center')
     # PARA QUE LADO a rede sai da faixa, que e a pergunta que o histograma
@@ -279,7 +313,7 @@ def histograma_de_tensao(ax, pus):
             '%s barras  ·  %s abaixo de %s pu  ·  %s acima de %s pu'
             % (_mil(len(pus)), _mil(baixo), _dec(V_ADEQUADA[0]),
                _mil(alto), _dec(V_ADEQUADA[1])),
-            transform=ax.transAxes, ha='right', va='top', fontsize=7.5,
+            transform=ax.transAxes, ha='right', va='top', fontsize=_fs(7.5),
             color=COR_NEUTRA,
             bbox=dict(boxstyle='round,pad=0.35', fc='white', ec=COR_CLARA,
                       lw=0.6, alpha=0.92))
@@ -304,7 +338,7 @@ def curva_do_dia(ax, fonte_kw, gd_kw=None, perdas_kw=None):
         ax.plot(h, perdas_kw, color=COR_RUIM, lw=1.0, label='perdas')
     ax.set_xlim(0, 24)
     ax.set_xticks(range(0, 25, 3))
-    ax.legend(fontsize=7, frameon=False)
+    ax.legend(fontsize=_fs(7), frameon=False)
     return _acaba(ax, 'Curva do dia', 'hora', 'kW')
 
 
@@ -342,7 +376,7 @@ def carregamento(ax, pcts):
     if hi >= 100.0:
         ax.axvline(100, color=COR_RUIM, lw=1.1, ls='--')
         ax.text(100, 0.98, ' ampacidade declarada (100%)',
-                transform=ax.get_xaxis_transform(), fontsize=7,
+                transform=ax.get_xaxis_transform(), fontsize=_fs(7),
                 color=COR_RUIM, va='top', rotation=90)
     else:
         # A LINHA DE 100% NAO CABE, e isso e a boa noticia: dizer por escrito
@@ -350,7 +384,7 @@ def carregamento(ax, pcts):
         # ela.
         ax.text(0.99, 0.86, 'a linha de 100%% fica fora do eixo — o trecho '
                 'mais carregado chega a %s%%' % _dec(max(pcts), 1),
-                transform=ax.transAxes, ha='right', va='top', fontsize=7.5,
+                transform=ax.transAxes, ha='right', va='top', fontsize=_fs(7.5),
                 color=COR_OK, style='italic')
     ax.set_xlim(lo, hi)
     _avisa_cortados(ax, 0, n_a)
@@ -363,7 +397,7 @@ def carregamento(ax, pcts):
             '%s acima da ampacidade (%s%%)'
             % (_mil(len(pcts)), _dec(med, 1), _dec(pior, 1), _mil(acima),
                _dec(100.0 * acima / len(pcts), 1)),
-            transform=ax.transAxes, ha='right', va='top', fontsize=7.5,
+            transform=ax.transAxes, ha='right', va='top', fontsize=_fs(7.5),
             color=COR_NEUTRA, linespacing=1.5,
             bbox=dict(boxstyle='round,pad=0.35', fc='white', ec=COR_CLARA,
                       lw=0.6, alpha=0.92))
@@ -391,11 +425,11 @@ def por_alimentador(ax, nomes, valores, titulo, unidade, destacar=None):
     # 40%. Com o valor escrito, ranking e magnitude cabem na mesma figura.
     largura = max(v) if v else 1
     for k, x in enumerate(v):
-        ax.text(x + largura * 0.012, k, _rotulo(x), va='center', fontsize=7,
+        ax.text(x + largura * 0.012, k, _rotulo(x), va='center', fontsize=_fs(7),
                 color=COR_RUIM if (destacar and x > destacar) else COR_NEUTRA)
     ax.set_xlim(0, largura * 1.16)
     ax.set_yticks(range(len(v)))
-    ax.set_yticklabels(n, fontsize=6)
+    ax.set_yticklabels(n, fontsize=_fs(6))
     ax.invert_yaxis()
     if destacar:
         ax.axvline(destacar, color=COR_RUIM, lw=0.8, ls='--')
@@ -426,12 +460,12 @@ def composicao_da_perda(ax, linhas_kw, trafos_kw):
         ax.text(x0 + larg / 2.0, 0,
                 '%s\n%s kW\n%.0f%%' % (rot, _mil(larg),
                                           100.0 * larg / tot),
-                ha='center', va='center', fontsize=9, color=cor,
+                ha='center', va='center', fontsize=_fs(9), color=cor,
                 linespacing=1.5)
     ax.set_yticks([])
     ax.set_ylim(-0.45, 0.45)
     ax.set_title('Onde a perda acontece — %s kW no total' % _mil(tot),
-                 fontsize=10, loc='left')
+                 fontsize=_fs(10), loc='left')
     return _acaba(ax, ax.get_title(), 'kW', None)
 
 
@@ -455,7 +489,7 @@ def mapa(ax, xs, ys, valores=None, titulo='Rede'):
     ax.margins(0.02)
     ax.set_xticks([])
     ax.set_yticks([])
-    ax.set_title(titulo, fontsize=10, loc='left')
+    ax.set_title(titulo, fontsize=_fs(10), loc='left')
     for lado in ('top', 'right', 'bottom', 'left'):
         ax.spines[lado].set_visible(False)
     return ax
@@ -476,11 +510,11 @@ def veredictos(ax, contagem):
     ax.bar(range(len(v)), v, color=cores)
     for k, x in enumerate(v):
         ax.text(k, x, ' %d\n %.1f%%' % (x, 100.0 * x / sum(v)),
-                ha='center', va='bottom', fontsize=7, color=cores[k],
+                ha='center', va='bottom', fontsize=_fs(7), color=cores[k],
                 linespacing=1.3)
     ax.set_ylim(0, max(v) * 1.25)
     ax.set_xticks(range(len(v)))
-    ax.set_xticklabels(n, fontsize=6, rotation=20, ha='right')
+    ax.set_xticklabels(n, fontsize=_fs(6), rotation=20, ha='right')
     tot = sum(v)
     ok = contagem.get('OK', 0)
     return _acaba(ax, 'Veredictos — %d de %d aprovadas (%.1f%%)'
@@ -521,13 +555,13 @@ def histograma(ax, valores, titulo, xlabel, corte=None):
     med = _st.median(valores)
     ax.axvline(med, color=COR_OK, lw=1.2)
     ax.annotate('mediana %.2f' % med, (med, ax.get_ylim()[1] * 0.92),
-                fontsize=7, color=COR_OK, ha='left',
+                fontsize=_fs(7), color=COR_OK, ha='left',
                 xytext=(4, 0), textcoords='offset points')
     if corte is not None:
         ax.axvline(corte, color=COR_RUIM, lw=1.0, ls='--')
         acima = sum(1 for x in valores if x > corte)
         ax.annotate('%d acima de %g' % (acima, corte),
-                    (corte, ax.get_ylim()[1] * 0.78), fontsize=7,
+                    (corte, ax.get_ylim()[1] * 0.78), fontsize=_fs(7),
                     color=COR_RUIM, ha='left', xytext=(4, 0),
                     textcoords='offset points')
     return _acaba(ax, '%s — %d subestações' % (titulo, len(valores)),
@@ -543,7 +577,7 @@ def pizza(ax, rotulos, valores, titulo):
     ax.pie(valores, labels=rotulos, autopct='%1.0f%%', textprops={'fontsize': 7},
            colors=cores[:len(valores)], wedgeprops={'linewidth': 0.5,
                                                     'edgecolor': 'white'})
-    ax.set_title(titulo, fontsize=10, loc='left')
+    ax.set_title(titulo, fontsize=_fs(10), loc='left')
     return ax
 
 
@@ -559,8 +593,8 @@ def barras_empilhadas(ax, nomes, series, rotulos, titulo, unidade):
                color=cores[k % len(cores)], label=rotulos[k])
         base = [b + (s or 0) for b, s in zip(base, serie)]
     ax.set_xticks(range(len(nomes)))
-    ax.set_xticklabels(nomes, fontsize=6, rotation=60, ha='right')
-    ax.legend(fontsize=7, frameon=False)
+    ax.set_xticklabels(nomes, fontsize=_fs(6), rotation=60, ha='right')
+    ax.legend(fontsize=_fs(7), frameon=False)
     return _acaba(ax, titulo, None, unidade)
 
 
@@ -572,10 +606,10 @@ def texto(ax, linhas, titulo=None):
     for lado in ('top', 'right', 'bottom', 'left'):
         ax.spines[lado].set_visible(False)
     if titulo:
-        ax.set_title(titulo, fontsize=10, loc='left')
+        ax.set_title(titulo, fontsize=_fs(10), loc='left')
     y = 0.92
     for L in linhas[:14]:
-        ax.text(0.02, y, L, fontsize=8, va='top', transform=ax.transAxes,
+        ax.text(0.02, y, L, fontsize=_fs(8), va='top', transform=ax.transAxes,
                 family='monospace')
         y -= 0.075
     return ax
@@ -622,13 +656,13 @@ def geracao_no_dia(ax, fonte_kw, gd_kw):
                         color=COR_RUIM, alpha=0.10)
         ax.set_title('Geração no dia — FLUXO REVERSO em %d passos (%.1f h)'
                      % (len(reverso), len(reverso) * 0.25),
-                     fontsize=10, loc='left')
+                     fontsize=_fs(10), loc='left')
     else:
-        ax.set_title('Geração no dia — sem fluxo reverso', fontsize=10,
+        ax.set_title('Geração no dia — sem fluxo reverso', fontsize=_fs(10),
                      loc='left')
     ax.set_xlim(0, 24)
     ax.set_xticks(range(0, 25, 3))
-    ax.legend(fontsize=7, frameon=False)
+    ax.legend(fontsize=_fs(7), frameon=False)
     return _acaba(ax, ax.get_title(), 'hora', 'kW')
 
 
@@ -654,7 +688,7 @@ def cobertura_da_gd(ax, fonte_kw, gd_kw):
         ax.axvline(h[i_pico], color=COR_NEUTRA, lw=0.9, ls=':')
         ax.text(h[i_pico], max(pct) * 0.95 if pct else 1,
                 ' pico de carga: a GD cobre %.0f%%' % pct[i_pico],
-                fontsize=7, color=COR_NEUTRA, va='top')
+                fontsize=_fs(7), color=COR_NEUTRA, va='top')
     ax.set_xlim(0, 24)
     ax.set_xticks(range(0, 25, 3))
     return _acaba(ax, 'Cobertura da carga pela GD', 'hora', '% da carga')
@@ -678,7 +712,7 @@ def carregamento_liquido(ax, fonte_kw):
     ax.scatter([h[i_lo]], [lo], s=28, color=COR_RUIM, zorder=5)
     ax.annotate('mínimo de %s kW às %.1f h' % (_mil(lo), h[i_lo]),
                 (h[i_lo], lo), textcoords='offset points', xytext=(6, 8),
-                fontsize=7, color=COR_RUIM)
+                fontsize=_fs(7), color=COR_RUIM)
     if lo < 0:
         ax.axhline(0, color=COR_RUIM, lw=1.0)
     ax.set_xlim(0, 24)
@@ -712,11 +746,11 @@ def duracao_de_carga(ax, fonte_kw):
         ax.axvspan(0, t90, color=COR_RUIM, alpha=0.10, lw=0,
                    label='%.1f h acima de 90%% do pico' % t90)
     ax.axhline(pico, color=COR_RUIM, ls=':', lw=1.0)
-    ax.annotate('pico %s kW' % _mil(pico), xy=(0.3, pico), fontsize=8,
+    ax.annotate('pico %s kW' % _mil(pico), xy=(0.3, pico), fontsize=_fs(8),
                 color=COR_RUIM, va='bottom')
     ax.set_xlim(0, 24)
     ax.set_xticks(range(0, 25, 3))
-    ax.legend(fontsize=7.5, framealpha=0.9)
+    ax.legend(fontsize=_fs(7.5), framealpha=0.9)
     return _acaba(ax, 'Curva de duração da carga',
                   'horas em que a carga é pelo menos o valor do eixo Y', 'kW')
 
@@ -755,6 +789,6 @@ def perda_contra_carga(ax, fonte_kw, perdas_kw):
         if c > 0:
             ax.axhline(c, color=COR_ATENCAO, ls='--', lw=1.2,
                        label='perda a vazio ≈ %s kW (o ferro)' % _mil(c))
-        ax.legend(fontsize=7.5, framealpha=0.9)
+        ax.legend(fontsize=_fs(7.5), framealpha=0.9)
     return _acaba(ax, 'A perda segue o quadrado da carga',
                   'potência da fonte (kW)', 'perdas (kW)')
