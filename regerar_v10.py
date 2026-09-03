@@ -507,8 +507,14 @@ def _gravador(destino):
 # `ligacao` e `ampacidade` mudam a rede e por isso vem antes de qualquer
 # medicao; `energia` precisa do modelo verificado; as duas validacoes precisam
 # do `energia_dia.json`.
-ETAPAS = ['converter', 'ligacao', 'ampacidade', 'verifica', 'energia',
-          'validador', 'valida_perdas', 'valida_balanco', 'relatorio']
+# `reguladores` vem depois de `ligacao` e ANTES de `ampacidade`, e a ordem e
+# medida e nao estetica: corrigir a orientacao do regulador move a tensao em
+# cerca de 0,09 pu (achado 30), e a tensao muda a corrente que o `ampacidade`
+# usa para decidir troca de condutor. Na ordem inversa, a ampacidade decidiria
+# sobre uma corrente que a correcao seguinte desmente.
+ETAPAS = ['converter', 'ligacao', 'reguladores', 'ampacidade', 'verifica',
+          'energia', 'validador', 'valida_perdas', 'valida_balanco',
+          'relatorio']
 
 
 def escolher_etapas(pedidas=None, desde=None):

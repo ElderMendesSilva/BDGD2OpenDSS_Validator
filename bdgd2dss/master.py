@@ -212,6 +212,15 @@ redirect _CHAVES_ABERTAS.dss
 ! subestacao INTEIRA. Vazio quando nao ha nenhum. Ver linhas.ilhadas_bt.
 redirect _BT_ILHADA.dss
 
+! Orientacao dos reguladores — achado 30. O `RegControl` e emitido no
+! enrolamento 2 supondo que o PAC_2 do UNREMT e o lado da carga, e a BDGD nao
+! declara direcao: quando o PAC_2 e o lado da FONTE o controle regula o que nao
+! pode mudar, satura o tape e DIVIDE a tensao do lado da carga. Vazio ate
+! alguem rodar `reguladores.py`. Vem ANTES da ampacidade de proposito: a
+! correcao move a tensao em ~0,09 pu, e a tensao muda a corrente que o
+! `ampacidade` mede.
+redirect _REGULADORES.dss
+
 ! Premissa de modelagem, e nao conversao — achado 34. Vazio quando a base nao
 ! tem trecho conduzindo acima da propria ampacidade. Apagar esta linha devolve
 ! o modelo ao que a BDGD declara.

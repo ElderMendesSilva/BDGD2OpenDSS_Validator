@@ -1589,6 +1589,63 @@ depurar a coisa errada; mas não é o ganho que eu previa.
 todos estão no tape máximo»*, medido no mesmo instantâneo, e a suspeita de que
 o instantâneo a distorça continua **levantada e não verificada**.
 
+## Achado 30 — o regulador de tensão que aponta para o lado errado
+
+A suspeita levantada no achado 29 (`REGULADOR_SATURADO` medido no mesmo
+instantâneo suspeito) foi verificada — e a causa não era o instantâneo.
+
+O `RegControl` é emitido com `winding=2`, o que assume que o `PAC_2` do
+registro UNREMT é o lado da carga. **A BDGD não declara direção.** Quando o
+`PAC_2` é, na verdade, o lado da fonte, três coisas acontecem juntas:
+
+1. o controle regula uma tensão que ele não pode mudar — a da fonte —, então
+   nunca atinge o alvo e **corre o tape até o limite**;
+2. o tape no enrolamento da fonte **divide** a tensão do lado da carga, então
+   a rede fica pior do que ficaria sem regulador nenhum;
+3. a ferramenta reporta `REGULADOR_SATURADO` e **culpa a rede pelo defeito**.
+
+Medido em 03/09/2026, com o tape zerado para separar o efeito da causa:
+
+| subestação | sem regulador | como estava | controle no lado certo |
+|---|---:|---:|---:|
+| NHER3 (CERNHE6609) | 0,9869 | **0,8984** | **1,0266** |
+| IJI (NEOENERGIA47) | 0,9960 | **0,9056** | **1,0194** |
+
+O regulador invertido subtrai cerca de **0,09 pu** da tensão mediana, em
+ambos os casos — corrigi-lo devolve mais do que simplesmente desligá-lo.
+
+### O critério certo é a direção do fluxo, e chegar até ele custou duas medidas erradas
+
+- **«qual lado tem maior tensão»** não serve. O regulador tem impedância
+  quase nula (`XHL=0,04`, `%R=0,01`), então os dois lados diferem por
+  **0,0002 pu** — puro ruído numérico. Uma estatística inteira baseada nisso
+  quase foi publicada.
+- **«qual lado está mais perto da fonte»** também não serve: o elemento tem
+  comprimento zero e `Bus.Distance()` devolve o mesmo valor nos dois lados.
+
+A potência não tem essa ambiguidade. **O terminal por onde a potência entra
+no elemento é o lado da fonte**, e isso não depende de tape, de impedância
+nem de geometria. Nos dois casos medidos, a direção foi inequívoca: 100% dos
+reguladores com fluxo real estavam com o controle no lado da fonte.
+
+### O que este achado não resolve
+
+Regulador em trecho sem fluxo — sem corrente não há direção a medir, e ali a
+orientação fica como a BDGD a deixou: declarado, e não adivinhado. Na
+Roraima, 70 dos 127 reguladores estão nessa situação.
+
+### A correção
+
+Um passo novo, `etapas/reguladores.py`, roda depois de `ligacao.py` e
+**antes** de `ampacidade.py` — a ordem importa porque a correção move a
+tensão em ~0,09 pu, e a tensão muda a corrente que a ampacidade mede. Ele
+resolve o circuito, mede o fluxo em cada regulador (com o tape neutro, para
+não medir o próprio efeito da saturação) e escreve `_REGULADORES.dss` com um
+`RegControl.X.winding=N` para cada um que estiver do lado errado. Como as
+outras três premissas de modelagem do projeto, o arquivo é sempre escrito
+(mesmo vazio) e conta o que fez; apagar o `redirect` no MASTER devolve o
+modelo ao que a BDGD declara.
+
 ## Validação externa e contaminação
 
 A âncora nacional de 7,4% de perda técnica total da ANEEL é apenas um **teste

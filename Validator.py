@@ -43,6 +43,14 @@ FERRAMENTAS = [
      'ficou desenergizada. INVENTA um elo que a BDGD não declara — escreve '
      'em _LIGACAO.dss, que dá para apagar. Elo que faz divergir é recusado.',
      'os modelos gerados. Rode ANTES da ampacidade: religar muda a corrente.'),
+    ('Corrigir orientação do regulador  (premissa)', 'etapas/reguladores.py',
+     'PREMISSA DE MODELAGEM: o RegControl é emitido no enrolamento 2 supondo '
+     'que o PAC_2 é o lado da carga, e a BDGD não declara direção. Quando é o '
+     'lado da fonte, o controle satura o tape e DIVIDE a tensão da carga — '
+     'medido, 0,09 pu pior do que não ter regulador. Escreve em '
+     '_REGULADORES.dss, que dá para apagar.',
+     'os modelos gerados. Rode ANTES da ampacidade: a correção muda a '
+     'tensão, e a tensão muda a corrente.'),
     ('Trocar condutor sobrecarregado  (premissa)', 'etapas/ampacidade.py',
      'PREMISSA DE MODELAGEM: troca a resistência do trecho cuja corrente '
      'calculada excede a ampacidade declarada. Escreve em _AMPACIDADE.dss, '

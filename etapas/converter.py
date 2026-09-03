@@ -500,6 +500,15 @@ def _uma_se(C, se, k):
         '! Vazio: rode `python ligacao.py <pasta>` para preencher.\n'
         '! Sem isso o modelo reproduz a topologia que a BDGD declara.\n')
 
+    # Mesma razao dos dois acima: o MASTER redireciona `_REGULADORES.dss`
+    # sempre, e `Redirect` de arquivo ausente derruba a subestacao inteira.
+    # Quem preenche e o `reguladores.py` (achado 30), que roda depois porque
+    # precisa do fluxo resolvido para decidir o lado da fonte.
+    open(os.path.join(d, '_REGULADORES.dss'), 'w', encoding='utf-8', newline=escrita.FIM_DE_LINHA).write(
+        '! Orientacao do RegControl invertido — achado 30.\n'
+        '! Vazio: rode `python reguladores.py <pasta>` para preencher.\n'
+        '! Sem isso o modelo reproduz o enrolamento que o conversor supos.\n')
+
     # coordenadas geograficas desta subestacao
     # a geometria e lida UMA VEZ POR LOTE e filtrada pelas barras desta
     # subestacao — era 85% do tempo de conversao. Ver `coordenadas.do_lote`
@@ -1001,6 +1010,7 @@ def main():
         # ajustes aplicados depois que a rede inteira ja existe
         aberturas += [f'{s}/_AMPACIDADE.dss' for s in todas]
         aberturas += [f'{s}/_LIGACAO.dss' for s in todas]
+        aberturas += [f'{s}/_REGULADORES.dss' for s in todas]
         aberturas = [x for x in aberturas if os.path.exists(os.path.join(a.saida, x))]
         vaos_todos = [c for s_ in todas for c in ses[s_]
                       if c in (vaos_lig or {})]
