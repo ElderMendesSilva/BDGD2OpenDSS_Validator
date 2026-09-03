@@ -1376,6 +1376,79 @@ com toda a GD no máximo sai da bacia de convergência em algumas redes e não e
 outras. A caracterização é empírica e suficiente para classificar; não é uma
 explicação.
 
+## Achado 27 — a linha de um centímetro que apagava a perda da subestação
+
+**Medido em 02/09/2026** na CMIG 1726588 da safra 2025, uma das duas
+subestações do país com `NaN`.
+
+Seis nós com `NaN`, em duas barras. O culpado:
+
+```
+New Line.1388482702 Bus1=node_8931988 Bus2=node_1683403983
+~ LineCode=CND_210597_1_ABCN_MT_3F Length=0.01 Units=m
+```
+
+**Uma linha de um centímetro**, e os dois nomes de barra aparecem **exatamente
+uma vez** no modelo inteiro — nela. Nenhuma carga, nenhum transformador,
+nenhuma fonte. É pura impedância série flutuando: a submatriz de admitância é
+singular, e o OpenDSS devolve `NaN`.
+
+E o `NaN` não fica quieto. A perda da subestação inteira saía `NaN`.
+
+| | `NaN` | P da fonte | perdas | cargas sem tensão |
+|---|---:|---:|---:|---:|
+| como estava | 6 | 23.939,0 kW | **`NaN`** | 27 |
+| **só essa linha desligada** | **0** | 23.939,0 kW | **862,46 kW** | 27 |
+
+Uma linha de 1 cm custava o número de perda de uma subestação de 10.857 barras.
+
+### Por que as defesas existentes não pegavam
+
+O **achado 28** defende a média tensão contra *chave* com os dois PACs fora da
+rede. O **achado 51** defende a baixa tensão contra trecho que não alcança
+secundário. Esta é uma **linha de MT**, e cai no vão entre as duas.
+
+### O critério é o motor, e não o grafo — e isso custou duas tentativas erradas
+
+Ambas estão registradas como caso de teste, porque um critério plausível que
+destrói o modelo é exatamente o que volta se ninguém o registrar.
+
+**Primeira tentativa: raciocinar sobre o grafo das barras mortas.**
+`componentes(adj, mortas)` corta a rede na fronteira do que está sem tensão, e
+um pedaço morto pendurado na rede viva vira ali uma «componente» que *parece*
+isolada e não está. Deu 45 componentes e 432 linhas — e desabilitá-las levou as
+cargas sem tensão de 27 para **186** e as perdas para **1,4 × 10¹⁴ kW**.
+
+**Segunda tentativa: guardar `barra → linhas`.** Uma linha com uma ponta na
+componente e a outra fora entrava na lista, e desligá-la cortava o lado de
+fora.
+
+**O critério que funciona não interpreta grafo nenhum:** *todo elemento que
+toca as barras desta componente está dentro dela?* Se sim, ela não se comunica
+com o circuito por caminho algum e removê-la não pode mudar nada. Um único
+elemento externo — ramo que sai, transformador, capacitor, reator de neutro —
+a desqualifica. **Não há lista de tipos de propósito: lista de tipos esquece
+um, e o reator de neutro foi o que quase passou.**
+
+Medido com o critério final: **43 componentes, 110 linhas**, e o resultado é
+idêntico ao de desligar apenas a linha culpada — mesma potência, mesma perda,
+mesmas 27 cargas sem tensão, mesmas 4 iterações. As 110 são provadamente
+inertes.
+
+### Um defeito de comparação achado no caminho
+
+A barra com `NaN` é a mais morta que existe, e **escapava do conjunto de
+mortas**:
+
+```python
+if not v or max(v) < MORTA_V:      # False quando v é NaN
+```
+
+Toda comparação com `NaN` é falsa, então a barra nunca entrava em componente
+nenhuma — e o detector de órfã deixava de fora justamente a que produzia o
+`NaN`. A forma negada, `not (max(v) >= MORTA_V)`, pega os dois casos. Há teste
+lendo o fonte para o dia em que alguém "simplificar" a expressão de volta.
+
 ## Validação externa e contaminação
 
 A âncora nacional de 7,4% de perda técnica total da ANEEL é apenas um **teste

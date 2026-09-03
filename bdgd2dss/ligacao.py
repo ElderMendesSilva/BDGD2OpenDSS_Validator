@@ -287,8 +287,67 @@ CABECALHO = """! ===============================================================
 """
 
 
-def escrever(caminho, ligacoes, barra_por_kv, descartadas=()):
-    """Escreve o `_LIGACAO.dss`: uma Line por componente ligada."""
+def inertes(comps, cargas_por_barra, elementos_por_barra, ramos):
+    """Componentes ORFAS — as que nao tocam mais nada no circuito.
+
+    ACHADO 27. Uma componente sem nenhum elemento em derivacao e sem contato
+    com o resto do circuito e pura impedancia serie flutuando: a submatriz de
+    admitancia dela e SINGULAR e o OpenDSS devolve `NaN`. O NaN nao fica
+    quieto — ele contamina o `Circuit.Losses()` da subestacao INTEIRA.
+
+    Medido na CMIG 1726588 da safra 2025: seis nos com NaN, em duas barras, e
+    o culpado era UMA linha de um centimetro —
+
+        New Line.1388482702 Bus1=node_8931988 Bus2=node_1683403983
+        ~ LineCode=CND_210597_1_ABCN_MT_3F Length=0.01 Units=m
+
+    Os dois nomes de barra aparecem **exatamente uma vez** no modelo inteiro.
+    Desabilitar so ela levou o NaN de 6 a 0 e devolveu a perda da subestacao
+    (era `NaN`, virou 862,46 kW), com a potencia da fonte e as 27 cargas sem
+    tensao IDENTICAS antes e depois.
+
+    O CRITERIO E O MOTOR, E NAO O GRAFO — e isto custou duas tentativas.
+    Perguntar ao grafo de barras mortas quais componentes estao isoladas deu
+    45 componentes e 432 linhas nessa mesma subestacao, porque
+    `componentes(adj, mortas)` corta a rede na fronteira do que esta sem
+    tensao e um pedaco morto pendurado na rede viva vira ali uma "componente"
+    que parece isolada e nao esta. Desabilita-las levou as cargas sem tensao
+    de 27 para 186 e as perdas para 1,4e14 kW.
+
+    Aqui a pergunta e outra e nao depende de interpretar grafo nenhum: **todo
+    elemento que toca as barras desta componente esta DENTRO dela?** Se sim,
+    ela nao se comunica com o circuito por caminho algum e removê-la nao pode
+    mudar nada. Se um unico elemento externo aparece, ela fica.
+
+    `elementos_por_barra` e `barra -> conjunto de nomes completos de elementos`
+    (`Line.x`, `Transformer.y`, `Load.z`), como o motor os enumera.
+    """
+    fora = []
+    for comp in comps:
+        if any(cargas_por_barra.get(b) for b in comp):
+            continue
+        internas = {nome for nome, a, z in ramos if a in comp and z in comp}
+        tocam = set()
+        for b in comp:
+            tocam |= set(elementos_por_barra.get(b, ()))
+        # `tocam - internas` sao os elementos externos: derivacao na propria
+        # componente (carga, trafo, capacitor, reator de neutro) ou ramo que
+        # sai dela. Qualquer um dos dois a desqualifica, e por isso nao ha
+        # lista de tipos aqui — lista de tipos esquece um.
+        if internas and not (tocam - internas):
+            fora.append({'barras': len(comp), 'linhas': sorted(internas)})
+    return fora
+
+def escrever(caminho, ligacoes, barra_por_kv, descartadas=(), inertes_=()):
+    """Escreve o `_LIGACAO.dss`: uma Line por componente ligada, e o `Disable`
+    das componentes inertes.
+
+    As duas coisas moram no mesmo arquivo porque as duas sao premissas sobre
+    CONECTIVIDADE, e porque o MASTER ja o redireciona — criar um segundo
+    arquivo obrigaria a mexer no `master.py` e a regerar todo modelo existente
+    so para separar duas linhas de comentario. O cabecalho conta cada uma
+    separadamente, que e o que importa para quem le.
+    """
     tot_c = sum(l['cargas'] for l in ligacoes)
     tot_b = sum(l['barras'] for l in ligacoes)
     out = [CABECALHO.format(n=len(ligacoes), cargas=tot_c, barras=tot_b)]
@@ -304,6 +363,28 @@ def escrever(caminho, ligacoes, barra_por_kv, descartadas=()):
             f"cargas, ancora de grau {l['grau']} em {l['kv']:g} kV"
             + ('; so alcancava a rede viva por chave declarada ABERTA'
                if l.get('so_por_chave') else ''))
+    if inertes_:
+        n_l = sum(len(x['linhas']) for x in inertes_)
+        n_b = sum(x['barras'] for x in inertes_)
+        out.append('')
+        out.append('! ---------------------------------------------------')
+        out.append('! COMPONENTES INERTES — achado 27')
+        out.append('!')
+        out.append('! Sem carga, fonte, trafo, capacitor ou geracao: pura')
+        out.append('! impedancia serie flutuando. A submatriz de admitancia e')
+        out.append('! SINGULAR e o OpenDSS devolve NaN, que contamina o')
+        out.append('! Circuit.Losses() da subestacao INTEIRA.')
+        out.append('!')
+        out.append('! Desabilita-las nao muda numero nenhum: componente sem')
+        out.append('! derivacao nao injeta nem consome. O que muda e o NaN')
+        out.append('! deixar de existir.')
+        out.append('!')
+        out.append('! %d componente(s), %d barra(s), %d linha(s).'
+                   % (len(inertes_), n_b, n_l))
+        out.append('! ---------------------------------------------------')
+        for x in inertes_:
+            for nome in x['linhas']:
+                out.append('%s.enabled=no' % nome)
     if not ligacoes:
         out.append('! nenhuma componente desenergizada relevante nesta '
                    'subestacao.')

@@ -90,10 +90,18 @@ def radiografia():
         aberto.setdefault(b, set()).add(a)
 
     kvs_vao, barra_de_vao = set(), {}
+    # OS RAMOS COM AS DUAS PONTAS, para o achado 27. Guardar so `barra -> nome`
+    # nao serve: uma linha com UMA ponta na componente e a outra fora seria
+    # desligada junto e cortaria o lado de fora. Medido — a primeira versao
+    # desabilitou 465 linhas na CMIG 1726588 onde havia UMA inerte, e o
+    # `ligacao` reportou 155 cargas a MENOS energizadas.
+    ramos_linha = []
     for nome in dss.Lines.AllNames():
         dss.Lines.Name(nome)
         dss.Circuit.SetActiveElement('Line.' + nome)
         b = [_bus(x) for x in dss.CktElement.BusNames()]
+        if len(b) >= 2:
+            ramos_linha.append(('Line.' + nome, b[0], b[1]))
         if len(b) >= 2:
             if any(dss.CktElement.IsOpen(t, 0) for t in (1, 2)):
                 liga_aberto(b[0], b[1])
@@ -104,6 +112,19 @@ def radiografia():
             kv = dss.Bus.kVBase()
             kvs_vao.add(round(kv, 4))
             barra_de_vao.setdefault(round(kv, 4), b[0])
+    # TODO ELEMENTO QUE TOCA CADA BARRA, pelo nome, direto do motor. E o que
+    # o achado 27 precisa: uma componente e orfa quando TUDO que toca as
+    # barras dela esta dentro dela. Enumerar tipos de elemento a mao esquece
+    # um — o reator de neutro foi o que quase passou.
+    elementos_por_barra = {}
+    try:
+        for nome in dss.Circuit.AllElementNames():
+            dss.Circuit.SetActiveElement(nome)
+            for x in (dss.CktElement.BusNames() or []):
+                elementos_por_barra.setdefault(_bus(x), set()).add(nome)
+    except Exception:                                        # noqa: BLE001
+        elementos_por_barra = {}
+
     i = dss.Transformers.First()
     while i:
         dss.Circuit.SetActiveElement('Transformer.' + dss.Transformers.Name())
@@ -121,7 +142,13 @@ def radiografia():
     for b in dss.Circuit.AllBusNames():
         dss.Circuit.SetActiveBus(b)
         v = dss.Bus.VMagAngle()[0::2]
-        if not v or max(v) < MORTA_V:
+        # A NEGACAO E DELIBERADA, e nao estilo. `max(v) < MORTA_V` e **False**
+        # quando a tensao e `NaN`, porque toda comparacao com NaN e falsa — e
+        # a barra com NaN, que e a mais morta que existe, escapava do conjunto
+        # e nunca entrava em componente nenhuma. Foi assim que o detector de
+        # componente orfa (achado 27) achou 42 componentes na CMIG 1726588 e
+        # deixou de fora justamente a que produzia o NaN.
+        if not v or not (max(v) >= MORTA_V):
             mortas.add(b.lower())
 
     # A TENSAO DE BARRA MORTA NAO SERVE. `kVBase` sai do `CalcVoltagebases`,
@@ -177,7 +204,7 @@ def radiografia():
             if b not in secundarias and b not in com_carga:
                 kv_por_barra[b] = kv
     return (adj, mortas, cargas, kv_por_barra, sorted(kvs_vao),
-            barra_de_vao, aberto)
+            barra_de_vao, aberto, ramos_linha, elementos_por_barra)
 
 
 def uma(pasta, se, min_cargas):
@@ -197,10 +224,17 @@ def uma(pasta, se, min_cargas):
         dss.Text.Command(f'Redirect MASTER-{se}.dss')
         if not dss.Solution.Converged():
             return {'se': se, 'erro': 'nao convergiu'}
-        adj, mortas, cargas, kvb, kvs, barra, aberto = radiografia()
+        (adj, mortas, cargas, kvb, kvs, barra, aberto,
+         ramos_linha, elementos_por_barra) = radiografia()
         n_cargas = dss.Loads.Count()
         mortas_antes = sum(v for b, v in cargas.items() if b in mortas)
         comps = ligacao.componentes(adj, mortas)
+        # ACHADO 27. Sobre TODAS as componentes desenergizadas, e nao so as
+        # que `decidir` descarta: uma componente inerte nao tem carga, entao
+        # `decidir` a recusaria de qualquer forma — mas recusar nao e
+        # desligar, e e ficando ligada que ela produz o NaN.
+        inertes = ligacao.inertes(comps, cargas, elementos_por_barra,
+                                  ramos_linha)
         cand, fora = ligacao.decidir(comps, adj, cargas, kvb, kvs,
                                      min_cargas, aberto=aberto,
                                      mortas=mortas)
@@ -237,7 +271,7 @@ def uma(pasta, se, min_cargas):
         lig, recusados = ligacao.aceitar(cand, tenta)
         fora = list(fora) + [dict(r, motivo='quebrou a convergencia')
                              for r in recusados]
-        ligacao.escrever('_LIGACAO.dss', lig, de_para, fora)
+        ligacao.escrever('_LIGACAO.dss', lig, de_para, fora, inertes)
 
         # o estado em memoria tem elos desabilitados no meio; recompila do
         # arquivo para medir exatamente o que o usuario vai receber
@@ -265,6 +299,8 @@ def uma(pasta, se, min_cargas):
                 'recusados': len(recusados),
                 'mortas_antes': mortas_antes, 'mortas_depois': m2,
                 'componentes': len(comps), 'descartadas': len(fora),
+                'inertes': len(inertes),
+                'linhas_inertes': sum(len(x['linhas']) for x in inertes),
                 'carga_kW': round(-p[0], 1),
                 'kW_nominal': round(kw_total, 1),
                 'kW_morto': round(kw_morto, 1),
