@@ -1278,10 +1278,15 @@ def pdf_da_concessao(caminho, pasta, agregado, pasta_fig, chaves):
             Spacer(1, 5 * mm),
             Image(png, width=168 * mm, height=168 * mm * _proporcao(png)),
         ]
-        # O ACHADO FICA COM A FIGURA. Quem esta olhando o ponto solitario no
-        # perfil tem a explicacao dele na mesma pagina, e nao vinte paginas
-        # atras numa secao geral.
-        pecas += achados_daqui
+        # AQUI NAO HA ACHADO POR FIGURA. O diagnostico do `anomalias.py` e por
+        # SUBESTACAO — ele nomeia o transformador, a barra, o trecho —, e nada
+        # disso tem equivalente no agregado da concessao. A linha
+        # `pecas += achados_daqui` chegou a existir neste laco por acidente:
+        # uma substituicao de texto casou nos DOIS lacos, que eram identicos, e
+        # a contagem nao foi travada. O PDF da concessao passou a morrer com
+        # `name 'achados_daqui' is not defined` — e morria em SILENCIO, porque
+        # a excecao e impressa e engolida. Quem pegou foi o teste de ponta a
+        # ponta da camada de apresentacao.
     doc.build(pecas)
     return caminho
 
