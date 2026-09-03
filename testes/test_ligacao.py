@@ -87,8 +87,35 @@ class Decisao(unittest.TestCase):
         self.assertEqual(fora[0]['motivo'], 'poucas cargas')
 
     def test_componente_pequena_e_ruido(self):
-        lig, _ = self._dec({'a': 3})
+        """Tres cargas soltas numa subestacao de mil sao ruido.
+
+        O fixture PRECISA declarar as outras cargas: sem elas, as tres eram
+        100% da subestacao, e a partir do achado 25 isso deixa de ser ruido.
+        A versao anterior deste teste passava por acidente — media o limiar
+        absoluto num universo onde ele coincidia com o relativo.
+        """
+        lig, _ = self._dec({'a': 3, 'longe': 1000})
         self.assertEqual(lig, [])
+
+    def test_componente_que_carrega_a_subestacao_inteira_e_ligada(self):
+        """ACHADO 25, a ROL da CEEE Equatorial.
+
+        A componente tinha 13 cargas e o limiar era 20, entao foi descartada
+        por «poucas cargas». So que a ROL tem 13 cargas NO TOTAL: o que se
+        jogou fora como ruido era a subestacao inteira, e o modelo saiu com a
+        fonte alimentando nada.
+        """
+        lig, fora = self._dec({'a': 13})
+        self.assertEqual(len(lig), 1)
+        self.assertEqual(lig[0]['cargas'], 13)
+        self.assertEqual(fora, [])
+
+    def test_zero_cargas_nunca_liga_por_criterio_nenhum(self):
+        """Nem pelo relativo: numa subestacao morta o piso relativo tambem e
+        zero, e `0 < 0` e falso — o zero escapava pela fresta."""
+        lig, fora = self._dec({})
+        self.assertEqual(lig, [])
+        self.assertEqual(fora[0]['motivo'], 'poucas cargas')
 
     def test_o_limiar_e_configuravel(self):
         lig, _ = self._dec({'a': 3}, min_cargas=2)

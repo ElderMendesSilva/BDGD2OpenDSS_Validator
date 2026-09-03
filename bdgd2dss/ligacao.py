@@ -52,6 +52,21 @@ from . import escrita
 
 MIN_CARGAS = 20          # abaixo disso e ruido, nao alimentador
 
+# ...MAS RUIDO E RELATIVO, E NAO SO ABSOLUTO.
+#
+# ACHADO 25. `MIN_CARGAS` sozinho descartava a subestacao INTEIRA. Na ROL da
+# CEEE Equatorial, a componente desenergizada tinha 212 barras e 13 cargas, e
+# 13 < 20 — descartada por "poucas cargas". So que a ROL tem 13 cargas NO
+# TOTAL: o que foi jogado fora como ruido era 100% da subestacao. O modelo
+# saiu com a fonte energizando 16 barras de 228, convergindo em 2 iteracoes
+# porque nao havia carga alguma ligada, e o `P_fonte_kW` era 0,1 kW.
+#
+# O limiar existe para nao inventar elo para fragmento solto. Uma componente
+# que carrega a maior parte das cargas da subestacao nao e fragmento solto,
+# tenha ela 13 cargas ou 13 mil — o numero absoluto nao diz nada sem o
+# denominador. Agora ela sobrevive por qualquer um dos dois criterios.
+FRACAO_RELEVANTE = 0.10  # 10% das cargas da subestacao ja e alimentador
+
 R3 = 3 ** 0.5
 
 
@@ -161,7 +176,8 @@ def alcancavel_por_chave(comp, aberto, mortas):
 
 
 def decidir(comps, adjacencia, cargas_por_barra, kv_por_barra, kvs_de_vao,
-            min_cargas=MIN_CARGAS, tol_kv=0.05, aberto=None, mortas=frozenset()):
+            min_cargas=MIN_CARGAS, tol_kv=0.05, aberto=None, mortas=frozenset(),
+            fracao_relevante=FRACAO_RELEVANTE):
     """Escolhe quais componentes ligar, e a que tensao.
 
     `kvs_de_vao` sao as tensoes de base das barras de onde os vaos partem —
@@ -175,12 +191,27 @@ def decidir(comps, adjacencia, cargas_por_barra, kv_por_barra, kvs_de_vao,
         {'barra', 'kv', 'cargas', 'barras', 'grau'}
     """
     lig, fora = [], []
+    # O DENOMINADOR. Sem ele "poucas cargas" e uma frase sem referencia: 13 e
+    # pouco numa subestacao de 5.000 cargas e e TUDO numa de 13.
+    total_cargas = sum(cargas_por_barra.values()) or 0
+    piso_relativo = fracao_relevante * total_cargas
+    registro_relativo = []
+
     for comp in comps:
         n_cargas = sum(cargas_por_barra.get(b, 0) for b in comp)
-        if n_cargas < min_cargas:
+        # ZERO CARGAS NUNCA LIGA, por nenhum dos dois criterios. Ligar o que
+        # nao tem carga nao muda resultado nenhum e so acrescenta um elo
+        # inventado — e com o criterio relativo sozinho o zero passava, porque
+        # numa subestacao inteiramente morta `piso_relativo` tambem e zero e
+        # `0 < 0` e falso. O teste pegou.
+        if not n_cargas or (n_cargas < min_cargas and n_cargas < piso_relativo):
             fora.append({'barras': len(comp), 'cargas': n_cargas,
                          'motivo': 'poucas cargas'})
             continue
+        if n_cargas < min_cargas:
+            # Sobreviveu SO pelo criterio relativo. Fica registrado, porque e
+            # exatamente o caso que o limiar absoluto descartava sozinho.
+            registro_relativo.append(n_cargas)
         # so barras cuja tensao de base case com a de algum vao
         elegiveis = [b for b in comp
                      if any(abs(kv_por_barra.get(b, 0.0) - k) <= tol_kv * k

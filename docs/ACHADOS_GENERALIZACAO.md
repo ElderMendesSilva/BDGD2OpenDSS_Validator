@@ -1192,6 +1192,76 @@ são da 2024-12-31.
 `NAO_COMPILA` e `NAO_CONVERGE` da v1.0 somam 29. Os dois números descrevem a
 mesma realidade com réguas diferentes, e cada tabela deve dizer qual régua usa.
 
+## Achado 25 — o limiar que descartava a subestação inteira
+
+**Medido em 02/09/2026** sobre as 4.078 subestações da safra 2025 (V27).
+
+`MODELO_QUEBRADO` é a maior classe de reprovação do projeto — **1.250
+subestações, 30,7% do total** — e o rótulo escondia quatro defeitos diferentes
+na mesma gaveta. Aberta a gaveta:
+
+| motivo real | subestações | fração dos quebrados |
+|---|---:|---:|
+| carga sem tensão | **1.209** | **96,7%** |
+| não converge | 23 | 1,8% |
+| não compila | 16 | 1,3% |
+| nós com `NaN` | 2 | 0,2% |
+
+**Falha de modelo são 41 subestações, ou 1,0% do país.** O resto é o cadastro,
+e a doutrina do `diagnostico.py` dizia o contrário: «MODELO_QUEBRADO … é
+defeito nosso: sempre acionável».
+
+E dentro das 1.209, a gravidade varia por três ordens de grandeza:
+
+| quanta carga fica sem tensão | subestações |
+|---|---:|
+| exatamente 1 carga | 61 |
+| menos de 0,1% | 159 |
+| 0,1% a 1% | 430 |
+| 1% a 10% | 290 |
+| **acima de 10%** | **269** |
+
+**650 das 1.209 (54%) perdem menos de 1% da carga** e mesmo assim recebem um
+rótulo que afirma que o modelo está quebrado.
+
+### O defeito que estava escondido no meio disso
+
+Oito subestações têm uma assinatura própria: **100% das cargas mortas, fonte
+com 0 kW e tensão sem nenhuma variação** — `V_MT_min` igual a `V_MT_mediana`.
+Cinco distribuidoras diferentes, o mesmo padrão. A rede inteira existe, a fonte
+existe, e as duas não se tocam; o fluxo converge em duas iterações porque não
+há carga alguma ligada.
+
+Somam **13.762 cargas** e **53.842 trechos modelados e nunca usados**.
+
+Perseguido na ROL da CEEE Equatorial, a menor delas, o `_LIGACAO.dss` dizia:
+
+```
+! nenhuma componente desenergizada relevante nesta subestacao.
+! descartada: 212 barras, 13 cargas — poucas cargas
+```
+
+A etapa de ligação **encontrou** a componente desconectada e a descartou porque
+13 < `MIN_CARGAS` = 20. Só que a ROL tem 13 cargas **no total**: o que foi
+jogado fora como ruído era 100% da subestação.
+
+O limiar existe para não inventar elo para fragmento solto, e é um bom limiar.
+O erro era ser **absoluto sem denominador**: 13 é pouco numa subestação de
+5.000 cargas e é tudo numa de 13. Agora a componente sobrevive por qualquer um
+dos dois critérios — `MIN_CARGAS` absoluto **ou** `FRACAO_RELEVANTE` = 10% das
+cargas da subestação.
+
+### Dois defeitos que a suíte pegou na própria correção
+
+- **Componente com zero cargas passou a ser ligada.** Numa subestação
+  inteiramente morta o piso relativo também é zero, e `0 < 0` é falso — o zero
+  escapava pela fresta. Ligar o que não tem carga não muda resultado e só
+  acrescenta um elo inventado.
+- **Um teste passava por acidente.** `test_componente_pequena_e_ruido` usava um
+  fixture com 3 cargas e nada mais, então media o limiar absoluto num universo
+  onde ele coincidia com o relativo. Corrigido para declarar as outras mil
+  cargas da subestação, que é o que torna as três de fato ruído.
+
 ## Validação externa e contaminação
 
 A âncora nacional de 7,4% de perda técnica total da ANEEL é apenas um **teste
