@@ -1234,9 +1234,28 @@ def pdf_da_concessao(caminho, pasta, agregado, pasta_fig, chaves):
                             leftMargin=18 * mm, rightMargin=18 * mm,
                             topMargin=16 * mm, bottomMargin=16 * mm,
                             title='Concessao %s' % os.path.basename(pasta))
+    # O QUE ESTE RELATORIO COBRE, dito no cabecalho. Sem isto o titulo
+    # «Concessao — MODELOS_X» nao diz se o numero e a soma das subestacoes de
+    # distribuicao, o modelo da subtransmissao ou o MASTER-GERAL resolvido como
+    # um circuito so — e sao tres coisas com valores diferentes. O `AT` e
+    # excluido do agregado desde sempre (ver `ses` acima); o que faltava era
+    # AVISAR.
+    n_ses = agregado.get('ses') or 0
     pecas = [
         _p('Concessão — %s' % os.path.basename(pasta), titulo),
-        _p('gerado por BDGD → OpenDSS v%s' % _versao(), sub),
+        _p('soma das <b>%d subestações de distribuição</b>, cada uma resolvida '
+           'no seu próprio modelo &nbsp;·&nbsp; gerado por BDGD → OpenDSS v%s'
+           % (n_ses, _versao()), sub),
+        _p('O que este agregado NÃO é', h2),
+        _p(_negrito(
+            'Não é a subtransmissão: o modelo de alta tensão é o '
+            '`MASTER-AT.dss` e tem relatório próprio, e a pseudo-subestação '
+            '`AT` fica **fora** desta soma. E não é o `MASTER-GERAL.dss` '
+            'resolvido como um circuito único — ali existem fluxos ENTRE '
+            'subestações que uma soma de modelos independentes não pode '
+            'representar, e os dois números não têm por que coincidir. O que '
+            'está aqui é a soma de %d fluxos de potência independentes.'
+            % n_ses), corpo),
     ]
     for tit, par in laudo.laudo_da_concessao(agregado):
         pecas += [_p(tit, h2), _p(_negrito(par), corpo)]

@@ -274,6 +274,37 @@ class ORelatorioSaiInteiro(unittest.TestCase):
         self.assertTrue(os.path.exists(os.path.join(d, '_GERAL.pdf')),
                         'o relatório da concessão não foi escrito')
 
+    def test_o_pdf_da_concessao_tem_as_FIGURAS_e_nao_so_o_texto(self):
+        """Existir não é estar completo, e este teste nasceu de um caso real.
+
+        O `_GERAL.pdf` da Roraima ficou com UMA página — só o texto, nenhuma
+        figura — porque uma rodada anterior o gerou antes de as figuras
+        existirem e a rodada seguinte o matou em silêncio (o defeito do
+        `achados_daqui`). O arquivo velho ficou no lugar, com tamanho
+        plausível, e ninguém notou por horas.
+
+        A versão anterior deste teste conferia só `os.path.exists` — e
+        passava.
+        """
+        pdf = os.path.join(self.saida, 'RELATORIO', '_GERAL.pdf')
+        if self.texto is None:
+            self.skipTest('sem pypdf')
+        from pypdf import PdfReader
+        self.assertGreater(len(PdfReader(pdf).pages), 4,
+                           'o PDF da concessão saiu sem as figuras')
+
+    def test_o_pdf_da_concessao_diz_o_que_ele_agrega(self):
+        """«Concessão — MODELOS_X» não diz se o número é a soma das
+        subestações, a subtransmissão ou o `MASTER-GERAL` como circuito único —
+        e são três coisas com valores diferentes."""
+        if self.texto is None:
+            self.skipTest('sem pypdf')
+        from pypdf import PdfReader
+        t = '\n'.join((p.extract_text() or '') for p in PdfReader(
+            os.path.join(self.saida, 'RELATORIO', '_GERAL.pdf')).pages)
+        self.assertIn('subestações de distribuição', t)
+        self.assertIn('MASTER-GERAL', t)
+
     def test_o_pdf_da_concessao_nao_morre_em_silencio(self):
         """O defeito que este arquivo achou no dia em que nasceu.
 
