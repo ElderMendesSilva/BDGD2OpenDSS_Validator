@@ -298,3 +298,53 @@ class ChaveAbertaNaoEAresta(unittest.TestCase):
                                     {'x': 50}, {'x': 13.8, 'y': 13.8},
                                     [13.8], min_cargas=20)
         self.assertEqual(len(lig), 1)
+
+
+class FasesDoEnrolamento(unittest.TestCase):
+    """ACHADO 28-B: o monofásico ligado ENTRE DUAS FASES.
+
+    `kv_de_fase` decidia pelo `NumPhases()`, e isso erra o caso mais comum da
+    média tensão brasileira. Medido na ROL da CEEE Equatorial, 24
+    transformadores:
+
+        1 fase, bus `.1`        →  7,9674 kV   fase-neutro     (9)
+        1 fase, bus `.1.2`      → 13,8000 kV   entre fases     (2)
+        1 fase, bus `.3.1`      → 13,8000 kV   entre fases     (9)
+        3 fases, bus `.1.2.3`   → 13,8000 kV   entre fases     (4)
+
+    Os onze do meio têm `NumPhases()` = 1, então não eram divididos por raiz de
+    três e ficavam em 13,8 — enquanto `Bus.kVBase()` é sempre fase-neutro e
+    vale 7,9674 ali. A comparação nunca casava e a subestação inteira ficava
+    descartada com «nenhuma barra na tensão de um vão»: 13 de 13 cargas sem
+    tensão.
+    """
+
+    def test_um_no_de_fase_e_fase_neutro(self):
+        self.assertEqual(ligacao.fases_do_enrolamento('barra.1'), 1)
+        self.assertAlmostEqual(ligacao.kv_de_fase(7.9674, 1), 7.9674, places=4)
+
+    def test_dois_nos_de_fase_e_linha_linha(self):
+        """O caso que o `NumPhases()` errava: uma fase, dois nós."""
+        for bus in ('barra.1.2', 'barra.3.1', 'barra.2.3'):
+            self.assertEqual(ligacao.fases_do_enrolamento(bus), 2, bus)
+            self.assertAlmostEqual(
+                ligacao.kv_de_fase(13.8, ligacao.fases_do_enrolamento(bus)),
+                7.9674, places=3)
+
+    def test_tres_nos_continuam_funcionando(self):
+        self.assertEqual(ligacao.fases_do_enrolamento('barra.1.2.3'), 3)
+
+    def test_sem_sufixo_o_opendss_assume_tres_fases(self):
+        self.assertEqual(ligacao.fases_do_enrolamento('barra'), 3)
+
+    def test_o_neutro_nao_conta_como_fase(self):
+        """`.1.4` é fase e neutro — uma fase só, e a tensão é fase-neutro."""
+        self.assertEqual(ligacao.fases_do_enrolamento('barra.1.4'), 1)
+
+    def test_os_quatro_casos_da_ROL_caem_todos_em_7_9674(self):
+        """A prova de que a comparação de `decidir` passa a casar."""
+        for bus, kv in (('b.1', 7.9674), ('b.1.2', 13.8),
+                        ('b.3.1', 13.8), ('b.1.2.3', 13.8)):
+            n = ligacao.fases_do_enrolamento(bus)
+            self.assertAlmostEqual(ligacao.kv_de_fase(kv, n), 7.9674, places=3,
+                                   msg='%s com kv=%s' % (bus, kv))

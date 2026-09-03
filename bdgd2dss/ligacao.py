@@ -70,6 +70,35 @@ FRACAO_RELEVANTE = 0.10  # 10% das cargas da subestacao ja e alimentador
 R3 = 3 ** 0.5
 
 
+def fases_do_enrolamento(bus):
+    """Quantos nos de FASE o enrolamento toca, lidos da especificacao da barra.
+
+    ACHADO 28-B, e e o achado 41 incompleto. `kv_de_fase` decidia pelo
+    `NumPhases()` do elemento, e isso erra o caso mais comum da media tensao
+    brasileira: o transformador MONOFASICO ligado ENTRE DUAS FASES.
+
+    Medido na ROL da CEEE Equatorial, 24 transformadores:
+
+        fases  nos do bus   kv declarado   quantos
+          1    .1               7,9674        9     fase-neutro
+          1    .1.2            13,8000        2     entre fases
+          1    .3.1            13,8000        9     entre fases
+          3    .1.2.3          13,8000        4     entre fases
+
+    Os onze do meio tem `NumPhases()` = 1, entao `kv_de_fase` NAO dividia por
+    raiz de tres e devolvia 13,8 — enquanto `Bus.kVBase()` e SEMPRE fase-neutro
+    e vale 7,9674 ali. A comparacao de `decidir` nunca casava, e a componente
+    inteira era descartada com o motivo «nenhuma barra na tensao de um vao».
+
+    O que decide nao e quantas fases o elemento tem: e a quantos nos de fase o
+    enrolamento se conecta. Um no e fase-neutro; dois ou tres e linha-linha.
+    """
+    nos = str(bus or '').split('.')[1:]
+    fases = [x for x in nos if x in ('1', '2', '3')]
+    # sem sufixo de no, o OpenDSS assume as tres fases
+    return len(fases) if nos else 3
+
+
 def kv_de_fase(kv, n_fases):
     """A tensao do enrolamento, convertida para FASE-NEUTRO.
 

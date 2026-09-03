@@ -175,7 +175,13 @@ def radiografia():
             # 73% de diferenca, tolerancia de 5%. O elemento ativo continua
             # sendo este transformador: `Wdg` move o enrolamento, nao o
             # elemento.
-            kv_prim[bs[0]] = ligacao.kv_de_fase(kv, dss.CktElement.NumPhases())
+            # PELOS NOS DA BARRA, e nao por `NumPhases()`: o monofasico
+            # ligado ENTRE DUAS FASES tem uma fase e declara linha-linha. Ver
+            # `fases_do_enrolamento` — onze dos 24 trafos da ROL sao assim, e
+            # eram eles que impediam a subestacao inteira de ser religada.
+            bruto = (dss.CktElement.BusNames() or [''])[0]
+            kv_prim[bs[0]] = ligacao.kv_de_fase(
+                kv, ligacao.fases_do_enrolamento(bruto))
         except Exception:
             pass
         i = dss.Transformers.Next()

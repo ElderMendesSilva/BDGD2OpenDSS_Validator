@@ -1449,6 +1449,72 @@ nenhuma — e o detector de órfã deixava de fora justamente a que produzia o
 `NaN`. A forma negada, `not (max(v) >= MORTA_V)`, pega os dois casos. Há teste
 lendo o fonte para o dia em que alguém "simplificar" a expressão de volta.
 
+## Achado 28-B — o transformador monofásico ligado entre duas fases
+
+**Medido em 03/09/2026** na ROL da CEEE Equatorial, depois que a V28 mostrou
+que o achado 25 **não** tinha recuperado as subestações que eu disse que
+recuperaria.
+
+Das 8 subestações com 100% da carga sem tensão na V27, a V28 recuperou **uma**.
+A ROL continuava com 13 de 13 cargas mortas — mas o motivo do descarte tinha
+mudado, de «poucas cargas» para **«nenhuma barra na tensão de um vão»**. O
+limiar relativo funcionou; o filtro seguinte é que barrava.
+
+`kv_de_fase` decidia a conversão pelo `NumPhases()` do elemento, e isso erra o
+caso mais comum da média tensão brasileira. Os 24 transformadores da ROL:
+
+| fases | nós da barra | kV declarado | quantos | o que é |
+|---:|---|---:|---:|---|
+| 1 | `.1` | 7,9674 | 9 | fase-neutro |
+| 1 | `.1.2` | 13,8000 | 2 | **entre fases** |
+| 1 | `.3.1` | 13,8000 | 9 | **entre fases** |
+| 3 | `.1.2.3` | 13,8000 | 4 | entre fases |
+
+Os **onze do meio** têm `NumPhases()` = 1, então não eram divididos por raiz de
+três e ficavam em 13,8 — enquanto `Bus.kVBase()` é **sempre** fase-neutro e
+vale 7,9674 ali. A comparação de `decidir` nunca casava.
+
+**O que decide não é quantas fases o elemento tem: é a quantos nós de fase o
+enrolamento se conecta.** Um nó é fase-neutro; dois ou três é linha-linha.
+`fases_do_enrolamento` lê isso da especificação da barra.
+
+Com a correção, a ROL religa: **13 de 13 cargas**, 100% energizada.
+
+### Uma ressalva que o próprio arquivo levanta
+
+O elo criado na ROL vem anotado com *«só alcançava a rede viva por chave
+declarada ABERTA»*. A doutrina do `ligacao.py` diz que componente assim está
+escura **porque a BDGD declara aquela chave aberta**, e que inventar elo ali é
+apagar o que o dado diz. O código liga mesmo assim e registra a ressalva; a
+premissa é reversível apagando o `redirect _LIGACAO.dss` do MASTER.
+
+Para a ROL a leitura provável é que os alimentadores dela sejam alimentados por
+outra subestação, e que o modelo por subestação não tenha como representar
+isso. **Isto não está resolvido — está declarado.**
+
+### E o que a V28 mediu de fato
+
+| causa | V27 | V28 | delta |
+|---|---:|---:|---:|
+| `OK` | 2.505 | **3.073** | **+568** |
+| `MODELO_QUEBRADO` | 1.250 | **41** | −1.209 |
+| `RAMAIS_SOLTOS` | — | 292 | +292 |
+| `REDE_PARCIAL` | — | 253 | +253 |
+| `TENSAO_BAIXA` | 208 | 262 | +54 |
+| `REGULADOR_SATURADO` | 80 | 98 | +18 |
+| `REDE_EXTENSA` | 20 | 28 | +8 |
+| `CARGA_ALTA` | 15 | 19 | +4 |
+| `SUBESTACAO_ILHADA` | — | 12 | +12 |
+
+**`OK` sobe de 61,4% para 75,4%.** Das 649 subestações que a reclassificação
+mandou seguir adiante, **568 terminam `OK`** e 84 caem em outras causas — a
+resposta à pergunta que a simulação não pôde dar.
+
+E o número que **não** se moveu: a carga sem tensão do país foi de 742.836 para
+742.073, apenas **763 a menos**. A reclassificação mudou o julgamento, e não a
+rede. É o que se esperava, e é bom que esteja medido: se esse número tivesse
+caído junto, a reclassificação estaria escondendo dado em vez de nomeá-lo.
+
 ## Validação externa e contaminação
 
 A âncora nacional de 7,4% de perda técnica total da ANEEL é apenas um **teste
