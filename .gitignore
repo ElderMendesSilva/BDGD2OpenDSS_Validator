@@ -98,3 +98,16 @@ saida_cluster/
 # `logs/cluster/`; isto cobre o que escapar.
 *.o[0-9]*
 *.e[0-9]*
+
+# Saida de etapa rodada com a pasta errada. O `ligacao.py`, o `energia.py` e os
+# outros gravam o JSON de detalhe DENTRO da pasta de modelos; apontar a etapa
+# para `.` durante uma depuracao faz o arquivo cair na raiz, e um `git add -A`
+# o leva junto. Aconteceu com `ligacao.json` em 02/09/2026 — 44 bytes com a
+# lista vazia, versionados por descuido.
+/ligacao.json
+/energia_dia.json
+/validacao.json
+/verificacao.json
+/ampacidade.json
+/resumo_geral.json
+/relatorio_rede.json
