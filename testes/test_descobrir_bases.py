@@ -249,3 +249,70 @@ class DuasSafrasNaMesmaPastaSaoDESAMBIGUADAS(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+
+
+class TestDataBaseDaSafra(unittest.TestCase):
+    """A safra que vai para o `_procedencia.json`.
+
+    Existe porque uma rodada ficou sem resposta: olhando
+    `MODELOS_NEOENERGIA385_V27` não havia como saber se aquilo era a safra
+    2024 ou a 2025. A tag só ganha o ano quando duas safras colidem na mesma
+    pasta, então o nome do modelo cala sobre o dado que o gerou.
+    """
+
+    def test_extrai_a_data_base_inteira(self):
+        self.assertEqual(
+            rg._data_base('Roraima_385_2025-12-31_V11_20260115.gdb'),
+            '2025-12-31')
+
+    def test_o_ano_continua_saindo_do_mesmo_lugar(self):
+        """`_safra` passou a derivar de `_data_base`; as duas não podem
+        divergir, senão a desambiguação de tag e a procedência discordariam."""
+        for nome in ('X_2024-12-31_V11_1.gdb', 'Y_385_2025-06-30_V11_2.gdb'):
+            self.assertEqual(rg._safra(nome),
+                             rg._data_base(nome)[:4])
+
+    def test_mes_e_dia_distinguem_duas_publicacoes_do_mesmo_ano(self):
+        """A ANEEL já republicou a mesma distribuidora com data-base diferente
+        dentro do mesmo ano — o ano sozinho não separa as duas."""
+        a = rg._data_base('Z_2025-06-30_V11_1.gdb')
+        b = rg._data_base('Z_2025-12-31_V11_2.gdb')
+        self.assertNotEqual(a, b)
+        self.assertEqual(rg._safra('Z_2025-06-30_V11_1.gdb'),
+                         rg._safra('Z_2025-12-31_V11_2.gdb'))
+
+    def test_nome_sem_data_devolve_vazio_e_nao_levanta(self):
+        self.assertEqual(rg._data_base('qualquer_coisa.gdb'), '')
+        self.assertEqual(rg._safra('qualquer_coisa.gdb'), '')
+
+
+class TestProcedenciaGravaASafra(unittest.TestCase):
+    """Trava o CAMPO, e não só a função que o calcula.
+
+    `_data_base` podia estar perfeita e o `_procedencia.json` continuar sem
+    safra — foi exatamente esse o defeito: a informação existia no nome do
+    `.gdb` e não era gravada em lugar nenhum. Este teste lê o fonte porque o
+    laço que grava depende de uma rodada inteira do conversor.
+    """
+
+    def _fonte(self):
+        with open(os.path.join(RAIZ, 'regerar_v10.py'), encoding='utf-8') as fh:
+            return fh.read()
+
+    def test_o_dump_leva_safra_data_base_e_o_gdb_de_origem(self):
+        fonte = self._fonte()
+        i = fonte.index('json.dump(dict(proc, base=tag')
+        bloco = fonte[i:i + 400]
+        for campo in ('safra=', 'data_base=', 'gdb='):
+            self.assertIn(campo, bloco,
+                          '`%s` sumiu do _procedencia.json' % campo)
+
+    def test_a_safra_gravada_sai_do_gdb_e_nao_da_tag(self):
+        """A tag só ganha o ano quando duas safras colidem, então derivar a
+        safra dela devolveria vazio na maioria das rodadas — que é o caso em
+        que a pergunta importa."""
+        fonte = self._fonte()
+        i = fonte.index('json.dump(dict(proc, base=tag')
+        bloco = fonte[i:i + 400]
+        self.assertIn('_safra(gdb)', bloco)
+        self.assertIn('_data_base(gdb)', bloco)

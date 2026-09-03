@@ -1120,6 +1120,15 @@ ninguém — nem eu — cruzou uma com a outra até que `ramos_isolados` excedes
 bases e 4.078 subestações, com os `validacao.json` trazidos por `scp` e somados
 fora do cluster.
 
+**As duas rodadas são a safra 2025-12-31.** Confirmado nos logs: as 297
+referências de entrada de cada uma apontam para `bdgds_2025/`, com nomes do
+tipo `Cemig-D_4950_2025-12-31_V11_*`. A confirmação foi necessária porque o
+`_procedencia.json` da época **não gravava a safra** — o nome da pasta
+(`MODELOS_NEOENERGIA385_V27`) também não a carrega, já que a tag só ganha o ano
+quando duas safras colidem na mesma pasta. A partir de 02/09/2026 o
+`_procedencia.json` grava `safra`, `data_base` e o nome do `.gdb` de origem,
+e há teste travando os três campos.
+
 A correção do achado 22 — o regulador que era emitido **em paralelo** com o
 trecho, fechando um laço por onde a corrente circulava — foi aplicada entre a
 V26 e a V27. O resultado responde a pergunta que ficou em aberto quando a Light
@@ -1166,7 +1175,13 @@ alvo e desloca o resto seria indistinguível de um ajuste de parâmetro.
 ### Uma comparação que NÃO se pode fazer com estes números
 
 Os 58,6% → 61,4% de `OK` acima **não são** os 97,4% que o `CHANGELOG` publica
-para a v1.0, e misturar os dois seria erro grosseiro. São métricas diferentes:
+para a v1.0, e misturar os dois seria erro grosseiro por **duas** razões
+independentes, não uma.
+
+**Primeira: são safras diferentes.** Estes números são da 2025-12-31; os 97,4%
+são da 2024-12-31.
+
+**Segunda: são métricas diferentes.**
 
 - o **veredicto da v1.0** exige compilar, convergir, não ter `NaN` e passar nos
   limites de tensão e ampacidade;

@@ -248,8 +248,18 @@ def _safra(caminho):
     O padrao da ANEEL e `<Nome>_<codigo>_<AAAA-MM-DD>_V11_<carimbo>`, e a
     data-base e o que separa duas publicacoes da mesma distribuidora.
     """
+    return (_data_base(caminho) or '')[:4]
+
+
+def _data_base(caminho):
+    """A data-base INTEIRA (`AAAA-MM-DD`) da BDGD, ou vazio.
+
+    O ano sozinho serve para desambiguar tag; para dizer QUAL publicacao gerou
+    um modelo, e preciso a data completa — a ANEEL ja republicou a mesma
+    distribuidora com data-base diferente dentro do mesmo ano.
+    """
     import re
-    m = re.search(r'_(\d{4})-\d{2}-\d{2}_', os.path.basename(caminho))
+    m = re.search(r'_(\d{4}-\d{2}-\d{2})_', os.path.basename(caminho))
     return m.group(1) if m else ''
 
 
@@ -1029,7 +1039,18 @@ def main():
         # se separar dele, o arquivo ao lado do MASTER nao
         with open(os.path.join(AQUI, saida, '_procedencia.json'), 'w',
                   encoding='utf-8', newline=escrita.FIM_DE_LINHA) as fh:
-            json.dump(dict(proc, base=tag), fh, indent=1, ensure_ascii=False)
+            # A SAFRA VAI JUNTO. Sem ela, `_procedencia.json` diz de qual
+            # CODIGO o modelo saiu e cala sobre de qual DADO — e as duas
+            # perguntas pesam igual. Uma rodada antiga ficou sem resposta:
+            # olhando `MODELOS_NEOENERGIA385_V27` nao havia como saber se
+            # aquilo era a safra 2024 ou a 2025, porque a tag so ganha o ano
+            # quando duas safras colidem na mesma pasta. `gdb` guarda o nome
+            # do arquivo de origem, que e a prova de onde a data saiu.
+            json.dump(dict(proc, base=tag,
+                           safra=_safra(gdb) or None,
+                           data_base=_data_base(gdb) or None,
+                           gdb=os.path.basename(gdb)),
+                      fh, indent=1, ensure_ascii=False)
         gravar(proc, resumo)
 
     gravar(proc, resumo)
