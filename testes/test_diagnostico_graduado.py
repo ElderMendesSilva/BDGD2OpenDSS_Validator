@@ -117,5 +117,48 @@ class TestOQueNaoMudou(unittest.TestCase):
                          {'SUBESTACAO_ILHADA', 'REDE_PARCIAL', 'RAMAIS_SOLTOS'})
 
 
+
+class TestNaoConvergeComGD(unittest.TestCase):
+    """Achado 26: o instantâneo põe TODA a geração no máximo junto com a carga
+    de pico, e essa combinação não ocorre no dia.
+
+    Medido em três subestações de três distribuidoras: desligar os PVSystem faz
+    o fluxo fechar em 44 a 59 iterações, e **duas delas resolvem os 96 passos
+    do dia** no mesmo modelo. Reprovar pelo instantâneo condena rede que roda.
+    """
+
+    def _nc(self, **troca):
+        v = {'compila': True, 'converge': False, 'iteracoes': 500,
+             'V_MT_mediana': 1.0}
+        v.update(troca)
+        return d.classificar(v, {'alimentadores': 1, 'km_MT': 10})
+
+    def test_sem_a_sonda_continua_sendo_modelo_quebrado(self):
+        """A classe nova exige EVIDÊNCIA. Sem a medida sem-GD não há o que
+        afirmar, e o rótulo conservador é o certo."""
+        self.assertEqual(self._nc()[0], 'MODELO_QUEBRADO')
+
+    def test_com_a_sonda_positiva_vira_classe_propria(self):
+        causa, det, acionavel = self._nc(converge_sem_gd=True,
+                                         iteracoes_sem_gd=54, n_gd=1237)
+        self.assertEqual(causa, 'NAO_CONVERGE_COM_GD')
+        self.assertIn('54', det)
+        self.assertIn('1237', det)
+        self.assertTrue(acionavel)
+
+    def test_sonda_negativa_nao_absolve(self):
+        """Se nem sem GD converge, o problema é outro e o rótulo antigo vale."""
+        self.assertEqual(self._nc(converge_sem_gd=False, n_gd=1237)[0],
+                         'MODELO_QUEBRADO')
+
+    def test_o_detalhe_manda_julgar_pelo_dia(self):
+        """A frase é o produto: sem ela o rótulo novo seria só um sinônimo."""
+        self.assertIn('julgar pelo dia',
+                      self._nc(converge_sem_gd=True, iteracoes_sem_gd=59,
+                               n_gd=603)[1])
+
+    def test_a_classe_nova_e_acionavel(self):
+        self.assertIn('NAO_CONVERGE_COM_GD', d.ACIONAVEL)
+
 if __name__ == '__main__':
     unittest.main()

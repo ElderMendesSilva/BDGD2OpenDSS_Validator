@@ -104,6 +104,48 @@ def valida(pasta, referencia=None):
     r['resolve'] = not (isinstance(p, float) and (math.isnan(p) or math.isinf(p)))
     r['converge'] = dss.Solution.Converged()
     r['iteracoes'] = dss.Solution.Iterations()
+
+    # NAO CONVERGIU: PERGUNTA POR QUE, em vez de so reprovar.
+    #
+    # ACHADO 26. As 23 subestacoes da safra 2025 que nao convergem param todas
+    # em EXATAMENTE 500 iteracoes, e nenhuma delas e caso de teto: com 10.000
+    # o resultado sai identico bit a bit. Refutados por medicao tambem o modo
+    # de controle, os reguladores, os capacitores, a histerese `%cutin/%cutout`
+    # do inversor, o `Vminpu` e o algoritmo de Newton.
+    #
+    # O que resta e a GERACAO. Nas tres subestacoes examinadas — de tres
+    # distribuidoras diferentes — desligar os PVSystem faz o fluxo fechar em
+    # 44 a 59 iteracoes, e baixar a irradiancia devolve a convergencia de
+    # forma gradual (a CMIG usa 54 iteracoes a 25%, 283 a 50% e falha a 100%).
+    #
+    # E ISTO IMPORTA PARA O VEREDICTO: o instantaneo poe TODA a geracao no
+    # maximo junto com a carga declarada de pico, e essa combinacao nao ocorre
+    # no dia. Medido nas mesmas tres: **a CYQ e a PTD resolvem os 96 passos**,
+    # e a CMIG resolve 79. Reprovar o modelo pelo instantaneo condena rede que
+    # roda o dia inteiro.
+    #
+    # Uma solucao extra so no caso que falhou — 23 de 4.078 — transforma o
+    # veredicto em diagnostico.
+    if not r['converge']:
+        try:
+            n_gd = dss.PVsystems.Count() or 0
+        except Exception:                                    # noqa: BLE001
+            n_gd = 0
+        r['n_gd'] = n_gd
+        if n_gd:
+            try:
+                dss.Text.Command('batchedit pvsystem..* enabled=no')
+                dss.Text.Command('Solve')
+                os.chdir(cwd)
+                r['converge_sem_gd'] = bool(dss.Solution.Converged())
+                r['iteracoes_sem_gd'] = dss.Solution.Iterations()
+                # devolve o circuito ao estado declarado: o que vem depois
+                # mede o MODELO, e nao esta sonda.
+                dss.Text.Command('batchedit pvsystem..* enabled=yes')
+                dss.Text.Command('Solve')
+                os.chdir(cwd)
+            except Exception:                                # noqa: BLE001
+                pass
     r['n_barras'] = dss.Circuit.NumBuses()
     r['n_cargas'] = dss.Loads.Count()
     r['n_linhas'] = dss.Lines.Count()

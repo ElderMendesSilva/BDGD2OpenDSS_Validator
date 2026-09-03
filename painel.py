@@ -70,6 +70,7 @@ EXPLICA = {
     'TENSAO_BAIXA': 'subtensao sem causa identificada — investigar',
     'CARGA_ALTA': 'demanda acima da capacidade instalada',
     'SEM_MEDIDA': 'nenhuma barra de MT com tensao valida',
+    'NAO_CONVERGE_COM_GD': 'so nao fecha com a GD no maximo — julgar pelo dia',
     'REDE_EXTENSA': 'alimentador muito longo — queda fisicamente correta',
     'REGULADOR_SATURADO': 'reguladores no tape maximo — falta ajuste de campo',
 }

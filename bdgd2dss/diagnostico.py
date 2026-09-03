@@ -153,6 +153,18 @@ def classificar(v, resumo, extra=None, referencia=None):
     if not v.get('compila'):
         return ('MODELO_QUEBRADO', 'nao compila: ' + str(v.get('erro', ''))[:120], True)
     if not v.get('converge'):
+        # O QUE A SONDA DO VALIDADOR DESCOBRIU. Ver achado 26: quando o fluxo
+        # so fecha com a geracao desligada, o modelo nao esta quebrado — ele
+        # esta sendo julgado no instantaneo, que poe toda a GD no maximo junto
+        # com a carga de pico. Duas das tres subestacoes examinadas resolvem
+        # os 96 passos do dia nesse mesmo modelo.
+        if v.get('converge_sem_gd'):
+            return ('NAO_CONVERGE_COM_GD',
+                    'nao converge em %s iteracoes com a geracao no maximo, e '
+                    'converge em %s sem ela (%s geradores) — julgar pelo dia, '
+                    'e nao pelo instantaneo'
+                    % (v.get('iteracoes'), v.get('iteracoes_sem_gd'),
+                       v.get('n_gd')), True)
         return ('MODELO_QUEBRADO', f'nao converge em {v.get("iteracoes")} iteracoes', True)
     if v.get('nos_nan'):
         return ('MODELO_QUEBRADO',
@@ -211,7 +223,8 @@ def classificar(v, resumo, extra=None, referencia=None):
 
 
 ACIONAVEL = {'MODELO_QUEBRADO', 'SUBESTACAO_ILHADA', 'REDE_PARCIAL',
-             'RAMAIS_SOLTOS', 'CARGA_ALTA', 'TENSAO_BAIXA', 'SEM_MEDIDA'}
+             'RAMAIS_SOLTOS', 'CARGA_ALTA', 'TENSAO_BAIXA', 'SEM_MEDIDA',
+             'NAO_CONVERGE_COM_GD'}
 
 # As tres classes que nasceram do MODELO_QUEBRADO. Quem comparar uma rodada
 # anterior a 02/09/2026 com uma posterior tem de somar estas quatro para

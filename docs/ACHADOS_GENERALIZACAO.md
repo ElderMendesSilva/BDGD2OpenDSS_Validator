@@ -1303,6 +1303,79 @@ antiga a partir de uma rodada nova, some `MODELO_QUEBRADO` com as três classes
 de `diagnostico.SEM_TENSAO` — o conjunto está declarado no código, e não numa
 lembrança, exatamente para essa comparação continuar possível.
 
+## Achado 26 — «não converge» é o instantâneo, e o dia resolve
+
+**Medido em 02/09/2026** sobre três das 23 subestações da safra 2025 que não
+convergem, escolhidas em **três distribuidoras diferentes** — CYQ da
+Neoenergia 47, PTD da Neoenergia 43 e 1425307420 da Cemig.
+
+As 23 param todas em **exatamente 500 iterações**, o teto. Nenhuma é caso de
+teto: com 10.000 iterações o resultado sai **idêntico bit a bit**, o que
+significa que o motor está preso num ciclo, e não convergindo devagar.
+
+### O que foi refutado por medição
+
+| hipótese | resultado |
+|---|---|
+| teto de iterações baixo | 100, 500, 2.000 e 10.000 dão o mesmo número |
+| controle de regulador | desligar não muda nada |
+| capacitor chaveando | não há capacitor em duas delas |
+| `controlmode=off` | não muda nada |
+| histerese do inversor (`%cutin`/`%cutout`) | zerar não muda nada |
+| `Vminpu` do PVSystem | **piora muito** — Vmax vai de 73 a 754 pu |
+| `algorithm=newton` | não muda nada |
+| GD em barra morta | explica a Cemig; na CYQ **nenhuma** GD está abaixo de 0,9 pu |
+
+### O que sobrou
+
+**A geração.** Desligar os `PVSystem` faz o fluxo fechar em **44 a 59
+iterações** nas três. E a convergência volta de forma **gradual** ao baixar a
+irradiância, que é a assinatura de uma solução saindo da bacia de convergência
+— e não de um controle chaveando:
+
+| irradiância | CYQ (GD 1,52× a carga) | Cemig (GD 0,75×) |
+|---|---|---|
+| 5% | 59 iterações | 54 iterações |
+| 25% | 51 | 54 |
+| 50% | 42 | **283** |
+| 100% | **não converge** | **não converge** |
+
+### E é por isso que o veredicto estava errado
+
+O instantâneo põe **toda a geração no máximo junto com a carga declarada de
+pico**, e essa combinação não ocorre no dia. Resolvidos os 96 passos das mesmas
+três subestações:
+
+| subestação | passos que convergem |
+|---|---|
+| CYQ | **96 de 96** |
+| PTD | **96 de 96** |
+| Cemig 1425307420 | 79 de 96 (falha das 8h45 às 15h00) |
+
+**Duas das três resolvem o dia inteiro no mesmo modelo que o instantâneo
+reprova.** A curva de irradiância chega a 1,0000 exatamente ao meio-dia, então
+o dia visita o mesmo ponto — e ainda assim passa, porque ali a carga está na
+sua curva e não no valor declarado de pico.
+
+### O que mudou
+
+O `validador.py`, **e só quando o fluxo não fecha** (23 de 4.078), resolve uma
+vez mais com a geração desligada e grava `converge_sem_gd`, `iteracoes_sem_gd`
+e `n_gd`. Com essa evidência o `diagnostico.py` devolve a causa
+`NAO_CONVERGE_COM_GD`, que diz o que fazer: **julgar pelo dia, e não pelo
+instantâneo**.
+
+Sem a sonda, o rótulo continua `MODELO_QUEBRADO` — a classe nova exige
+evidência, e não suposição.
+
+### O que fica em aberto
+
+**O mecanismo exato não foi encontrado.** Sabe-se que é a geração no máximo, e
+sabe-se o que não é (a tabela acima). Não se sabe *por que* o ponto de operação
+com toda a GD no máximo sai da bacia de convergência em algumas redes e não em
+outras. A caracterização é empírica e suficiente para classificar; não é uma
+explicação.
+
 ## Validação externa e contaminação
 
 A âncora nacional de 7,4% de perda técnica total da ANEEL é apenas um **teste
