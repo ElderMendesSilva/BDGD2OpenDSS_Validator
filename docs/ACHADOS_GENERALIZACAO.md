@@ -1262,6 +1262,47 @@ cargas da subestação.
   onde ele coincidia com o relativo. Corrigido para declarar as outras mil
   cargas da subestação, que é o que torna as três de fato ruído.
 
+### A reclassificação, e o que ela muda em cada número publicado
+
+Implementada em 02/09/2026. `MODELO_QUEBRADO` passa a guardar **só falha de
+modelo** — não compila, não converge, tem `NaN`. A carga sem tensão vira três
+classes graduadas pela **fração**, porque o número absoluto não diz nada sem o
+denominador.
+
+Simulado sobre as 4.078 subestações da safra 2025:
+
+| causa | antes | depois |
+|---|---:|---:|
+| `OK` | 2.505 | 2.505 |
+| **`MODELO_QUEBRADO`** | **1.250** | **41** |
+| `RAMAIS_SOLTOS` (1% a 10%) | — | 290 |
+| `REDE_PARCIAL` (acima de 10%) | — | 257 |
+| `SUBESTACAO_ILHADA` (99% ou mais) | — | 13 |
+| abaixo de 1%: segue para os testes seguintes | — | 649 |
+| `TENSAO_BAIXA` | 208 | 208 |
+| `REGULADOR_SATURADO` | 80 | 80 |
+| `REDE_EXTENSA` | 20 | 20 |
+| `CARGA_ALTA` | 15 | 15 |
+
+**`MODELO_QUEBRADO` cai de 30,7% para 1,0% das subestações do país.**
+
+Duas ressalvas que a tabela não mostra sozinha:
+
+- **`SUBESTACAO_ILHADA` deu 13 e não os 8 medidos pela assinatura completa.**
+  O corte de 99% pega cinco subestações que perdem quase tudo sem satisfazer o
+  teste estrito (fonte com 0 kW **e** tensão sem variação). São 13 casos de
+  "quase toda a carga morta", dos quais 8 têm a fonte comprovadamente
+  desconectada. Elas saem de `REDE_PARCIAL`, que por isso dá 257 e não 269.
+- **Não sei quantas das 649 terminam `OK`.** Elas ainda passam por
+  `CARGA_ALTA`, `REDE_EXTENSA`, `REGULADOR_SATURADO` e `TENSAO_BAIXA`, e a
+  simulação não pôde rodar esses testes — dependem do `resumo.json` e do
+  `extra`, que não vieram no `scp`. O número sai na próxima rodada completa.
+
+**Nada disso mudou a realidade: mudou a régua.** Para reproduzir a contagem
+antiga a partir de uma rodada nova, some `MODELO_QUEBRADO` com as três classes
+de `diagnostico.SEM_TENSAO` — o conjunto está declarado no código, e não numa
+lembrança, exatamente para essa comparação continuar possível.
+
 ## Validação externa e contaminação
 
 A âncora nacional de 7,4% de perda técnica total da ANEEL é apenas um **teste

@@ -48,6 +48,12 @@ sys.path.insert(0, RAIZ)
 CORES = {
     'OK': '#1a7f37',
     'MODELO_QUEBRADO': '#b3261e',
+    # As tres que nasceram do MODELO_QUEBRADO (achado 25). A cor gradua junto
+    # com a gravidade: ilhada e tao vermelha quanto quebrado, ramal solto e
+    # ambar — porque a acao e diferente, e cor igual sugeriria acao igual.
+    'SUBESTACAO_ILHADA': '#b3261e',
+    'REDE_PARCIAL': '#c05621',
+    'RAMAIS_SOLTOS': '#b35c00',
     'TENSAO_BAIXA': '#b35c00',
     'CARGA_ALTA': '#b35c00',
     'SEM_MEDIDA': '#b3261e',
@@ -57,7 +63,10 @@ CORES = {
 
 EXPLICA = {
     'OK': 'dentro do esperado',
-    'MODELO_QUEBRADO': 'defeito do conversor — acionavel aqui',
+    'MODELO_QUEBRADO': 'nao compila, nao converge ou tem NaN — defeito nosso',
+    'SUBESTACAO_ILHADA': 'a fonte nao alcanca a rede — quase toda carga morta',
+    'REDE_PARCIAL': 'acima de 10% da carga sem tensao — falta parte da rede',
+    'RAMAIS_SOLTOS': '1% a 10% sem tensao — trechos de ligacao nao declarados',
     'TENSAO_BAIXA': 'subtensao sem causa identificada — investigar',
     'CARGA_ALTA': 'demanda acima da capacidade instalada',
     'SEM_MEDIDA': 'nenhuma barra de MT com tensao valida',

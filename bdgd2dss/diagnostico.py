@@ -8,8 +8,40 @@ dois exigem acoes opostas e confundi-los faz perder tempo.
 
 As causas, na ordem em que sao testadas:
 
-  MODELO_QUEBRADO   nao compila, nao converge, tem carga sem tensao, ou tem
-                    no com NaN. E defeito nosso: sempre acionavel.
+  MODELO_QUEBRADO   nao compila, nao converge, ou tem no com NaN. E defeito
+                    nosso: sempre acionavel.
+
+                    ATE 02/09/2026 ELE INCLUIA "TEM CARGA SEM TENSAO", e essa
+                    linha sozinha respondia por 96,7% da classe — 1.209 de
+                    1.250 subestacoes da safra 2025 (achado 25). Falha de
+                    modelo de verdade eram 41, ou 1,0% do pais. Pior: 650
+                    daquelas 1.209 perdiam MENOS DE 1% da carga e mesmo assim
+                    recebiam um rotulo afirmando que o modelo estava quebrado.
+
+                    Carga sem tensao e um FATO DO CADASTRO (achados 21 e 23),
+                    nao defeito do conversor, e a gravidade dela varia por tres
+                    ordens de grandeza. Por isso ela saiu daqui e virou tres
+                    classes proprias, abaixo.
+
+  SUBESTACAO_ILHADA  praticamente TODA a carga sem tensao. A rede existe, a
+                    fonte existe, e as duas nao se tocam: o fluxo converge em
+                    duas iteracoes porque nao ha carga ligada. Sao 8 na safra
+                    2025, e o achado 25 mostrou que a causa era nossa — o
+                    limiar de `ligacao.py` descartava a componente. Acionavel.
+
+  REDE_PARCIAL      mais de 10% da carga sem tensao. Parte relevante da rede
+                    nao chega a fonte, e toda perda e energia da subestacao
+                    estao medidas sobre o que sobrou. Acionavel.
+
+  RAMAIS_SOLTOS     de 1% a 10% da carga sem tensao. Padrao de ramal cujo
+                    trecho de ligacao nao foi declarado. Nao invalida o
+                    modelo; entra como ressalva quantificada.
+
+                    Abaixo de 1% nao vira causa NENHUMA: a subestacao segue
+                    para os testes seguintes e pode terminar `OK`. O numero
+                    continua no `validacao.json`, em `cargas_sem_tensao` — o
+                    que muda e parar de chamar de quebrado um modelo que
+                    perde uma carga em mil.
 
                     O NaN merece atencao especial porque os dois motores do
                     OpenDSS discordam dele. Na DALP, o mesmo arquivo dava 36
@@ -91,6 +123,15 @@ def referencia_de(resumos):
             'n': len(km)}
 
 
+# Fracao da carga sem tensao que separa as tres classes. Os cortes saem da
+# distribuicao medida na safra 2025 (achado 25), e nao de gosto: abaixo de 1%
+# estao 650 das 1.209 subestacoes afetadas, e acima de 10% estao 269 — os dois
+# extremos da mesma cauda, com tratamentos opostos.
+SEM_TENSAO_RESSALVA = 0.01    # abaixo disto nao e causa, e nota de rodape
+SEM_TENSAO_PARCIAL = 0.10     # acima disto falta parte relevante da rede
+SEM_TENSAO_ILHADA = 0.99      # praticamente tudo: a fonte nao alcanca a rede
+
+
 def classificar(v, resumo, extra=None, referencia=None):
     """`v` = registro do validador; `resumo` = resumo.json da subestacao.
 
@@ -117,9 +158,32 @@ def classificar(v, resumo, extra=None, referencia=None):
         return ('MODELO_QUEBRADO',
                 f'{v["nos_nan"]} nos com NaN em {v.get("barras_nan", "?")} barras '
                 f'— ilha sem fonte; no motor da EPRI contamina a rede toda', True)
-    if v.get('cargas_sem_tensao'):
+    # CARGA SEM TENSAO, GRADUADA PELA FRACAO. Ver a doutrina no topo: o numero
+    # absoluto nao diz nada sem o denominador — uma carga em dez mil e ramal
+    # solto, metade da subestacao e rede que nao fecha, e as duas recebiam o
+    # mesmo rotulo.
+    mortas = v.get('cargas_sem_tensao') or 0
+    n_cargas = v.get('n_cargas') or 0
+    if mortas and n_cargas:
+        f = mortas / n_cargas
+        quanto = f'{mortas} de {n_cargas} cargas sem tensao ({100*f:.2f}%)'
+        if f >= SEM_TENSAO_ILHADA:
+            return ('SUBESTACAO_ILHADA',
+                    f'{quanto} — a fonte nao alcanca a rede', True)
+        if f >= SEM_TENSAO_PARCIAL:
+            return ('REDE_PARCIAL',
+                    f'{quanto} — perda e energia medidas sobre o que sobrou',
+                    True)
+        if f >= SEM_TENSAO_RESSALVA:
+            return ('RAMAIS_SOLTOS',
+                    f'{quanto} — trechos de ligacao nao declarados', True)
+        # abaixo de 1%: segue para os testes seguintes, sem virar causa
+    elif mortas:
+        # sem o denominador nao da para graduar, e o conservador e o rotulo
+        # antigo — melhor uma classe pessimista do que uma inventada.
         return ('MODELO_QUEBRADO',
-                f'{v["cargas_sem_tensao"]} cargas sem tensao — trecho sem ligacao', True)
+                f'{mortas} cargas sem tensao — trecho sem ligacao '
+                '(sem contagem total para graduar)', True)
 
     if vmed is None:
         return ('SEM_MEDIDA', 'nenhuma barra de MT com tensao valida', True)
@@ -146,4 +210,10 @@ def classificar(v, resumo, extra=None, referencia=None):
             f'com {km_alim:.0f} km/alim' + (f' e {uso:.0f}% de uso' if uso else ''), True)
 
 
-ACIONAVEL = {'MODELO_QUEBRADO', 'CARGA_ALTA', 'TENSAO_BAIXA', 'SEM_MEDIDA'}
+ACIONAVEL = {'MODELO_QUEBRADO', 'SUBESTACAO_ILHADA', 'REDE_PARCIAL',
+             'RAMAIS_SOLTOS', 'CARGA_ALTA', 'TENSAO_BAIXA', 'SEM_MEDIDA'}
+
+# As tres classes que nasceram do MODELO_QUEBRADO. Quem comparar uma rodada
+# anterior a 02/09/2026 com uma posterior tem de somar estas quatro para
+# reproduzir a contagem antiga — a realidade nao mudou, a regua mudou.
+SEM_TENSAO = {'SUBESTACAO_ILHADA', 'REDE_PARCIAL', 'RAMAIS_SOLTOS'}
