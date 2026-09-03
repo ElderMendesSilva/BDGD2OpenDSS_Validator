@@ -42,16 +42,16 @@ resultado.
 
 ## Limitações e fatos de dado relevantes
 
-- **`--bt completo`:** a limitação deixou de ser "não roda nas grandes" e passou
-  a ser **delimitável** — com a ressalva do achado 19, que mostra a métrica
-  sensível ao critério de agrupamento das subestações. O critério de entrada é medido antes de simular —
-  componentes por subestação na BDGD ≤ 3 —, e por ele a Enel SP tem 150 de 155
-  subestações elegíveis e a Cemig 163 de 412 (achados 16 e 17). Falta provar
-  que as elegíveis rodam: o critério prevê fragmentação, e escala é outra
+- **`--bt completo`:** deixou de ser "não roda nas grandes" e passou a ser
+  **delimitável** — com a ressalva do achado 19, que mostra a métrica sensível
+  ao critério de agrupamento das subestações. O critério de entrada é medido
+  antes de simular — componentes por subestação na BDGD ≤ 3 —, e por ele a
+  Enel SP tem 150 de 155 subestações elegíveis e a Cemig 163 de 412 (achados
+  16 e 17). Falta provar que as elegíveis rodam de fato: escala é outra
   coisa. Até lá, não usar seus números como resultado de produção.
 - **Enel SP:** o condutor 593 e, em geral, a incoerência entre condutor e uso
-  explicam grande parte da perda impossível. É problema de cadastro, que deve
-  ser marcado e não escondido no agregado.
+  explicam grande parte da perda impossível. É problema de cadastro, a marcar
+  e não esconder no agregado.
 - **Cemig-D:** o desvio agregado segue sem explicação completa e não deve ser
   atribuído ao conversor sem evidência. A base é **bimodal** em fragmentação
   (achado 17), o que é parte da resposta, não toda ela.
@@ -81,8 +81,8 @@ corrente nominal, e a perda joule sobe ~150x. Não é cadastro nem condutor.
 Virou o veredicto `TENSAO_IMPLAUSIVEL`. **Ressalva:** o corte de 0,5 pu foi
 calibrado no histograma do MÍNIMO, que é bimodal com vale em 0,45–0,55; o
 veredicto aplica sobre a MEDIANA, cuja distribuição não tem vale. Hoje o corte
-se defende pela física, não pelos dados — e isso precisa de estudo de
-sensibilidade antes de virar número de artigo.
+se defende pela física, não pelos dados — falta estudo de sensibilidade antes
+de virar número de artigo.
 
 ### 2. `m/trafo` NÃO prevê a viabilidade do `--bt completo` — hipótese refutada
 
@@ -124,7 +124,7 @@ Tamanho aparece com 1,6–2,3x; fragmentação com 116x. As 500 iterações são
 TETO do OpenDSS: elas não convergem devagar, batem no limite.
 
 **Isso reconecta ao defeito conhecido da Light**, descrito em 26/08 como
-fragmentação por recorte de CTMT. É o mesmo mecanismo, agora medido em 370
+fragmentação por recorte de CTMT — mesmo mecanismo, agora medido em 370
 subestações de cinco distribuidoras. A NEOENERGIA40 é o extremo: 13% de
 subestações OK e perda modelada em 10^300 — estouro numérico.
 
@@ -169,9 +169,9 @@ ensolarada. Usar São Paulo para todas nunca foi aproximação inofensiva.
 ### 6. As violações não são "erro absurdo": são excesso MODERADO e sistemático
 
 Investigado em 30/08 sobre a V24. **1.623 das 1.626 violações** têm cobertura
-acima de 100% — isto é, a perda técnica que o modelo calcula excede a perda
-TOTAL que a medição registra. Como a técnica é uma parcela da total, isso é
-impossível por definição, e vale para 47 das 97 bases.
+acima de 100% — a perda técnica que o modelo calcula excede a perda TOTAL que a
+medição registra. Como a técnica é uma parcela da total, isso é impossível por
+definição, e vale para 47 das 97 bases.
 
 O que surpreende é a magnitude. Os 366 casos rotulados **"a investigar"** — os
 que não têm causa conhecida — não são disparates:
@@ -216,8 +216,8 @@ contra os **2.260 restantes da mesma base**, em atributos da própria BDGD:
 | **kVA por km** | **41,9** | **86,2** | **0,5x** |
 
 O produto `R1 x km`, que é o que governa a perda joule, é **15,8x maior** nos
-suspeitos. Eles são alimentadores **longos, de condutor mais fino e com metade
-da densidade de carga** — rurais e extensos.
+suspeitos: alimentadores **longos, de condutor mais fino e com metade da
+densidade de carga** — rurais e extensos.
 
 **Eu concluí daqui que o modelo estava certo e a medição errada. CORRIJO
 ABAIXO — a conclusão não sobreviveu ao teste seguinte.**
@@ -309,7 +309,7 @@ Nas **81 bases** que declaram `PERD_*` agregado:
 
 **Uma rede de média tensão com 0,13% de perda técnica não existe.** É uma
 ordem de grandeza abaixo de qualquer alimentador real, e a referência nacional
-da ANEEL é 7,4%. Isso não depende de acreditar no nosso modelo: é implausível
+da ANEEL é 7,4%. Não depende de acreditar no nosso modelo: é implausível
 contra a física e contra a própria referência do regulador.
 
 **Consequência para a leitura do achado 7b.** A razão modelo/declarado nacional
@@ -346,9 +346,9 @@ redes de porte distinto, não medem a mesma perda técnica com duas casas
 decimais. **É um valor padrão.**
 
 E o perfil delas confirma: as 16 têm **433 km de MT medianos contra 10.471** das
-demais, e **4 subestações contra 20**. São as pequenas — cooperativas e permis-
-sionárias, que provavelmente preenchem o campo com uma referência regulatória
-em vez de um cálculo próprio.
+demais, e **4 subestações contra 20**. São as pequenas — cooperativas e
+permissionárias, que provavelmente preenchem o campo com uma referência
+regulatória em vez de um cálculo próprio.
 
 **Isso derruba o argumento central do achado 7b.** Eu havia escrito que "as duas
 declarações da distribuidora são consistentes entre si, logo quem destoa é o
@@ -397,8 +397,7 @@ contra a perda total modelada. Se o ferro responder por ~30% do nosso número, o
 viés está explicado e a questão passa a ser de CONVENÇÃO: o `PERD_*` da
 distribuidora provavelmente não inclui perda a vazio. Lê `.gdb`, então é job.
 
-### 11. O ferro é parcela GRANDE da perda modelada — e a comparação com o
-`PERD_*` pode ser de convenção, não de erro
+### 11. O ferro é parcela GRANDE da perda modelada — e a comparação com o `PERD_*` pode ser de convenção, não de erro
 
 Medido em 30/08 nas 97 bases (`medicoes/ferro.json`, job 34797), somando
 `PER_FER` da EQTRMT — a placa declarada pela própria distribuidora.
@@ -660,8 +659,8 @@ modelar a baixa sobre ela continua inviável, e a limitação passa a ser de dad
 não de código.
 
 **Ressalva:** a correlação é 0,45, não 0,9. Há bases conexas com algum ramo
-isolado e bases fragmentadas com poucos — então há outro fator em jogo, ainda
-não identificado. E o grupo de "10 ou mais" tem mediana menor que o de "4 a 9",
+isolado e bases fragmentadas com poucos — outro fator em jogo, ainda não
+identificado. E o grupo de "10 ou mais" tem mediana menor que o de "4 a 9",
 o que a amostra de 10 não permite tratar como inversão real.
 
 ### 16. Um quarto da rede modelada do país não chega à fonte
@@ -726,16 +725,16 @@ antes de simular: componentes por subestação na BDGD ≤ 3.
 
 ### 17. A Enel SP sempre coube; a Cemig cabe em 40%
 
-Medido em 01/09/2026, aplicando o criterio do achado 16 subestacao a
-subestacao nas duas maiores bases onde a `--bt completo` era dada como
-inviavel.
+Medido em 01/09/2026, aplicando o critério do achado 16 subestação a
+subestação nas duas maiores bases onde a `--bt completo` era dada como
+inviável.
 
-| base | SEs | elegiveis (<=3 componentes) | % | pior SE |
+| base | SEs | elegíveis (≤3 componentes) | % | pior SE |
 |---|---:|---:|---:|---:|
 | **Enel SP** | 155 | **150** | **96,8%** | 15 |
 | **Cemig** | 412 | **163** | 39,6% | 1.844 |
 
-**A distribuicao, que a mediana escondia:**
+**A distribuição, que a mediana escondia:**
 
 | componentes/SE | Enel SP | Cemig |
 |---|---:|---:|
@@ -745,157 +744,155 @@ inviavel.
 | 10 a 99 | 1 | 70 |
 | 100 ou mais | 0 | **5** |
 
-**A Enel SP nunca foi um caso perdido.** 136 das 155 subestacoes dela sao
-eletricamente conexas na BDGD, e 150 passam no criterio. A hipotese de 26/08
-a classificava como limitrofe por ter 632 m de BT por transformador; o achado
-16 mostra que o previsor era outro, e por ele ela e a base grande mais sadia
+**A Enel SP nunca foi um caso perdido.** 136 das 155 subestações dela são
+eletricamente conexas na BDGD, e 150 passam no critério. A hipótese de 26/08
+a classificava como limítrofe por ter 632 m de BT por transformador; o achado
+16 mostra que o previsor era outro, e por ele ela é a base grande mais sadia
 que temos.
 
-**E a Cemig nao e uniformemente ruim, e sim BIMODAL.** Cinco subestacoes com
+**E a Cemig não é uniformemente ruim, e sim BIMODAL.** Cinco subestações com
 mais de cem componentes — uma com 1.844 — puxavam a mediana da base inteira
-para 5 e a reprovavam por atacado. Separadas essas, 163 subestacoes passam no
-mesmo criterio que a Enel SP.
+para 5 e a reprovavam por atacado. Separadas essas, 163 subestações passam no
+mesmo critério que a Enel SP.
 
 **O que isto muda no produto.** A pergunta deixa de ser "esta base aguenta
-baixa tensao completa?", que so admite sim ou nao, e passa a ser "que parte da
-concessao aguenta?" — respondida antes de simular, lendo a `.gdb`. A limitacao
-declarada deixa de ser *"a BT completa nao roda nas grandes"* e passa a ser
+baixa tensão completa?", que só admite sim ou não, e passa a ser "que parte da
+concessão aguenta?" — respondida antes de simular, lendo a `.gdb`. A limitação
+declarada deixa de ser *"a BT completa não roda nas grandes"* e passa a ser
 *"a BT completa roda na parte da rede que a BDGD declara conexa, e essa parte
-e mensuravel: 96,8% da Enel SP, 39,6% da Cemig"*.
+é mensurável: 96,8% da Enel SP, 39,6% da Cemig"*.
 
-**O que ainda nao esta medido:** que as elegiveis de fato rodem. O criterio
-preve fragmentacao do modelo, e fragmentacao era a causa suspeita do fracasso
-da BT — mas escala e custo sao outra coisa, e as 150 da Enel SP somam milhoes
-de UCs. Isso e rodada, nao leitura de tabela.
+**O que ainda não está medido:** que as elegíveis de fato rodem. O critério
+prevê fragmentação do modelo, e fragmentação era a causa suspeita do fracasso
+da BT — mas escala e custo são outra coisa, e as 150 da Enel SP somam milhões
+de UCs. Isso é rodada, não leitura de tabela.
 
-### 18. A safra 2025 nao corrigiu a contradicao — ela persiste igual
+### 18. A safra 2025 não corrigiu a contradição — ela persiste igual
 
 Medido em 01/09/2026, no dia em que a safra 2025-12-31 entrou. **Este achado
-nao depende do nosso modelo nem de conversao nenhuma**: sao tres campos da
+não depende do nosso modelo nem de conversão nenhuma**: são três campos da
 mesma BDGD, lidos das 99 bases novas e das 97 antigas.
 
-A comparacao que vale e **pareada** — as **63 bases** com declaracao utilizavel
-nas duas safras. Comparar o agregado misturaria composicao diferente:
+A comparação que vale é **pareada** — as **63 bases** com declaração utilizável
+nas duas safras. Comparar o agregado misturaria composição diferente:
 
 | | 2024 | 2025 |
 |---|---:|---:|
 | ferro pela placa (mediana) | 2,46% | **2,42%** |
-| perda tecnica declarada (mediana) | 3,03% | **3,06%** |
+| perda técnica declarada (mediana) | 3,03% | **3,06%** |
 | bases em que o ferro EXCEDE o declarado | 25 de 63 | **26 de 63** |
-| razao piorou / melhorou | — | **31 / 32** |
+| razão piorou / melhorou | — | **31 / 32** |
 
 **Nada mudou.** As distribuidoras republicaram a base com um ano a mais de
-dados e a contradicao interna seguiu no mesmo lugar, com a mesma intensidade, e
+dados e a contradição interna seguiu no mesmo lugar, com a mesma intensidade, e
 quase exatamente nas mesmas bases. Trinta e uma pioraram, trinta e duas
-melhoraram: e ruido, nao correcao.
+melhoraram: é ruído, não correção.
 
-**Por que isso fortalece o achado 13 em vez de repeti-lo.** Uma contradicao
+**Por que isso fortalece o achado 13 em vez de repeti-lo.** Uma contradição
 observada em uma safra admite a leitura de erro pontual de preenchimento — um
 ano ruim, um campo mal exportado. Observada em **duas safras consecutivas, nas
-mesmas bases**, ela deixa de ser episodio e passa a ser **caracteristica do
-processo de declaracao**. O `PERD_*` nao e um numero que erra as vezes: e um
-numero que nao esta sendo produzido a partir do parque declarado.
+mesmas bases**, ela deixa de ser episódio e passa a ser **característica do
+processo de declaração**. O `PERD_*` não é um número que erra às vezes: é um
+número que não está sendo produzido a partir do parque declarado.
 
-**O filtro e parte do achado, e custou uma execucao errada.** A primeira
-medicao publicou "2.639% de ferro" e razoes de 213.530x — denominador
-degenerado, nao contradicao. A CERBRANORT6898 declara 0,2 GWh no ano para 1.810
+**O filtro é parte do achado, e custou uma execução errada.** A primeira
+medição publicou "2.639% de ferro" e razões de 213.530x — denominador
+degenerado, não contradição. A CERBRANORT6898 declara 0,2 GWh no ano para 1.810
 transformadores. Ficam de fora as bases com ferro acima de 25% da energia (a
-energia da CTMT e que esta errada) e as que declaram menos de 0,5% (nao ha
+energia da CTMT é que está errada) e as que declaram menos de 0,5% (não há
 perda com que comparar). Em 2024 isso descarta 29 das 97; em 2025, 23 das 99.
 
-**O que a safra nova mudou, e nao e pouco:** a fracao de bases com declaracao
-utilizavel subiu de 68/97 para 76/99. Mais distribuidoras estao declarando algo
-comparavel — e o que declaram continua nao fechando com o proprio parque.
+**O que a safra nova mudou, e não é pouco:** a fração de bases com declaração
+utilizável subiu de 68/97 para 76/99. Mais distribuidoras estão declarando algo
+comparável — e o que declaram continua não fechando com o próprio parque.
 
-### 19. A metrica de fragmentacao depende de como a base AGRUPA subestacoes
+### 19. A métrica de fragmentação depende de como a base AGRUPA subestações
 
-Medido em 01/09/2026, comparando a fragmentacao das 97 bases nas duas safras.
+Medido em 01/09/2026, comparando a fragmentação das 97 bases nas duas safras.
 **Este achado corrige a leitura dos achados 15, 16 e 17**, e apareceu porque o
-numero bruto era bom demais para ser verdade.
+número bruto era bom demais para ser verdade.
 
-**O que o numero bruto dizia:** a fragmentacao teria piorado muito de 2024 para
-2025 — bases com subestacao mediana conexa caindo de 27 para 12, elegiveis para
+**O que o número bruto dizia:** a fragmentação teria piorado muito de 2024 para
+2025 — bases com subestação mediana conexa caindo de 27 para 12, elegíveis para
 BT completa de 47 para 32, e piora em 45 das 97.
 
-**O que estava acontecendo:** 57 das 97 bases mudaram o numero de subestacoes
-declaradas, 32 delas para menos. E o padrao e inequivoco:
+**O que estava acontecendo:** 57 das 97 bases mudaram o número de subestações
+declaradas, 32 delas para menos. E o padrão é inequívoco:
 
-| base | subestacoes | componentes/SE |
+| base | subestações | componentes/SE |
 |---|---:|---:|
 | CELETRO5343 | 24 -> **1** | 1 -> **21** |
 | CEREJ5352 | 18 -> **1** | 1 -> **18** |
 | CEMIRIM7467 | 13 -> **2** | 1 -> **13** |
 | CEDRAP5381 | 9 -> **1** | 1 -> **9** |
 
-O numero de componentes vira **exatamente** o numero de subestacoes fundidas.
-A rede nao mudou: mudou o rotulo. Quando uma base declara vinte e quatro
-subestacoes sob um unico `CTMT.SUB`, as vinte e quatro redes — que nunca se
-tocaram — passam a ser componentes da mesma subestacao.
+O número de componentes vira **exatamente** o número de subestações fundidas.
+A rede não mudou: mudou o rótulo. Quando uma base declara vinte e quatro
+subestações sob um único `CTMT.SUB`, as vinte e quatro redes — que nunca se
+tocaram — passam a ser componentes da mesma subestação.
 
-**A comparacao limpa**, nas 40 bases que mantiveram o mesmo numero de
-subestacoes:
+**A comparação limpa**, nas 40 bases que mantiveram o mesmo número de
+subestações:
 
 | | 2024 | 2025 |
 |---|---:|---:|
 | componentes/SE (mediana) | 5,0 | **5,5** |
 | piorou / melhorou / igual | — | **13 / 7 / 20** |
 
-Estabilidade com leve piora, e nao colapso.
+Estabilidade com leve piora, e não colapso.
 
-**A ressalva que isto impoe aos achados 15 a 17.** "Componentes por subestacao"
-mede a rede **e o criterio de agrupamento junto**. Nas bases grandes, que
-declaram centenas de subestacoes, o efeito e desprezivel — a Cemig tem 412 e a
-Enel SP 155, e nelas o rotulo corresponde a instalacao fisica. Nas pequenas,
-que declaram uma so, a metrica mede sobretudo o rotulo. O criterio de entrada
-para a `--bt completo` (<= 3 componentes) **continua valendo onde foi medido**,
-que sao as grandes, e deve ser usado com cuidado em base de uma subestacao.
+**A ressalva que isto impõe aos achados 15 a 17.** "Componentes por subestação"
+mede a rede **e o critério de agrupamento junto**. Nas bases grandes, que
+declaram centenas de subestações, o efeito é desprezível — a Cemig tem 412 e a
+Enel SP 155, e nelas o rótulo corresponde a instalação física. Nas pequenas,
+que declaram uma só, a métrica mede sobretudo o rótulo. O critério de entrada
+para a `--bt completo` (≤ 3 componentes) **continua valendo onde foi medido**,
+que são as grandes, e deve ser usado com cuidado em base de uma subestação.
 
-### 19b. E ha um segundo vies, eletrico: alimentador nao se toca
+### 19b. E há um segundo viés, elétrico: alimentador não se toca
 
-Investigando o primeiro, apareceu outro — e este atinge a medida no alvo, nao
-so na comparacao entre safras.
+Investigando o primeiro, apareceu outro — e este atinge a medida no alvo, não
+só na comparação entre safras.
 
-**A mediana nacional de componentes por subestacao e 4,0. A mediana de
-ALIMENTADORES por subestacao tambem e 4,0.**
+**A mediana nacional de componentes por subestação é 4,0. A mediana de
+ALIMENTADORES por subestação também é 4,0.**
 
-A explicacao e elementar e eletrica: alimentadores da mesma subestacao sao
-radiais e **so se encontram na barra da SE**, que nao esta em nenhuma das
+A explicação é elementar e elétrica: alimentadores da mesma subestação são
+radiais e **só se encontram na barra da SE**, que não está em nenhuma das
 quatro camadas unidas (SSDMT, UNSEMT, UNREMT, UNTRMT). Contar cada alimentador
-como componente separada chama de fragmentacao o que e topologia normal de
-distribuicao.
+como componente separada chama de fragmentação o que é topologia normal de
+distribuição.
 
-**Mas o vies nao e uniforme, e e isso que salva o achado:**
+**Mas o viés não é uniforme, e é isso que salva o achado:**
 
 | base | alimentadores/SE | componentes/SE | leitura |
 |---|---:|---:|---|
 | Enel SP | 11,7 | **1** | os alimentadores SE TOCAM |
 | NEOENERGIA5160 | 14,4 | **1** | idem |
-| **Light** | 18,2 | **28** | 10 componentes ALEM dos alimentadores |
-| COPELDIS2866 | 10,8 | **76** | 65 alem |
+| **Light** | 18,2 | **28** | 10 componentes ALÉM dos alimentadores |
+| COPELDIS2866 | 10,8 | **76** | 65 além |
 
-A correlacao entre as duas e 0,436 — existe, e nao explica tudo. Onde
-`componentes/SE` excede `alimentadores/SE` com folga, sobra fragmentacao real.
-Onde e igual ou menor, o numero mede topologia, nao defeito.
+A correlação entre as duas é 0,436 — existe, e não explica tudo. Onde
+`componentes/SE` excede `alimentadores/SE` com folga, sobra fragmentação real.
+Onde é igual ou menor, o número mede topologia, não defeito.
 
-**O que isto NAO derruba:** o achado 16. Os 25,70% de trechos que nao chegam a
-fonte sao medidos NO MODELO, pelo proprio OpenDSS, e nao dependem desta
-contagem. O que fica em xeque e o uso de `componentes/SE` como medida de
-qualidade do dado, e o corte de <= 3 como criterio de entrada.
+**O que isto NÃO derruba:** o achado 16. Os 25,70% de trechos que não chegam à
+fonte são medidos NO MODELO, pelo próprio OpenDSS, e não dependem desta
+contagem. O que fica em xeque é o uso de `componentes/SE` como medida de
+qualidade do dado, e o corte de ≤ 3 como critério de entrada.
 
-**A medida robusta, agora implementada:** *fracao dos trechos de cada
-alimentador alcancavel a partir do `CTMT.PAC_INI`*. Ela nao depende do
-agrupamento em subestacoes nem da separacao natural entre alimentadores —
-cada alimentador tem uma cabeceira declarada, e a pergunta e quanto da rede
-dele se alcanca dali.
+**A medida robusta, agora implementada:** *fração dos trechos de cada
+alimentador alcançável a partir do `CTMT.PAC_INI`*. Ela não depende do
+agrupamento em subestações nem da separação natural entre alimentadores —
+cada alimentador tem uma cabeceira declarada, e a pergunta é quanto da rede
+dele se alcança dali.
 
 Na Sulgipe 2025 as duas medidas discordam frontalmente, e a robusta acerta:
-**6 componentes por subestacao** contra **99,94% de alcance mediano** e 96,4%
-dos alimentadores integros — e o modelo dessa base roda com 7 de 7 subestacoes
+**6 componentes por subestação** contra **99,94% de alcance mediano** e 96,4%
+dos alimentadores íntegros — e o modelo dessa base roda com 7 de 7 subestações
 `OK` e 0,12% de trechos isolados.
 
-
-
-### 20. A rede declarada E alcancavel — a fragmentacao e NOSSA
+### 20. A rede declarada É alcançável — a fragmentação é NOSSA
 
 > **CORRIGIDO PELO ACHADO 21 (01/09/2026).** A parte medida continua
 > válida — a rede declarada é 99,92% alcançável. Mas a atribuição está
@@ -903,12 +900,12 @@ dos alimentadores integros — e o modelo dessa base roda com 7 de 7 subestacoes
 > existia era artefato de medição.
 
 Medido em 01/09/2026 nas 97 bases de 2024 e nas 99 de 2025, com a medida
-robusta do achado 19b. **Este achado reverte a conclusao do achado 15.**
+robusta do achado 19b. **Este achado reverte a conclusão do achado 15.**
 
-**O alcance mediano nacional a partir da cabeceira e 99,92%.** A rede que a
-BDGD declara e, para todos os efeitos, conexa: partindo do `CTMT.PAC_INI` de
-cada alimentador e caminhando pelas quatro camadas, chega-se a
-praticamente todos os trechos dele.
+**O alcance mediano nacional a partir da cabeceira é 99,92%.** A rede que a
+BDGD declara é, para todos os efeitos, conexa: partindo do `CTMT.PAC_INI` de
+cada alimentador e caminhando pelas quatro camadas, chega-se a praticamente
+todos os trechos dele.
 
 E o modelo, sobre essa mesma rede, perde um quarto:
 
@@ -920,49 +917,49 @@ E o modelo, sobre essa mesma rede, perde um quarto:
 | EQUATORIAL37 | 100,00% | 71,12% |
 | EDP_SP391 | 100,00% | 66,20% |
 
-**A correlacao entre as duas medidas e −0,205** — nula. Das **57 bases com
+**A correlação entre as duas medidas é −0,205** — nula. Das **57 bases com
 alcance acima de 99,9%**, **18 produzem modelo com mais de 20% de trechos
 isolados**.
 
-**O que isso derruba.** O achado 15 concluiu que "a fragmentacao esta na BDGD e
-o grau dela preve a do modelo", com correlacao de 0,45 contra
-`componentes/SE`. O achado 19b mostrou que aquela metrica media, em boa parte,
-o numero de alimentadores por subestacao — topologia normal — e o criterio de
-agrupamento da base. Trocada por uma medida que nao tem esses vieses, **a
-correlacao desaparece e o sinal inverte de dono**: a rede vem inteira e o
+**O que isso derruba.** O achado 15 concluiu que "a fragmentação está na BDGD e
+o grau dela prevê a do modelo", com correlação de 0,45 contra
+`componentes/SE`. O achado 19b mostrou que aquela métrica media, em boa parte,
+o número de alimentadores por subestação — topologia normal — e o critério de
+agrupamento da base. Trocada por uma medida que não tem esses vieses, **a
+correlação desaparece e o sinal inverte de dono**: a rede vem inteira e o
 modelo a quebra.
 
-**A hipotese, concreta e verificavel.** O modelo e montado por SUBESTACAO e a
-fonte fica na barra dela. Cada alimentador e internamente conexo — o alcance
-prova isso —, mas precisa estar ligado a barra da SE pelo `PAC_INI`, atraves do
-transformador de AT. Se essa ligacao nao e emitida para um alimentador, ele
-inteiro fica isolado no modelo, intacto e sem tensao. Isso explicaria por que os
-ramos isolados vem em blocos grandes e por que nao correlacionam com nada da
+**A hipótese, concreta e verificável.** O modelo é montado por SUBESTAÇÃO e a
+fonte fica na barra dela. Cada alimentador é internamente conexo — o alcance
+prova isso —, mas precisa estar ligado à barra da SE pelo `PAC_INI`, através do
+transformador de AT. Se essa ligação não é emitida para um alimentador, ele
+inteiro fica isolado no modelo, intacto e sem tensão. Isso explicaria por que os
+ramos isolados vêm em blocos grandes e por que não correlacionam com nada da
 BDGD.
 
-**O que isso NAO muda:** o achado 16 continua valendo como MEDIDA — 25,70% dos
-trechos modelados nao chegam a fonte, e isso e fato do nosso modelo. O que muda
-e a ATRIBUICAO: a causa nao esta no dado de origem.
+**O que isso NÃO muda:** o achado 16 continua valendo como MEDIDA — 25,70% dos
+trechos modelados não chegam à fonte, e isso é fato do nosso modelo. O que muda
+é a ATRIBUIÇÃO: a causa não está no dado de origem.
 
-**Consequencia para o produto.** A `--bt completo` nao e inviavel por dado
-partido, e o criterio de entrada do achado 17 (componentes/SE <= 3) nao tem
-fundamento. Ha um defeito de conversao afetando um quarto da rede modelada do
-pais, e ele e a prioridade — acima da safra 2025 e acima da validacao externa.
+**Consequência para o produto.** A `--bt completo` não é inviável por dado
+partido, e o critério de entrada do achado 17 (componentes/SE ≤ 3) não tem
+fundamento. Há um defeito de conversão afetando um quarto da rede modelada do
+país, e ele é a prioridade — acima da safra 2025 e acima da validação externa.
 
 **Ressalva honesta:** o alcance mede conectividade nas quatro camadas de MT.
-Ele nao prova que o `.dss` emitido deveria ser conexo — o conversor faz
-recortes legitimos. Mas 100% de alcance com 73,87% de isolamento e uma
-distancia que nenhum recorte legitimo explica.
+Ele não prova que o `.dss` emitido deveria ser conexo — o conversor faz
+recortes legítimos. Mas 100% de alcance com 73,87% de isolamento é uma
+distância que nenhum recorte legítimo explica.
 
-### 21. Nao havia fragmentacao: `AllIsolatedBranches` mente com duas fontes
+### 21. Não havia fragmentação: `AllIsolatedBranches` mente com duas fontes
 
-Medido em 01/09/2026, abrindo a subestacao 18520353 da Light — a que mais
-"isolava". **Este achado encerra a cadeia 12 -> 15 -> 16 -> 20 e mostra que ela
+Medido em 01/09/2026, abrindo a subestação 18520353 da Light — a que mais
+"isolava". **Este achado encerra a cadeia 12 → 15 → 16 → 20 e mostra que ela
 inteira media um artefato.**
 
-`Topology.AllIsolatedBranches()` percorre a arvore a partir de **uma** fonte.
-Subestacao com duas barras de MT e comum, e o `MASTER` emite uma `Vsource` para
-cada — entao **toda a rede alimentada pela segunda barra aparece como
+`Topology.AllIsolatedBranches()` percorre a árvore a partir de **uma** fonte.
+Subestação com duas barras de MT é comum, e o `MASTER` emite uma `Vsource` para
+cada — então **toda a rede alimentada pela segunda barra aparece como
 isolada**, estando energizada e funcionando.
 
 **A prova, elemento a elemento:**
@@ -970,71 +967,71 @@ isolada**, estando energizada e funcionando.
 | | valor |
 |---|---:|
 | `AllIsolatedBranches` na SE 18520353 | 36.695 de 45.868 (80%) |
-| linhas realmente **sem tensao** | **155 de 45.868 (0,34%)** |
-| linhas "isoladas" com tensao normal | 300 de 300 amostradas, a 1,02 pu |
+| linhas realmente **sem tensão** | **155 de 45.868 (0,34%)** |
+| linhas "isoladas" com tensão normal | 300 de 300 amostradas, a 1,02 pu |
 | ao desligar a 2a fonte | **as 300 morreram** |
 
-**E o padrao vale nas 4.189 subestacoes da V25:**
+**E o padrão vale nas 4.189 subestações da V25:**
 
-| subestacoes | mediana de "isolado" |
+| subestações | mediana de "isolado" |
 |---|---:|
 | com **uma** fonte (3.301) | **0,86%** |
 | com **duas ou mais** (888) | **68,88%** |
 
-Oitenta vezes de diferenca, decidida por quantas barras de MT a subestacao tem
-— nao por qualidade de dado, nem por defeito de conversao.
+Oitenta vezes de diferença, decidida por quantas barras de MT a subestação tem
+— não por qualidade de dado, nem por defeito de conversão.
 
-**O que cai, e e muito:**
+**O que cai, e é muito:**
 
-- **Achado 16** (25,70% dos trechos nao chegam a fonte): falso. A rede esta
-  energizada. A ordem de grandeza real e ~1%.
-- **Achado 20** (a fragmentacao e nossa): falso na atribuicao. Nao ha
-  fragmentacao a atribuir.
-- **Achado 15** (esta na BDGD): ja revertido pelo 20, e agora por outro motivo.
-- **Achado 12** (caracteristica por distribuidora): media sobretudo quantas
-  subestacoes de cada base tem duas barras de MT.
-- **O criterio de entrada da `--bt completo`** perde o fundamento pela segunda
+- **Achado 16** (25,70% dos trechos não chegam à fonte): falso. A rede está
+  energizada. A ordem de grandeza real é ~1%.
+- **Achado 20** (a fragmentação é nossa): falso na atribuição. Não há
+  fragmentação a atribuir.
+- **Achado 15** (está na BDGD): já revertido pelo 20, e agora por outro motivo.
+- **Achado 12** (característica por distribuidora): media sobretudo quantas
+  subestações de cada base têm duas barras de MT.
+- **O critério de entrada da `--bt completo`** perde o fundamento pela segunda
   vez.
 
-**O que se sustenta:** o achado 17 continua util como descricao do dado — a
-Enel SP tem 136 subestacoes eletricamente conexas na BDGD e a Cemig 55 —, mas
-nao mais como criterio de viabilidade, porque o que ele previa nao existia.
+**O que se sustenta:** o achado 17 continua útil como descrição do dado — a
+Enel SP tem 136 subestações eletricamente conexas na BDGD e a Cemig 55 —, mas
+não mais como critério de viabilidade, porque o que ele previa não existia.
 
-**O mais desconfortavel: o projeto ja sabia.** O `validador` carrega, desde
-antes, o comentario explicando que `AllIsolatedLoads` percorre a topologia a
-partir de uma fonte e por isso da "falso positivo em massa" — e mantendo
-`cargas_sem_tensao` como a medida confiavel. `AllIsolatedBranches`, a funcao
-irma com o mesmo defeito, ficou ao lado sendo tratada como verdade por quatro
-achados. O sinal estava a duas linhas de distancia.
+**O mais desconfortável: o projeto já sabia.** O `validador` carrega, desde
+antes, o comentário explicando que `AllIsolatedLoads` percorre a topologia a
+partir de uma fonte e por isso dá "falso positivo em massa" — e mantendo
+`cargas_sem_tensao` como a medida confiável. `AllIsolatedBranches`, a função
+irmã com o mesmo defeito, ficou ao lado sendo tratada como verdade por quatro
+achados. O sinal estava a duas linhas de distância.
 
-**A pista que nao foi seguida:** subestacoes com 80% da rede "isolada" e
-**ZERO cargas sem tensao**, veredicto `OK`. Isso e contraditorio e estava
+**A pista que não foi seguida:** subestações com 80% da rede "isolada" e
+**ZERO cargas sem tensão**, veredicto `OK`. Isso é contraditório e estava
 publicado em `resultados/` desde a V25. E `ramos_isolados` chegava a exceder
-`n_linhas` — impossivel para um subconjunto das linhas, e o primeiro sinal que
-de fato levou a investigacao.
+`n_linhas` — impossível para um subconjunto das linhas, e o primeiro sinal que
+de fato levou à investigação.
 
-**Correcao aplicada:** `ramos_isolados` passa a ser medido por tensao —
-linha cuja barra tem menos de 1 V. O valor topologico continua publicado como
-`ramos_isolados_topologia`, com o nome dizendo o que ele e. Custo: 0,2 s por
-subestacao.
+**Correção aplicada:** `ramos_isolados` passa a ser medido por tensão —
+linha cuja barra tem menos de 1 V. O valor topológico continua publicado como
+`ramos_isolados_topologia`, com o nome dizendo o que ele é. Custo: 0,2 s por
+subestação.
 
-**O que falta:** os numeros nacionais corrigidos exigem reprocessar o
+**O que falta:** os números nacionais corrigidos exigem reprocessar o
 `validador` nas 97 bases. A V26 deixa de ser opcional e passa a ser **a rodada
 que refaz as medidas**.
 
 ### 22. O regulador entra EM PARALELO com o trecho que ele deveria regular
 
-Medido em 02/09/2026, abrindo a subestacao AGV da NEOENERGIA385 — a base que
-concentra 68 das 139 subestacoes fora do `OK` na V26. **Este e defeito NOSSO, e
-o primeiro achado do projeto que aponta um erro de conversao com causa
+Medido em 02/09/2026, abrindo a subestação AGV da NEOENERGIA385 — a base que
+concentra 68 das 139 subestações fora do `OK` na V26. **Este é defeito NOSSO, e
+o primeiro achado do projeto que aponta um erro de conversão com causa
 precisa.**
 
-**O sintoma:** a subestacao dissipa **9,9 MW em perdas** com a tensao mediana
-de MT em **0,415 pu**, e isso **nao muda ao desligar as 1.282 cargas**. Sem
-carga nao deveria haver corrente.
+**O sintoma:** a subestação dissipa **9,9 MW em perdas** com a tensão mediana
+de MT em **0,415 pu**, e isso **não muda ao desligar as 1.282 cargas**. Sem
+carga não deveria haver corrente.
 
-**A bissecao, elemento a elemento** (`batchedit` nao tem efeito e mascarou os
-primeiros testes; o que vale e desabilitar um a um):
+**A bissecção, elemento a elemento** (`batchedit` não tem efeito e mascarou os
+primeiros testes; o que vale é desabilitar um a um):
 
 | desligando | V_MT | perdas |
 |---|---:|---:|
@@ -1047,30 +1044,30 @@ primeiros testes; o que vale e desabilitar um a um):
     Line.1083769322   agv4824224137.1.2.3  ->  agv481083769275.1.2.3
     REG_AGV01760_1    agv4824224137.1      ->  agv481083769275.1
 
-O regulador liga **o mesmo par de barras** que uma linha ja liga. A BDGD
+O regulador liga **o mesmo par de barras** que uma linha já liga. A BDGD
 declara o regulador na UNREMT com `PAC_1` e `PAC_2`, e a SSDMT declara o
-**trecho entre os mesmos dois PACs** — o vao onde o equipamento esta instalado.
+**trecho entre os mesmos dois PACs** — o vão onde o equipamento está instalado.
 O conversor emite os dois, e o regulador fica em paralelo com um caminho de
-impedancia quase nula. Com o tap regulando contra esse curto, circula corrente
-de laco: **2.506 A num condutor de 145 A**.
+impedância quase nula. Com o tap regulando contra esse curto, circula corrente
+de laço: **2.506 A num condutor de 145 A**.
 
-**Nao e caso isolado: 9 de 9 reguladores da AGV estao assim.**
+**Não é caso isolado: 9 de 9 reguladores da AGV estão assim.**
 
 **O que isto explica.** `REGULADOR_SATURADO` aparece como causa em **89
-subestacoes** so nesta base — o tap corre ate o fim tentando vencer o paralelo.
-E `reguladores_pendurados`, que o validador ja mede, **nao pega**: ele detecta
-ponta solta, e aqui as duas pontas estao conectadas. O defeito nao tem
-deteccao hoje.
+subestações** só nesta base — o tap corre até o fim tentando vencer o paralelo.
+E `reguladores_pendurados`, que o validador já mede, **não pega**: ele detecta
+ponta solta, e aqui as duas pontas estão conectadas. O defeito não tem
+detecção hoje.
 
-**Quanto vale.** 252 das 4.061 subestacoes tem regulador com alguma anomalia
+**Quanto vale.** 252 das 4.061 subestações têm regulador com alguma anomalia
 registrada, e a NEOENERGIA385 sozinha responde por metade do que falta para
-100% de veredictos `OK`. Se a correcao valer para as demais, e o maior ganho
-isolado disponivel.
+100% de veredictos `OK`. Se a correção valer para as demais, é o maior ganho
+isolado disponível.
 
-**A correcao NAO e remover o regulador.** Ele existe na rede real. O trecho e
-o regulador sao o mesmo vao fisico declarado em duas tabelas — ou o trecho sai
-e o regulador o substitui, ou o regulador entra em serie, com barra
-intermediaria. Isto ainda nao esta implementado.
+**A correção NÃO é remover o regulador.** Ele existe na rede real. O trecho e
+o regulador são o mesmo vão físico declarado em duas tabelas — ou o trecho sai
+e o regulador o substitui, ou o regulador entra em série, com barra
+intermediária. Isto ainda não está implementado.
 
 ### 23. Os números definitivos, depois de remedir as três safras
 
@@ -1131,7 +1128,7 @@ e há teste travando os três campos.
 
 A correção do achado 22 — o regulador que era emitido **em paralelo** com o
 trecho, fechando um laço por onde a corrente circulava — foi aplicada entre a
-V26 e a V27. O resultado responde a pergunta que ficou em aberto quando a Light
+V26 e a V27. O resultado responde à pergunta que ficou em aberto quando a Light
 saiu idêntica nas duas rodadas.
 
 | causa | V26 | V27 | delta |
