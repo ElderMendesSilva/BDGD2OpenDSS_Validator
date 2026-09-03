@@ -41,6 +41,32 @@ PREC = (0.93, 1.07)
 JOBS = 8
 
 
+_CACHE_DIA = {}
+
+
+def _perda_do_dia(pasta, modelo):
+    """A `perdas_pct` que o `energia.py` integrou sobre os 96 passos.
+
+    Devolve `None` quando a etapa nao rodou — e `None` aqui significa "nao
+    medido", nunca "zero". O `energia_dia.json` mora na pasta da BASE e nao na
+    da subestacao, entao a leitura e por base e fica em cache: sao ate 450
+    subestacoes lendo o mesmo arquivo.
+    """
+    base = os.path.dirname(os.path.abspath(pasta))
+    if base not in _CACHE_DIA:
+        d = {}
+        f = os.path.join(base, 'energia_dia.json')
+        try:
+            with open(f, encoding='utf-8') as fh:
+                bruto = json.load(fh)
+            for x in (bruto if isinstance(bruto, list) else bruto.values()):
+                d[str(x.get('se'))] = x.get('perdas_pct')
+        except Exception:                                    # noqa: BLE001
+            d = {}
+        _CACHE_DIA[base] = d
+    return _CACHE_DIA[base].get(str(modelo))
+
+
 def valida(pasta, referencia=None):
     # O Compile do OpenDSS TROCA o diretorio de trabalho do processo. Sem
     # guardar e restaurar, a partir da segunda subestacao todo caminho
@@ -328,6 +354,22 @@ def valida(pasta, referencia=None):
     if r.get('V_MT_mediana', 1) < 0.9 or r.get('V_MT_mediana', 1) > 1.1:
         d.append('tensao mediana fora de faixa — verificar Voltagebases')
     r['diagnostico'] = d or ['ok']
+
+    # A PERDA DO DIA, QUANDO ELA EXISTE — achado 29.
+    #
+    # A perda do INSTANTANEO e, por construcao, proxima do maximo do dia: ali
+    # toda carga esta no kW declarado (o pico) e a perda ohmica vai com o
+    # QUADRADO da corrente, enquanto a energia vai linearmente. Julgar
+    # "perda plausivel" por ele e julgar pelo pior instante.
+    #
+    # Medido na V28: das 322 subestacoes com perda >= 15% no instantaneo, **96
+    # (30%) tem perda do DIA abaixo de 15%** — e os saltos sao enormes, 97,0%
+    # para 26,98%, 79,4% para 41,66%.
+    #
+    # O `energia.py` roda ANTES do `validador.py` na ordem das etapas, entao o
+    # numero ja existe quando esta linha executa. O do instantaneo continua
+    # gravado ao lado, porque comparar os dois E o achado.
+    r['perdas_pct_dia'] = _perda_do_dia(pasta, r.get('modelo'))
 
     # causa raiz: separa defeito do conversor de caracteristica da rede
     res = {}

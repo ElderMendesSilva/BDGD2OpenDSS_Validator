@@ -200,7 +200,16 @@ def classificar(v, resumo, extra=None, referencia=None):
     if vmed is None:
         return ('SEM_MEDIDA', 'nenhuma barra de MT com tensao valida', True)
 
-    if vmed >= V_BAIXA and v.get('perdas_pct', 0) < PERDAS_ALTA:
+    # A PERDA QUE VALE E A DO DIA — achado 29. Ver `_perda_do_dia` no
+    # `validador.py`: o instantaneo poe toda carga no pico e a perda ohmica vai
+    # com o quadrado da corrente, entao ele fica proximo do maximo do dia.
+    # Quando a etapa de energia nao rodou, sobra o instantaneo e a mensagem diz
+    # de onde o numero veio.
+    perda_dia = v.get('perdas_pct_dia')
+    perda = perda_dia if perda_dia is not None else v.get('perdas_pct', 0)
+    de_onde = 'no dia' if perda_dia is not None else 'no instantaneo'
+
+    if vmed >= V_BAIXA and perda < PERDAS_ALTA:
         return ('OK', '', False)
 
     if uso and uso > USO_ALTO:
@@ -217,14 +226,39 @@ def classificar(v, resumo, extra=None, referencia=None):
         return ('REGULADOR_SATURADO',
                 f'{extra["reg_total"]} reguladores, todos no tape maximo', False)
 
-    return ('TENSAO_BAIXA',
-            f'Vmed={vmed:.3f} perdas={v.get("perdas_pct",0):.1f}% '
-            f'com {km_alim:.0f} km/alim' + (f' e {uso:.0f}% de uso' if uso else ''), True)
+    # TENSAO E PERDA SAO PROBLEMAS DIFERENTES, e ate 03/09/2026 tudo o que
+    # falhava no teste de `OK` caia em `TENSAO_BAIXA` — inclusive a subestacao
+    # com tensao perfeita e perda alta. Medido na V28: **151 das 262
+    # rotuladas `TENSAO_BAIXA` tinham tensao mediana ACIMA de 0,90 pu**, ou
+    # seja 58% da classe levava um rotulo que nao descrevia o problema dela.
+    if vmed < V_BAIXA:
+        return ('TENSAO_BAIXA',
+                f'Vmed={vmed:.3f} com {km_alim:.0f} km/alim'
+                + (f' e {uso:.0f}% de uso' if uso else ''), True)
+
+    # PERDA ALTA SEM CARGA NAO E PERDA ALTA. Subestacao sem consumidor recebe
+    # da fonte apenas o ferro dos transformadores, e ai 100% do que entra e
+    # perdido — por definicao, e nao por defeito. Medido na V28: das 13
+    # subestacoes com perda de 99% ou mais, **10 tem ZERO cargas**.
+    if not (v.get('n_cargas') or 0):
+        return ('SEM_CARGA',
+                f'perda de {perda:.1f}% {de_onde} sobre ZERO cargas — a '
+                f'fonte alimenta so o ferro dos transformadores, e o '
+                f'percentual nao tem denominador que signifique alguma coisa',
+                False)
+
+    return ('PERDA_ALTA',
+            f'perdas de {perda:.1f}% {de_onde} com Vmed={vmed:.3f} e '
+            f'{km_alim:.0f} km/alim' + (f', {uso:.0f}% de uso' if uso else ''),
+            True)
 
 
 ACIONAVEL = {'MODELO_QUEBRADO', 'SUBESTACAO_ILHADA', 'REDE_PARCIAL',
              'RAMAIS_SOLTOS', 'CARGA_ALTA', 'TENSAO_BAIXA', 'SEM_MEDIDA',
-             'NAO_CONVERGE_COM_GD'}
+             'NAO_CONVERGE_COM_GD', 'PERDA_ALTA'}
+
+# `SEM_CARGA` fica de fora de proposito: nao ha o que acionar numa subestacao
+# que a BDGD declara sem consumidor. E fato do cadastro, e o relatorio o diz.
 
 # As tres classes que nasceram do MODELO_QUEBRADO. Quem comparar uma rodada
 # anterior a 02/09/2026 com uma posterior tem de somar estas quatro para

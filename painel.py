@@ -68,6 +68,8 @@ EXPLICA = {
     'REDE_PARCIAL': 'acima de 10% da carga sem tensao — falta parte da rede',
     'RAMAIS_SOLTOS': '1% a 10% sem tensao — trechos de ligacao nao declarados',
     'TENSAO_BAIXA': 'subtensao sem causa identificada — investigar',
+    'PERDA_ALTA': 'perda acima do plausivel, com a tensao em ordem',
+    'SEM_CARGA': 'a BDGD declara a subestacao sem consumidor',
     'CARGA_ALTA': 'demanda acima da capacidade instalada',
     'SEM_MEDIDA': 'nenhuma barra de MT com tensao valida',
     'NAO_CONVERGE_COM_GD': 'so nao fecha com a GD no maximo — julgar pelo dia',

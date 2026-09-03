@@ -160,5 +160,75 @@ class TestNaoConvergeComGD(unittest.TestCase):
     def test_a_classe_nova_e_acionavel(self):
         self.assertIn('NAO_CONVERGE_COM_GD', d.ACIONAVEL)
 
+
+class TestPerdaSeparadaDeTensao(unittest.TestCase):
+    """Achado 29: tensão e perda são problemas diferentes.
+
+    Até 03/09/2026 tudo o que falhava no teste de `OK` caía em
+    `TENSAO_BAIXA` — inclusive a subestação com tensão perfeita e perda alta.
+    Medido na V28: **151 das 262 rotuladas `TENSAO_BAIXA` tinham tensão
+    mediana ACIMA de 0,90 pu**, 58% da classe com um rótulo que não descrevia
+    o problema dela.
+    """
+
+    def _c(self, **troca):
+        v = {'compila': True, 'converge': True, 'n_cargas': 100,
+             'V_MT_mediana': 1.0, 'perdas_pct': 3.0}
+        v.update(troca)
+        return d.classificar(v, {'alimentadores': 1, 'km_MT': 10})
+
+    def test_tensao_ruim_com_perda_boa_e_TENSAO_BAIXA(self):
+        causa, det, _ = self._c(V_MT_mediana=0.85)
+        self.assertEqual(causa, 'TENSAO_BAIXA')
+        self.assertIn('0.850', det)
+        # e a mensagem não fala de perda, porque a perda está boa
+        self.assertNotIn('perdas', det)
+
+    def test_perda_ruim_com_tensao_boa_e_PERDA_ALTA(self):
+        causa, det, _ = self._c(perdas_pct=40.0)
+        self.assertEqual(causa, 'PERDA_ALTA')
+        self.assertIn('40.0%', det)
+
+    def test_a_mensagem_diz_de_onde_veio_o_numero(self):
+        """Instantâneo e dia dão valores muito diferentes — quem lê precisa
+        saber qual está olhando."""
+        self.assertIn('no instantaneo', self._c(perdas_pct=40.0)[1])
+        self.assertIn('no dia',
+                      self._c(perdas_pct=40.0, perdas_pct_dia=30.0)[1])
+
+    def test_a_perda_do_DIA_tem_precedencia(self):
+        """O instantâneo põe toda carga no pico, e a perda ôhmica vai com o
+        quadrado da corrente: ele fica perto do máximo do dia.
+
+        Medido na V28: das 322 subestações com perda ≥ 15% no instantâneo, 96
+        têm perda do dia abaixo de 15%.
+        """
+        self.assertEqual(self._c(perdas_pct=97.0, perdas_pct_dia=6.0)[0], 'OK')
+        self.assertEqual(self._c(perdas_pct=3.0, perdas_pct_dia=40.0)[0],
+                         'PERDA_ALTA')
+
+    def test_sem_a_etapa_de_energia_vale_o_instantaneo(self):
+        """`None` é «não medido» e não «zero» — sem o dia, o instantâneo é o
+        que há, e a mensagem avisa."""
+        causa, det, _ = self._c(perdas_pct=40.0, perdas_pct_dia=None)
+        self.assertEqual(causa, 'PERDA_ALTA')
+        self.assertIn('no instantaneo', det)
+
+    def test_perda_alta_sem_carga_nao_e_perda_alta(self):
+        """Subestação sem consumidor recebe da fonte só o ferro dos
+        transformadores: 100% do que entra é perdido por definição.
+
+        Medido na V28: das 13 subestações com perda ≥ 99%, **10 têm zero
+        cargas**.
+        """
+        causa, det, acionavel = self._c(perdas_pct=100.0, n_cargas=0)
+        self.assertEqual(causa, 'SEM_CARGA')
+        self.assertIn('ZERO cargas', det)
+        self.assertFalse(acionavel, 'não há o que acionar numa SE sem carga')
+
+    def test_sem_carga_nao_entra_no_acionavel(self):
+        self.assertNotIn('SEM_CARGA', d.ACIONAVEL)
+        self.assertIn('PERDA_ALTA', d.ACIONAVEL)
+
 if __name__ == '__main__':
     unittest.main()

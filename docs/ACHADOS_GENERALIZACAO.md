@@ -1515,6 +1515,80 @@ E o número que **não** se moveu: a carga sem tensão do país foi de 742.836 p
 rede. É o que se esperava, e é bom que esteja medido: se esse número tivesse
 caído junto, a reclassificação estaria escondendo dado em vez de nomeá-lo.
 
+## Achado 29 — «tensão baixa» era o nome de tudo o que sobrava
+
+**Medido em 03/09/2026** sobre as 4.078 subestações da V28.
+
+O classificador testava `OK` como *tensão adequada **e** perda plausível*, e
+tudo o que falhasse caía, no fim da cadeia, em `TENSAO_BAIXA`. Das **262**
+assim rotuladas:
+
+| situação real | quantas |
+|---|---:|
+| só tensão baixa (< 0,90 pu) | 73 |
+| **só perda alta, tensão em ordem** | **151** |
+| as duas coisas | 38 |
+
+**58% da classe levava um rótulo que não descrevia o problema dela** — e o
+rótulo é o que decide para onde alguém vai olhar. Exemplos, todos com tensão
+perfeita:
+
+```
+CELESCDIS5697  SUB          V=1,000  perda=100,2%
+ENEL_RJ383     PCH_PFU      V=1,096  perda=100,0%
+CMIG           1924897275   V=1,044  perda=100,0%
+```
+
+### A perda do instantâneo é quase o máximo do dia
+
+O instantâneo põe **toda carga no kW declarado**, que é o pico, e a perda
+ôhmica cresce com o **quadrado** da corrente enquanto a energia cresce
+linearmente. Julgar «perda plausível» por ele é julgar pelo pior instante.
+
+Medido: das **322** subestações com perda ≥ 15% no instantâneo, **96 (30%) têm
+perda do dia abaixo de 15%**. Os saltos são grandes:
+
+| base | subestação | instantâneo | dia |
+|---|---|---:|---:|
+| ENERGISA_R369 | 12147726 | 97,0% | **26,98%** |
+| CELESCDIS5697 | RCP | 79,4% | **41,66%** |
+| CPFL | ATU | 76,4% | **37,15%** |
+| ENERGISA_M405 | 166 | 65,4% | **4,40%** |
+
+O `energia.py` roda **antes** do `validador.py` na ordem das etapas, então o
+número do dia já existe quando a classificação acontece — ele simplesmente não
+era lido. Agora é, e o do instantâneo fica gravado ao lado, porque **comparar
+os dois é o achado**.
+
+### Perda alta sem carga não é perda alta
+
+Subestação sem consumidor recebe da fonte apenas o ferro dos transformadores:
+100% do que entra é perdido **por definição**, e não por defeito. Das 13
+subestações com perda ≥ 99%, **10 têm zero cargas**. Elas passam a ser
+`SEM_CARGA`, que fica **fora** de `ACIONAVEL` — não há o que acionar.
+
+### O efeito, simulado sobre a V28
+
+| causa | V28 | com o achado 29 | delta |
+|---|---:|---:|---:|
+| `TENSAO_BAIXA` | 262 | 111 | **−151** |
+| `PERDA_ALTA` | — | 133 | +133 |
+| `SEM_CARGA` | — | 16 | +16 |
+| `OK` | 3.073 | 3.075 | **+2** |
+
+**O ganho é de rótulo, e não de aprovação.** Eu esperava que a perda do dia
+movesse dezenas de subestações para `OK`; move **duas**. As 96 com perda do dia
+abaixo de 15% estão majoritariamente em classes que o classificador decide
+*antes* do teste de perda — `REDE_PARCIAL`, `RAMAIS_SOLTOS`,
+`REGULADOR_SATURADO`. Continua valendo, porque um rótulo errado manda a pessoa
+depurar a coisa errada; mas não é o ganho que eu previa.
+
+### O que este achado NÃO tocou
+
+`REGULADOR_SATURADO`, que eram 98 na V28. O critério dela é *«há regulador e
+todos estão no tape máximo»*, medido no mesmo instantâneo, e a suspeita de que
+o instantâneo a distorça continua **levantada e não verificada**.
+
 ## Validação externa e contaminação
 
 A âncora nacional de 7,4% de perda técnica total da ANEEL é apenas um **teste
