@@ -57,10 +57,41 @@ def valida(pasta, referencia=None):
         dss.Text.Command(f'Compile "{m[0]}"')
         r['compila'] = True
     except Exception as e:
-        os.chdir(cwd)
-        return {**r, 'compila': False, 'erro': str(e)[:300],
-                'causa': 'MODELO_QUEBRADO', 'acionavel': True,
-                'causa_detalhe': 'nao compila: ' + str(e)[:150]}
+        # «NAO COMPILA» E PERGUNTA PARA O MOTOR, e nao para a ausencia de
+        # mensagem.
+        #
+        # O MASTER termina com `Set mode=snap / Solve / CalcVoltagebases /
+        # Solve`, entao o `Compile` EXECUTA essas solucoes. Qualquer aviso
+        # emitido ali — e `Max Control Iterations Exceeded` (#485) e um aviso
+        # de SOLUCAO, nao de montagem — sobe como excecao e carimbava o modelo
+        # de «nao compila». Medido na safra 2025: 14 das 16 subestacoes assim
+        # classificadas tinham compilado sem problema nenhum.
+        #
+        # O teste certo e se existe circuito. Se o motor montou barras, ele
+        # compilou; o aviso vira campo proprio e a validacao segue, e sao
+        # `converge` e `resolve` que dizem se a solucao presta. Perguntar ao
+        # motor tambem sobrevive a uma mensagem nova, o que a leitura do texto
+        # do erro nao faria.
+        # `NumCktElements`, e NAO `NumBuses`. A lista de barras so e montada
+        # no `Solve`/`MakeBusList`, entao um circuito perfeitamente assemblado
+        # que abortou ANTES de solucionar reporta zero barras — medido: o caso
+        # do `Line` duplicado da `NumBuses=0` com `NumCktElements=2`. Usar
+        # barras condenaria justamente o modelo que parou cedo, que e o que
+        # mais precisa ser distinguido.
+        montou = False
+        try:
+            montou = (dss.Circuit.NumCktElements() or 0) > 0
+        except Exception:                                    # noqa: BLE001
+            montou = False
+        if not montou:
+            os.chdir(cwd)
+            return {**r, 'compila': False, 'erro': str(e)[:300],
+                    'causa': 'MODELO_QUEBRADO', 'acionavel': True,
+                    'causa_detalhe': 'nao compila: ' + str(e)[:150]}
+        # compilou, e avisou. O aviso nao se perde: ele e o que explica um
+        # `converge=False` logo abaixo.
+        r['compila'] = True
+        r['aviso_compile'] = str(e)[:300]
 
     dss.Text.Command('Set mode=snap')
     dss.Text.Command('Set controlmode=static')
