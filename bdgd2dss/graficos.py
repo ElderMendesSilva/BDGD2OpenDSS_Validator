@@ -474,17 +474,30 @@ def mapa(ax, xs, ys, valores=None, titulo='Rede'):
 
     Nao e enfeite: rede partida, alimentador que atravessa a concessao e
     coordenada trocada aparecem aqui em um segundo e em nenhuma tabela.
+
+    Com `valores` (tensao em pu), a cor e um GRADIENTE continuo — nao as tres
+    faixas do PRODIST que `_cor_da_tensao` usa no histograma. No mapa a
+    pergunta e "onde a tensao esta pior", nao "quem passa e quem reprova", e
+    tres cores discretas escondem a variacao dentro da faixa OK: uma barra
+    de 100 nos a 0,96 pu pintava do mesmo verde que uma a 1,04 pu.
     """
     if not xs or not ys:
         return _vazio(ax, 'sem coordenadas (BusCoords)')
-    if valores:
-        cores = [_cor_da_tensao(v) for v in valores]
-    else:
-        cores = COR_NEUTRA
     # `datalim` deixava a rede num canto com metade da figura em branco:
     # ele estica os LIMITES para casar com a proporcao do eixo. `box` faz o
     # contrario — ajusta a caixa ao dado, e a rede ocupa a pagina.
-    ax.scatter(xs, ys, s=2.0, c=cores, alpha=0.7, linewidths=0)
+    if valores:
+        # centro em 1,0 pu (nominal); a faixa cobre um pouco alem do PRODIST
+        # (0,93-1,05) para o gradiente nao saturar exatamente no limite.
+        disp = ax.scatter(xs, ys, s=2.0, c=valores, cmap='RdYlGn',
+                          vmin=0.90, vmax=1.08, alpha=0.7, linewidths=0)
+        barra = ax.figure.colorbar(disp, ax=ax, fraction=0.04, pad=0.02)
+        barra.set_label('tensao (pu)', fontsize=_fs(8))
+        barra.ax.tick_params(labelsize=_fs(7))
+        for limite in V_ADEQUADA:
+            barra.ax.axhline(limite, color='black', lw=0.7, ls=':')
+    else:
+        ax.scatter(xs, ys, s=2.0, c=COR_NEUTRA, alpha=0.7, linewidths=0)
     ax.set_aspect('equal', adjustable='box')
     ax.margins(0.02)
     ax.set_xticks([])
