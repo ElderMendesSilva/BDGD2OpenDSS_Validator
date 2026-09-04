@@ -984,6 +984,11 @@ def main():
                     'ligacao', [PY, '-u', 'etapas/ligacao.py', saida,
                                 '--jobs', str(a.jobs)], log, 4 * 3600)
                 reg['ligacao_ok'] = ok
+            if 'reguladores' in etapas:
+                ok, reg['min_reguladores'] = passo(
+                    'reguladores', [PY, '-u', 'etapas/reguladores.py', saida,
+                                '--jobs', str(a.jobs)], log, 4 * 3600)
+                reg['reguladores_ok'] = ok
             if 'ampacidade' in etapas:
                 ok, reg['min_ampacidade'] = passo(
                     'ampacidade', [PY, '-u', 'etapas/ampacidade.py', saida,
