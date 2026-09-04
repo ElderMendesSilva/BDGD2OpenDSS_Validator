@@ -327,19 +327,55 @@ def histograma_de_tensao(ax, pus):
 def curva_do_dia(ax, fonte_kw, gd_kw=None, perdas_kw=None):
     """As 24 h em passos de 15 min: o que entra, o que a GD injeta e o que se
     perde. E a unica figura que mostra a rede em OPERACAO, e nao num instante.
+
+    CADA SERIE NA PROPRIA ESCALA, empilhadas. Ate 04/09/2026 as tres
+    dividiam um eixo so em kW: com a fonte na casa dos MW, GD e perdas
+    (tipicamente 1-5% dela) viravam uma linha quase reta perto do zero, e
+    o pico e o vale de cada uma — a pergunta que a figura existe para
+    responder — ficavam ilegiveis.
     """
     if not fonte_kw:
         return _vazio(ax, 'sem serie diaria (rode o energia.py)')
-    h = [i * 24.0 / len(fonte_kw) for i in range(len(fonte_kw))]
-    ax.plot(h, fonte_kw, color=COR_NEUTRA, lw=1.4, label='fonte')
+    series = [('fonte', fonte_kw, COR_NEUTRA)]
     if gd_kw and any(gd_kw):
-        ax.plot(h, gd_kw, color=COR_OK, lw=1.2, label='geracao distribuida')
+        series.append(('geração distribuída', gd_kw, COR_OK))
     if perdas_kw and any(perdas_kw):
-        ax.plot(h, perdas_kw, color=COR_RUIM, lw=1.0, label='perdas')
-    ax.set_xlim(0, 24)
-    ax.set_xticks(range(0, 25, 3))
-    ax.legend(fontsize=_fs(7), frameon=False)
-    return _acaba(ax, 'Curva do dia', 'hora', 'kW')
+        series.append(('perdas', perdas_kw, COR_RUIM))
+    h = [i * 24.0 / len(fonte_kw) for i in range(len(fonte_kw))]
+
+    # o eixo recebido vira so o titulo/moldura; cada serie ganha um eixo
+    # PROPRIO, empilhado, feito de uma sub-grade presa ao subplot original
+    # — e por isso que `tight_layout()` (chamado por quem monta a figura,
+    # depois desta funcao) continua ajustando tudo direito.
+    ax.set_title('Curva do dia', fontsize=_fs(10), loc='left', pad=14)
+    ax.axis('off')
+    import matplotlib.gridspec as _gridspec
+    fig = ax.figure
+    n = len(series)
+    sub = _gridspec.GridSpecFromSubplotSpec(
+        n, 1, subplot_spec=ax.get_subplotspec(), hspace=0.15)
+    eixos = []
+    for i, (rot, serie, cor) in enumerate(series):
+        a = fig.add_subplot(sub[i])
+        a.plot(h, serie, color=cor, lw=1.3)
+        a.fill_between(h, serie, color=cor, alpha=0.10)
+        a.set_xlim(0, 24)
+        a.set_xticks(range(0, 25, 3))
+        if i < n - 1:
+            a.set_xticklabels([])
+        pico = max(serie) if serie else 0.0
+        a.text(0.01, 0.90, '%s — pico %s kW' % (rot, _mil(pico)),
+              transform=a.transAxes, fontsize=_fs(7), color=cor, va='top',
+              bbox=dict(boxstyle='round,pad=0.25', fc='white', ec='none',
+                        alpha=0.75))
+        a.tick_params(labelsize=_fs(6.5))
+        a.grid(alpha=0.2, linewidth=0.4)
+        for lado in ('top', 'right'):
+            a.spines[lado].set_visible(False)
+        eixos.append(a)
+    eixos[-1].set_xlabel('hora', fontsize=_fs(8))
+    eixos[len(eixos) // 2].set_ylabel('kW', fontsize=_fs(8))
+    return ax
 
 
 def perdas_do_dia(ax, fonte_kw, perdas_kw):
@@ -487,15 +523,26 @@ def mapa(ax, xs, ys, valores=None, titulo='Rede'):
     # ele estica os LIMITES para casar com a proporcao do eixo. `box` faz o
     # contrario — ajusta a caixa ao dado, e a rede ocupa a pagina.
     if valores:
-        # centro em 1,0 pu (nominal); a faixa cobre um pouco alem do PRODIST
-        # (0,93-1,05) para o gradiente nao saturar exatamente no limite.
-        disp = ax.scatter(xs, ys, s=2.0, c=valores, cmap='RdYlGn',
-                          vmin=0.90, vmax=1.08, alpha=0.7, linewidths=0)
-        barra = ax.figure.colorbar(disp, ax=ax, fraction=0.04, pad=0.02)
-        barra.set_label('tensao (pu)', fontsize=_fs(8))
-        barra.ax.tick_params(labelsize=_fs(7))
-        for limite in V_ADEQUADA:
-            barra.ax.axhline(limite, color='black', lw=0.7, ls=':')
+        # nos SEM tensao medida (None) ficam cinza, por baixo — scatter com
+        # cmap nao aceita None misturado a numero na mesma chamada.
+        com, sem = [], []
+        for i, v in enumerate(valores):
+            (sem if v is None else com).append(i)
+        if sem:
+            ax.scatter([xs[i] for i in sem], [ys[i] for i in sem], s=2.0,
+                      c=COR_CLARA, alpha=0.7, linewidths=0)
+        if com:
+            # centro em 1,0 pu (nominal); a faixa cobre um pouco alem do
+            # PRODIST (0,93-1,05) para o gradiente nao saturar no limite.
+            disp = ax.scatter([xs[i] for i in com], [ys[i] for i in com],
+                              s=2.0, c=[valores[i] for i in com],
+                              cmap='RdYlGn', vmin=0.90, vmax=1.08,
+                              alpha=0.7, linewidths=0)
+            barra = ax.figure.colorbar(disp, ax=ax, fraction=0.04, pad=0.02)
+            barra.set_label('tensao (pu)', fontsize=_fs(8))
+            barra.ax.tick_params(labelsize=_fs(7))
+            for limite in V_ADEQUADA:
+                barra.ax.axhline(limite, color='black', lw=0.7, ls=':')
     else:
         ax.scatter(xs, ys, s=2.0, c=COR_NEUTRA, alpha=0.7, linewidths=0)
     ax.set_aspect('equal', adjustable='box')
@@ -541,6 +588,50 @@ def ranking(ax, nomes, valores, titulo, unidade, limite=None):
     quase tudo — como a NEOENERGIA385, com 68 das 139 subestacoes fora do OK.
     """
     return por_alimentador(ax, nomes, valores, titulo, unidade, limite)
+
+
+def tabela_ranking(ax, nomes, valores, titulo, unidade, decrescente=True):
+    """TODAS as subestacoes, do melhor para o pior, com o valor exato.
+
+    `ranking`/`por_alimentador` corta em 15 de proposito — uma barra por
+    subestacao numa concessao de centenas delas nao cabe em pagina nenhuma.
+    Aqui a resposta e tabela, nao barra: texto em colunas, sem limite de
+    quantas entram, porque o pedido era ver TODAS, nao so as piores.
+
+    `decrescente=True` poe o maior valor primeiro (perda, km, % fora da
+    ampacidade — onde maior e pior); `False` poe o menor primeiro (tensao
+    minima, onde menor e o que preocupa).
+    """
+    if not nomes or not valores:
+        return _vazio(ax, 'sem subestações')
+    par = sorted(zip(valores, nomes), key=lambda vn: vn[0], reverse=decrescente)
+    n = len(par)
+    ax.set_xticks([])
+    ax.set_yticks([])
+    for lado in ('top', 'right', 'bottom', 'left'):
+        ax.spines[lado].set_visible(False)
+    ax.set_title('%s — %d subestações (%s)' % (titulo, n, unidade),
+                 fontsize=_fs(10), loc='left')
+
+    # COLUNAS EM VEZ DE UMA LISTA LONGA: com 40 linhas por coluna uma
+    # concessao de 400 subestacoes cabe em 10 colunas — apertado, mas
+    # completo, e continua legivel com zoom, que e o uso real de um PDF
+    # tecnico. O numero de colunas cresce com o dado, nao fica fixo.
+    linhas_por_coluna = 40
+    n_col = max(1, math.ceil(n / linhas_por_coluna))
+    linhas_por_coluna = math.ceil(n / n_col)
+    largura_col = 1.0 / n_col
+    passo_y = 1.0 / (linhas_por_coluna + 2)
+    for c in range(n_col):
+        bloco = par[c * linhas_por_coluna:(c + 1) * linhas_por_coluna]
+        x0 = c * largura_col + 0.01
+        y = 0.95
+        for k, (v, nome) in enumerate(bloco, start=c * linhas_por_coluna + 1):
+            ax.text(x0, y, '%3d. %-13s %8s' % (k, str(nome)[:13], _rotulo(v)),
+                    fontsize=_fs(5.6), family='monospace', va='top',
+                    transform=ax.transAxes, color=COR_NEUTRA)
+            y -= passo_y
+    return ax
 
 
 def dispersao(ax, xs, ys, titulo, xlabel, ylabel, diagonal=False):
@@ -702,6 +793,14 @@ def cobertura_da_gd(ax, fonte_kw, gd_kw):
         ax.text(h[i_pico], max(pct) * 0.95 if pct else 1,
                 ' pico de carga: a GD cobre %.0f%%' % pct[i_pico],
                 fontsize=_fs(7), color=COR_NEUTRA, va='top')
+    # O VALOR EXATO A CADA 3 h, e nao so no pico. A area preenchida deixa
+    # so uma leitura aproximada — quem le a figura sabe "por volta de 4%",
+    # nao o numero. Os rotulos tiram essa aproximacao.
+    passo = max(1, len(h) // 8)               # ~8 rotulos ao longo do dia
+    for i in range(0, len(h), passo):
+        ax.annotate('%.1f%%' % pct[i], (h[i], pct[i]), fontsize=_fs(6),
+                    color=COR_NEUTRA, ha='center', va='bottom',
+                    xytext=(0, 3), textcoords='offset points')
     ax.set_xlim(0, 24)
     ax.set_xticks(range(0, 25, 3))
     return _acaba(ax, 'Cobertura da carga pela GD', 'hora', '% da carga')

@@ -28,6 +28,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from bdgd2dss import graficos                            # noqa: E402
 from bdgd2dss import laudo                               # noqa: E402
 from bdgd2dss import ficha                               # noqa: E402
+from bdgd2dss import malha_at                             # noqa: E402
 from bdgd2dss import anomalias                           # noqa: E402
 from bdgd2dss import veredicto                           # noqa: E402
 
@@ -73,12 +74,15 @@ PLOTS_SE = [
 PLOTS_GERAL = [
     ('veredictos',  'Quantas subestacoes passam, e por que as outras nao'),
     ('perdas_hist', 'Distribuicao da perda entre subestacoes'),
-    ('perdas_rank', 'As piores perdas'),
+    ('perdas_rank', 'TODAS as subestacoes por perda, melhor para pior'),
     ('dia',         'Curva do dia somada na concessao'),
     ('gd_fluxo',    'Geracao no dia, agregada'),
     ('gd_cobre',    'Cobertura da carga pela GD, agregada'),
     ('tensao_hist', 'Tensao minima por subestacao'),
-    ('km_rank',     'As maiores redes'),
+    ('tensao_rank', 'TODAS as subestacoes por tensao minima, melhor para pior'),
+    ('mapa',        'Posicao de cada subestacao, colorida pela tensao minima'),
+    ('km_rank',     'TODAS as subestacoes por tamanho de rede'),
+    ('ampacidade_rank', 'TODAS as subestacoes por trecho trocado, melhor para pior'),
     ('perda_km',    'Perda contra tamanho'),
     ('composicao',  'Linhas contra transformadores, na concessao'),
     ('resumo',      'A concessao em numeros'),
@@ -98,6 +102,28 @@ def _escolhidos(pedidos, catalogo):
     if not pedidos:
         return validas
     return [k for k in validas if k in set(pedidos)]
+
+
+def _coords_at(pasta):
+    """{barra: (x, y)} do BusCoords_AT.dat da concessao, ou {} sem ele.
+
+    E o mesmo arquivo que `etapas/converter.py` escreve com a posicao de
+    cada subestacao (achado 13) — nao exige compilar nada, so ler o CSV,
+    o que mantem o relatorio de concessao no orcamento de segundos.
+    """
+    caminho = os.path.join(pasta, '_AT', 'BusCoords_AT.dat')
+    coords = {}
+    if not os.path.exists(caminho):
+        return coords
+    with open(caminho, encoding='utf-8', errors='ignore') as fh:
+        for linha in fh:
+            p = linha.split(',')
+            if len(p) >= 3:
+                try:
+                    coords[p[0].strip().lower()] = (float(p[1]), float(p[2]))
+                except ValueError:
+                    pass
+    return coords
 
 
 def _le(caminho):
@@ -599,10 +625,11 @@ def _fmt(x):
 # ----------------------------------------------------------------- concessao
 
 def a_concessao(pasta, val, ene, ger, ver, destino, plots=None,
-                pdf=True):
+                pdf=True, amp=None):
     """As dez figuras da base inteira."""
     import collections
     import matplotlib.pyplot as plt
+    amp = amp or {}
 
     ses = sorted(set(val) | set(ver) | set(ger))
     ses = [s for s in ses if str(s).strip().upper() not in ('AT', '_AT')]
@@ -624,6 +651,20 @@ def a_concessao(pasta, val, ene, ger, ver, destino, plots=None,
     vmin = [(v, s) for v, s in vmin if v is not None]
     kms = [(num(ger, s, 'km_MT'), s) for s in ses]
     kms = [(v, s) for v, s in kms if v is not None]
+    ampac = [(num(amp, s, 'pct_km'), s) for s in ses]
+    ampac = [(v, s) for v, s in ampac if v is not None]
+
+    # posicao de cada subestacao (barra de AT, achado 13) colorida pela
+    # tensao minima dela — barato: so le o CSV, nao compila nenhum modelo.
+    coords_at = _coords_at(pasta)
+    xs_se, ys_se, cor_se = [], [], []
+    for s in ses:
+        xy = coords_at.get(malha_at.barra_de(s))
+        if xy is None:
+            continue
+        xs_se.append(xy[0])
+        ys_se.append(xy[1])
+        cor_se.append(num(val, s, 'V_MT_min'))
 
     # a serie somada da concessao
     passos = 0
@@ -646,18 +687,29 @@ def a_concessao(pasta, val, ene, ger, ver, destino, plots=None,
         'perdas_hist': lambda a: graficos.histograma(
             a, [v for v, _ in perdas], 'Perda por subestação',
             '% da injeção', corte=10.0),
-        'perdas_rank': lambda a: graficos.ranking(
+        'perdas_rank': lambda a: graficos.tabela_ranking(
             a, [x for _, x in perdas], [v for v, _ in perdas],
-            'Maiores perdas', '% da injeção', limite=10.0),
+            'Perda por subestação, melhor→pior', '% da injeção',
+            decrescente=False),
         'dia': lambda a: graficos.curva_do_dia(a, soma_f, soma_g, soma_p),
         'gd_fluxo': lambda a: graficos.geracao_no_dia(a, soma_f, soma_g),
         'gd_cobre': lambda a: graficos.cobertura_da_gd(a, soma_f, soma_g),
         'tensao_hist': lambda a: graficos.histograma(
             a, [v for v, _ in vmin], 'Tensão mínima por subestação', 'pu',
             corte=0.93),
-        'km_rank': lambda a: graficos.ranking(
-            a, [x for _, x in kms], [v for v, _ in kms], 'Maiores redes',
-            'km de MT'),
+        'mapa': lambda a: graficos.mapa(
+            a, xs_se, ys_se, cor_se, 'Rede da concessão (cor = tensão mínima)'),
+        'tensao_rank': lambda a: graficos.tabela_ranking(
+            a, [x for _, x in vmin], [v for v, _ in vmin],
+            'Tensão mínima por subestação, melhor→pior', 'pu',
+            decrescente=True),
+        'km_rank': lambda a: graficos.tabela_ranking(
+            a, [x for _, x in kms], [v for v, _ in kms],
+            'Tamanho da rede por subestação', 'km de MT', decrescente=True),
+        'ampacidade_rank': lambda a: graficos.tabela_ranking(
+            a, [x for _, x in ampac], [v for v, _ in ampac],
+            'Trechos trocados por ampacidade, melhor→pior', '% do km',
+            decrescente=False),
         'perda_km': lambda a: graficos.dispersao(
             a, [num(ger, x, 'km_MT') or 0 for x in ses],
             [num(ene, x, 'perdas_pct') or 0 for x in ses],
@@ -778,6 +830,8 @@ def main(argv=None):
     ver = _por_se(_le(os.path.join(a.pasta, 'verificacao.json')) or [], 'se')
     ene = _por_se(_le(os.path.join(a.pasta, 'energia_dia.json')) or [], 'se')
     ger = _por_se(_le(os.path.join(a.pasta, 'resumo_geral.json')) or [], 'SE')
+    amp = _por_se((_le(os.path.join(a.pasta, 'ampacidade.json')) or {})
+                  .get('subestacoes') or [], 'se')
 
     if not (val or ver or ene):
         print('nenhum resultado em %s — rode o ciclo antes' % a.pasta,
@@ -786,7 +840,7 @@ def main(argv=None):
 
     feitos = []
     feitos.append(a_concessao(a.pasta, val, ene, ger, ver, destino,
-                              a.plots, pdf=not a.sem_pdf))
+                              a.plots, pdf=not a.sem_pdf, amp=amp))
     print('concessao -> %s' % feitos[-1], flush=True)
 
     if not a.so_geral:
