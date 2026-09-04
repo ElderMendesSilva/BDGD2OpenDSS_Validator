@@ -146,13 +146,20 @@ def gerar_at(bdgd, a, ctmt_info, mapa_cnd, log, subs_alvo=None):
     # barra de AT da subestacao, e so vale usa-la para as subestacoes que o
     # `malha_at` de fato vai ligar a rede: apontar o primario para uma barra
     # que ninguem cria deixa o trafo ilhado, que e o defeito de partida.
-    depara = malha_at.carregar_depara(
-        os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
-                     'dados', 'de_para_mnemonicos.csv'))
+    caminho_depara = os.path.join(
+        os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+        'dados', 'de_para_mnemonicos.csv')
+    depara = malha_at.carregar_depara(caminho_depara)
     anc = malha_at.ancoras(dados, depara)
     if subs_alvo is not None:                 # so as subestacoes do recorte
         anc = {n: (s & subs_alvo) for n, s in anc.items()}
         anc = {n: s for n, s in anc.items() if s}
+    if not depara:
+        # Achado 30-B: um de-para vazio nao e erro que trava a rodada, mas
+        # tambem nao pode ficar mudo — foi assim que o caminho quebrado
+        # rodou nove bases da safra 2025 sem ninguem perceber.
+        log(f'  AVISO: de-para de mnemonicos vazio ({caminho_depara} '
+            'nao encontrado) — o fechamento da malha perde alcance')
     log(f'  de-para: {len(depara)} mnemonicos | ancoras: {len(anc):,} nos')
 
     nos_malha = set().union(*comps) if comps else set()
