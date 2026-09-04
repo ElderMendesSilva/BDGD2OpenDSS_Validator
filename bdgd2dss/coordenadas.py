@@ -55,7 +55,7 @@ def _pontas_wkb(b):
         return None
 
 
-def coletar(bdgd, camada, ctmts=None, coords=None, chave='CTMT'):
+def coletar(bdgd, camada, ctmts=None, coords=None, chave='CTMT', log=None):
     """Acumula {barra: (x, y)} lendo a geometria de uma camada de linha."""
     coords = {} if coords is None else coords
     import pyogrio
@@ -69,7 +69,10 @@ def coletar(bdgd, camada, ctmts=None, coords=None, chave='CTMT'):
     try:
         r = pyogrio.raw.read(bdgd.gdb, layer=camada, columns=cols,
                              read_geometry=True, where=where)
-    except Exception:
+    except Exception as e:
+        if log:
+            log(f'  AVISO: coordenadas de {camada} indisponiveis '
+                f'({str(e)[:80]}) — barras dessa camada ficam sem posicao')
         return coords
     meta, _, geom, data = r
     cs = list(meta['fields'])
@@ -114,7 +117,7 @@ def centroide(coords, nos):
     return (sum(x for x, _ in p) / len(p), sum(y for _, y in p) / len(p))
 
 
-def linhas_do_lote(bdgd, camada, ctmts):
+def linhas_do_lote(bdgd, camada, ctmts, log=None):
     """As pontas de cada trecho, EM ORDEM DE ARQUIVO, com o CTMT de cada uma.
 
     E a materia-prima para reconstruir, por subestacao, exatamente o que a
@@ -130,7 +133,10 @@ def linhas_do_lote(bdgd, camada, ctmts):
         meta, _, geom, data = pyogrio.raw.read(
             bdgd.gdb, layer=camada, columns=cols, read_geometry=True,
             where=where)
-    except Exception:
+    except Exception as e:
+        if log:
+            log(f'  AVISO: coordenadas de {camada} indisponiveis '
+                f'({str(e)[:80]}) — barras desse lote ficam sem posicao')
         return []
     cs = list(meta['fields'])
     col = {c: data[cs.index(c)] for c in cs}
@@ -147,7 +153,7 @@ def linhas_do_lote(bdgd, camada, ctmts):
     return out
 
 
-def do_lote(cache, bdgd, camadas, ctmts_lote, ctmts_se):
+def do_lote(cache, bdgd, camadas, ctmts_lote, ctmts_se, log=None):
     """Coordenadas da subestacao, lendo a geometria UMA VEZ por lote.
 
     O GARGALO DO CONVERSOR ESTAVA AQUI. O `coletar` faz a propria leitura,
@@ -171,7 +177,7 @@ def do_lote(cache, bdgd, camadas, ctmts_lote, ctmts_se):
     co = {}
     for cam in camadas:
         if (cam,) not in cache:
-            cache[(cam,)] = linhas_do_lote(bdgd, cam, ctmts_lote)
+            cache[(cam,)] = linhas_do_lote(bdgd, cam, ctmts_lote, log=log)
         for ctmt, b1, b2, pt in cache[(cam,)]:
             if ctmt not in alvo:
                 continue

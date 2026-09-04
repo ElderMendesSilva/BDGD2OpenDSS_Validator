@@ -123,7 +123,7 @@ def gerar_at(bdgd, a, ctmt_info, mapa_cnd, log, subs_alvo=None):
     d = os.path.join(a.saida, '_AT')
     os.makedirs(d, exist_ok=True)
     log('Alta tensao (subtransmissao)...')
-    dados = subtransmissao.carregar(bdgd)
+    dados = subtransmissao.carregar(bdgd, log=log)
 
     comps, heads = subtransmissao.componentes(dados)
     log(f'  malha de AT: {len(comps)} componentes conexas, '
@@ -146,13 +146,20 @@ def gerar_at(bdgd, a, ctmt_info, mapa_cnd, log, subs_alvo=None):
     # barra de AT da subestacao, e so vale usa-la para as subestacoes que o
     # `malha_at` de fato vai ligar a rede: apontar o primario para uma barra
     # que ninguem cria deixa o trafo ilhado, que e o defeito de partida.
-    depara = malha_at.carregar_depara(
-        os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
-                     'dados', 'de_para_mnemonicos.csv'))
+    caminho_depara = os.path.join(
+        os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+        'dados', 'de_para_mnemonicos.csv')
+    depara = malha_at.carregar_depara(caminho_depara)
     anc = malha_at.ancoras(dados, depara)
     if subs_alvo is not None:                 # so as subestacoes do recorte
         anc = {n: (s & subs_alvo) for n, s in anc.items()}
         anc = {n: s for n, s in anc.items() if s}
+    if not depara:
+        # Achado 30-B: um de-para vazio nao e erro que trava a rodada, mas
+        # tambem nao pode ficar mudo — foi assim que o caminho quebrado
+        # rodou nove bases da safra 2025 sem ninguem perceber.
+        log(f'  AVISO: de-para de mnemonicos vazio ({caminho_depara} '
+            'nao encontrado) — o fechamento da malha perde alcance')
     log(f'  de-para: {len(depara)} mnemonicos | ancoras: {len(anc):,} nos')
 
     nos_malha = set().union(*comps) if comps else set()
@@ -241,7 +248,7 @@ def gerar_at(bdgd, a, ctmt_info, mapa_cnd, log, subs_alvo=None):
 
     # coordenadas geograficas da AT; a barra de cada SE vai no centroide
     # do seu proprio patio, que e onde ela fisicamente esta.
-    co_at = coordenadas.coletar(bdgd, 'SSDAT')
+    co_at = coordenadas.coletar(bdgd, 'SSDAT', log=log)
     co_at = {k: v for k, v in co_at.items() if k in nos_alvo}
     extras = {}
     for sb, barra in malha['barra_por_sub'].items():
@@ -359,7 +366,7 @@ def _uma_se(C, se, k):
     # subestacao inteira (achado 28)
     n_ch, abertas, ch_ilhadas, barras_chave = chaves.gerar(
         b, ctmts, os.path.join(d, 'Chaves.dss'),
-        os.path.join(d, 'Controles.dss'), barras=barras)
+        os.path.join(d, 'Controles.dss'), barras=barras, log=print)
     # ACHADO 57. Quem decide a inversao de PACs e a rede de media da BASE
     # INTEIRA, decidida uma vez em `main` — e nao a desta subestacao. Com o
     # recorte local, um trafo cujo PAC_1 esta na media da subestacao VIZINHA
@@ -367,7 +374,7 @@ def _uma_se(C, se, k):
     n_tr, sec, tr_invertidos = transformadores.gerar(
         b, ctmts, os.path.join(d, 'Trafos.dss'),
         os.path.join(d, '_ATERRAMENTO.dss'), a.kv_mt, kv_por_ctmt,
-        invertidos=C['tr_invertidos'])
+        invertidos=C['tr_invertidos'], log=print)
     # Conjunto de pontos de conexao que a rede realmente tem. Um shunt
     # (carga, banco, PVSystem) num PAC ausente daqui cria a barra sozinho,
     # a ilha fica sem fonte e a solucao devolve NaN — foi o que travava a
@@ -514,7 +521,7 @@ def _uma_se(C, se, k):
     # subestacao — era 85% do tempo de conversao. Ver `coordenadas.do_lote`
     cams = (['SSDMT', 'SSDBT', 'RAMLIG'] if a.bt == 'completo'
             else ['SSDMT'])
-    co = coordenadas.do_lote(co_cache, b, cams, ctmts_lote, ctmts)
+    co = coordenadas.do_lote(co_cache, b, cams, ctmts_lote, ctmts, log=print)
     n_co_se = coordenadas.escrever(co, os.path.join(d, 'BusCoords.dat'))
 
     master.rede_se(se, arqs, os.path.join(d, f'REDE-{se}.dss'))

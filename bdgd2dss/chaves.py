@@ -20,7 +20,7 @@ from . import dominios
 ABERTA = {'A', 'ABERTA', 'ABERTO', '0', 'N'}
 
 
-def bypass_de_regulador(bdgd, ctmts):
+def bypass_de_regulador(bdgd, ctmts, log=None):
     """Os pares de PAC que tem um regulador entre eles.
 
     Chave FECHADA sobre esse par e o bypass do regulador, e bypass fechado
@@ -56,7 +56,10 @@ def bypass_de_regulador(bdgd, ctmts):
     """
     try:
         r = bdgd.ler_filtrado('UNREMT', 'CTMT', ctmts, ['PAC_1', 'PAC_2'])
-    except Exception:
+    except Exception as e:
+        if log:
+            log(f'  AVISO: UNREMT indisponivel ({str(e)[:80]}) — bypass de '
+                'regulador nao detectado, chaves em paralelo ficam sem trava')
         return set()
     pares = set()
     for i in range(len(r['PAC_1'])):
@@ -66,7 +69,7 @@ def bypass_de_regulador(bdgd, ctmts):
     return pares
 
 
-def gerar(bdgd, ctmts, caminho_chaves, caminho_controles, barras=None):
+def gerar(bdgd, ctmts, caminho_chaves, caminho_controles, barras=None, log=None):
     """`barras` sao os nos que a rede de media tensao ja criou.
 
     Chave cujos DOIS PACs estao fora dela nao liga nada: cria uma ilha de duas
@@ -91,7 +94,7 @@ def gerar(bdgd, ctmts, caminho_chaves, caminho_controles, barras=None):
             'COR_NOM', 'TIP_UNID']
     col = bdgd.ler_filtrado('UNSEMT', 'CTMT', ctmts, cols)
     n = len(col['COD_ID'])
-    bypass = bypass_de_regulador(bdgd, ctmts)
+    bypass = bypass_de_regulador(bdgd, ctmts, log=log)
     ch = ['! ==========================================================',
           '! CHAVES — geradas de UNSEMT (Line com Switch=Y)',
           '! ==========================================================']

@@ -97,7 +97,9 @@ def _agrega_pip(bdgd, ctmts, mes):
     import numpy as np
     try:
         fatias = list(bdgd.ler_em_fatias('PIP', cols))
-    except Exception:
+    except Exception as e:
+        bdgd.log(f'    AVISO: PIP indisponivel ({str(e)[:80]}) — base segue '
+                  'sem iluminacao publica')
         return acc            # base sem PIP segue sem iluminacao publica
     for col, lido, total in fatias:
         mask = leitor_pertence(col['CTMT'], alvo)

@@ -425,7 +425,10 @@ def pacs_invertidos(bdgd, log=None):
     alvo = set()
     try:
         u = bdgd.ler('UNTRMT', colunas=['COD_ID', 'PAC_1', 'PAC_2'])
-    except Exception:
+    except Exception as e:
+        if log:
+            log(f'  AVISO: UNTRMT indisponivel ({str(e)[:80]}) — PAC invertido '
+                'nao e detectado, trafo pendurado pode passar batido')
         return set()
     n = len(u['COD_ID'])
     for c in ('PAC_1', 'PAC_2'):
@@ -441,7 +444,10 @@ def pacs_invertidos(bdgd, log=None):
     for camada in ('SSDMT', 'UNSEMT', 'UNREMT'):
         try:
             d = bdgd.ler(camada, colunas=['PAC_1', 'PAC_2'])
-        except Exception:
+        except Exception as e:
+            if log:
+                log(f'  AVISO: {camada} indisponivel ({str(e)[:80]}) — PAC '
+                    'invertido conta com um trecho da MT a menos')
             continue
         for c in ('PAC_1', 'PAC_2'):
             for x in d[c]:
@@ -484,7 +490,7 @@ def _inverte_pacs(col, invertidos):
 
 
 def gerar(bdgd, ctmts, caminho_trafos, caminho_aterramento, kv_mt=13.8,
-          kv_por_ctmt=None, invertidos=None):
+          kv_por_ctmt=None, invertidos=None, log=None):
     """`kv_por_ctmt` da a tensao primaria de cada alimentador; `kv_mt` e o
     padrao para quem nao estiver no mapa.
 
@@ -503,8 +509,10 @@ def gerar(bdgd, ctmts, caminho_trafos, caminho_aterramento, kv_mt=13.8,
         e = bdgd.ler('EQTRMT', ['UNI_TR_MT', 'R', 'XHL', 'POT_NOM',
                                 'PER_FER', 'PER_TOT'])
         imp, censo_placa = placas_da_base(e)
-    except Exception:
-        pass
+    except Exception as e_:
+        if log:
+            log(f'  AVISO: EQTRMT indisponivel ({str(e_)[:80]}) — trafos de '
+                'MT saem sem impedancia/perda de placa, so com os padroes')
 
     n_placa = 0                 # quantos usaram a placa (achado 53)
     # Achado 54: os PACs sao endireitados ANTES de tudo. A deteccao de banco
