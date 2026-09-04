@@ -1780,17 +1780,27 @@ mesmo rótulo, sem nada que diga qual das duas é a emergência.
 **Três das 18 têm `P_fonte_kW` negativo** — potência entrando na fonte, o que
 não acontece numa subestação de distribuição normal:
 
-| subestação | P_fonte_kW |
-|---|---:|
-| COPELDIS2866 / 71480 | **−66.839,7** |
-| ENERGISA_M405 / 197 | **−32.633,7** |
-| EQUATORIAL6072 / 5002404 | **−4.192,4** |
+| subestação | P_fonte_kW | P_gd_kW | P_injetada_kW | GD / injetada | perda no dia |
+|---|---:|---:|---:|---:|---:|
+| COPELDIS2866 / 71480 | **−66.839,7** | 80.637,7 | 13.798,1 | **5,8x** | — |
+| ENERGISA_M405 / 197 | **−32.633,7** | 51.681,2 | 19.047,4 | **2,7x** | **80,78%** |
+| EQUATORIAL6072 / 5002404 | **−4.192,4** | 15.020,7 | 10.828,3 | **1,4x** | **80,65%** |
 
-Isso não é "rede ruim": é sinal de defeito de modelo, na mesma família do
-achado 22 (regulador em paralelo com o próprio trecho) — testado e descartado
-para uma delas (`IAJ`, que não está entre as três, mas serviu de controle: o
-par de barras do regulador não coincide com nenhuma `Line`). A causa exata das
-três com potência invertida não foi encontrada; fica para a próxima sessão.
+**Não é o padrão do achado 22.** Testado e descartado: o par de barras dos
+reguladores da 71480 não coincide com nenhuma `Line` (mesmo teste de controle
+aplicado à `IAJ`). O que as três têm em comum é a **geração distribuída muito
+maior que a carga injetada** — no instantâneo, o excedente de GD empurra
+potência de volta pela fonte, e o sinal vira negativo.
+
+Isso explica o SINAL, mas não fecha o caso: duas delas mantêm perda
+**catastrófica mesmo na média do dia** (80,78% e 80,65%) — diferente do
+padrão do achado 26/29, em que o dia corrige o exagero do instantâneo. Perda
+que não cai ao longo do dia não é efeito de pico; é implausível o dia
+inteiro, e cai de volta na faixa do achado 1. **Próximo passo concreto:**
+conferir se a capacidade de GD declarada para essas três é plausível — se o
+`EQGD`/`PIP` da BDGD superdimensiona a geração (mesmo teste de plausibilidade
+já aplicado ao `PERD_*` nos achados 8 e 9), ou se é dado real de uma usina
+grande interligada que o modelo está representando corretamente.
 
 **O que isto não é:** uma falha do achado 30. A correção fez exatamente o que
 prometeu — resolveu 80 das 98 saturações por orientação errada. As 18 que
