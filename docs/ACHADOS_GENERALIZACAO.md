@@ -1681,17 +1681,43 @@ CTAT, nos dois anos — a tabela já era pouco usada. 37 mantiveram CTAT normal
 em 2025. Não é uma regressão estrutural do arcabouço; é localizada, com peso
 claro no grupo Enel.
 
-**Impacto no conversor:** `CTAT.NOME` é o caminho de RESERVA em
-`bdgd2dss/malha_at.py` para religar componentes da malha de AT por mnemônico
-de circuito (`dados/de_para_mnemonicos.csv`), usado só onde
-`UNSEAT.SUB`/`UNTRAT.SUB` não declaram o vínculo. As outras camadas de AT da
-Enel SP não colapsaram junto — `SSDAT` (29.518 → 29.400), `UNSEAT` (2.635 →
-2.639) e `UNTRAT`/`EQTRAT` (459/460 → 434/434) seguem em magnitude normal.
-Perde-se o reforço, não a malha.
+**Impacto no conversor, confirmado no log de conversão (V25=2024 contra
+V29=2025, mesma base):** `bdgd2dss/transmissao.py:fontes()` prefere a barra de
+uma ETT (ponto de conexão real); na falta dela, cai para `CTAT.PAC_INI` — a
+cabeceira do circuito de AT; só na falta das duas usa o primário do
+transformador como equivalente grosseiro, apagando o trecho de AT entre a
+cabeceira real e o trafo. Com a CTAT vazia esse segundo nível nunca é
+alcançado:
 
-**Não há comunicado oficial.** Nem o portal de dados abertos da ANEEL nem o
-Manual de Instruções da BDGD publicam changelog campo a campo entre safras —
-a única forma de achar isso foi rodar e comparar base por base.
+| | Enel SP: 2024 → 2025 | Enel RJ: 2024 → 2025 |
+|---|---:|---:|
+| fontes em cabeceira real | 49 → **1** | 0 → 0 |
+| fontes equivalentes (grosseiras) | 92 → 141 | 91 → 91 |
+| componentes conexas da malha | 837 → 1.353 | 675 → 674 |
+
+**Só a Enel SP perde de verdade.** A Enel RJ já operava com **zero** fontes em
+cabeceira real nos dois anos — a CTAT nunca alcançava esse papel lá, então
+sumir não piorou nada por esse caminho específico. A malha física (`SSDAT`,
+`UNSEAT`, `UNTRAT`) segue em magnitude normal nas duas bases — o que se perde
+é o ponto de injeção correto de 48 fontes na Enel SP, não a rede declarada.
+
+**Achado colateral, e maior em escopo: um bug de caminho, não de dado.** O log
+também mostrava "de-para: 86 → 0 mnemônicos" — mas esse número é o TAMANHO do
+`dados/de_para_mnemonicos.csv` carregado por `etapas/converter.py`, uma
+constante nacional, não algo que a CTAT deveria mudar. Rastreado: a
+reorganização de 02/09/2026 (commit `a10ab11`) moveu `converter.py` para
+`etapas/`, e o código montava o caminho do CSV relativo ao **próprio
+diretório** do arquivo — passou a procurar em `etapas/dados/`, que não existe.
+`carregar_depara()` aceita caminho ausente e devolve `{}` sem erro, então o
+de-para mnemônico→subestação (o segundo dos dois mecanismos de fechamento da
+malha de AT) ficou **sempre vazio, em toda base, em toda rodada desde a V26**
+— não é efeito da safra 2025 nem específico da Enel. Corrigido em 04/09/2026
+(commit `7d96ffc`).
+
+**Não há comunicado oficial sobre a CTAT.** Nem o portal de dados abertos da
+ANEEL nem o Manual de Instruções da BDGD publicam changelog campo a campo
+entre safras — a única forma de achar isso foi rodar e comparar base por
+base.
 
 ## Validação externa e contaminação
 
