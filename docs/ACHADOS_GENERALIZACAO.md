@@ -1719,6 +1719,35 @@ ANEEL nem o Manual de Instruções da BDGD publicam changelog campo a campo
 entre safras — a única forma de achar isso foi rodar e comparar base por
 base.
 
+**Status, separando as duas causas:**
+
+| causa | natureza | resolução |
+|---|---|---|
+| bug de caminho do de-para | código nosso | **corrigido** em 04/09/2026 (commit `7d96ffc`), travado por teste (`testes/test_depara_caminho.py`) |
+| CTAT vazia na Enel SP/RJ 2025 | dado de origem, na exportação da distribuidora | **em aberto** — não é algo que o conversor conserte |
+
+Não existe um jeito de "resolver" a CTAT vazia dentro deste repositório: o
+conversor já faz o melhor com o que a base declara (cai para `CTAT.PAC_INI`
+e, na falta desse, para o primário do trafo como aproximação grosseira — é
+esse fallback que evita o modelo quebrar, não uma correção do dado). Fechar
+isso de verdade é ação de fora do código, e o caminho cabível é um destes
+dois, não excludentes:
+
+1. **Reportar à Enel** (o achado já nasceu de um relato do chefe do Elder) —
+   pedir que a distribuidora confira a exportação 2025 e, se for erro dela,
+   reenvie a BDGD com a CTAT preenchida. É o único caminho que corrige o
+   dado na fonte.
+2. **Registrar como achado de qualidade de dado junto à ANEEL**, já que a
+   CTAT é campo do Manual de Instruções da BDGD — a agência não publica
+   changelog entre safras, mas recebe reporte de inconsistência via canal
+   regulatório. Isso não conserta a base já publicada, mas documenta a
+   falha para a próxima safra.
+
+Enquanto nenhum dos dois acontece, a Enel SP 2025 continua rodando —
+completa, com relatório — só que com a fidelidade da AT documentada acima
+(49 → 1 fontes em cabeceira real) registrada como limitação conhecida do
+dado, não do conversor.
+
 ## Validação externa e contaminação
 
 A âncora nacional de 7,4% de perda técnica total da ANEEL é apenas um **teste
