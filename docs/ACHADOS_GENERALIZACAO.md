@@ -1796,11 +1796,33 @@ Isso explica o SINAL, mas não fecha o caso: duas delas mantêm perda
 **catastrófica mesmo na média do dia** (80,78% e 80,65%) — diferente do
 padrão do achado 26/29, em que o dia corrige o exagero do instantâneo. Perda
 que não cai ao longo do dia não é efeito de pico; é implausível o dia
-inteiro, e cai de volta na faixa do achado 1. **Próximo passo concreto:**
-conferir se a capacidade de GD declarada para essas três é plausível — se o
-`EQGD`/`PIP` da BDGD superdimensiona a geração (mesmo teste de plausibilidade
-já aplicado ao `PERD_*` nos achados 8 e 9), ou se é dado real de uma usina
-grande interligada que o modelo está representando corretamente.
+inteiro, e cai de volta na faixa do achado 1.
+
+**Aberto o `GD.dss` de cada uma, duas fecham e a terceira abre outra
+pergunta.**
+
+Nas duas com a maior razão GD/injetada, **um único gerador** responde por
+quase toda a capacidade declarada:
+
+| subestação | maior gerador (kWp) | soma de todos | fração do total |
+|---|---:|---:|---:|
+| ENERGISA_M405 / 197 | **107.087** | 108.969 | **98,3%** |
+| COPELDIS2866 / 71480 | **33.561** | 35.065 | **95,7%** |
+
+107 MWp e 33,5 MWp são portes de USINA, não de geração distribuída
+residencial ou comercial numa subestação com 6.717 e 5.193 cargas. É o mesmo
+padrão de plausibilidade dos achados 8 e 9 — um valor isolado, ordens de
+grandeza acima do resto da própria amostra —, só que agora no `UGMT_tab`, não
+no `PERD_*`. Fica em aberto se é erro de cadastro (unidade errada, ponto
+decimal) ou usina real mal classificada como GD; qualquer um dos dois explica
+sozinho o fluxo invertido e a perda implausível.
+
+**A terceira não tem outlier, e é outro bug.** Os 11 geradores da
+EQUATORIAL6072/5002404 somam **3.945 kWp**, todos em faixa normal (49 a
+708 kWp) — mas o `validacao.json` registra `P_gd_kW=15.020,7`, quase **4x**
+o que o `GD.dss` de fato declara. Isso não é problema de dado: é
+incompatibilidade entre o que o modelo escreve e o que o validador mede, e
+fica para investigar à parte — não é o mesmo defeito das outras duas.
 
 **O que isto não é:** uma falha do achado 30. A correção fez exatamente o que
 prometeu — resolveu 80 das 98 saturações por orientação errada. As 18 que
