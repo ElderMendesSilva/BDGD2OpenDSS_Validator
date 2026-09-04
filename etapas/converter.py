@@ -147,7 +147,7 @@ def gerar_at(bdgd, a, ctmt_info, mapa_cnd, log, subs_alvo=None):
     # `malha_at` de fato vai ligar a rede: apontar o primario para uma barra
     # que ninguem cria deixa o trafo ilhado, que e o defeito de partida.
     depara = malha_at.carregar_depara(
-        os.path.join(os.path.dirname(os.path.abspath(__file__)),
+        os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
                      'dados', 'de_para_mnemonicos.csv'))
     anc = malha_at.ancoras(dados, depara)
     if subs_alvo is not None:                 # so as subestacoes do recorte
