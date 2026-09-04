@@ -1748,6 +1748,61 @@ completa, com relatório — só que com a fidelidade da AT documentada acima
 (49 → 1 fontes em cabeceira real) registrada como limitação conhecida do
 dado, não do conversor.
 
+## Achado 31 — `REGULADOR_SATURADO` esconde severidades muito diferentes
+
+Medido em 04/09/2026, investigando as **18 subestações** que continuam
+`REGULADOR_SATURADO` depois da correção do achado 30 (V31, contra 98 na V29).
+
+**Nenhuma das 18 tem regulador mal orientado.** Em todas, `reguladores.json`
+mostra `corrigidos: 0` — o achado 30 mediu a direção do fluxo e concluiu que a
+orientação já estava certa (ou não havia fluxo suficiente pra decidir). O
+regulador não é o defeito aqui; ele está fazendo o que pode.
+
+**E o que ele "pode" varia por três ordens de grandeza.** Ordenando as 18 por
+tensão mediana:
+
+| V_MT mediana | subestações | perda | leitura |
+|---:|---|---:|---|
+| **0,13 a 0,45 pu** | 4 | 63% a **99,7%** | implausível — mesma faixa do achado 1 |
+| 0,60 a 0,90 pu | 10 | 12% a 88% | saturação real, magnitude variável |
+| 0,90 a 0,94 pu | 4 | 10% a 41% | perto do limite, tape no fim mesmo assim |
+
+**As 4 piores não deveriam ser `REGULADOR_SATURADO`: deveriam ser
+`TENSAO_IMPLAUSIVEL`.** O achado 1 (28/08/2026) já tinha medido exatamente
+essa faixa — carga de potência constante a 0,08 pu puxa ~12x a corrente
+nominal — e criado esse veredicto. Ele **não existe mais** em
+`bdgd2dss/diagnostico.py`: sumiu quando o classificador graduado (achados 25
+e 29) substituiu o código antigo, sem herdeiro. E o cheque de
+`REGULADOR_SATURADO`, em `diagnostico.py:225`, roda **antes** de qualquer
+teste de tensão — então uma mediana de 0,13 pu e uma de 0,90 pu recebem o
+mesmo rótulo, sem nada que diga qual das duas é a emergência.
+
+**Três das 18 têm `P_fonte_kW` negativo** — potência entrando na fonte, o que
+não acontece numa subestação de distribuição normal:
+
+| subestação | P_fonte_kW |
+|---|---:|
+| COPELDIS2866 / 71480 | **−66.839,7** |
+| ENERGISA_M405 / 197 | **−32.633,7** |
+| EQUATORIAL6072 / 5002404 | **−4.192,4** |
+
+Isso não é "rede ruim": é sinal de defeito de modelo, na mesma família do
+achado 22 (regulador em paralelo com o próprio trecho) — testado e descartado
+para uma delas (`IAJ`, que não está entre as três, mas serviu de controle: o
+par de barras do regulador não coincide com nenhuma `Line`). A causa exata das
+três com potência invertida não foi encontrada; fica para a próxima sessão.
+
+**O que isto não é:** uma falha do achado 30. A correção fez exatamente o que
+prometeu — resolveu 80 das 98 saturações por orientação errada. As 18 que
+sobraram são um problema **diferente e pré-existente**, que só ficou visível
+porque o ruído das 80 parou de encobrir.
+
+**Próximo passo, não implementado ainda:** reintroduzir um veredicto de tensão
+implausível no `diagnostico.py`, testado **antes** de `REGULADOR_SATURADO` —
+mesmo padrão do achado 29 (que separou `PERDA_ALTA` de `TENSAO_BAIXA` porque
+um rótulo genérico escondia dois problemas). E investigar os três casos de
+`P_fonte_kW` negativo isoladamente, abrindo o modelo como se fez no achado 22.
+
 ## Validação externa e contaminação
 
 A âncora nacional de 7,4% de perda técnica total da ANEEL é apenas um **teste
