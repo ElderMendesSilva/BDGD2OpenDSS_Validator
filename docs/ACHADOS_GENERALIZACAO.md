@@ -1643,6 +1643,56 @@ outras três premissas de modelagem do projeto, o arquivo é sempre escrito
 (mesmo vazio) e conta o que fez; apagar o `redirect` no MASTER devolve o
 modelo ao que a BDGD declara.
 
+**Ressalva de execução:** a etapa entrou na lista `ETAPAS` de `regerar_v10.py`
+mas ficou sem o bloco que a dispara no laço principal — `'ligacao'` seguido
+direto de `'ampacidade'`, sem `'reguladores'` no meio. A V29 e a primeira V30
+rodaram sem a correção nunca ser aplicada; `REGULADOR_SATURADO` ficou
+estagnado em 98 nas duas. Corrigido em 04/09/2026 (commit `79f0014`), depois
+de comparar V29 com V30 e ver que o número esperado não caiu.
+
+## Achado 30-B — a CTAT sumiu em nove bases da safra 2025, com a Enel em duas
+
+Medido em 04/09/2026, depois de o chefe do Elder relatar que a CTAT da Enel SP
+"veio vazia". Conferido direto nos `.gdb`, não de memória: **728 registros em
+2024 viraram 0 em 2025**.
+
+Generalizado nas 97 bases pareadas entre as duas safras:
+
+| código | base | 2024 | 2025 |
+|---|---|---:|---:|
+| 390 | **Enel SP** | 728 | **0** |
+| 383 | **Enel RJ** | 223 | **0** |
+| 404 | Energisa MS | 107 | **0** |
+| 44 | Equatorial AL | 136 | **0** |
+| 32 | Energisa TO | 61 | **0** |
+| 2763 | Ceriluz | 4 | **0** |
+| 3627 | Cooperluz | 1 | **0** |
+| 86 | Eflul | 1 | **0** |
+| 7371 | Certel Energia | 1 | **0** |
+
+**Nove bases zeraram, e as duas maiores quedas são as duas bases do grupo
+Enel da amostra** — 728 e 223 registros, as maiores magnitudes da tabela.
+Padrão, não coincidência isolada: aponta para algo no processo de exportação
+da Enel (ou de um fornecedor comum), não para um problema geral do arcabouço
+2025.
+
+**Contexto que evita alarme falso:** 50 das 97 bases **nunca** preencheram a
+CTAT, nos dois anos — a tabela já era pouco usada. 37 mantiveram CTAT normal
+em 2025. Não é uma regressão estrutural do arcabouço; é localizada, com peso
+claro no grupo Enel.
+
+**Impacto no conversor:** `CTAT.NOME` é o caminho de RESERVA em
+`bdgd2dss/malha_at.py` para religar componentes da malha de AT por mnemônico
+de circuito (`dados/de_para_mnemonicos.csv`), usado só onde
+`UNSEAT.SUB`/`UNTRAT.SUB` não declaram o vínculo. As outras camadas de AT da
+Enel SP não colapsaram junto — `SSDAT` (29.518 → 29.400), `UNSEAT` (2.635 →
+2.639) e `UNTRAT`/`EQTRAT` (459/460 → 434/434) seguem em magnitude normal.
+Perde-se o reforço, não a malha.
+
+**Não há comunicado oficial.** Nem o portal de dados abertos da ANEEL nem o
+Manual de Instruções da BDGD publicam changelog campo a campo entre safras —
+a única forma de achar isso foi rodar e comparar base por base.
+
 ## Validação externa e contaminação
 
 A âncora nacional de 7,4% de perda técnica total da ANEEL é apenas um **teste
