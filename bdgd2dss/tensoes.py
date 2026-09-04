@@ -312,7 +312,10 @@ def por_equipamento(bdgd, log=None):
     try:
         u = bdgd.ler('UNTRMT', colunas=['COD_ID', 'CTMT', 'FAS_CON_P'])
         e = bdgd.ler('EQTRMT', colunas=['UNI_TR_MT', 'TEN_PRI'])
-    except Exception:
+    except Exception as ex:
+        if log:
+            log(f'  AVISO: UNTRMT/EQTRMT indisponivel ({str(ex)[:80]}) — '
+                'tensao por equipamento nao sai, nada muda')
         return {}
     ctmt_do_tr, fases_do_tr = {}, {}
     for i in range(len(u['COD_ID'])):

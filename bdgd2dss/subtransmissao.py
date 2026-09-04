@@ -83,7 +83,7 @@ def _pot_mva(v):
 
 
 # ====================================================================== leitura
-def carregar(bdgd):
+def carregar(bdgd, log=None):
     """Le de uma vez tudo que descreve a AT. Sao tabelas pequenas —
     462 trafos, 29.519 trechos, 2.622 chaves, 988 barras."""
     d = {}
@@ -103,7 +103,10 @@ def carregar(bdgd):
             'ten_pri': txt(e['TEN_PRI'][i]), 'ten_sec': txt(e['TEN_SEC'][i]),
             'lig': txt(e['LIG'][i]), 'per_fer': num(e['PER_FER'][i], 0.3),
             'per_tot': num(e['PER_TOT'][i], 0.8)} for i in range(len(e['UNI_TR_AT']))}
-    except Exception:
+    except Exception as e:
+        if log:
+            log(f'  AVISO: EQTRAT indisponivel ({str(e)[:80]}) — perdas de '
+                'trafo de AT caem nos padroes (0,3%/0,8%)')
         d['eqtrat'] = {}
     return d
 
