@@ -1817,12 +1817,30 @@ no `PERD_*`. Fica em aberto se é erro de cadastro (unidade errada, ponto
 decimal) ou usina real mal classificada como GD; qualquer um dos dois explica
 sozinho o fluxo invertido e a perda implausível.
 
-**A terceira não tem outlier, e é outro bug.** Os 11 geradores da
-EQUATORIAL6072/5002404 somam **3.945 kWp**, todos em faixa normal (49 a
-708 kWp) — mas o `validacao.json` registra `P_gd_kW=15.020,7`, quase **4x**
-o que o `GD.dss` de fato declara. Isso não é problema de dado: é
-incompatibilidade entre o que o modelo escreve e o que o validador mede, e
-fica para investigar à parte — não é o mesmo defeito das outras duas.
+**A terceira não tem outlier, e é outro bug — encontrado e corrigido.** Os 11
+geradores da EQUATORIAL6072/5002404 somam **3.945 kWp**, todos em faixa
+normal (49 a 708 kWp) — mas o `validacao.json` registrava `P_gd_kW=15.020,7`,
+quase **4x** o que o `GD.dss` de fato declara.
+
+Reproduzido elemento a elemento com `opendssdirect` local: cada `PVSystem`
+entrega uma fração do `Pmpp` que varia de **0,03x a 4,0x**, sem fator fixo —
+e o que muda entre eles é a tensão local (`Vpu` de 0,15 a 0,90 nos diferentes
+pontos da rede). A causa não é a tensão em si: é que `complementos.geracao()`
+emitia todo `PVSystem` de MT com `kv=13,8` **fixo**, enquanto o alimentador
+real desta subestação opera em **34,5 kV** (`kVBase` da barra = 19,9186 kV
+fase-neutro). O `PVSystem` calcula sua própria tensão em pu contra o `kv`
+declarado, e a discordância entre esse `kv` e o `kVBase` real da barra faz a
+potência entregue variar de forma instável — o mesmo mecanismo dos achados
+39/49 (tensão do cabeçalho discordando do parque), só que na emissão da GD,
+que nunca recebia a tensão reconciliada por alimentador.
+
+`capacitores()` e `reguladores()`, ao lado no mesmo arquivo, já recebem
+`kv_por_ctmt` (achado 49); `geracao()` só aceitava um `kv_mt` fixo. Corrigido
+em 04/09/2026 (commit `d2cd029`): `geracao()` passa a aceitar `kv_por_ctmt` e
+usá-lo por alimentador, com o `kv_mt` como reserva só para quem não tem
+tensão reconciliada. **Não testado de ponta a ponta** — o `.gdb` da
+EQUATORIAL6072 tem 5,1 GB e a verificação exige reconverter no cluster
+(`etapas/converter.py --se 5002404`).
 
 **O que isto não é:** uma falha do achado 30. A correção fez exatamente o que
 prometeu — resolveu 80 das 98 saturações por orientação errada. As 18 que
