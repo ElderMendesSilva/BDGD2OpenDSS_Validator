@@ -2033,6 +2033,51 @@ cruzado entre eles, que hoje não existe.
 este. Conferir exige ler `UGMT_tab`/`UGBT_tab` das 99 bases — lê `.gdb`,
 então é job, não leitura de modelo.
 
+## Achado 33 — a razão de dois lixos sai plausível
+
+Achado em 08/09/2026, conferindo a V32. Não estava sendo procurado: apareceu
+porque o total nacional de GD deu **10⁷⁰ kW** ao somar as 4.078 subestações.
+
+Duas subestações por rodada estouram numericamente — `P_gd_kW` de 6,5×10⁶⁴,
+perdas de 7,9×10⁶³ kW. **O veredicto delas está certo**: não convergem, param
+em 500 iterações e caem em `NAO_CONVERGE_COM_GD`, acionável. O validador não
+as aprova.
+
+**O problema é o que ele publica ao lado do veredicto.** A
+ENERGISA_R369/19778164, com 7,9×10⁶³ kW de perda, publica:
+
+```
+perdas_kW      = 7.905e+63      ← grita
+perdas_pct     = 12,16%         ← mente
+perdas_pct_dia = 3,55%          ← mente
+```
+
+O percentual é a razão de dois números da mesma solução divergida: as
+parcelas são lixo, e a razão entre elas sai **plausível**. Das **29
+subestações que não convergem na V32, 19 publicam um percentual entre 0 e
+15%** — indistinguíveis, para quem agrega, de uma rede sadia. E
+`valida_perdas.py`, `auditoria.py` e `relatorio.py` leem `perdas_pct` **sem
+olhar `converge`**.
+
+**O projeto já sabia fazer isso, e fez, três linhas acima.** O mesmo bloco do
+`validador.py` anula `perdas_trafos_pct` quando dá `NaN`, com o comentário
+explicando por quê: *«`None` diz "não sei"; NaN contamina a estatística de
+quem consumir»*. O caso da divergência ficou de fora — mesma doença, mesmo
+remédio, meia dose.
+
+**A correção mantém a evidência.** Saem só as razões (`perdas_pct`,
+`perdas_pct_dia`, `perdas_trafos_pct`); as parcelas em kW ficam, porque
+7,9×10⁶³ é justamente o que denuncia o caso e permite achá-lo. Um dos testes
+novos trava a **ordem**: anular antes de `_perda_do_dia` não adiantaria, já
+que ela grava por cima.
+
+**É a terceira vez que este padrão aparece** — número plausível derivado de
+base inválida, consumido adiante sem guarda. O achado 21 foi
+`AllIsolatedBranches` reportando rede energizada como isolada; o 27 foi o
+`NaN` de uma linha de 1 cm apagando a perda da subestação inteira; este é a
+razão de dois estouros. A lição que se repete: **o que passa despercebido não
+é o valor absurdo, é o valor razoável calculado sobre ele.**
+
 ## Validação externa e contaminação
 
 A âncora nacional de 7,4% de perda técnica total da ANEEL é apenas um **teste
