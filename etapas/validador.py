@@ -371,6 +371,26 @@ def valida(pasta, referencia=None):
     # gravado ao lado, porque comparar os dois E o achado.
     r['perdas_pct_dia'] = _perda_do_dia(pasta, r.get('modelo'))
 
+    # SOLUCAO QUE NAO FECHOU NAO TEM PERCENTUAL — achado 33.
+    #
+    # O percentual e a razao de dois numeros da mesma solucao, entao quando ela
+    # diverge a razao sai PLAUSIVEL enquanto as parcelas sao lixo. Medido na
+    # V32: a ENERGISA_R369/19778164 para em 500 iteracoes com 7,9e63 kW de
+    # perda e publica `perdas_pct = 12,16%`. Das 29 subestacoes que nao
+    # convergem, **19 publicam um percentual entre 0 e 15%** — indistinguivel,
+    # para quem agrega, de uma rede sadia.
+    #
+    # `valida_perdas.py`, `auditoria.py` e `relatorio.py` leem `perdas_pct` sem
+    # olhar `converge`. O mesmo modulo ja faz exatamente isto para o NaN, tres
+    # linhas acima do calculo — `None` diz "nao sei", e o numero inventado nao
+    # avisa nada. Faltava o caso da divergencia.
+    #
+    # As parcelas em kW FICAM: 7,9e63 grita que algo estourou, e e por elas que
+    # se acha o caso. O que sai e so a razao, que mente com cara de verdade.
+    if not r.get('converge'):
+        for campo in ('perdas_pct', 'perdas_pct_dia', 'perdas_trafos_pct'):
+            r[campo] = None
+
     # causa raiz: separa defeito do conversor de caracteristica da rede
     res = {}
     fr = os.path.join(pasta, 'resumo.json')
@@ -461,7 +481,8 @@ def _linha(r):
           f"conv={r.get('converge')} iter={r.get('iteracoes')} "
           f"fontes={r.get('n_fontes','—')} vaos={r.get('n_vaos','—')} "
           f"mortas={r.get('cargas_sem_tensao','—')} nan={r.get('nos_nan','—')} "
-          f"perdas={r.get('perdas_pct','—')}% Vmed={r.get('V_MT_mediana','—')} "
+          f"perdas={'—' if r.get('perdas_pct') is None else r['perdas_pct']}% "
+          f"Vmed={r.get('V_MT_mediana','—')} "
           f"sobrecarga={r.get('linhas_acima_ampacidade','—')} "
           f"| {r.get('causa','?'):18s} {r.get('causa_detalhe','')[:52]}", flush=True)
 
