@@ -462,7 +462,7 @@ def _uma_se(C, se, k):
         b, ctmts, sec, os.path.join(d, 'GD.dss'), a.kv_mt,
         barras=barras_rede, barras_bt=barras_bt,
         irradiancia=a.irradiancia, fp=a.gd_fp,
-        mes=a.mes, fc=fc_gd)
+        mes=a.mes, fc=fc_gd, kv_por_ctmt=kv_por_ctmt)
 
     # vaos desta subestacao: ligam a barra de MT as cabeceiras
     vaos_se = (est_at.get('vaos_por_se') or {}).get(se, [])

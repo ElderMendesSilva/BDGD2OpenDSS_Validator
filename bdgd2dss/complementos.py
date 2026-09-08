@@ -484,7 +484,8 @@ def reguladores(bdgd, ctmts, caminho, kv=13.8, kv_por_ctmt=None,
 
 # ------------------------------------------------------------------ geracao
 def geracao(bdgd, ctmts, sec, caminho, kv_mt=13.8, barras=None,
-            irradiancia=1.0, fp=1.0, mes=1, fc=None, barras_bt=None):
+            irradiancia=1.0, fp=1.0, mes=1, fc=None, barras_bt=None,
+            kv_por_ctmt=None):
     """UGBT_tab e UGMT_tab -> PVSystem.
 
     A POTENCIA VEM DA ENERGIA, NAO DE POT_INST
@@ -537,7 +538,19 @@ def geracao(bdgd, ctmts, sec, caminho, kv_mt=13.8, barras=None,
     ceu claro, nao a ponta. Para estudo de carregamento maximo use um valor
     baixo; para estudo de sobretensao por GD, mantenha 1,0. Na simulacao
     diaria a curva IRRAD_DIA cuida disso e este parametro nao vale.
+
+    ACHADO 31. `kv_mt` e so o PADRAO, para quando o alimentador nao tem
+    tensao reconciliada. `kv_por_ctmt` (achado 49: CTMT.TEN_NOM discordando
+    do proprio parque, vale o equipamento) precisa entrar aqui tambem — sem
+    ele, um PVSystem de MT era emitido com kv=13,8 fixo mesmo num alimentador
+    de 34,5 kV. O PVSystem por dentro faz seu proprio calculo de pu contra o
+    `kv` declarado, e a discordancia entre esse kv e o kVBase real da barra
+    fazia a potencia entregue variar de 0,03x a 4,0x o Pmpp, dependendo da
+    tensao local — nao um fator fixo, porque o erro se mistura com a propria
+    tensao (ja baixa) do trecho. Medido na EQUATORIAL6072/5002404: 11
+    geradores somando 3.945 kW de Pmpp e 15.022 kW medidos pelo validador.
     """
+    kv_por_ctmt = kv_por_ctmt or {}
     out = ['! GERACAO DISTRIBUIDA — gerada de UGBT_tab e UGMT_tab',
            '! Unidades com potencia nula sao omitidas (gerariam NaN).']
     n = nulos = realocados = sem_rede = por_ceg = 0
@@ -623,7 +636,8 @@ def geracao(bdgd, ctmts, sec, caminho, kv_mt=13.8, barras=None,
                 else:
                     sem_rede += 1
                     continue
-            kv = kv_mt if len(fs) >= 3 else kv_mt / math.sqrt(3)
+            kv_base = kv_por_ctmt.get(txt(col['CTMT'][i]), kv_mt)
+            kv = kv_base if len(fs) >= 3 else kv_base / math.sqrt(3)
             out.append(_pv(cod, f'{pac}.{".".join(fs)}', len(fs), kv, pot,
                            irradiancia, fp))
             n += 1
