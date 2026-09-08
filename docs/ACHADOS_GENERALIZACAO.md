@@ -1863,6 +1863,51 @@ teste: rodando uma subestação só, não há censo da base e o limiar de km por
 alimentador cai no padrão da Enel SP, 60 km. O próprio validador avisa na
 saída. Na V31 completa o censo da base não dispara esse teste.)
 
+### E a tensão implausível é o achado 7 no extremo
+
+Perseguida na mesma subestação, resolvendo o modelo fora do cluster.
+
+**Não é a fonte.** Com a fonte rígida (`MVAsc3=100000`) a cabeceira volta a
+1,017 pu e a **mediana não se move**: 0,109 → 0,124. Desligar toda a GD
+também não muda (0,107). O colapso é da rede.
+
+**Não é um elemento.** A maior queda num único elemento é de 0,09 pu — não há
+vilão isolado. A queda é cumulativa, e o perfil por distância mostra onde:
+
+| distância da fonte | barras | V mediana |
+|---|---:|---:|
+| 1 a 10 km | 687 | **1,000** |
+| 10 a 20 km | 900 | **0,494** |
+| 20 a 40 km | 3.060 | 0,204 |
+| 40 a 126 km | 16.585 | ~0,110 |
+
+**É o condutor, e é o perfil do achado 7 levado ao extremo.** Dos 2.405 km
+desta subestação, **1.859 km (77%) são um único condutor monofásico** —
+`cnd_mt_39_1f`, 1,597 Ω/km, 125 A. A resistência média ponderada por km é
+**1,63 Ω/km**, e 500 trechos passam da própria ampacidade. Com carga de
+potência constante, subtensão puxa mais corrente, que aprofunda a subtensão:
+as perdas (12,7 MW com fonte rígida) chegam a **2,5x a carga** (5,1 MW), que
+é a física do achado 1, não uma perda de rede normal.
+
+**E o comprimento por alimentador separa as 18 do resto do país:**
+
+| | km por alimentador (mediana) |
+|---|---:|
+| as 18 subestações que sobraram | **291,3** |
+| nacional, 82 bases | **80,3** |
+
+Três das cinco bases com maior km/alimentador do país — ENERGISA_M405
+(314,8), COPREL2351 (293,4) e EQUATORIAL6072 (257,3) — são justamente bases
+das 18. O extremo individual é a ENERGISA_M405/197, com **1.631 km por
+alimentador**.
+
+**Ressalva que impede fechar o achado:** o comprimento explica a maioria, não
+todas. **Quatro das 18 estão abaixo da mediana nacional** — a NEOENERGIA385/
+UBA02 tem 28,3 km por alimentador e satura do mesmo jeito. Para essas, a
+causa continua desconhecida. E resta a dúvida do achado 19: alimentador de
+1.631 km pode ser cadastro real de rede rural ou artefato de agrupamento de
+CTMT, e distinguir os dois exige abrir a `.gdb`, não o modelo.
+
 **O que isto não é:** uma falha do achado 30. A correção fez exatamente o que
 prometeu — resolveu 80 das 98 saturações por orientação errada. As 18 que
 sobraram são um problema **diferente e pré-existente**, que só ficou visível
