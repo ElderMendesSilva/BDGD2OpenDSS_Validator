@@ -52,6 +52,15 @@ As causas, na ordem em que sao testadas:
                     modelo inutilizavel no OpenDSS que o usuario abre. Por
                     isso qualquer NaN e MODELO_QUEBRADO, nao ressalva.
 
+  TENSAO_IMPLAUSIVEL  tensao mediana abaixo de meio pu. Nao e subtensao: e
+                    solucao fora da bacia de operacao, em que a carga de
+                    potencia constante puxa corrente muito acima da nominal e
+                    a perda medida e a da propria subtensao. Vem ANTES de
+                    CARGA_ALTA, REDE_EXTENSA e REGULADOR_SATURADO porque os
+                    tres podem ser verdade ao mesmo tempo e descrevem o
+                    sintoma, nao a doenca (achados 1, 31 e 32). Acionavel: a
+                    acao e nao publicar o numero.
+
   REDE_EXTENSA      alimentador muito acima do normal da concessao (a
                     mediana e 8,9 km; sete alimentadores passam de 100 km, e
                     dois deles, na DREG, tem 440 e 335 km). Nesses casos a
@@ -96,6 +105,29 @@ KM_ALIM_ALTO = 60.0
 V_BAIXA = 0.90
 PERDAS_ALTA = 15.0
 USO_ALTO = 90.0
+
+# ---------------------------------------------------------------------------
+# TENSAO_IMPLAUSIVEL: o corte de 0,5 pu — achados 1 e 31
+# ---------------------------------------------------------------------------
+# Este veredicto existia no achado 1 (28/08/2026), sumiu quando o classificador
+# graduado dos achados 25 e 29 substituiu o codigo antigo, e voltou em
+# 08/09/2026 porque a falta dele foi medida: das 18 subestacoes que continuavam
+# `REGULADOR_SATURADO` na V31, cinco tinham tensao mediana ABAIXO de 0,5 pu — a
+# pior em 0,109 — e levavam o mesmo rotulo de uma subestacao em 0,90 pu. Um
+# rotulo que nao distingue 0,109 de 0,90 nao serve para decidir onde olhar.
+#
+# A FISICA, que e o que sustenta o corte: carga de potencia constante a 0,08 pu
+# puxa ~12x a corrente nominal e a perda joule sobe ~150x. Medido na
+# EQUATORIAL6072/5002404 (achado 31): perdas de 12,7 MW sobre 5,1 MW de carga,
+# 2,5x. Nao e perda de rede, e uma solucao fora da bacia de operacao — o numero
+# dela nao pode entrar em agregado nenhum.
+#
+# RESSALVA HERDADA DO ACHADO 1, e ela continua valendo: o 0,5 foi calibrado no
+# histograma do MINIMO, que e bimodal com vale em 0,45-0,55, e e aplicado sobre
+# a MEDIANA, cuja distribuicao nao tem vale. Hoje o corte se defende pela
+# fisica, nao pelos dados, e falta o estudo de sensibilidade antes de virar
+# numero de artigo.
+V_IMPLAUSIVEL = 0.50
 
 # Quantas vezes a mediana da propria base um alimentador precisa ter para ser
 # considerado extenso. 60/8,9 = 6,7 na Enel SP, que e de onde sai o fator.
@@ -212,6 +244,23 @@ def classificar(v, resumo, extra=None, referencia=None):
     if vmed >= V_BAIXA and perda < PERDAS_ALTA:
         return ('OK', '', False)
 
+    # TENSAO IMPLAUSIVEL VEM ANTES DE TUDO O QUE ELA EXPLICA — achados 1 e 31.
+    # Abaixo de meio pu a solucao saiu da bacia de operacao: a carga de
+    # potencia constante puxa corrente demais, a perda cresce com o quadrado
+    # dela, e nenhum numero desta subestacao — perda, energia, carregamento —
+    # significa coisa alguma. Vem na frente de CARGA_ALTA, REDE_EXTENSA e
+    # REGULADOR_SATURADO de proposito: os tres SAO verdade nesses casos, e os
+    # tres descrevem o sintoma no lugar da doenca. Na V31 eram cinco
+    # subestacoes rotuladas `REGULADOR_SATURADO` com a tensao entre 0,109 e
+    # 0,454 pu, indistinguiveis, pelo rotulo, de uma em 0,90.
+    if vmed < V_IMPLAUSIVEL:
+        return ('TENSAO_IMPLAUSIVEL',
+                f'Vmed={vmed:.3f} pu — abaixo de {V_IMPLAUSIVEL:g} pu a '
+                f'carga de potencia constante puxa corrente muito acima da '
+                f'nominal e a perda ({perda:.1f}% {de_onde}) mede a propria '
+                f'subtensao, nao a rede: nenhum numero desta subestacao entra '
+                f'em agregado', True)
+
     if uso and uso > USO_ALTO:
         return ('CARGA_ALTA',
                 f'{kw/1000:.1f} MW sobre {mva:.0f} MVA instalados ({uso:.0f}%)', True)
@@ -255,7 +304,13 @@ def classificar(v, resumo, extra=None, referencia=None):
 
 ACIONAVEL = {'MODELO_QUEBRADO', 'SUBESTACAO_ILHADA', 'REDE_PARCIAL',
              'RAMAIS_SOLTOS', 'CARGA_ALTA', 'TENSAO_BAIXA', 'SEM_MEDIDA',
-             'NAO_CONVERGE_COM_GD', 'PERDA_ALTA'}
+             'NAO_CONVERGE_COM_GD', 'PERDA_ALTA', 'TENSAO_IMPLAUSIVEL'}
+
+# `TENSAO_IMPLAUSIVEL` entra em ACIONAVEL mesmo quando a causa raiz e do
+# cadastro (condutor fino demais no achado 31, GD superdimensionada no achado
+# 32), e a escolha e deliberada: a acao existe e e NOSSA — nao publicar o
+# numero dessa subestacao. `REDE_EXTENSA` fica de fora porque ali a queda e
+# fisicamente correta e o numero vale; aqui ele nao vale.
 
 # `SEM_CARGA` fica de fora de proposito: nao ha o que acionar numa subestacao
 # que a BDGD declara sem consumidor. E fato do cadastro, e o relatorio o diz.
