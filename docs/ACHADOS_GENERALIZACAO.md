@@ -1919,6 +1919,58 @@ mesmo padrão do achado 29 (que separou `PERDA_ALTA` de `TENSAO_BAIXA` porque
 um rótulo genérico escondia dois problemas). E investigar os três casos de
 `P_fonte_kW` negativo isoladamente, abrindo o modelo como se fez no achado 22.
 
+## Achado 31-B — o veredicto que existia, sumiu, e voltou medido
+
+Implementado em 08/09/2026, fechando a pendência que o achado 31 deixou.
+
+`TENSAO_IMPLAUSIVEL` nasceu no achado 1 e **desapareceu** quando o
+classificador graduado dos achados 25 e 29 substituiu o código antigo — sem
+herdeiro, sem nota, sem que a suíte notasse. Ninguém percebeu por dez dias.
+
+**O que a falta dele custava, medido sobre as 4.078 subestações da V31:**
+
+| de onde saem | quantas |
+|---|---:|
+| `TENSAO_BAIXA` | **25** |
+| `REGULADOR_SATURADO` | 5 |
+| `CARGA_ALTA` | 4 |
+| **total reclassificado** | **34** (0,83%) |
+
+**A surpresa é de onde vem a maioria.** O achado 31 apontou o rótulo de
+regulador, e ele responde por 5 casos; **25 vinham de `TENSAO_BAIXA`** — a
+classe que o achado 29 já tinha limpado uma vez. Exemplos, todos hoje
+chamados de "tensão baixa":
+
+| subestação | V mediana | perda |
+|---|---:|---:|
+| CPFL_SANTA69/ITS | **0,023** | 3,82% |
+| CPFL_SANTA69/CHP | 0,038 | 15,15% |
+| CPFL/ITB | 0,056 | 2,54% |
+| ENERGISA_T32/4 | 0,065 | **99,96%** |
+
+Uma subestação em **0,023 pu** com o mesmo rótulo de uma em 0,89 pu. E note
+a coluna da perda: `ITS` e `ITB` têm tensão destruída e perda BAIXA, o que é
+outro subtipo — rede energizada a quase zero volt não conduz corrente, então
+não gera perda. O rótulo único escondia até isso.
+
+**Onde ele entra na cascata, e por quê.** Antes de `CARGA_ALTA`,
+`REDE_EXTENSA` e `REGULADOR_SATURADO`: nessas subestações os três costumam ser
+**verdade** — a demanda excede mesmo, o alimentador é longo mesmo, os
+reguladores estão no tape máximo mesmo —, e os três descrevem o sintoma no
+lugar da doença. Depois de `MODELO_QUEBRADO` e das classes de carga sem
+tensão, que descrevem melhor o que houve.
+
+**É acionável, ao contrário de `REDE_EXTENSA`.** Lá a queda é fisicamente
+correta e o número vale; aqui o número não vale, e a ação é nossa: não
+publicar.
+
+**A ressalva do achado 1 vem junto, e continua de pé:** o corte de 0,5 pu foi
+calibrado no histograma do MÍNIMO, que é bimodal com vale em 0,45–0,55, e é
+aplicado sobre a MEDIANA, cuja distribuição não tem vale. Ele se defende pela
+física, não pelos dados. Doze testes novos travam a precedência, para que
+reordenar a cascata quebre a suíte em vez de sumir com o veredicto de novo —
+que foi exatamente o que aconteceu da primeira vez.
+
 ## Achado 32 — a energia declarada da GD não cabe na potência declarada dela
 
 Medido em 08/09/2026, perseguindo as quatro subestações do achado 31 que
