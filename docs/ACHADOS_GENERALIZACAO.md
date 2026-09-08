@@ -1838,9 +1838,30 @@ que nunca recebia a tensão reconciliada por alimentador.
 `kv_por_ctmt` (achado 49); `geracao()` só aceitava um `kv_mt` fixo. Corrigido
 em 04/09/2026 (commit `d2cd029`): `geracao()` passa a aceitar `kv_por_ctmt` e
 usá-lo por alimentador, com o `kv_mt` como reserva só para quem não tem
-tensão reconciliada. **Não testado de ponta a ponta** — o `.gdb` da
-EQUATORIAL6072 tem 5,1 GB e a verificação exige reconverter no cluster
-(`etapas/converter.py --se 5002404`).
+tensão reconciliada.
+
+**Verificado no cluster em 08/09/2026**, reconvertendo só esta subestação
+(`etapas/converter.py --se 5002404 --refazer`). Dos 11 geradores, **8 passam
+a sair com `kv=34,5`** e 3 seguem em 13,8 — que é o certo, porque a
+subestação tem quatro alimentadores e o achado 49 reconcilia um a um:
+
+| | antes | depois |
+|---|---:|---:|
+| `P_gd_kW` | 15.020,7 | **3.648,9** (Pmpp declarado: 3.945) |
+| `P_fonte_kW` | **−4.192,4** | **+8.430,5** |
+
+**O fluxo invertido desapareceu** — era artefato do `kv` errado, e a fonte
+volta a injetar potência como uma subestação normal.
+
+**Mas a tensão não melhorou:** `V_MT_mediana` foi de 0,129 para 0,109 e a
+perda de 81,3% para 82,6%. O `kv` da GD explicava a medição de geração e o
+sinal da fonte; **não** explica a tensão implausível. Esse pedaço do achado 31
+continua aberto — e é justamente a faixa que deveria ter veredicto próprio.
+
+(A `causa` desta rodada avulsa saiu `REDE_EXTENSA`, e isso é artefato do
+teste: rodando uma subestação só, não há censo da base e o limiar de km por
+alimentador cai no padrão da Enel SP, 60 km. O próprio validador avisa na
+saída. Na V31 completa o censo da base não dispara esse teste.)
 
 **O que isto não é:** uma falha do achado 30. A correção fez exatamente o que
 prometeu — resolveu 80 das 98 saturações por orientação errada. As 18 que
