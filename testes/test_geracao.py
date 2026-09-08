@@ -81,7 +81,7 @@ class InversorDeBTNaoVaiParaBarraDeMT(unittest.TestCase):
 
     def test_pac_que_casa_com_barra_de_mt_nao_recebe_o_inversor(self):
         """O caso medido: o PAC da UGBT e o primario do trafo."""
-        (n, _, realoc, sem_rede, _, _, _), txt = _gera(
+        (n, _, realoc, sem_rede, _, _, _, _, _), txt = _gera(
             MT, _sec(), barras={MT, BT})
         self.assertNotIn(MT, txt,
                          'inversor de 127 V escrito na barra de 7,97 kV')
@@ -93,7 +93,7 @@ class InversorDeBTNaoVaiParaBarraDeMT(unittest.TestCase):
     def test_sem_plano_b_a_unidade_e_descartada_e_nao_vira_nan(self):
         """Sem `UNI_TR_MT` nao ha para onde realocar. O certo e descartar e
         contar — nunca escrever numa barra que nao e de BT."""
-        (n, _, _, sem_rede, _, _, _), txt = _gera(
+        (n, _, _, sem_rede, _, _, _, _, _), txt = _gera(
             MT, _sec(), barras={MT}, com_coluna=False)
         self.assertEqual((n, sem_rede), (0, 1))
         self.assertNotIn(MT, txt)
@@ -102,7 +102,7 @@ class InversorDeBTNaoVaiParaBarraDeMT(unittest.TestCase):
         """O caminho normal nao pode ter sido estreitado junto."""
         sec = _sec()
         sec[BT] = sec['TR1']
-        (n, _, realoc, sem_rede, _, _, _), txt = _gera(BT, sec, barras={MT, BT})
+        (n, _, realoc, sem_rede, _, _, _, _, _), txt = _gera(BT, sec, barras={MT, BT})
         self.assertEqual((realoc, sem_rede), (0, 0))
         self.assertIn(BT, txt)
         self.assertEqual(n, 2)
@@ -111,7 +111,7 @@ class InversorDeBTNaoVaiParaBarraDeMT(unittest.TestCase):
         """Com --bt completo o PAC da UGBT e a ponta do RAMLIG, que nao e
         secundario de trafo nenhum. Ela e legitima e nao pode ser realocada."""
         ponta = 'node_999'
-        (n, _, realoc, sem_rede, _, _, _), txt = _gera(
+        (n, _, realoc, sem_rede, _, _, _, _, _), txt = _gera(
             ponta, _sec(), barras={MT, BT, ponta}, barras_bt={ponta})
         self.assertEqual((realoc, sem_rede), (0, 0))
         self.assertIn(ponta, txt)
@@ -120,7 +120,7 @@ class InversorDeBTNaoVaiParaBarraDeMT(unittest.TestCase):
     def test_a_mesma_ponta_sem_rede_de_bt_declarada_e_realocada(self):
         """Sem `barras_bt`, `node_999` e so um nome: pode ser qualquer coisa.
         O conservador e mandar para o secundario, que se sabe ser de BT."""
-        (_, _, realoc, _, _, _, _), txt = _gera(
+        (_, _, realoc, _, _, _, _, _, _), txt = _gera(
             'node_999', _sec(), barras={MT, BT, 'node_999'})
         self.assertEqual(realoc, 1)
         self.assertIn(BT, txt)

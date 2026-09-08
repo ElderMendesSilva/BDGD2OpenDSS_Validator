@@ -9,6 +9,7 @@ Elementos complementares, cada funcao gerando um arquivo:
   (fixo)  -> New XYCurve       (eficiencia do inversor e derating P x T)
 """
 import math
+import re
 from .leitor import num, txt, no
 from . import escrita
 from . import dominios
@@ -485,7 +486,7 @@ def reguladores(bdgd, ctmts, caminho, kv=13.8, kv_por_ctmt=None,
 # ------------------------------------------------------------------ geracao
 def geracao(bdgd, ctmts, sec, caminho, kv_mt=13.8, barras=None,
             irradiancia=1.0, fp=1.0, mes=1, fc=None, barras_bt=None,
-            kv_por_ctmt=None):
+            kv_por_ctmt=None, caminho_implausivel=None):
     """UGBT_tab e UGMT_tab -> PVSystem.
 
     A POTENCIA VEM DA ENERGIA, NAO DE POT_INST
@@ -554,6 +555,7 @@ def geracao(bdgd, ctmts, sec, caminho, kv_mt=13.8, barras=None,
     out = ['! GERACAO DISTRIBUIDA — gerada de UGBT_tab e UGMT_tab',
            '! Unidades com potencia nula sao omitidas (gerariam NaN).']
     n = nulos = realocados = sem_rede = por_ceg = 0
+    implausiveis = {}          # achado 32: COD_ID -> (pot, POT_INST, energia)
     pend = {}          # barra de BT -> geracao pendente, limitada no 2o passe
     # CEG_GD da UCMT_tab -> PAC da carga. E o unico caminho que funciona para
     # a geracao de MT: dos 319 registros de UGMT_tab da concessao, NENHUM tem
@@ -592,6 +594,29 @@ def geracao(bdgd, ctmts, sec, caminho, kv_mt=13.8, barras=None,
                 continue
             fs = [FASES[c] for c in txt(col['FAS_CON'][i], 'ABC').upper() if c in FASES] or ['1']
             cod = txt(col['COD_ID'][i])
+            # ACHADO 32: a energia declarada nao cabe na potencia declarada.
+            # O teste e FISICO e nao escolhe em qual dos dois campos acreditar:
+            # nenhum gerador entrega, no mes, mais do que a propria potencia
+            # instalada vezes 730 h. Quando `ENE_XX` passa disso, o fator de
+            # capacidade implicito e maior que 100% e os dois campos da MESMA
+            # linha se contradizem.
+            #
+            # Nao e caso de borda: o maior "gerador distribuido" do pais
+            # declara POT_INST de 109,4 kW com ENE_01 de 25,4 GWh — 317 mil
+            # vezes o que a potencia comporta. Sao 221 unidades no pais acima
+            # do teto de 5 MW da mini-GD (Lei 14.300/2022), somando 2.384 MWp,
+            # ou 10,3% de toda a GD declarada. Uma delas sozinha, na
+            # NEOENERGIA385/MOG02, levava a tensao a 1,877 pu e as perdas a
+            # 75.729 kW — sem ela, a mesma rede fecha com 1.325 kW.
+            #
+            # A unidade CONTINUA sendo emitida com o que a BDGD declara. O que
+            # o `_GD_IMPLAUSIVEL.dss` faz e desliga-la, e apagar o redirect no
+            # MASTER devolve o modelo a declaracao crua — mesmo contrato do
+            # `_AMPACIDADE.dss`.
+            teto = num(col['POT_INST'][i]) * HORAS
+            if teto > 0 and num(col[ene][i]) > teto:
+                implausiveis[cod] = (pot, num(col['POT_INST'][i]),
+                                     num(col[ene][i]))
             if is_bt:
                 s = sec.get(pac)
                 # ACHADO 30. A condicao antiga era `pac not in barras`, e
@@ -682,8 +707,57 @@ def geracao(bdgd, ctmts, sec, caminho, kv_mt=13.8, barras=None,
     out.insert(8, f'! {por_ceg} unidades de MT ligadas pelo PAC da carga '
                   f'(casadas por CEG_GD): o PAC da UGMT nao existe na SSDMT.')
     open(caminho, 'w', encoding='utf-8', newline=escrita.FIM_DE_LINHA).write('\n'.join(out) + '\n')
+
+    # --- achado 32: a premissa, num arquivo separado e reversivel ---
+    # Os nomes vem do que foi EMITIDO, e nao montados a mao: a unidade de BT
+    # vira um PVSystem por perna (`GD_<cod>_<fase>`) e a de MT vira um so
+    # (`GD_<cod>`). Montar o nome por fora erraria metade dos casos, e
+    # `batchedit` com curinga nao serve — o achado 22 ja mostrou que ele
+    # silenciosamente nao faz efeito.
+    n_impl, kw_impl = 0, 0.0
+    linhas = []
+    if implausiveis:
+        emitidos = re.findall(r'New PVSystem\.(\S+)', '\n'.join(out))
+        for nome in emitidos:
+            for cod, (pot, pot_inst, energia) in implausiveis.items():
+                if nome == f'GD_{cod}' or nome.startswith(f'GD_{cod}_'):
+                    linhas.append((pot, nome, cod, pot_inst, energia))
+                    break
+        linhas.sort(reverse=True)
+        n_impl = len(linhas)
+        kw_impl = sum(x[0] for x in linhas)
+    impl = [
+        '! GERACAO IMPLAUSIVEL — achado 32.',
+        '! ',
+        '! A energia declarada da unidade nao cabe na potencia declarada dela:',
+        '! `ENE_XX` maior que `POT_INST` x 730 h e fator de capacidade acima de',
+        '! 100%, o que nenhum gerador faz. Os dois campos sao da MESMA linha da',
+        '! UGMT_tab/UGBT_tab, entao a contradicao e do dado, nao do modelo.',
+        '! ',
+        '! O conversor dimensiona a GD pela ENERGIA porque `POT_INST` ja tinha',
+        '! sido provado errado (replica o CAR_INST do consumidor, errando por',
+        '! ate 540x). O achado 32 mostra o outro lado: nenhum dos dois serve',
+        '! sozinho. Aqui nao se escolhe entre eles — desliga-se a unidade cuja',
+        '! declaracao se contradiz, porque nao ha tamanho confiavel a usar.',
+        '! ',
+        '! APAGAR O REDIRECT DESTE ARQUIVO NO MASTER devolve o modelo a',
+        '! declaracao crua da BDGD, com a unidade ligada.',
+        f'! ',
+        f'! {n_impl} unidade(s) desligada(s), somando {kw_impl:,.1f} kW.',
+        '! ==========================================================']
+    for pot, nome, cod, pot_inst, energia in linhas:
+        impl.append(f'! {nome}: POT_INST={pot_inst:,.1f} kW mas '
+                    f'ENE={energia:,.1f} kWh/mes — implicaria {pot:,.1f} kW')
+        impl.append(f'Edit PVSystem.{nome} enabled=no')
+    # O arquivo e SEMPRE escrito quando ha caminho, mesmo vazio: o MASTER o
+    # redireciona sem condicao, e `Redirect` de arquivo ausente aborta a
+    # compilacao inteira da subestacao — foi o que quebrou quatro testes
+    # quando o `_REGULADORES.dss` do achado 30 entrou.
+    if caminho_implausivel:
+        escrita.escreve(caminho_implausivel, '\n'.join(impl) + '\n')
+
     return (n, nulos, realocados, sem_rede, barras_limitadas,
-            round(kw_cortado, 1), por_ceg)
+            round(kw_cortado, 1), por_ceg, n_impl, round(kw_impl, 1))
 
 
 def _pv(cod, bus, nf, kv, pot, irrad=1.0, fp=1.0):

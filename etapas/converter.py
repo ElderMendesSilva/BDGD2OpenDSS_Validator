@@ -458,11 +458,16 @@ def _uma_se(C, se, k):
     # a GD vem depois da rede de BT: com --bt completo o PAC da UGBT so
     # existe depois que SSDBT e RAMLIG foram escritos
     (n_gd, gd_nulos, gd_realoc, gd_fora, gd_lim, gd_kw_cortado,
-     gd_por_ceg) = complementos.geracao(
+     gd_por_ceg, gd_impl, gd_impl_kw) = complementos.geracao(
         b, ctmts, sec, os.path.join(d, 'GD.dss'), a.kv_mt,
         barras=barras_rede, barras_bt=barras_bt,
         irradiancia=a.irradiancia, fp=a.gd_fp,
-        mes=a.mes, fc=fc_gd, kv_por_ctmt=kv_por_ctmt)
+        mes=a.mes, fc=fc_gd, kv_por_ctmt=kv_por_ctmt,
+        caminho_implausivel=os.path.join(d, '_GD_IMPLAUSIVEL.dss'))
+    if gd_impl:
+        log(f'  ACHADO 32: {gd_impl} unidade(s) de GD com energia acima do que '
+            f'a propria POT_INST comporta ({gd_impl_kw:,.0f} kW) — desligadas '
+            f'em _GD_IMPLAUSIVEL.dss')
 
     # vaos desta subestacao: ligam a barra de MT as cabeceiras
     vaos_se = (est_at.get('vaos_por_se') or {}).get(se, [])
@@ -637,6 +642,7 @@ def _uma_se(C, se, k):
          'GD_realocada': gd_realoc, 'GD_fora_da_rede': gd_fora,
          'GD_barras_limitadas': gd_lim, 'GD_kW_cortado': gd_kw_cortado,
          'GD_MT_por_CEG_GD': gd_por_ceg,
+         'GD_implausivel': gd_impl, 'GD_implausivel_kW': gd_impl_kw,
          'mes': a.mes, 'dia': a.dia, 'fator_carga': a.fator_carga,
          'bt': a.bt, 'coords': n_co_se,
          # capacidade instalada de AT: o classificador de causa usa isso
@@ -1018,6 +1024,7 @@ def main():
         aberturas += [f'{s}/_AMPACIDADE.dss' for s in todas]
         aberturas += [f'{s}/_LIGACAO.dss' for s in todas]
         aberturas += [f'{s}/_REGULADORES.dss' for s in todas]
+        aberturas += [f'{s}/_GD_IMPLAUSIVEL.dss' for s in todas]
         aberturas = [x for x in aberturas if os.path.exists(os.path.join(a.saida, x))]
         vaos_todos = [c for s_ in todas for c in ses[s_]
                       if c in (vaos_lig or {})]

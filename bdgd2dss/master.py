@@ -226,6 +226,14 @@ redirect _REGULADORES.dss
 ! o modelo ao que a BDGD declara.
 redirect _AMPACIDADE.dss
 
+! Geracao cuja energia declarada nao cabe na propria POT_INST — achado 32.
+! `ENE_XX` acima de `POT_INST` x 730 h e fator de capacidade maior que 100%, e
+! os dois campos sao da mesma linha da UGMT_tab/UGBT_tab. Vazio quando a base
+! nao tem nenhuma. Apagar esta linha devolve o modelo a declaracao crua, com a
+! unidade ligada — foi assim que uma unidade de 19,5 MWp levou a MOG02 a
+! 1,877 pu e 75.729 kW de perdas.
+redirect _GD_IMPLAUSIVEL.dss
+
 ! Premissa de modelagem que INVENTA um elo — achado 33, forma B. Vazio ate
 ! alguem rodar `ligacao.py`. Apagar esta linha devolve o modelo a topologia
 ! que a BDGD declara.
