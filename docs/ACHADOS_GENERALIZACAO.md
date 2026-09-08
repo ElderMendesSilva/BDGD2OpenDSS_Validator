@@ -1919,6 +1919,68 @@ mesmo padrão do achado 29 (que separou `PERDA_ALTA` de `TENSAO_BAIXA` porque
 um rótulo genérico escondia dois problemas). E investigar os três casos de
 `P_fonte_kW` negativo isoladamente, abrindo o modelo como se fez no achado 22.
 
+## Achado 32 — a energia declarada da GD não cabe na potência declarada dela
+
+Medido em 08/09/2026, perseguindo as quatro subestações do achado 31 que
+saturavam **sem** ser longas. Elas não eram um fenômeno só, e a maior delas
+abriu um achado maior que a pergunta original.
+
+**A NEOENERGIA385/MOG02 é a prova limpa.** Desligando só a geração:
+
+| | como está | sem GD |
+|---|---:|---:|
+| V mediana | 0,883 | **0,941** |
+| V máxima | **1,877 pu** | **0,988** |
+| perdas | **75.729 kW** | **1.325 kW** |
+
+Sem GD a rede é sadia. Desligar os reguladores não muda nada — eles saturam
+por consequência, não por causa. E a GD dessa subestação são 3.685 unidades
+cuja **mediana é 0,67 kWp**, com uma única de **19.495,7 kWp** — 80,6% de
+tudo, e 66 vezes a segunda maior, numa subestação de 16 MW de carga.
+
+### Nacionalmente, e contra uma âncora de fora
+
+| | |
+|---|---:|
+| geradores declarados no país (V31) | **8.650.492** |
+| capacidade que a energia deles implica | **23.054 MWp** |
+| **geradores acima do teto de 5 MW da mini-GD** | **221** |
+| quanto eles somam | **2.384 MWp** |
+| **fração de toda a GD declarada do país** | **10,3%** |
+| subestações afetadas | 188 |
+
+O teto de 5 MW da mini-GD (Lei 14.300/2022) é âncora **externa**, como os 7,4%
+da ANEEL para perda: não depende de acreditar no nosso modelo. Duzentos e
+vinte e um registros — 0,0026% das entradas — carregam um décimo da
+capacidade declarada do país. É o mesmo formato do achado 8: pouquíssimos
+registros implausíveis dominando o agregado.
+
+### A contradição é interna à BDGD, e está em dois campos da mesma linha
+
+O maior deles, na EQUATORIAL6072/5001222:
+
+```
+COD_ID     c7e99eb2…8d66
+CEG_GD     UTE.AI.GO.028113-1     usina termeletrica
+POT_INST   109,4375 kW            potencia instalada declarada
+ENE_01     25.372.031,85 kWh      energia declarada no mes
+```
+
+**Um gerador de 109 kW produz no máximo 79,9 MWh em 730 h.** A energia
+declarada é **317 mil vezes** o que a potência declarada comporta. Não há
+leitura em que os dois campos estejam certos.
+
+**E isto respinga numa escolha nossa.** O conversor dimensiona a GD pela
+ENERGIA e não pelo `POT_INST`, e com razão documentada: `POT_INST` replicava
+o `CAR_INST` do consumidor, errando por até 540x. O achado 32 mostra o outro
+lado da moeda — **nenhum dos dois campos serve sozinho**. Onde os dois
+discordam por ordens de grandeza, o que falta é o teste de plausibilidade
+cruzado entre eles, que hoje não existe.
+
+**O que não está medido:** quantos dos 221 têm `POT_INST` incompatível como
+este. Conferir exige ler `UGMT_tab`/`UGBT_tab` das 99 bases — lê `.gdb`,
+então é job, não leitura de modelo.
+
 ## Validação externa e contaminação
 
 A âncora nacional de 7,4% de perda técnica total da ANEEL é apenas um **teste
