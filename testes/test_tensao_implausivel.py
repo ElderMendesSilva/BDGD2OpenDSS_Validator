@@ -115,5 +115,57 @@ class TestContrato(unittest.TestCase):
         self.assertNotIn('TENSAO_IMPLAUSIVEL', d.SEM_TENSAO)
 
 
+
+class TestSoValeComTensaoRuim(unittest.TestCase):
+    """`REDE_EXTENSA` e `REGULADOR_SATURADO` explicam queda de tensão — e
+    com a tensão adequada não há queda a explicar (achado 33-B).
+
+    Medido na V32: 3 das 11 `REDE_EXTENSA` e 5 das 12 `REGULADOR_SATURADO`
+    tinham tensão acima de 0,90 pu, e a NEOENERGIA47/SBC estava em 1,036 pu —
+    acima da nominal — carimbada como rede extensa demais para sustentar
+    tensão.
+    """
+
+    LONGO = {'alimentadores': 1, 'km_MT': 5000.0}
+    SATURADO = {'reg_total': 9, 'reg_saturados': 9}
+
+    def test_rede_extensa_com_tensao_boa_vira_perda_alta(self):
+        causa, _, _ = classificar(0.938, resumo=self.LONGO, perdas_pct=26.7)
+        self.assertEqual(causa, 'PERDA_ALTA')
+
+    def test_rede_extensa_com_tensao_ruim_continua_valendo(self):
+        causa, _, _ = classificar(0.85, resumo=self.LONGO, perdas_pct=26.7)
+        self.assertEqual(causa, 'REDE_EXTENSA')
+
+    def test_regulador_saturado_com_tensao_boa_vira_perda_alta(self):
+        """O caso da NEOENERGIA385/UBA02: 0,938 pu e perda de 16,2%."""
+        causa, _, _ = classificar(0.938, extra=self.SATURADO, perdas_pct=16.2)
+        self.assertEqual(causa, 'PERDA_ALTA')
+
+    def test_regulador_saturado_com_tensao_ruim_continua_valendo(self):
+        causa, _, _ = classificar(0.85, extra=self.SATURADO, perdas_pct=16.2)
+        self.assertEqual(causa, 'REGULADOR_SATURADO')
+
+    def test_tensao_acima_da_nominal_nunca_e_rede_extensa(self):
+        """1,036 pu não é problema de queda de tensão, por definição."""
+        self.assertEqual(
+            classificar(1.036, resumo=self.LONGO, perdas_pct=26.7)[0],
+            'PERDA_ALTA')
+
+    def test_carga_alta_nao_ganhou_a_trava(self):
+        """Ela afirma algo sobre CAPACIDADE, não sobre tensão."""
+        cheia = {'alimentadores': 1, 'km_MT': 10, 'kW_MT': 5000}
+        causa, _, _ = classificar(0.989, resumo=cheia,
+                                  extra={'mva_instalado': 1.0}, perdas_pct=21.3)
+        self.assertEqual(causa, 'CARGA_ALTA')
+
+    def test_nenhuma_delas_vira_OK(self):
+        """A perda continua reprovando: é relabelagem, não aprovação."""
+        for r, e in ((self.LONGO, {}), ({'alimentadores': 1, 'km_MT': 10},
+                                        self.SATURADO)):
+            self.assertNotEqual(classificar(0.938, resumo=r, extra=e,
+                                            perdas_pct=26.7)[0], 'OK')
+
+
 if __name__ == '__main__':
     unittest.main()

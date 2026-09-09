@@ -67,10 +67,19 @@ As causas, na ordem em que sao testadas:
                     queda de tensao e fisicamente correta e nao ha o que
                     corrigir sem o ajuste de campo dos reguladores.
 
+                    SO VALE COM A TENSAO RUIM (achado 33-B). Alimentador
+                    longo com a tensao adequada nao tem problema de tensao a
+                    explicar — a NEOENERGIA47/SBC levava este rotulo com
+                    1,036 pu, ACIMA da nominal.
+
   REGULADOR_SATURADO  ha regulador na subestacao e todos estao no tape
                     maximo. O modelo esta pedindo mais reforco do que um
                     regulador entrega. Sem o ajuste real (vreg, banda,
                     escalonamento), nao ha como melhorar honestamente.
+
+                    SO VALE COM A TENSAO RUIM, pelo mesmo motivo: com a
+                    tensao ja adequada o tape no fim e fato verdadeiro e
+                    irrelevante, e o rotulo pertence ao teste que reprovou.
 
   CARGA_ALTA        a demanda supera a capacidade instalada declarada. Pode
                     ser dado inconsistente da BDGD — a propria base tem ~3%
@@ -265,13 +274,33 @@ def classificar(v, resumo, extra=None, referencia=None):
         return ('CARGA_ALTA',
                 f'{kw/1000:.1f} MW sobre {mva:.0f} MVA instalados ({uso:.0f}%)', True)
 
-    if km_alim > km_alto:
+    # OS DOIS TESTES ABAIXO SO VALEM COM A TENSAO RUIM — achado 33-B.
+    #
+    # `REDE_EXTENSA` e `REGULADOR_SATURADO` se justificam, os dois, por queda
+    # de tensao: um diz que "a queda e fisicamente correta num alimentador
+    # desse tamanho", o outro que "o modelo pede mais reforco do que um
+    # regulador entrega". Com a tensao mediana ADEQUADA, nenhum dos dois
+    # explica coisa alguma — o alimentador e longo e os reguladores estao no
+    # fim do tape, mas a tensao chegou. O que falhou foi a perda, e e ela que
+    # tem de nomear a subestacao.
+    #
+    # Medido na V32: 3 das 11 `REDE_EXTENSA` e 5 das 12 `REGULADOR_SATURADO`
+    # tinham tensao acima de 0,90 pu. A NEOENERGIA47/SBC estava em **1,036
+    # pu** — acima da nominal — carimbada como rede extensa demais para
+    # sustentar tensao. As oito passam a `PERDA_ALTA`, que e o teste que elas
+    # de fato reprovam; nenhuma vira `OK`, porque a perda continua alta.
+    #
+    # `CARGA_ALTA` fica de fora desta trava de proposito: ela afirma algo
+    # sobre CAPACIDADE, nao sobre tensao, e demanda acima da instalada explica
+    # perda alta por si so.
+    if vmed < V_BAIXA and km_alim > km_alto:
         origem = (f'mediana desta base: {med_base:.1f} km' if med_base
                   else 'sem censo desta base; limiar da Enel SP, 60 km')
         return ('REDE_EXTENSA',
                 f'{km_alim:.0f} km por alimentador ({origem})', False)
 
-    if extra.get('reg_total') and extra.get('reg_saturados') == extra.get('reg_total'):
+    if (vmed < V_BAIXA and extra.get('reg_total')
+            and extra.get('reg_saturados') == extra.get('reg_total')):
         return ('REGULADOR_SATURADO',
                 f'{extra["reg_total"]} reguladores, todos no tape maximo', False)
 
