@@ -17,6 +17,59 @@ from . import dominios
 FASES = {'A': '1', 'B': '2', 'C': '3'}
 HORAS = 730.0                       # horas no mes, igual ao usado em cargas.py
 
+# ---------------------------------------------------------------------------
+# ACHADO 34: o divisor tem de casar com a curva — nao com a placa
+# ---------------------------------------------------------------------------
+# O conversor dimensiona TODA geracao por `ENE / 730 / 0,286`, e 0,286 e o
+# fator de capacidade da CURVA SOLAR. A conta esta certa para solar e so para
+# ela: `pmpp x 0,286 x 730 = ENE`, a integral do dia bate.
+#
+# Para uma PCH que roda a 76% de fator de capacidade, dividir a energia pelo
+# fator solar infla a usina. Medido na NEOENERGIA385/MOG02: uma PCH de 7,3 MW
+# de placa virava 19,5 MW no modelo, injetando com curva de irradiancia — pico
+# ao meio-dia e ZERO a noite, quando uma PCH roda continuamente.
+#
+# CENSO NACIONAL (99 bases da safra 2025, razao entre o que o modelo emitia e
+# a placa declarada, mediana):
+#
+#     tec    unidades   POT_INST     no modelo   razao
+#     PCH         114     681 MW      1.232 MW   1,74x
+#     UHE          20     358 MW        274 MW   1,53x
+#     CGH         239     378 MW        629 MW   1,31x
+#     UTE         113   1.793 MW        462 MW   0,65x
+#     UFV          72      81 MW         44 MW   0,28x
+#
+# As hidricas inflam e a solar encolhe, que e exatamente o que a mecanica
+# preve. Sao 494 unidades com tecnologia declarada, ~11% da GD modelada do
+# pais, todas com curva de irradiancia.
+#
+# A CORRECAO NAO E TROCAR ENERGIA POR PLACA. O docstring de `geracao` explica,
+# com medida propria, por que `POT_INST` nao serve (replica o `CAR_INST` do
+# consumidor, errando por ate 540x), e isso continua valendo. O invariante e
+# outro: a integral do dia tem de bater com a energia declarada, e por isso o
+# DIVISOR TEM DE CASAR COM A CURVA QUE SE ANEXA. Curva solar, divide-se pelo
+# fator dela; curva plana, nao se divide por nada.
+#
+# `POT_INST` fica no papel em que e confiavel: teste de plausibilidade, que o
+# guarda do achado 32 ja lhe da.
+#
+# A tecnologia sai do `CEG_GD`, e so a minoria a declara: 3,09 milhoes de
+# unidades trazem o registro generico `GD.SP.001.904.722`, sem tecnologia,
+# enquanto as usinas registradas trazem o CEG completo — `PCH.PH.SP.001479-6`.
+# A correcao alcanca apenas estas, de proposito.
+FIRME = {'PCH', 'CGH', 'UHE', 'UTE', 'UTN', 'EOL'}
+
+
+def tecnologia(ceg):
+    """O prefixo do CEG, quando ele declara a tecnologia.
+
+    `GD.SP.001.904.722` e registro generico e devolve `''` — sem tecnologia
+    declarada, o conversor mantem o tratamento de solar, que e o que a massa
+    de micro-GD de telhado e.
+    """
+    p = str(ceg or '').strip().upper().split('.')[0]
+    return p if p in FIRME or p == 'UFV' else ''
+
 # ------------------------------------------------------------------ curvas de 96 pontos
 # Tudo em 96 pontos de 15 min cobrindo as 24 h, na mesma malha da CRVCRG.
 #
@@ -286,6 +339,16 @@ def curvas(bdgd, caminho, tipo_dia='DU', clima=None):
                'MyPvsT espera. Ambiente + aquecimento NOCT por irradiancia.')
     out.append('New TShape.TEMP_DIA npts=96 interval=0.25 '
                f'temp=({" ".join(f"{x:.2f}" for x in cel)})')
+    # ACHADO 34: geracao firme nao tem curva solar.
+    # PCH, CGH, UHE, UTE e EOL rodam de noite; anexar IRRAD_DIA a elas zera a
+    # geracao no pico de carga e concentra tudo ao meio-dia. Curva PLANA e
+    # PREMISSA, e nao dado: a BDGD nao declara o despacho horario, e UTE de
+    # ponta nao roda plana. O que ela garante e o unico invariante disponivel
+    # — a integral do dia bate com a energia declarada.
+    out.append('\n! ACHADO 34: perfil de geracao FIRME, plano. Premissa, nao '
+               'dado — a BDGD nao declara despacho horario.')
+    out.append('New LoadShape.GERACAO_FIRME npts=96 interval=0.25 '
+               f'mult=({" ".join(["1.0"] * 96)})')
     open(caminho, 'w', encoding='utf-8', newline=escrita.FIM_DE_LINHA).write('\n'.join(out) + '\n')
     return nomes, irr, cel
 
@@ -556,6 +619,7 @@ def geracao(bdgd, ctmts, sec, caminho, kv_mt=13.8, barras=None,
            '! Unidades com potencia nula sao omitidas (gerariam NaN).']
     n = nulos = realocados = sem_rede = por_ceg = 0
     implausiveis = {}          # achado 32: COD_ID -> (pot, POT_INST, energia)
+    n_firme, kw_firme = 0, 0.0    # achado 34: usinas com CEG proprio
     pend = {}          # barra de BT -> geracao pendente, limitada no 2o passe
     # CEG_GD da UCMT_tab -> PAC da carga. E o unico caminho que funciona para
     # a geracao de MT: dos 319 registros de UGMT_tab da concessao, NENHUM tem
@@ -594,6 +658,16 @@ def geracao(bdgd, ctmts, sec, caminho, kv_mt=13.8, barras=None,
                 continue
             fs = [FASES[c] for c in txt(col['FAS_CON'][i], 'ABC').upper() if c in FASES] or ['1']
             cod = txt(col['COD_ID'][i])
+            # ACHADO 34: usina firme nao se divide pelo fator solar.
+            # A curva plana tem fator de capacidade 1, entao a potencia e a
+            # MEDIA do mes, `ENE / 730`, e a integral do dia bate com a energia
+            # declarada — o mesmo invariante que a conta solar cumpre dividindo
+            # por 0,286 e anexando `IRRAD_DIA`. Sao 561 unidades na MT e 40 na
+            # BT, no pais.
+            tec = tecnologia(col['CEG_GD'][i]) if 'CEG_GD' in col else ''
+            firme = tec in FIRME
+            if firme:
+                pot = num(col[ene][i]) / HORAS
             # ACHADO 32: a energia declarada nao cabe na potencia declarada.
             # O teste e FISICO e nao escolhe em qual dos dois campos acreditar:
             # nenhum gerador entrega, no mes, mais do que a propria potencia
@@ -650,7 +724,7 @@ def geracao(bdgd, ctmts, sec, caminho, kv_mt=13.8, barras=None,
                 # transformador antes de escrever
                 pend.setdefault(pac, {'kva': (s or {}).get('kva', 0.0),
                                       'kv': kv, 'itens': []})
-                pend[pac]['itens'].append((cod, pot, fs))
+                pend[pac]['itens'].append((cod, pot, fs, tec))
                 continue
             if barras is not None and pac not in barras and pac not in sec:
                 # o PAC da UGMT nunca esta na rede; o da UC correspondente esta
@@ -663,8 +737,14 @@ def geracao(bdgd, ctmts, sec, caminho, kv_mt=13.8, barras=None,
                     continue
             kv_base = kv_por_ctmt.get(txt(col['CTMT'][i]), kv_mt)
             kv = kv_base if len(fs) >= 3 else kv_base / math.sqrt(3)
-            out.append(_pv(cod, f'{pac}.{".".join(fs)}', len(fs), kv, pot,
-                           irradiancia, fp))
+            if firme:
+                out.append(_gerador(cod, f'{pac}.{".".join(fs)}', len(fs), kv,
+                                    pot, tec, fp))
+                n_firme += 1
+                kw_firme += pot
+            else:
+                out.append(_pv(cod, f'{pac}.{".".join(fs)}', len(fs), kv, pot,
+                               irradiancia, fp))
             n += 1
     # --- segundo passe da BT: nenhuma barra gera acima do proprio trafo ---
     # A BDGD declara POT_INST de UGBT que excede a capacidade do transformador
@@ -677,20 +757,26 @@ def geracao(bdgd, ctmts, sec, caminho, kv_mt=13.8, barras=None,
     # a conecta. O excedente e cortado e contabilizado.
     kw_cortado, barras_limitadas = 0.0, 0
     for bus, d in pend.items():
-        total = sum(p for _, p, _ in d['itens'])
+        total = sum(p for _, p, _, _ in d['itens'])
         limite = d['kva']
         fator = 1.0
         if limite > 0 and total > limite:
             fator = limite / total
             kw_cortado += total - limite
             barras_limitadas += 1
-        for cod, pot, fs in d['itens']:
+        for cod, pot, fs, tec in d['itens']:
             pot *= fator
             if pot <= 0:
                 continue
             for f in fs:
-                out.append(_pv(f'{cod}_{f}', f'{bus}.{f}.4', 1, d['kv'],
-                               pot / len(fs), irradiancia, fp))
+                if tec in FIRME:
+                    out.append(_gerador(f'{cod}_{f}', f'{bus}.{f}.4', 1,
+                                        d['kv'], pot / len(fs), tec, fp))
+                    n_firme += 1
+                    kw_firme += pot / len(fs)
+                else:
+                    out.append(_pv(f'{cod}_{f}', f'{bus}.{f}.4', 1, d['kv'],
+                                   pot / len(fs), irradiancia, fp))
                 n += 1
 
     out.insert(2, f'! {nulos} unidades descartadas por potencia nula.')
@@ -706,6 +792,9 @@ def geracao(bdgd, ctmts, sec, caminho, kv_mt=13.8, barras=None,
                   f'capacidade exigida pelo PRODIST, nao despacho.')
     out.insert(8, f'! {por_ceg} unidades de MT ligadas pelo PAC da carga '
                   f'(casadas por CEG_GD): o PAC da UGMT nao existe na SSDMT.')
+    out.insert(9, f'! ACHADO 34: {n_firme} usina(s) firme(s) com CEG proprio '
+                  f'({kw_firme:,.1f} kW) saem como `Generator` com curva PLANA, '
+                  f'e nao como PVSystem — PCH e UTE rodam de noite.')
     open(caminho, 'w', encoding='utf-8', newline=escrita.FIM_DE_LINHA).write('\n'.join(out) + '\n')
 
     # --- achado 32: a premissa, num arquivo separado e reversivel ---
@@ -757,7 +846,8 @@ def geracao(bdgd, ctmts, sec, caminho, kv_mt=13.8, barras=None,
         escrita.escreve(caminho_implausivel, '\n'.join(impl) + '\n')
 
     return (n, nulos, realocados, sem_rede, barras_limitadas,
-            round(kw_cortado, 1), por_ceg, n_impl, round(kw_impl, 1))
+            round(kw_cortado, 1), por_ceg, n_impl, round(kw_impl, 1),
+            n_firme, round(kw_firme, 1))
 
 
 def _pv(cod, bus, nf, kv, pot, irrad=1.0, fp=1.0):
@@ -779,6 +869,27 @@ def _pv(cod, bus, nf, kv, pot, irrad=1.0, fp=1.0):
             f'pmpp={pot:.2f} kva={max(pot, 0.1):.2f} irradiance={irrad:g} temperature=25 '
             f'%cutin=20 %cutout=20 effcurve=MyEff P-TCurve=MyPvsT '
             f'Daily=IRRAD_DIA TDaily=TEMP_DIA')
+
+
+def _gerador(cod, bus, nf, kv, pot, tec, fp=1.0):
+    """Uma usina firme — ACHADO 34.
+
+    `Generator`, e nao `PVSystem`, porque e o que ela e: PCH, CGH, UHE, UTE ou
+    EOL, declarada com CEG proprio na UGMT_tab. Modelada como injecao de
+    potencia constante (`model=1`) com curva PLANA, e a potencia e a MEDIA do
+    mes — `ENE / 730` —, sem divisao por fator de capacidade nenhum, porque a
+    curva plana ja tem fator 1.
+
+    O `Generator` do OpenDSS injeta com sinal oposto ao da carga, entao
+    `kW` positivo aqui e geracao. `Vminpu` baixo de proposito: usina firme nao
+    se desliga por subtensao do modelo, e o padrao de 0,90 fazia a unidade
+    sumir justamente nas subestacoes com tensao ruim, que sao as que importam.
+    """
+    return (f'New Generator.GD_{cod} phases={nf} '
+            f'bus1={bus} conn=wye kv={kv:.4f} '
+            f'kW={pot:.2f} pf={fp:g} model=1 '
+            f'Vminpu=0.5 Vmaxpu=1.5 Daily=GERACAO_FIRME '
+            f'! {tec}')
 
 
 def xycurves(caminho):

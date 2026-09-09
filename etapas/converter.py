@@ -458,7 +458,8 @@ def _uma_se(C, se, k):
     # a GD vem depois da rede de BT: com --bt completo o PAC da UGBT so
     # existe depois que SSDBT e RAMLIG foram escritos
     (n_gd, gd_nulos, gd_realoc, gd_fora, gd_lim, gd_kw_cortado,
-     gd_por_ceg, gd_impl, gd_impl_kw) = complementos.geracao(
+     gd_por_ceg, gd_impl, gd_impl_kw,
+     gd_firme, gd_firme_kw) = complementos.geracao(
         b, ctmts, sec, os.path.join(d, 'GD.dss'), a.kv_mt,
         barras=barras_rede, barras_bt=barras_bt,
         irradiancia=a.irradiancia, fp=a.gd_fp,
@@ -473,6 +474,10 @@ def _uma_se(C, se, k):
         print(f'  ACHADO 32: {gd_impl} unidade(s) de GD com energia acima do '
               f'que a propria POT_INST comporta ({gd_impl_kw:,.0f} kW) — '
               f'desligadas em _GD_IMPLAUSIVEL.dss', flush=True)
+    if gd_firme:
+        print(f'  ACHADO 34: {gd_firme} usina(s) firme(s) com CEG proprio '
+              f'({gd_firme_kw:,.0f} kW) — Generator com curva plana, e nao '
+              f'PVSystem com curva solar', flush=True)
 
     # vaos desta subestacao: ligam a barra de MT as cabeceiras
     vaos_se = (est_at.get('vaos_por_se') or {}).get(se, [])
@@ -648,6 +653,7 @@ def _uma_se(C, se, k):
          'GD_barras_limitadas': gd_lim, 'GD_kW_cortado': gd_kw_cortado,
          'GD_MT_por_CEG_GD': gd_por_ceg,
          'GD_implausivel': gd_impl, 'GD_implausivel_kW': gd_impl_kw,
+         'GD_firme': gd_firme, 'GD_firme_kW': gd_firme_kw,
          'mes': a.mes, 'dia': a.dia, 'fator_carga': a.fator_carga,
          'bt': a.bt, 'coords': n_co_se,
          # capacidade instalada de AT: o classificador de causa usa isso

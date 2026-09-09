@@ -153,21 +153,27 @@ def valida(pasta, referencia=None):
     # Uma solucao extra so no caso que falhou — 23 de 4.078 — transforma o
     # veredicto em diagnostico.
     if not r['converge']:
+        # A GERACAO FIRME ENTRA NA SONDA — achado 34. Ela sai como
+        # `Generator`, e desligar so os `PVSystem` mediria "sem GD" com a PCH
+        # ainda injetando: o diagnostico sairia errado justamente nas
+        # subestacoes que tem usina.
         try:
-            n_gd = dss.PVsystems.Count() or 0
+            n_gd = (dss.PVsystems.Count() or 0) + (dss.Generators.Count() or 0)
         except Exception:                                    # noqa: BLE001
             n_gd = 0
         r['n_gd'] = n_gd
         if n_gd:
             try:
-                dss.Text.Command('batchedit pvsystem..* enabled=no')
+                for _classe in ('pvsystem', 'generator'):
+                    dss.Text.Command(f'batchedit {_classe}..* enabled=no')
                 dss.Text.Command('Solve')
                 os.chdir(cwd)
                 r['converge_sem_gd'] = bool(dss.Solution.Converged())
                 r['iteracoes_sem_gd'] = dss.Solution.Iterations()
                 # devolve o circuito ao estado declarado: o que vem depois
                 # mede o MODELO, e nao esta sonda.
-                dss.Text.Command('batchedit pvsystem..* enabled=yes')
+                for _classe in ('pvsystem', 'generator'):
+                    dss.Text.Command(f'batchedit {_classe}..* enabled=yes')
                 dss.Text.Command('Solve')
                 os.chdir(cwd)
             except Exception:                                # noqa: BLE001
@@ -235,13 +241,21 @@ def valida(pasta, referencia=None):
     # contra 54.339 kW de GD, o que dava 305% de perdas sobre a fonte e
     # 9,44% sobre a injetada. Varias subestacoes foram classificadas como
     # TENSAO_BAIXA por causa dessa razao inflada.
+    # OS DOIS TIPOS CONTAM — achado 34. A geracao firme (PCH, CGH, UHE, UTE,
+    # EOL, identificada pelo CEG proprio) sai como `Generator`, e nao como
+    # `PVSystem`, porque e o que ela e. Somar so os PVSystem passaria a
+    # subcontar a GD EM SILENCIO — 601 unidades no pais —, que e exatamente o
+    # formato de erro que ja custou uma rodada nesta ferramenta: nada quebra,
+    # o numero so fica errado com cara de certo.
     gd = 0.0
-    i = dss.PVsystems.First()
-    while i:
-        dss.Circuit.SetActiveElement('PVSystem.' + dss.PVsystems.Name())
-        pw = dss.CktElement.Powers()[0::2]
-        gd += -sum(pw[:dss.CktElement.NumPhases()])
-        i = dss.PVsystems.Next()
+    for colecao, prefixo in ((dss.PVsystems, 'PVSystem.'),
+                             (dss.Generators, 'Generator.')):
+        i = colecao.First()
+        while i:
+            dss.Circuit.SetActiveElement(prefixo + colecao.Name())
+            pw = dss.CktElement.Powers()[0::2]
+            gd += -sum(pw[:dss.CktElement.NumPhases()])
+            i = colecao.Next()
     r['P_gd_kW'] = round(gd, 1)
     injetada = -p + gd
     r['P_injetada_kW'] = round(injetada, 1)
