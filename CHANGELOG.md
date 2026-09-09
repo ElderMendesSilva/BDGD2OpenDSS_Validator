@@ -6,6 +6,60 @@ Limitação escrita é limitação; limitação descoberta pelo usuário é defe
 O detalhe de cada mudança está no Git; os achados numerados, com método e
 número, estão em [docs/ACHADOS_GENERALIZACAO.md](docs/ACHADOS_GENERALIZACAO.md).
 
+## 1.1.0 — em aberto (safra 2025-12-31)
+
+Fecha a safra BDGD **2025-12-31**, que a 1.0 declarava não validar. Última
+rodada completa: **V32**, com 99 bases e 4.078 subestações.
+
+### O que ela garante
+
+- **99 distribuidoras** da safra 2025, **4.078 subestações**, com **80,2% de
+  veredicto `OK`** e **uma única** subestação em `MODELO_QUEBRADO` — falha de
+  modelo deixou de ser a limitação dominante (era 1.250, ou 30,7%, na V27).
+- **`_procedencia.json` grava a safra**, a data-base e o nome do `.gdb` de
+  origem, com teste travando os três campos. Na 1.0 o nome da pasta não
+  carregava a safra e comparar duas rodadas de safras diferentes era erro
+  fácil e silencioso.
+- **1.032 testes.**
+
+### O que mudou no diagnóstico, e por que os números não se comparam com a 1.0
+
+A régua mudou três vezes desde a 1.0, sempre para separar coisas que estavam
+na mesma gaveta. **Somar classes para comparar com rodada antiga só funciona
+com o mapa abaixo:**
+
+| classe | nasceu em | do que foi separada |
+|---|---|---|
+| `SUBESTACAO_ILHADA`, `REDE_PARCIAL`, `RAMAIS_SOLTOS` | achado 25 | `MODELO_QUEBRADO` (era 96,7% dela) |
+| `PERDA_ALTA`, `SEM_CARGA` | achado 29 | `TENSAO_BAIXA` (era 58% dela) |
+| `NAO_CONVERGE_COM_GD` | achado 26 | `MODELO_QUEBRADO` |
+| `TENSAO_IMPLAUSIVEL` | achados 1 e 31-B | `TENSAO_BAIXA`, `REGULADOR_SATURADO`, `CARGA_ALTA` |
+
+`diagnostico.SEM_TENSAO` existe no código para reproduzir a contagem antiga.
+
+### Correções de conversão desta versão
+
+- **Regulador com o `RegControl` no lado da fonte** (achado 30). O tape corria
+  ao limite e *dividia* a tensão do lado da carga. Corrigido pela direção do
+  fluxo; `REGULADOR_SATURADO` caiu de 98 para 12 no país.
+- **GD com `kv` fixo de 13,8 kV** (achado 31), mesmo em alimentador de 34,5 kV
+  — o `PVSystem` entregava de 0,03x a 4,0x o `Pmpp` conforme a tensão local.
+- **Geração cuja energia não cabe na própria potência** (achado 32): 221
+  unidades no país passam do teto de 5 MW da mini-GD e somam 10,3% da GD
+  declarada. Desligadas em `_GD_IMPLAUSIVEL.dss`, premissa reversível.
+- **Percentual publicado sobre solução divergida** (achado 33): 19 das 29
+  subestações que não convergem publicavam perda entre 0 e 15%, plausível e
+  falsa.
+
+### O que ela NÃO faz
+
+- **Não incorpora as correções dos achados 32 e 33 em rodada nacional.** Elas
+  entraram depois da V32; os números acima são da V32 e a V33 é que os refaz.
+- **Herda todas as limitações da 1.0 abaixo** que não estejam explicitamente
+  corrigidas aqui — em especial a ausência de referência externa.
+- **Não explica quatro das subestações do achado 31** que saturam sem serem
+  longas nem terem GD desproporcional.
+
 ## 1.0.0 — 01/09/2026
 
 Primeira versão declarada. Fecha a safra BDGD **2024-12-31**.
