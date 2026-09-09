@@ -175,5 +175,30 @@ class TestContabilidade(unittest.TestCase):
         self.assertIn("for _classe in ('pvsystem', 'generator')", fonte)
 
 
+
+class TestEstabilidadeNumerica(unittest.TestCase):
+    """A banda de tensão do `Generator` é o que estabiliza a iteração.
+
+    A primeira versão punha `Vminpu=0.5 Vmaxpu=1.5` para a usina "não se
+    desligar por subtensão do modelo". O raciocínio estava errado: fora da
+    banda o OpenDSS troca o gerador para impedância constante, e é essa troca
+    que amortece a iteração. Medido na MOG02, com a mesma usina de 5.575 kW:
+    com 0,5/1,5 a solução explode para 10⁷⁸ pu; com o padrão, converge.
+    """
+
+    def test_nao_alarga_a_banda_de_tensao(self):
+        _, txt = _gera('PCH.PH.SP.001479-6')
+        self.assertNotIn('Vminpu', txt,
+                         'alargar a banda faz a solucao divergir')
+        self.assertNotIn('Vmaxpu', txt)
+
+    def test_nao_usa_model_3(self):
+        """`model=3` regula tensão injetando reativo SEM limite — é suporte
+        de reativo inventado, e esconde a sobretensão que a usina causa."""
+        _, txt = _gera('PCH.PH.SP.001479-6')
+        self.assertIn('model=1', txt)
+        self.assertNotIn('model=3', txt)
+
+
 if __name__ == '__main__':
     unittest.main()

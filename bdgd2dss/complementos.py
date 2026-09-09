@@ -880,15 +880,34 @@ def _gerador(cod, bus, nf, kv, pot, tec, fp=1.0):
     mes — `ENE / 730` —, sem divisao por fator de capacidade nenhum, porque a
     curva plana ja tem fator 1.
 
-    O `Generator` do OpenDSS injeta com sinal oposto ao da carga, entao
-    `kW` positivo aqui e geracao. `Vminpu` baixo de proposito: usina firme nao
-    se desliga por subtensao do modelo, e o padrao de 0,90 fazia a unidade
-    sumir justamente nas subestacoes com tensao ruim, que sao as que importam.
+    O `Generator` do OpenDSS injeta com sinal oposto ao da carga, entao `kW`
+    positivo aqui e geracao.
+
+    `Vminpu` E `Vmaxpu` FICAM NO PADRAO (0,9 e 1,1), E ISSO NAO E DESCUIDO.
+    A primeira versao punha 0,5 e 1,5 para a usina "nao se desligar por
+    subtensao do modelo". O raciocinio estava errado: fora dessa banda o
+    OpenDSS troca o gerador para impedancia constante, e e essa troca que
+    amortece a iteracao. Medido na MOG02, com a mesma usina de 5.575 kW:
+    -
+        Vminpu/Vmaxpu   converge   Vmax        perdas
+        0,5 / 1,5       NAO        1e78        1e158 kW
+        0,8 / 1,2       NAO        1e25        1e54 kW
+        0,9 / 1,1       sim        1,555       4.214 kW
+    -
+    Alargar a banda nao protege a usina: destroi a solucao.
+
+    `model=1` (potencia constante) e nao `model=3` (regula tensao). O modelo 3
+    converge melhor — 73 iteracoes contra 320, e Vmax de 1,308 — porque injeta
+    REATIVO SEM LIMITE para segurar a tensao no terminal. Isso e suporte de
+    reativo inventado, da mesma familia que o `--gd-fp` a 0,92 que este modulo
+    ja rejeitou: melhora o numero escondendo o problema. Com `model=1` a
+    sobretensao que a usina causa fica visivel, que e o que se quer de um
+    validador.
     """
     return (f'New Generator.GD_{cod} phases={nf} '
             f'bus1={bus} conn=wye kv={kv:.4f} '
             f'kW={pot:.2f} pf={fp:g} model=1 '
-            f'Vminpu=0.5 Vmaxpu=1.5 Daily=GERACAO_FIRME '
+            f'Daily=GERACAO_FIRME '
             f'! {tec}')
 
 
