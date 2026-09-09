@@ -2078,6 +2078,41 @@ base inválida, consumido adiante sem guarda. O achado 21 foi
 razão de dois estouros. A lição que se repete: **o que passa despercebido não
 é o valor absurdo, é o valor razoável calculado sobre ele.**
 
+## Achado 33-B — dois rótulos que explicam tensão, dados a quem tem tensão boa
+
+Medido em 08/09/2026 sobre a V32, fechando a última das quatro subestações
+curtas que o achado 31 deixou sem explicação.
+
+`REDE_EXTENSA` e `REGULADOR_SATURADO` se justificam, os dois, **por queda de
+tensão** — está escrito na doutrina de cada um: *«nesses casos a queda de
+tensão é fisicamente correta»* e *«o modelo está pedindo mais reforço do que
+um regulador entrega»*. Com a tensão mediana **adequada**, nenhum dos dois
+explica coisa alguma: o alimentador é longo e o tape está no fim, mas a tensão
+chegou.
+
+| classe | total na V32 | com tensão ≥ 0,90 pu |
+|---|---:|---:|
+| `REGULADOR_SATURADO` | 12 | **5** |
+| `REDE_EXTENSA` | 11 | **3** |
+
+O caso que não admite defesa: a **NEOENERGIA47/SBC, em 1,036 pu** — acima da
+nominal — carimbada como rede extensa demais para sustentar tensão. As oito
+reprovam por **perda** (15,1% a 41,8%), e é ela que tem de nomeá-las.
+
+**A NEOENERGIA385/UBA02 era uma das quatro do achado 31**: 0,938 pu de tensão,
+perda do dia de 16,2%, nove reguladores no tape máximo. Ela não tinha defeito
+de regulador nenhum — reprovava por um ponto percentual de perda acima do
+limite, e levava o nome do regulador. Com a trava, as quatro do achado 31
+ficam explicadas: duas por GD desproporcional (achado 32), duas por rótulo
+trocado (este).
+
+**`CARGA_ALTA` fica fora da trava, de propósito.** Ela afirma algo sobre
+**capacidade**, não sobre tensão, e demanda acima da instalada explica perda
+alta por si só. Duas subestações com tensão boa continuam nela, e está certo.
+
+**Nenhuma das oito vira `OK`** — a perda continua reprovando. É relabelagem,
+não aprovação, e há teste travando exatamente isso.
+
 ## Validação externa e contaminação
 
 A âncora nacional de 7,4% de perda técnica total da ANEEL é apenas um **teste
