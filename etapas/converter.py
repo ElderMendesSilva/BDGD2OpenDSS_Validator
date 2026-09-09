@@ -465,9 +465,14 @@ def _uma_se(C, se, k):
         mes=a.mes, fc=fc_gd, kv_por_ctmt=kv_por_ctmt,
         caminho_implausivel=os.path.join(d, '_GD_IMPLAUSIVEL.dss'))
     if gd_impl:
-        log(f'  ACHADO 32: {gd_impl} unidade(s) de GD com energia acima do que '
-            f'a propria POT_INST comporta ({gd_impl_kw:,.0f} kW) — desligadas '
-            f'em _GD_IMPLAUSIVEL.dss')
+        # `print`, e nao `log`: dentro de `_uma_se` nao existe `log` — ele e
+        # do escopo do `main`. A V33 caiu com `NameError` em 35 das 99 bases
+        # por causa desta linha, e so nelas, porque a mensagem so e alcancada
+        # quando ha unidade implausivel de verdade. O teste de fumaca na
+        # `.gdb` minima passou justamente por nao ter nenhuma.
+        print(f'  ACHADO 32: {gd_impl} unidade(s) de GD com energia acima do '
+              f'que a propria POT_INST comporta ({gd_impl_kw:,.0f} kW) — '
+              f'desligadas em _GD_IMPLAUSIVEL.dss', flush=True)
 
     # vaos desta subestacao: ligam a barra de MT as cabeceiras
     vaos_se = (est_at.get('vaos_por_se') or {}).get(se, [])
