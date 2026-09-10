@@ -2376,6 +2376,42 @@ base vazia não aparece numa soma de subestações. Só apareceu quando se conto
 quantas bases tinham produzido `validacao_balanco.json` — 82 de 99 — e se foi
 atrás das 17 que faltavam.
 
+## A cobertura das leis, medida
+
+Cada achado é uma lei, e cada lei mora num guarda de código. **Um guarda que
+nenhum teste alcança não é lei — é intenção.** A V33 caiu em 35 das 99 bases
+num guarda do achado 61 que a `.gdb` mínima nunca tocava, com a suíte inteira
+verde.
+
+`analise/cobertura_achados.py` roda o ciclo sob `sys.settrace` e cruza as
+linhas executadas com os comentários `# ACHADO N`. Para um `if`, o que conta é
+o **corpo**: a condição ser avaliada e dar falso não prova nada — foi assim que
+o `NameError` da V33 passou por um teste de fumaça verde.
+
+Medido em 10/09/2026, sobre 41 achados com guarda marcado no código:
+
+| fixture | achados com pelo menos um guarda frio |
+|---|---:|
+| só a `.gdb` mínima | **22** de 41 |
+| com as cinco variantes | **19** de 41 |
+
+As cinco variantes vivem em `testes/fixture.py` e cada uma liga **um** achado,
+mudando o mínimo sobre o caso normal: `sem_subestacao` (65), `gd_na_bt` (30),
+`gd_implausivel` (61), `geracao_firme` (63), `pac_invertido` (54). O caso
+normal fica intacto de propósito — dezenas de testes conferem números exatos
+dele.
+
+**O que os 19 restantes têm em comum:** quase todos exigem uma condição que a
+rede mínima não tem como produzir — divergência de verdade (26, 62), rede de
+BT completa com `--bt rede` (30 parcial, 51), ferro fora de escala (56),
+subtransmissão com barra ausente (31). Não são esquecimento: são o preço de
+uma fixture de 73 KB, e o número existe para que a decisão de pagá-lo seja
+consciente.
+
+**O que este medidor não é:** não é cobertura de linha, e não substitui um
+`coverage`. Responde uma pergunta estreita — *cada lei é exercitada por alguma
+fixture?* — que é a que já custou uma rodada nacional.
+
 ## Validação externa e contaminação
 
 A âncora nacional de 7,4% de perda técnica total da ANEEL é apenas um **teste

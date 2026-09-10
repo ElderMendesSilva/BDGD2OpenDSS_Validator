@@ -110,6 +110,20 @@ documento, não o último que o documento mostra:
 git ls-files | xargs grep -rhoiE "achado [0-9]+" | grep -oE "[0-9]+" | sort -n | tail -1
 ```
 
+**E ANTES DE DAR UM ACHADO POR RESOLVIDO, VEJA SE ALGUM TESTE O ALCANCA:**
+
+```bash
+python analise/cobertura_achados.py --variantes --frios
+```
+
+Ele roda o ciclo sob `sys.settrace` e diz quais guardas `# ACHADO N` nunca
+executam o proprio corpo. Em 10/09/2026: 41 achados com guarda, **19 com pelo
+menos um guarda frio**. A V33 caiu em 35 das 99 bases num guarda frio, com a
+suite verde.
+
+Fixture nova que ligue um achado vai em `VARIANTES`, no `testes/fixture.py` —
+uma variante por achado, mudando o minimo sobre o caso normal.
+
 Em 08/09/2026 seis achados novos foram numerados de 30 a 35 sem essa
 verificação, por cima de cinco leis que já existiam no código. Por dois dias
 `achado 34` significou ampacidade num arquivo e divisor de GD em outro.

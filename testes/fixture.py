@@ -244,13 +244,134 @@ def tabelas():
     }
 
 
-def gerar(destino=PADRAO, driver='OpenFileGDB'):
-    """(Re)escreve a BDGD minima e devolve o caminho."""
+# ------------------------------------------------------------------ variantes
+# POR QUE O CASO NORMAL NAO BASTA. A `.gdb` acima e uma rede SADIA: tem
+# subestacao, nao tem geracao distribuida, nenhum PAC invertido. Rodar o ciclo
+# nela exercita o caminho comum e mais nada — e o caminho comum nunca foi o
+# problema.
+#
+# MEDIDO, e nao suposto: rodando o ciclo inteiro sob `sys.settrace` e cruzando
+# as linhas executadas com os guardas marcados `# ACHADO N` no codigo, 22 dos
+# 41 achados tem pelo menos um guarda cujo CORPO nunca roda. O `if` e
+# avaliado, da falso, e a correcao inteira fica sem prova.
+#
+# Foi assim que a V33 caiu em 35 das 99 bases: o `NameError` do achado 61 so
+# era alcancado por base com GD implausivel, e a `.gdb` minima nao tem GD
+# nenhuma. O teste de fumaca passou verde por nao ter o que testar.
+#
+# Cada variante liga UM achado, mudando o MINIMO sobre `tabelas()`. Manter o
+# caso normal intacto e deliberado: dezenas de testes conferem numeros exatos
+# dele, e uma fixture que muda para todo mundo nao serve de nada.
+
+def _obj(*v):
+    return np.array(v, dtype=object)
+
+
+def _flt(*v):
+    return np.array(v, dtype=float)
+
+
+def _sem_subestacao(t):
+    """ACHADO 65: alimentador sem `CTMT.SUB` — as 17 cooperativas da safra."""
+    t['CTMT']['SUB'] = _obj('', '', '')
+
+
+def _gd_na_bt(t):
+    """ACHADO 30: geracao na BT, cujo PAC tem de ser conferido contra a BT.
+
+    A UG3 tem PAC 'B3', que e barra de MEDIA — o caso que escrevia um inversor
+    de 127 V numa barra de 7,97 kV. Ela cai no plano B do `UNI_TR_MT`.
+    """
+    t['UGBT_tab'] = {
+        'COD_ID': _obj('UG1', 'UG2', 'UG3'),
+        'PAC': _obj('N1', 'N3', 'B3'),
+        'CTMT': _obj('F1', 'F2', 'F1'),
+        # A UG3 cai no plano B pelo TR1, cujo secundario e 0,22 kV normal.
+        # Pelo TR2 nao serve: e o trafo de TEN_LIN_SE=7,96 do caso patologico
+        # de tensao, e misturaria dois achados numa variante so.
+        'UNI_TR_MT': _obj('TR1', 'TR3', 'TR1'),
+        'POT_INST': _flt(8.0, 12.0, 5.0),
+        'FAS_CON': _obj('ABC', 'ABC', 'A'),
+        'CEG_GD': _obj('GD.SP.001.904.722', 'GD.SP.001.904.723',
+                       'GD.SP.001.904.724'),
+        # 8 kW a 28,6% de fator de capacidade rendem ~1.670 kWh no mes:
+        # numeros que CABEM na potencia, para nao disparar o achado 61 aqui.
+        **_mes([1600.0, 2400.0, 1000.0]),
+    }
+
+
+def _gd_implausivel(t):
+    """ACHADO 61: a energia declarada nao cabe na potencia declarada.
+
+    A UG9 replica a forma do maior "gerador distribuido" do pais: potencia de
+    dois digitos e energia de gigawatt-hora. `ENE / (POT_INST x 730)` da mais
+    de 100% de fator de capacidade, e os dois campos da mesma linha se
+    contradizem. E a linha que derrubou a V33.
+    """
+    _gd_na_bt(t)
+    t['UGMT_tab'] = {
+        'COD_ID': _obj('UG9',),
+        'PAC': _obj('B11',),
+        'CTMT': _obj('F2',),
+        'POT_INST': _flt(109.4),
+        'FAS_CON': _obj('ABC',),
+        'CEG_GD': _obj('GD.SP.001.904.999',),
+        **_mes([25_400_000.0]),        # 25,4 GWh para 109,4 kW instalados
+    }
+
+
+def _geracao_firme(t):
+    """ACHADO 63: usina firme nao se divide pelo fator solar.
+
+    `PCH.PH.SP.001479-6` e a forma do CEG de usina registrada — o prefixo
+    declara a tecnologia, e o registro generico `GD.SP...` nao. Uma PCH de
+    500 kW gerando 365.000 kWh no mes esta em fator de capacidade 1,0: e
+    plausivel para agua, e impossivel para telhado.
+    """
+    t['UGMT_tab'] = {
+        'COD_ID': _obj('UGF',),
+        'PAC': _obj('B11',),
+        'CTMT': _obj('F2',),
+        'POT_INST': _flt(500.0),
+        'FAS_CON': _obj('ABC',),
+        'CEG_GD': _obj('PCH.PH.SP.001479-6',),
+        **_mes([365_000.0]),           # 500 kW x 730 h — cabe na placa
+    }
+
+
+def _pac_invertido(t):
+    """ACHADO 54: o transformador cadastrado com primario e secundario trocados.
+
+    O TR3 passa a declarar `PAC_1` no lado de baixa e `PAC_2` na media. Quem
+    monta o `Transformer` pelos PACs na ordem escreve 0,216 kV no lado da
+    rede de 13,8 kV.
+    """
+    t['UNTRMT']['PAC_1'] = _obj('B2', 'B3', 'N3', 'B11')
+    t['UNTRMT']['PAC_2'] = _obj('N1', 'N2', 'B11', 'N4')
+
+
+VARIANTES = {
+    'sem_subestacao': _sem_subestacao,
+    'gd_na_bt': _gd_na_bt,
+    'gd_implausivel': _gd_implausivel,
+    'geracao_firme': _geracao_firme,
+    'pac_invertido': _pac_invertido,
+}
+
+
+def gerar(destino=PADRAO, driver='OpenFileGDB', variante=None):
+    """(Re)escreve a BDGD minima e devolve o caminho.
+
+    `variante` e um nome de `VARIANTES`: o caso normal com UM achado ligado.
+    """
     if os.path.isdir(destino):
         shutil.rmtree(destino, ignore_errors=True)
     elif os.path.exists(destino):
         os.remove(destino)
-    for i, (nome, cols) in enumerate(tabelas().items()):
+    t = tabelas()
+    if variante:
+        VARIANTES[variante](t)
+    for i, (nome, cols) in enumerate(t.items()):
         pyogrio.raw.write(destino, geometry=None,
                           field_data=[cols[c] for c in cols],
                           fields=list(cols), layer=nome, driver=driver,
