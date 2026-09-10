@@ -70,11 +70,20 @@ __pycache__/
 # primeira vez que uma base foi posta dentro da pasta do projeto.
 BDGDs/
 *.gdb/
-# ...MENOS a BDGD minima dos testes, que tem 354 KB e E CODIGO: sem ela o
-# `test_ciclo_completo` nao roda na outra maquina nem no cluster. A regra
-# acima existe por TAMANHO, e esta nao tem o problema que ela evita.
-!testes/bdgd_minima.gdb/
-!testes/bdgd_minima.gdb/**
+# A BDGD MINIMA DOS TESTES FICA DE FORA TAMBEM, e ela ja esteve aqui dentro.
+#
+# A excecao dizia que sem a `.gdb` versionada o `test_ciclo_completo` nao
+# rodaria na outra maquina nem no cluster. Isso era falso: `fixture.garantir()`
+# a gera quando falta, e a suite inteira passa com a pasta apagada — conferido.
+#
+# E versiona-la QUEBRAVA A RODADA NACIONAL. O FileGDB grava carimbos internos,
+# entao regerar a `.gdb` produz bytes diferentes com o mesmo `fixture.py`.
+# Rodar a suite sujava a arvore, e `submeter_todas.sh` recusa arvore suja —
+# com razao, porque modelo gerado assim nao e reproduzivel pelo commit. O
+# resultado era circular: o pre-voo aprovava e, ao aprovar, impedia a
+# submissao. Visto em 10/09/2026, entre o pre-voo 36072 e a V35.
+#
+# Ela e ARTEFATO, e o codigo dela e o `testes/fixture.py`.
 
 # O ambiente virtual. Nao estava aqui, e por isso um `git stash -u` no no do
 # cluster levou o `.venv/` inteiro junto com as alteracoes — o ambiente sumiu e

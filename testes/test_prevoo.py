@@ -133,6 +133,57 @@ class TestAReferencia(unittest.TestCase):
         self.assertEqual(ref['sem_subestacao']['converter_rc'], 2)
 
 
+class TestAArvoreFicaLimpa(unittest.TestCase):
+    """Rodar a suíte não pode sujar o repositório.
+
+    `submeter_todas.sh` recusa árvore suja, e com razão: modelo gerado a partir
+    de alteração não commitada não é reproduzível pelo commit. Mas a `.gdb`
+    mínima esteve versionada, e o FileGDB grava carimbos internos — regerá-la
+    com o MESMO `fixture.py` produz bytes diferentes.
+
+    O resultado era circular: o pré-voo rodava a suíte, a suíte regerava a
+    `.gdb`, a árvore sujava, e a submissão nacional recusava. O pré-voo
+    aprovava e, ao aprovar, impedia de submeter. Visto em 10/09/2026, entre o
+    pré-voo 36072 e a V35.
+
+    A `.gdb` é ARTEFATO: o código dela é o `testes/fixture.py`, e
+    `fixture.garantir()` a gera quando falta.
+    """
+
+    def test_a_gdb_minima_NAO_esta_versionada(self):
+        if not shutil.which('git'):
+            self.skipTest('sem git nesta maquina')
+        p = subprocess.run(['git', 'ls-files', 'testes/bdgd_minima.gdb'],
+                           cwd=RAIZ, capture_output=True, text=True)
+        self.assertEqual(
+            p.stdout.strip(), '',
+            'a .gdb minima voltou para o git: rodar a suite vai sujar a '
+            'arvore e a submissao nacional vai recusar')
+
+    def test_o_gitignore_a_cobre(self):
+        p = subprocess.run(
+            ['git', 'check-ignore', '-q',
+             'testes/bdgd_minima.gdb/a00000001.gdbtable'],
+            cwd=RAIZ, capture_output=True, text=True)
+        if not shutil.which('git'):
+            self.skipTest('sem git nesta maquina')
+        self.assertEqual(p.returncode, 0,
+                         'a .gdb minima nao esta coberta pelo .gitignore')
+
+    def test_o_fixture_sabe_gerar_quando_falta(self):
+        """A garantia de que tirá-la do git não quebra quem clona."""
+        sys.path.insert(0, os.path.join(RAIZ, 'testes'))
+        import fixture                                      # noqa: PLC0415
+        d = tempfile.mkdtemp()
+        alvo = os.path.join(d, 'nova.gdb')
+        try:
+            self.assertFalse(os.path.exists(alvo))
+            fixture.garantir(alvo)
+            self.assertTrue(os.path.isdir(alvo), 'garantir() nao gerou nada')
+        finally:
+            shutil.rmtree(d, ignore_errors=True)
+
+
 class TestAPorta(unittest.TestCase):
     """O `submeter_todas.sh` recusa sem selo. Lido do fonte: rodá-lo exige
     cluster, PBS e as `.gdb` — nada disso existe aqui."""
