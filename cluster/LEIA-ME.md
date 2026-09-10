@@ -183,6 +183,52 @@ leitura da `.gdb`, motor elétrico, escrita, fila.
 
 ---
 
+## O pré-voo, que é a porta da rodada nacional
+
+Antes de gastar 99 jobs, o cluster pergunta se o código ainda faz o que fazia:
+
+```bash
+bash cluster/submeter_todas.sh --prevoo     # 1. submete o pre-voo (minutos)
+qstat -u $USER                              # 2. espere fechar
+SUFIXO=V35 bash cluster/submeter_todas.sh --rodar
+```
+
+O pré-voo roda a suíte e o ciclo inteiro sobre as fixtures — inclusive as
+variantes que ligam um achado cada — e compara contra
+`dados/referencia_prevoo.json`. Passando, grava `logs/prevoo/<commit>.ok`. É
+esse arquivo que o `--rodar` exige, e **sem ele a submissão recusa**.
+
+**Por que a chave é o commit.** Selo de código velho não vale para código
+novo, e um `git pull` no meio invalida o selo sozinho — sem depender de
+ninguém lembrar.
+
+**Por que um selo, e não `-W depend=afterok`.** Com dependência, um pré-voo
+reprovado deixaria as 99 correntes presas na fila esperando um job que nunca
+vai aprovar, e desfazer isso pede `qdel` em massa. O selo é um `test -f` no nó
+de acesso — leitura de arquivo pequeno, que a regra permite.
+
+**O que ele já teria pego.** A V33 gastou 99 jobs para descobrir um
+`NameError` de uma linha. A V29 e a primeira V30 rodaram inteiras sem chamar o
+`reguladores.py`. Injetando as duas de volta, o pré-voo acusa 23 e 6
+diferenças.
+
+**Quando a diferença é pretendida**, regrave e explique no commit:
+
+```bash
+python etapas/prevoo.py --gravar
+```
+
+Uma referência que se regrava sozinha ao primeiro desacordo não guarda nada —
+por isso `--gravar` é um ato deliberado, e nunca automático.
+
+**Repetir uma safra com commit já provado** dispensa o pré-voo, mas grita:
+
+```bash
+PREVOO=ignorar bash cluster/submeter_todas.sh --rodar
+```
+
+---
+
 ## Os cinco comandos do PBS
 
 | comando | |

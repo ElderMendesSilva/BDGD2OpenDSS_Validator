@@ -1,0 +1,166 @@
+{
+ "gd_implausivel": {
+  "achados": [
+   59,
+   61
+  ],
+  "ampacidade_rc": 0,
+  "converter_rc": 0,
+  "energia_rc": 0,
+  "ligacao_rc": 0,
+  "reguladores_rc": 0,
+  "ses": {
+   "SE1": {
+    "P_gd_kW": 23.2,
+    "V_MT_max": 1.0,
+    "V_MT_mediana": 1.0,
+    "V_MT_min": 0.866,
+    "causa": "OK",
+    "compila": true,
+    "converge": true,
+    "linhas_acima_ampacidade": 0,
+    "n_barras": 15,
+    "n_cargas": 12,
+    "n_linhas": 8,
+    "n_trafos": 6,
+    "perdas_pct": 0.61,
+    "reguladores": 0,
+    "reguladores_saturados": 0
+   }
+  },
+  "validador_rc": 0,
+  "verifica_rc": 0
+ },
+ "gd_na_bt": {
+  "achados": [
+   59
+  ],
+  "ampacidade_rc": 0,
+  "converter_rc": 0,
+  "energia_rc": 0,
+  "ligacao_rc": 0,
+  "reguladores_rc": 0,
+  "ses": {
+   "SE1": {
+    "P_gd_kW": 23.2,
+    "V_MT_max": 1.0,
+    "V_MT_mediana": 1.0,
+    "V_MT_min": 0.866,
+    "causa": "OK",
+    "compila": true,
+    "converge": true,
+    "linhas_acima_ampacidade": 0,
+    "n_barras": 15,
+    "n_cargas": 12,
+    "n_linhas": 8,
+    "n_trafos": 6,
+    "perdas_pct": 0.61,
+    "reguladores": 0,
+    "reguladores_saturados": 0
+   }
+  },
+  "validador_rc": 0,
+  "verifica_rc": 0
+ },
+ "geracao_firme": {
+  "achados": [
+   59,
+   63
+  ],
+  "ampacidade_rc": 0,
+  "converter_rc": 0,
+  "energia_rc": 0,
+  "ligacao_rc": 0,
+  "reguladores_rc": 0,
+  "ses": {
+   "SE1": {
+    "P_gd_kW": 500.0,
+    "V_MT_max": 1.001,
+    "V_MT_mediana": 1.0,
+    "V_MT_min": 0.866,
+    "causa": "OK",
+    "compila": true,
+    "converge": true,
+    "linhas_acima_ampacidade": 0,
+    "n_barras": 15,
+    "n_cargas": 12,
+    "n_linhas": 8,
+    "n_trafos": 6,
+    "perdas_pct": 8.69,
+    "reguladores": 0,
+    "reguladores_saturados": 0
+   }
+  },
+  "validador_rc": 0,
+  "verifica_rc": 0
+ },
+ "minima": {
+  "achados": [
+   59
+  ],
+  "ampacidade_rc": 0,
+  "converter_rc": 0,
+  "energia_rc": 0,
+  "ligacao_rc": 0,
+  "reguladores_rc": 0,
+  "ses": {
+   "SE1": {
+    "P_gd_kW": 0.0,
+    "V_MT_max": 1.0,
+    "V_MT_mediana": 1.0,
+    "V_MT_min": 0.866,
+    "causa": "OK",
+    "compila": true,
+    "converge": true,
+    "linhas_acima_ampacidade": 0,
+    "n_barras": 15,
+    "n_cargas": 12,
+    "n_linhas": 8,
+    "n_trafos": 6,
+    "perdas_pct": 0.01,
+    "reguladores": 0,
+    "reguladores_saturados": 0
+   }
+  },
+  "validador_rc": 0,
+  "verifica_rc": 0
+ },
+ "pac_invertido": {
+  "achados": [
+   54,
+   59
+  ],
+  "ampacidade_rc": 0,
+  "converter_rc": 0,
+  "energia_rc": 0,
+  "ligacao_rc": 0,
+  "reguladores_rc": 0,
+  "ses": {
+   "SE1": {
+    "P_gd_kW": 0.0,
+    "V_MT_max": 1.0,
+    "V_MT_mediana": 1.0,
+    "V_MT_min": 0.866,
+    "causa": "OK",
+    "compila": true,
+    "converge": true,
+    "linhas_acima_ampacidade": 0,
+    "n_barras": 15,
+    "n_cargas": 12,
+    "n_linhas": 8,
+    "n_trafos": 6,
+    "perdas_pct": 0.01,
+    "reguladores": 0,
+    "reguladores_saturados": 0
+   }
+  },
+  "validador_rc": 0,
+  "verifica_rc": 0
+ },
+ "sem_subestacao": {
+  "achados": [
+   65
+  ],
+  "converter_rc": 2
+ }
+}

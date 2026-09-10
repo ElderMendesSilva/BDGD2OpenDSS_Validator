@@ -1,0 +1,43 @@
+#!/bin/bash
+# O PRE-VOO: a suite e o ciclo inteiro sobre as fixtures, antes de gastar 99
+# jobs de cluster.
+#
+#     qsub -N prevoo -q BIRA_Q3 -l nodes=1:ppn=4 -l mem=12gb \
+#          -l walltime=01:00:00 -j oe -o logs/cluster/ \
+#          -v "PROJETO=$PWD" cluster/prevoo.pbs
+#
+# POR QUE NUM JOB, E NAO NO HEAD NODE. O head node nao processa — e regra do
+# administrador, nao preferencia. O pre-voo roda a suite inteira e seis ciclos
+# de conversao; e calculo, e calculo vai para no de calculo.
+#
+# O QUE ELE DEIXA PARA TRAS. `logs/prevoo/<commit>.ok`, e so quando tudo
+# passa. O `submeter_todas.sh --rodar` procura esse arquivo pelo commit que
+# esta no disco: sem ele, recusa submeter. Assim a porta e um `test -f` no
+# head node — leitura de arquivo pequeno, que a regra permite — e nao um
+# `afterok` que deixaria 99 jobs presos precisando de `qdel`.
+#
+# O COMMIT E A CHAVE porque e o que muda. Um selo velho nao serve para codigo
+# novo, e um `git pull` no meio invalida o selo sozinho, sem ninguem lembrar.
+set -uo pipefail
+cd "${PBS_O_WORKDIR:-$PROJETO}"
+source .venv/bin/activate
+export BDGD2DSS_MODO=cluster
+
+COMMIT=$(git rev-parse HEAD 2>/dev/null || echo sem_commit)
+echo "## pre-voo de ${COMMIT:0:10} — $(date)"
+echo
+
+mkdir -p logs/prevoo
+python -u etapas/prevoo.py --selo logs/prevoo
+rc=$?
+
+echo
+if [[ $rc -eq 0 ]]; then
+    echo "## APROVADO. Pode submeter:"
+    echo "##     SUFIXO=<versao> bash cluster/submeter_todas.sh --rodar"
+else
+    echo "## REPROVADO (rc=$rc). Nenhum selo foi gravado, e a submissao"
+    echo "## nacional vai recusar — que e o ponto."
+fi
+echo "## fim $(date)"
+exit $rc

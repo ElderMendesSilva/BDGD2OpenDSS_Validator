@@ -2,6 +2,7 @@
 # Submete as bases em ONDAS, dentro de um orcamento de nucleos E de memoria.
 #
 #     bash cluster/submeter_todas.sh                 # so MOSTRA o plano
+#     bash cluster/submeter_todas.sh --prevoo        # a PORTA: roda o pre-voo
 #     bash cluster/submeter_todas.sh --rodar         # submete
 #     SUFIXO=V22 bash cluster/submeter_todas.sh --rodar
 #     SO="RR ENCE" SUFIXO=V22 bash cluster/submeter_todas.sh --rodar
@@ -73,6 +74,22 @@ RAMPA="${RAMPA:-90}"
 GB_POR_NUCLEO="${GB_POR_NUCLEO:-3}"
 RODAR="no"
 [[ "${1:-}" == "--rodar" ]] && RODAR="sim"
+
+# --prevoo: submete SO o pre-voo — a suite e o ciclo inteiro sobre as fixtures,
+# conferidos contra referencia gravada. Ele grava `logs/prevoo/<commit>.ok`
+# quando passa, e e esse arquivo que o `--rodar` exige.
+#
+# POR QUE EXISTE. A V33 gastou 99 jobs para descobrir um `NameError` de uma
+# linha; a V29 e a primeira V30 rodaram inteiras sem chamar o `reguladores.py`.
+# Custa tres minutos de um no perguntar antes.
+if [[ "${1:-}" == "--prevoo" ]]; then
+    mkdir -p logs/cluster
+    ID=$(qsub -N prevoo -q "$FILA" -l nodes=1:ppn=4 -l mem=12gb          -l walltime=01:00:00 -j oe -o logs/cluster/          -v "PROJETO=$PWD" cluster/prevoo.pbs)
+    echo "pre-voo submetido: $ID"
+    echo "quando terminar e aprovar:"
+    echo "    SUFIXO=<versao> bash cluster/submeter_todas.sh --rodar"
+    exit 0
+fi
 
 # --coletar: submete SO o coletor, sem reprocessar base nenhuma. Existe pelo
 # caso da BT1, em que as dez bases rodaram bem e a colheita saiu vazia por um
@@ -147,6 +164,35 @@ if [[ -n "$(git status --porcelain 2>/dev/null | head -1)" ]]; then
     echo '   O modelo que sair daqui NAO seria reproduzivel pelo commit.'
     git status --short | head -5
     exit 1
+fi
+
+# --- A PORTA: sem pre-voo aprovado PARA ESTE COMMIT, nao se submete ---------
+#
+# O selo e um arquivo escrito por `cluster/prevoo.pbs` num no de calculo. Aqui
+# so se le — `test -f`, que e o que a regra do head node permite.
+#
+# O COMMIT E A CHAVE porque e o que muda. Selo de codigo velho nao vale para
+# codigo novo, e um `git pull` invalida o selo sozinho, sem ninguem lembrar.
+#
+# PREVOO=ignorar existe para o caso em que a rodada NAO e sobre o codigo — por
+# exemplo repetir uma safra com o mesmo commit ja provado. Ele grita, porque
+# pular a porta tem de ficar no log de quem pulou.
+SELO="logs/prevoo/${COMMIT}.ok"
+if [[ $RODAR == sim && "${PREVOO:-}" != "ignorar" ]]; then
+    if [[ ! -f "$SELO" ]]; then
+        echo '!! SEM PRE-VOO para este commit. Nao submeto.'
+        echo "   esperado: $SELO"
+        echo
+        echo '   rode antes, e espere aprovar:'
+        echo '       bash cluster/submeter_todas.sh --prevoo'
+        echo
+        echo '   se esta rodada nao e sobre o codigo (mesmo commit ja provado):'
+        echo '       PREVOO=ignorar bash cluster/submeter_todas.sh --rodar'
+        exit 1
+    fi
+    echo "pre-voo  : APROVADO ($SELO)"
+elif [[ $RODAR == sim ]]; then
+    echo '!! PRE-VOO IGNORADO por PREVOO=ignorar. Fica registrado.'
 fi
 echo "commit   : ${COMMIT:0:10}  $DESCRICAO"
 echo

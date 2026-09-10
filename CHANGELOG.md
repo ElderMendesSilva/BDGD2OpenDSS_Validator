@@ -8,6 +8,23 @@ número, estão em [docs/ACHADOS_GENERALIZACAO.md](docs/ACHADOS_GENERALIZACAO.md
 
 ## 1.1.0 — em aberto (safra 2025-12-31)
 
+
+### Pre-voo: a rodada nacional passou a ter porta
+
+`bash cluster/submeter_todas.sh --prevoo` roda, num no de calculo, a suite e o
+ciclo inteiro sobre as seis fixtures — a minima e as cinco variantes que ligam
+um achado cada — e compara contra `dados/referencia_prevoo.json`. Passando,
+grava `logs/prevoo/<commit>.ok`; **sem esse selo, `--rodar` recusa submeter**.
+
+Custo: minutos de um no. O que ele teria evitado: a V33 gastou 99 jobs para
+descobrir um `NameError` de uma linha, e a V29 e a primeira V30 rodaram
+inteiras sem chamar o `reguladores.py`. Reinjetando as duas, o pre-voo acusa
+23 e 6 diferencas.
+
+O que ele NAO faz: nao afere engenharia (a rede minima perde 97% de
+proposito), nao roda base real, e nao substitui a comparacao entre rodadas.
+Responde uma pergunta so — *o codigo faz hoje o que fazia quando a referencia
+foi gravada?*
 Fecha a safra BDGD **2025-12-31**, que a 1.0 declarava não validar. Última
 rodada completa: **V32**, com 99 bases e 4.078 subestações.
 
