@@ -2113,6 +2113,147 @@ alta por si só. Duas subestações com tensão boa continuam nela, e está cert
 **Nenhuma das oito vira `OK`** — a perda continua reprovando. É relabelagem,
 não aprovação, e há teste travando exatamente isso.
 
+## Achado 34 — o divisor tem de casar com a curva, e não com a placa
+
+Medido em 09/09/2026, perseguindo a subestação que o achado 32 **não**
+consertou: a NEOENERGIA385/MOG02 seguia com 86% de perda depois do guarda de
+GD implausível, porque a declaração dela não se contradiz.
+
+O conversor dimensiona **toda** geração por `ENE / 730 / 0,286`, e 0,286 é o
+fator de capacidade da **curva solar**. A conta está certa para solar e só
+para ela: `pmpp × 0,286 × 730 = ENE`, e a integral do dia fecha.
+
+Só que a unidade da MOG02 é uma **PCH** — `CEG_GD = PCH.PH.SP.001479-6` —, com
+`POT_INST` de 7.274 kW e fator de capacidade implícito de **76,6%**, que é
+normal para hidrelétrica. Dividir a energia dela pelo fator solar dá
+**19.495 kW**: uma usina de 7,3 MW virando 19,5 MW no modelo, e injetando com
+curva de irradiância — pico ao meio-dia e **zero à noite**, quando uma PCH
+roda continuamente.
+
+### O censo mostra os dois lados do erro
+
+Nas 99 bases da safra 2025, razão entre o que o modelo emitia e a placa
+declarada (mediana):
+
+| tecnologia | unidades | `POT_INST` | no modelo | razão |
+|---|---:|---:|---:|---:|
+| `GD` (genérico, sem tecnologia) | 3.087.449 | 182.090 MW | 21.875 MW | 0,61x |
+| **`PCH`** | 114 | 681 MW | **1.232 MW** | **1,74x** |
+| **`UHE`** | 20 | 358 MW | 274 MW | **1,53x** |
+| **`CGH`** | 239 | 378 MW | **629 MW** | **1,31x** |
+| `UTE` | 113 | 1.793 MW | 462 MW | 0,65x |
+| **`UFV`** (solar de verdade) | 72 | 81 MW | 44 MW | **0,28x** |
+
+**As hidrelétricas inflam e a solar encolhe** — exatamente o que a mecânica
+prevê. São 494 unidades com tecnologia declarada, ~11% da GD modelada do país,
+todas com curva de irradiância.
+
+### A correção não é trocar energia por placa
+
+O docstring de `complementos.geracao` explica, com medida própria, por que
+`POT_INST` não serve: ele replica o `CAR_INST` do consumidor, errando por até
+540x. **Isso continua valendo.** O invariante é outro — a integral do dia tem
+de bater com a energia declarada —, e dele sai a regra: **o divisor tem de
+casar com a curva que se anexa**. Curva solar, divide-se pelo fator dela;
+curva plana, não se divide por nada. `POT_INST` fica no papel em que é
+confiável: teste de plausibilidade, que o achado 32 já lhe deu.
+
+Usina firme com CEG próprio (`PCH`, `CGH`, `UHE`, `UTE`, `UTN`, `EOL`) passa a
+sair como **`Generator`** com curva plana e `kW = ENE/730` — 561 unidades na
+MT e 40 na BT. A massa de 3,09 milhões de `GD.*` genéricos, que **não**
+declaram tecnologia, segue exatamente como estava: são a micro-GD de telhado,
+e para ela a conta antiga está certa.
+
+### Duas coisas que custaram uma verificação com dado real
+
+**A banda de tensão.** A primeira versão punha `Vminpu=0.5 Vmaxpu=1.5`, para a
+usina "não se desligar por subtensão do modelo". O raciocínio estava errado, e
+a MOG02 mostrou o preço:
+
+| `Vminpu`/`Vmaxpu` | converge | Vmax | perdas |
+|---|---|---:|---:|
+| 0,5 / 1,5 | **não** | 10⁷⁸ | 10¹⁵⁸ kW |
+| 0,8 / 1,2 | **não** | 10²⁵ | 10⁵⁴ kW |
+| **0,9 / 1,1** (padrão) | sim | 1,555 | 4.214 kW |
+
+Fora da banda o OpenDSS troca o gerador para impedância constante, e é essa
+troca que amortece a iteração. Alargar não protege a usina: destrói a solução.
+
+**E fica `model=1`, não `model=3`.** O modelo 3 converge melhor — 73 iterações
+contra 320, Vmax 1,308 contra 1,555 — porque injeta **reativo sem limite**
+para segurar a tensão no terminal. É suporte de reativo inventado, da mesma
+família do `--gd-fp` a 0,92 que o módulo já rejeitou: melhora o número
+escondendo o problema.
+
+### O resultado na subestação que originou tudo
+
+| MOG02 | antes | depois |
+|---|---:|---:|
+| perda no instantâneo | 86,47% | **8,26%** |
+| perda no dia | 72,27% | **9,50%** |
+| `V_MT_max` | 1,864 | **1,104** |
+| trechos acima da ampacidade | 298 | **27** |
+| reguladores saturados | 8 | **3** |
+
+**O que ficou de fora, de propósito:** as 12.588 unidades `(sem CEG)`, cuja
+razão mediana é **3,83x** — a pior de todas — e para as quais não há
+tecnologia declarada nem critério defensável. E o `UFV` a 0,28x, que implica
+fator de capacidade real de ~8%: baixo demais para solar, e **não sei
+explicar** (placa em CC contra energia em CA? usina conectada no meio do ano?
+curtailment?). Mexer nos dois sem entender seria inventar rede.
+
+## Achado 35 — `Converged()` fala de tensão, não de física
+
+Medido em 09/09/2026, e este achado **nasceu errado e foi corrigido no mesmo
+dia**; o número velho fica visível abaixo porque o erro é de método e vale
+mais que a conclusão.
+
+Perseguindo a perda do dia da MOG02 — 72,27%, que era o que sustentava a causa
+`PERDA_ALTA` —, apareceu isto: a série diária reportava pico de **164.668 kW
+de geração** sobre **~24 MW instalados**, 6,8x, com **96 de 96 passos
+"convergidos"**. Um `PVSystem` não entrega múltiplos do próprio `Pmpp`: era um
+ponto de operação espúrio que satisfazia a tolerância de tensão do OpenDSS e
+passava por sucesso.
+
+### A conclusão errada, e por que ela caiu
+
+A primeira redação afirmava que **o resultado dependia da máquina**: 72,265%
+no cluster contra 14,58% neste laptop, mesma revisão do OpenDSS, determinístico
+de cada lado (três rodadas idênticas). Daí eu concluí que a garantia de *«saída
+determinística entre laptop e cluster»* do `CHANGELOG` estava quebrada.
+
+**Era comparação inválida.** O número do cluster vinha de uma **retomada** —
+`energia.py` pula subestação já medida —, então era o cache da V33, calculado
+sobre o modelo **anterior** aos achados 32 e 34. Comparei modelo velho lá
+contra modelo novo aqui e atribuí a diferença à plataforma. A mensagem *«já
+medidas — retomando»* estava na saída, e eu tinha olhado só o `tail -3`.
+
+Refeito com `--refazer`: o cluster devolve **333.740,7 kWh** injetados e
+**9,496%** de perda; este laptop, **333.740,7** e **9,50%**. Os dois lados
+batem, e a garantia do `CHANGELOG` continua de pé.
+
+### O que se sustenta, e o guarda que ficou
+
+Com o modelo antigo o ponto espúrio **existia** e passava por convergido.
+Com os achados 32 e 34 aplicados, o pico cai para **9.325 kW** contra 9.916
+instalados, e o teto novo **não dispara nenhuma vez**.
+
+O teto é físico e sai do próprio modelo — soma de `Pmpp` dos `PVSystem` mais
+`kW` dos `Generator`, com 5% de folga. Passo acima disso entra nos falhos, não
+soma energia, e a contagem vai para o JSON. Ele fica como **rede de segurança
+do que já se viu acontecer**, e não como conserto de defeito ativo; se a
+próxima rodada nacional não o acusar em nenhuma das 4.078 subestações, vale
+reavaliar se ele paga o próprio custo.
+
+**Um segundo subcount apareceu no caminho:** a série diária também somava só
+`PVSystem`, então a geração firme do achado 34 ficaria fora do balanço de
+energia. Era o mesmo erro que eu já tinha corrigido no `validador.py` e não vi
+que existia aqui. Na MOG02, incluir a usina no denominador leva a perda do dia
+de 14,58% para 9,50%.
+
+**O que continua aberto:** **15 dos 96 passos não convergem**, igualmente nos
+dois ambientes, e são os do fim do dia. Não investigado.
+
 ## Validação externa e contaminação
 
 A âncora nacional de 7,4% de perda técnica total da ANEEL é apenas um **teste
