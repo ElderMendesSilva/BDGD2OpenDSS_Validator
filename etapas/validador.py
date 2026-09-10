@@ -60,7 +60,25 @@ def _perda_do_dia(pasta, modelo):
             with open(f, encoding='utf-8') as fh:
                 bruto = json.load(fh)
             for x in (bruto if isinstance(bruto, list) else bruto.values()):
-                d[str(x.get('se'))] = x.get('perdas_pct')
+                # DIA PARCIAL NAO E O DIA — a razao herda a validade do
+                # denominador, que e a lei do achado 62 aplicada aqui.
+                #
+                # O achado 29 mandou o classificador usar a perda do DIA em vez
+                # da do instantaneo, e com razao. So que o dia pode vir
+                # incompleto: passo que nao converge, ou que devolve mais
+                # geracao do que existe (achado 64), sai da conta — e o
+                # percentual continuava sendo publicado como se fosse o dia
+                # inteiro. Medido na V33: 189 subestacoes publicavam a perda do
+                # dia sobre um dia parcial, a pior delas com 34,4% de cobertura
+                # (33 dos 96 passos) declarando 5,058%.
+                #
+                # `None` devolve a decisao ao instantaneo, que e o que se
+                # conhece por inteiro. Ele e conservador na direcao certa: o
+                # instantaneo poe toda carga no pico e fica ACIMA do dia, entao
+                # a subestacao tende a ser marcada, e nao absolvida, por falta
+                # de medida.
+                completo = (x.get('passos_ok') or 0) >= (x.get('passos') or 0)
+                d[str(x.get('se'))] = x.get('perdas_pct') if completo else None
         except Exception:                                    # noqa: BLE001
             d = {}
         _CACHE_DIA[base] = d
