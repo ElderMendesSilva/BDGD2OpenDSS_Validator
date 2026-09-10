@@ -23,7 +23,10 @@ cd "${PBS_O_WORKDIR:-$PROJETO}"
 source .venv/bin/activate
 export BDGD2DSS_MODO=cluster
 
-COMMIT=$(git rev-parse HEAD 2>/dev/null || echo sem_commit)
+# O `git` NAO EXISTE no no de calculo — a primeira execucao real imprimiu
+# "pre-voo de sem_commit" e gravaria um selo com esse nome. Quem sabe o commit
+# e quem submete, no no de acesso, e passa por `-v BDGD2DSS_COMMIT`.
+COMMIT=$(git rev-parse HEAD 2>/dev/null || echo "${BDGD2DSS_COMMIT:-sem_commit}")
 echo "## pre-voo de ${COMMIT:0:10} — $(date)"
 echo
 

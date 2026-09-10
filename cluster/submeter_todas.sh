@@ -84,7 +84,15 @@ RODAR="no"
 # Custa tres minutos de um no perguntar antes.
 if [[ "${1:-}" == "--prevoo" ]]; then
     mkdir -p logs/cluster
-    ID=$(qsub -N prevoo -q "$FILA" -l nodes=1:ppn=4 -l mem=12gb          -l walltime=01:00:00 -j oe -o logs/cluster/          -v "PROJETO=$PWD" cluster/prevoo.pbs)
+    # O COMMIT VAI JUNTO, e sem ele o selo nao vale nada: o no de calculo NAO
+    # TEM GIT, e a primeira execucao real gravou `sem_commit.ok` — um arquivo
+    # que a porta, que le o commit AQUI onde o git responde, jamais acharia.
+    COMMIT_PV=$(git rev-parse HEAD 2>/dev/null || echo '')
+    if [[ -z "$COMMIT_PV" ]]; then
+        echo '!! sem git aqui: o selo nao identificaria codigo nenhum.'
+        exit 1
+    fi
+    ID=$(qsub -N prevoo -q "$FILA" -l nodes=1:ppn=4 -l mem=12gb          -l walltime=01:00:00 -j oe -o logs/cluster/          -v "PROJETO=$PWD,BDGD2DSS_COMMIT=$COMMIT_PV" cluster/prevoo.pbs)
     echo "pre-voo submetido: $ID"
     echo "quando terminar e aprovar:"
     echo "    SUFIXO=<versao> bash cluster/submeter_todas.sh --rodar"

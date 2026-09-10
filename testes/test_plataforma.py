@@ -141,9 +141,20 @@ class OModo(unittest.TestCase):
     def _com_ambiente(self, **vars):
         import contextlib
 
+        # AS OUTRAS VARIAVEIS DA FILA TAMBEM SAEM, e nao so as deste caso.
+        # Rodando DENTRO de um job PBS — que e o que o pre-voo faz —, o
+        # `PBS_NP` real do job vaza para dentro do teste e vence o
+        # `PBS_NODEFILE` que ele acabou de montar, porque `_fatia_da_fila`
+        # consulta `PBS_NP` primeiro. O teste passava na estacao de trabalho
+        # e falhava no unico lugar onde o codigo testado roda de verdade.
+        DA_FILA = ('PBS_NP', 'PBS_NUM_PPN', 'NCPUS', 'SLURM_CPUS_PER_TASK',
+                   'PBS_NODEFILE')
+
         @contextlib.contextmanager
         def ctx():
-            antes = {k: os.environ.get(k) for k in vars}
+            antes = {k: os.environ.get(k) for k in set(DA_FILA) | set(vars)}
+            for k in DA_FILA:
+                os.environ.pop(k, None)
             os.environ.update({k: str(v) for k, v in vars.items()})
             try:
                 yield

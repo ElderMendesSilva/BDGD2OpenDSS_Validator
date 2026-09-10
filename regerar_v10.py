@@ -146,7 +146,11 @@ def _sigla(nome):
     O codigo e o numero do agente no cadastro, e e o unico identificador
     estavel — o nome muda com incorporacao, o carimbo muda a cada safra.
     """
-    base = os.path.basename(nome)
+    # OS DOIS SEPARADORES, e nao o da plataforma. `os.path.basename` no
+    # Linux nao corta em `\`, e o projeto TROCA caminho entre maquinas: o
+    # Windows planeja e grava o JSON, o cluster le. Um caminho do Windows
+    # lido no Linux virava sigla `D:\OUTRO\L382`, com a pasta dentro.
+    base = os.path.basename(nome.replace('\\', '/'))
     sem = base[:-4] if base.lower().endswith('.gdb') else base
     partes = sem.split('_')
     # o codigo do agente e a primeira parte que e so digito

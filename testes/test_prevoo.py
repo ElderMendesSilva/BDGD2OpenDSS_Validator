@@ -26,6 +26,7 @@ pré-voo inteiro (são seis ciclos de conversão) — quem faz isso é o job PBS
 """
 import io
 import os
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -105,6 +106,11 @@ class TestAReferencia(unittest.TestCase):
         máquinas — e o pré-voo roda no cluster, não aqui."""
         self.assertTrue(os.path.exists(prevoo.REFERENCIA),
                         'dados/referencia_prevoo.json sumiu')
+        # O NO DE CALCULO NAO TEM GIT — e la que o pre-voo roda. Sem esta
+        # guarda o proprio pre-voo reprovava por causa deste teste, que e
+        # sobre o repositorio e nao sobre o produto.
+        if not shutil.which('git'):
+            self.skipTest('sem git nesta maquina')
         p = subprocess.run(['git', 'ls-files', '--error-unmatch',
                             os.path.relpath(prevoo.REFERENCIA, RAIZ)],
                            cwd=RAIZ, capture_output=True, text=True)
@@ -177,22 +183,34 @@ class TestAPorta(unittest.TestCase):
 
 
 class TestOSelo(unittest.TestCase):
-    """O selo é escrito só quando passa — e é o que a porta lê."""
+    """O selo é escrito só quando passa, e só quando identifica um código."""
 
-    def test_o_nome_do_selo_e_o_commit(self):
-        fonte = io.open(os.path.join(RAIZ, 'etapas', 'prevoo.py'),
-                        encoding='utf-8').read()
-        self.assertIn("commit or 'sem_commit') + '.ok'", fonte)
+    def setUp(self):
+        self.fonte = io.open(os.path.join(RAIZ, 'etapas', 'prevoo.py'),
+                             encoding='utf-8').read()
 
-    def test_o_selo_so_sai_depois_de_aprovar(self):
-        """No fonte, o `--selo` vive depois de todo `return 1`: um pré-voo
-        reprovado não pode deixar selo para trás."""
-        fonte = io.open(os.path.join(RAIZ, 'etapas', 'prevoo.py'),
-                        encoding='utf-8').read()
-        i_selo = fonte.index('if a.selo:')
-        i_falha = fonte.rindex('return 1')
-        self.assertLess(i_falha, i_selo,
-                        'ha um caminho de falha depois de gravar o selo')
+    def test_o_commit_vem_do_carimbo_e_nao_de_git_direto(self):
+        """O NÓ DE CÁLCULO NÃO TEM GIT. A primeira execução real no cluster
+        gravou `sem_commit.ok` — um arquivo que a porta, que lê o commit no nó
+        de acesso, jamais acharia. O `carimbo` cai para `BDGD2DSS_COMMIT`."""
+        self.assertIn('carimbo.commit(curto=False)', self.fonte)
+        self.assertIn("commit + '.ok'", self.fonte)
+
+    def test_sem_commit_nenhum_selo_e_gravado(self):
+        """Selo que não identifica código não vale como porta."""
+        self.assertLess(self.fonte.index('if not commit:'),
+                        self.fonte.index("alvo = os.path.join(a.selo,"),
+                        'o selo e montado antes de conferir se ha commit')
+
+    def test_o_selo_so_sai_depois_da_COMPARACAO(self):
+        """Reprovar na comparação tem de acontecer antes de qualquer selo."""
+        self.assertLess(self.fonte.index('    if fora:'),
+                        self.fonte.index('    if a.selo:'),
+                        'o selo sairia mesmo com diferenca contra a referencia')
+
+    def test_a_suite_reprovada_para_antes_de_tudo(self):
+        self.assertLess(self.fonte.index('a suite reprovou'),
+                        self.fonte.index('    if a.selo:'))
 
 
 if __name__ == '__main__':

@@ -212,9 +212,19 @@ def main():
           'gravada.')
     if a.selo:
         os.makedirs(a.selo, exist_ok=True)
-        commit = subprocess.run(['git', 'rev-parse', 'HEAD'], cwd=RAIZ,
-                                capture_output=True, text=True).stdout.strip()
-        alvo = os.path.join(a.selo, (commit or 'sem_commit') + '.ok')
+        # O COMMIT VEM DO `carimbo`, E NAO DE `git` DIRETO. O no de calculo
+        # NAO TEM GIT — a primeira execucao real gravou `sem_commit.ok`, e a
+        # porta, que le o commit no no de acesso onde o git responde, jamais
+        # acharia esse arquivo. O `carimbo` ja cai para `BDGD2DSS_COMMIT`,
+        # que a submissao passa por `-v`.
+        from bdgd2dss import carimbo                        # noqa: PLC0415
+        commit = carimbo.commit(curto=False)
+        if not commit:
+            print('*** sem commit: nem `git` responde aqui, nem '
+                  '`BDGD2DSS_COMMIT` veio da submissao. Sem isso o selo nao '
+                  'identifica codigo nenhum, e nao vale como porta. ***')
+            return 1
+        alvo = os.path.join(a.selo, commit + '.ok')
         with open(alvo, 'w', encoding='utf-8') as fh:
             fh.write(commit + '\n')
         print(f'selo: {alvo}')
