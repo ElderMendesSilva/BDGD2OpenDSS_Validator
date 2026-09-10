@@ -22,8 +22,9 @@ dois lugares, e é preciso saber disso para procurar:
 | **este arquivo** | 1–29, 59–64 | achados de **generalização**: medidos sobre as 97 ou 99 bases, com número nacional. São os que sustentam o artigo. |
 | **comentário no código** | 30–58 | achados de **conversão**: defeito encontrado e corrigido num módulo, documentado no ponto onde a correção mora. Ex.: 34 em `bdgd2dss/ampacidade.py`, 51 em `bdgd2dss/linhas.py`, 54 em `bdgd2dss/transformadores.py`. |
 
-Os números **37, 38, 42, 43 e 46 nunca foram usados** — o vão é real e não
-esconde achado perdido.
+Os números **35, 37, 38, 42, 43 e 46 estão livres** — o vão é real e não
+esconde achado perdido. (O 35 vagou em 09/09/2026, na renumeração descrita
+abaixo.)
 
 **Por que 59 e não 36.** Em 08 e 09/09/2026 os achados novos entraram aqui
 numerados de 30 a 35, por cima de cinco leis que já existiam no código: 30 (o
@@ -37,6 +38,40 @@ uma lei já citada em vinte lugares cria dois problemas no lugar de um.
 
 **Antes de numerar um achado novo, procure o maior número em uso**, no código
 e aqui — não no último que este arquivo mostra.
+
+### Os achados de conversão, 30 a 58 — índice
+
+Estes moram no código, no ponto exato onde a correção vive, e **o texto que
+vale é o de lá**: ele traz a medição, o caso que a expôs e o porquê da
+escolha. Este índice existe para que se possa **encontrá-los** — até
+09/09/2026 só os conhecia quem abrisse o arquivo certo.
+
+| nº | o que estabelece | onde mora |
+|---:|---|---|
+| 30 | O PAC de UGBT que casa com barra de MT não está "na rede": o inversor de 127 V ia para a barra de 7,97 kV, sem caminho para a fonte, e virava `NaN`. Pertencer à BT se verifica contra a BT. | `bdgd2dss/complementos.py` |
+| 31 | Alimentador sem `CTMT.BARR` e com `UNI_TR_AT` inexistente fica sem vão — e sem vão não há `EnergyMeter`, então a subestação inteira sai da medição. Na Cemig-D isso valia 7.803 cargas e 1.782 km que compilam e não entram em número nenhum. | `bdgd2dss/subtransmissao.py` |
+| 32 | O regulador da BDGD **não se liga à SSDMT**: ele fica entre duas chaves, e os dois PACs dele só existem na UNSEMT. | `bdgd2dss/chaves.py` |
+| 33 | **Premissa 1.** Ligar a barra da subestação a componente desenergizada inventa um elo que a BDGD não declara — é modelagem, não conversão, e tem de aparecer no texto de quem usa o modelo. | `bdgd2dss/ligacao.py` |
+| 34 | **Premissa 2.** Trocar a resistência de trecho que conduz acima da própria ampacidade — também modelagem, e também declarada. | `bdgd2dss/ampacidade.py` |
+| 36 | A revarredura de geometria respondia por **85% do tempo de conversão**. | `cluster/medir_lote_jobs.pbs` |
+| 39 | Secundário vai para barra própria quando a `BARR_2` declarada já está em outro nível de tensão. | `bdgd2dss/subtransmissao.py` |
+| 40 | Rede de 34,5 kV numa subestação cujo único vão é de 13,8 kV **fica de fora**: não há onde pendurá-la. Não é defeito de código. | `testes/test_tensao_de_vao.py` |
+| 41 | A tensão de fase decidida pelo número de fases do elemento. Completado pelo **achado 28-B**, que mostrou o caso mais comum da MT brasileira: o monofásico ligado **entre duas fases**. | `bdgd2dss/ligacao.py` |
+| 44 | Publicar o bruto **e** o contrafactual, nunca um no lugar do outro: filtrar o que incomoda é exatamente o grau de liberdade de escolher a composição até o número ficar bonito. | `bdgd2dss/concordancia.py` |
+| 45 | `--bt completo` registrado como **quebrado**, travando o critério 5 do `PLANO_V1.md`. | `cluster/diag_bt_completo.pbs` |
+| 47 | **Uma fonte por cabeceira**, e não uma só para a subestação. Na CPFL, com todas as barras derivadas, a fonte foi parar dentro de um alimentador. | `testes/test_sem_at.py` |
+| 48 | Chave declarada **fechada em paralelo com o regulador** — dezenas no mesmo par de PACs. O tape corre ao máximo contra um caminho de 0,0007 Ω, e a perda explode. | `bdgd2dss/referencia.py` |
+| 49 | Quando o `CTMT.TEN_NOM` diz uma tensão e os transformadores **dele** dizem outra, **vale o equipamento**. | `bdgd2dss/tensoes.py` |
+| 50 | Regulador com **uma** ponta fora da rede é pior que com as duas: ele compila, aparece no arquivo e não regula nada. | `bdgd2dss/complementos.py` |
+| 51 | Trecho de BT que não alcança secundário nenhum: ilha flutuante, matriz singular, `NaN` — e o `NaN` contamina a perda da subestação inteira. É o achado 28 se repetindo na baixa. | `bdgd2dss/linhas.py` |
+| 52 | Com `--sem-at`, cada alimentador precisa da **própria** fonte: sem a camada de AT os vãos não nascem, e só o primeiro alimentador ficava energizado. | `etapas/converter.py` |
+| 53 | O transformador de **distribuição** não tinha perda a vazio: `%noloadloss` é zero por omissão no OpenDSS, e só o caminho de AT escrevia `PER_FER`. | `bdgd2dss/transformadores.py` |
+| 54 | `PAC_1` é o lado de média e `PAC_2` o de baixa; invertidos, a MT entra pelo enrolamento de 0,12 kV e o transformador vira **elevador** — 480 kV numa barra de 7,97. | `bdgd2dss/transformadores.py` |
+| 55 | O teto de iterações (`maxiterations=100`) **reprovava modelo sadio**. | `testes/test_teto_de_iteracoes.py` |
+| 56 | A guarda percentual da placa é **cega à escala**: 1,50% passa folgado, mas 1,50% de 10 kVA são 150 W, que é o ferro de um transformador de 30 kVA. | `bdgd2dss/transformadores.py` |
+| 57 | A referência de comparação é da **base**, e não da subestação que está sendo convertida — senão a resposta depende do recorte. | `bdgd2dss/transformadores.py` |
+| 58 | **O agregado sai acompanhado, sempre.** O aviso de contaminação existia num campo separado e ninguém juntava os dois; a ENERGISA_M405 publicou perda de 4.271.643,88%. | `bdgd2dss/concordancia.py` |
+
 
 ## O que o projeto demonstrou
 
