@@ -109,6 +109,37 @@ def dia(dss, master, passos=96):
     h_passo = 24.0 / passos
     ent = perd = 0.0
     ok, falhos, n_comp = 0, [], 1
+
+    # O TETO FISICO DA GERACAO — achado 35.
+    #
+    # Nenhum gerador entrega mais do que a propria capacidade instalada. O
+    # teto sai do modelo, uma vez, e serve para reprovar o passo que devolver
+    # o impossivel: a convergencia do OpenDSS e sobre a TOLERANCIA DE TENSAO,
+    # e um ponto de operacao espurio pode satisfaze-la e ser reportado como
+    # sucesso.
+    #
+    # Medido na NEOENERGIA385/MOG02, com 4.341,2 kWp de PVSystem instalados:
+    # no cluster a serie diaria reportou pico de 164.668 kW — 37,9x o
+    # instalado — com 96 de 96 passos "convergidos", e dai saiu uma perda do
+    # dia de 72,265%. Na mesma revisao do OpenDSS, sobre o mesmo modelo, a
+    # mesma funcao nesta maquina reprova 15 passos e devolve 14,58%. O
+    # resultado e deterministico em cada maquina e diferente entre elas: o
+    # modelo esta no limiar, e diferencas numericas de plataforma decidem se
+    # o passo cai no ponto bom ou no espurio.
+    #
+    # A perda do dia alimenta o `PERDA_ALTA` desde o achado 29. Sem este teto,
+    # a causa atribuida a subestacao depende da maquina que rodou.
+    teto_gd = 0.0
+    i = dss.PVsystems.First()
+    while i:
+        teto_gd += dss.PVsystems.Pmpp() or 0.0
+        i = dss.PVsystems.Next()
+    i = dss.Generators.First()
+    while i:
+        teto_gd += dss.Generators.kW() or 0.0
+        i = dss.Generators.Next()
+    teto_gd *= 1.05          # folga para o passo de tempo e o arredondamento
+    gd_impossivel = []
     # Serie do dia, para as curvas de geracao. Sai de graca: fonte, GD e
     # perdas ja sao lidas a cada passo para o balanco de energia — aqui elas
     # so param de ser jogadas fora depois de somadas. Passo que falha fica
@@ -150,13 +181,24 @@ def dia(dss, master, passos=96):
         if math.isnan(p) or math.isnan(L):
             falhos.append(k)
             continue
+        # OS DOIS TIPOS — achado 34. A geracao firme (PCH, CGH, UHE, UTE, EOL)
+        # sai como `Generator`, e somar so os `PVSystem` deixaria 601 unidades
+        # do pais fora do balanco de energia, em silencio.
         gd = 0.0
-        i = dss.PVsystems.First()
-        while i:
-            dss.Circuit.SetActiveElement('PVSystem.' + dss.PVsystems.Name())
-            pw = dss.CktElement.Powers()[0::2]
-            gd += -sum(pw[:dss.CktElement.NumPhases()])
-            i = dss.PVsystems.Next()
+        for colecao, prefixo in ((dss.PVsystems, 'PVSystem.'),
+                                 (dss.Generators, 'Generator.')):
+            i = colecao.First()
+            while i:
+                dss.Circuit.SetActiveElement(prefixo + colecao.Name())
+                pw = dss.CktElement.Powers()[0::2]
+                gd += -sum(pw[:dss.CktElement.NumPhases()])
+                i = colecao.Next()
+        # ACHADO 35: passo que devolve mais geracao do que existe e reprovado.
+        # `Converged()` fala da tolerancia de tensao, e nao da fisica.
+        if teto_gd > 0 and gd > teto_gd:
+            gd_impossivel.append(k)
+            falhos.append(k)
+            continue
         ent += (-p + gd) * h_passo               # energia INJETADA (fonte + GD)
         perd += L * h_passo
         ok += 1
@@ -200,6 +242,10 @@ def dia(dss, master, passos=96):
                 d[1] += pl
             dss.Meters.Name(nome)          # SetActiveElement mexeu no ponteiro
             j = dss.Meters.Next()
+    # O guarda tem de CONTAR o que fez: guarda silencioso vira numero que
+    # ninguem sabe de onde veio. Vai dentro da serie para nao mudar a aridade
+    # do retorno, que sete chamadores desempacotam.
+    serie['passos_gd_impossivel'] = gd_impossivel
     return ent, perd, ok, falhos, n_comp, por_alim, serie
 
 
@@ -451,6 +497,8 @@ def main():
                 'kWh_injetado': round(ent, 1), 'kWh_perdas': round(perd, 1),
                 'perdas_pct': None if pct is None else round(pct, 3),
                 'passos_falhos': falhos, 'compilacoes': n_comp,
+                'passos_gd_impossivel':
+                    (serie or {}).get('passos_gd_impossivel', []),
                 'kWh_gd': round(sum(gd) * 24.0 / a.passos, 1),
                 'pico_gd_kW': round(max(gd), 1) if gd else 0.0,
                 'serie': serie,
@@ -535,6 +583,8 @@ def main():
                       'kWh_injetado': round(ent, 1), 'kWh_perdas': round(perd, 1),
                       'perdas_pct': None if pct is None else round(pct, 3),
                       'passos_falhos': falhos, 'compilacoes': n_comp,
+                      'passos_gd_impossivel':
+                          (serie or {}).get('passos_gd_impossivel', []),
                       'kWh_gd': round(sum(gd) * 24.0 / a.passos, 1),
                       'pico_gd_kW': round(max(gd), 1) if gd else 0.0,
                       'serie': serie,
