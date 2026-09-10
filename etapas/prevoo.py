@@ -39,6 +39,16 @@ import tempfile
 
 AQUI = os.path.dirname(os.path.abspath(__file__))
 RAIZ = os.path.dirname(AQUI)
+
+# O PACOTE ESTA NO PAI, como em todo executavel de `etapas/`. Faltava aqui, e
+# o erro so aparecia no CAMINHO DO SELO — a segunda execucao real no cluster
+# imprimiu "PRE-VOO APROVADO" e morreu na linha seguinte com
+# `ModuleNotFoundError: No module named 'bdgd2dss'`. Localmente nunca
+# apareceu porque nenhuma execucao daqui tinha passado `--selo`.
+sys.path.insert(0, RAIZ)
+
+from bdgd2dss import carimbo                                # noqa: E402
+
 REFERENCIA = os.path.join(RAIZ, 'dados', 'referencia_prevoo.json')
 
 # As etapas do ciclo, na ordem em que o `regerar_v10` as roda. A ordem importa:
@@ -171,7 +181,11 @@ def main():
             print(p.stdout[-4000:] + p.stderr[-4000:])
             print('\n*** a suite reprovou. Nao ha o que discutir adiante. ***')
             return 1
-        print('   ' + (p.stderr.strip().splitlines() or ['ok'])[-3], flush=True)
+        # O RESUMO SAI DO `stderr` do unittest, e a linha certa e a do
+        # `Ran N tests` — pegar por posicao deu linha em branco no log do
+        # cluster, que e onde alguem de fato le isto.
+        linhas = [l for l in p.stderr.splitlines() if l.startswith('Ran ')]
+        print('   ' + (linhas[-1] if linhas else 'ok'), flush=True)
 
     sys.path.insert(0, os.path.join(RAIZ, 'testes'))
     import fixture                                          # noqa: PLC0415
@@ -217,7 +231,6 @@ def main():
         # porta, que le o commit no no de acesso onde o git responde, jamais
         # acharia esse arquivo. O `carimbo` ja cai para `BDGD2DSS_COMMIT`,
         # que a submissao passa por `-v`.
-        from bdgd2dss import carimbo                        # noqa: PLC0415
         commit = carimbo.commit(curto=False)
         if not commit:
             print('*** sem commit: nem `git` responde aqui, nem '

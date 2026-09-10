@@ -182,6 +182,39 @@ class TestAPorta(unittest.TestCase):
         self.assertIn('PBS_O_WORKDIR', pbs)
 
 
+class TestRodaComoScript(unittest.TestCase):
+    """Importar o módulo não prova que ele RODA.
+
+    A segunda execução real no cluster imprimiu "PRE-VOO APROVADO" e morreu na
+    linha seguinte com `ModuleNotFoundError: No module named 'bdgd2dss'`: o
+    `prevoo.py` mora em `etapas/` e não inseria a raiz no `sys.path`, como todo
+    executável de lá faz. Os testes não pegavam porque importam o módulo (com
+    a raiz já no path) em vez de executá-lo, e o erro morava num caminho que
+    só `--selo` alcança.
+    """
+
+    def _roda(self, *args):
+        return subprocess.run(
+            [sys.executable, os.path.join(RAIZ, 'etapas', 'prevoo.py')]
+            + list(args), cwd=RAIZ, capture_output=True, text=True, timeout=120)
+
+    def test_executa_de_fora_sem_quebrar_no_import(self):
+        p = self._roda('--help')
+        self.assertEqual(p.returncode, 0, p.stderr[-1500:])
+
+    def test_o_pacote_esta_no_caminho_quando_roda_como_script(self):
+        """O import que quebrou, exercitado do mesmo jeito que o cluster o
+        exercita: como PROCESSO, e não por `import`."""
+        p = subprocess.run(
+            [sys.executable, '-c',
+             'import runpy, sys; sys.argv = ["prevoo.py", "--help"]; '
+             'runpy.run_path(r"%s", run_name="__main__")'
+             % os.path.join(RAIZ, 'etapas', 'prevoo.py')],
+            cwd=tempfile.gettempdir(), capture_output=True, text=True,
+            timeout=120)
+        self.assertNotIn('ModuleNotFoundError', p.stderr)
+
+
 class TestOSelo(unittest.TestCase):
     """O selo é escrito só quando passa, e só quando identifica um código."""
 

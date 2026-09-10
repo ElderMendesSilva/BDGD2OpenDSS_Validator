@@ -25,6 +25,19 @@ O que ele NAO faz: nao afere engenharia (a rede minima perde 97% de
 proposito), nao roda base real, e nao substitui a comparacao entre rodadas.
 Responde uma pergunta so — *o codigo faz hoje o que fazia quando a referencia
 foi gravada?*
+
+**A primeira execucao real reprovou, e foi por isso que valeu.** Quatro falhas,
+tres delas invisiveis fora do cluster: o no de calculo nao tem `git` e o selo
+saiu `sem_commit.ok`, que a porta jamais acharia; `test_plataforma` isolava so
+as variaveis que ele proprio define, e dentro de um job o `PBS_NP` real vazava;
+`_sigla` nao cortava caminho do Windows lido no Linux. A segunda execucao
+morreu no caminho do selo, que nenhum teste alcancava — `prevoo.py` nao inseria
+a raiz no `sys.path`.
+
+**O que ela confirmou:** com a suite verde, a comparacao de numeros bateu
+EXATAMENTE entre Windows/Python 3.14 e Linux/Python 3.11 — zero diferenca em
+perdas, tensoes, contagens e causas, nas seis fixtures. E a evidencia mais
+direta de determinismo entre plataformas que o projeto tem.
 Fecha a safra BDGD **2025-12-31**, que a 1.0 declarava não validar. Última
 rodada completa: **V32**, com 99 bases e 4.078 subestações.
 
