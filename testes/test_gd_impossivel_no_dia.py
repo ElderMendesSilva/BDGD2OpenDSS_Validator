@@ -4,16 +4,21 @@
 `Converged()` no OpenDSS fala da **tolerância de tensão**, não da física. Um
 ponto de operação espúrio pode satisfazê-la e ser reportado como sucesso.
 
-Medido na NEOENERGIA385/MOG02, com **4.341,2 kWp** de `PVSystem` instalados:
-no cluster a série diária reportou pico de **164.668 kW** — 37,9x o instalado
-— com 96 de 96 passos "convergidos", e daí saiu uma perda do dia de 72,265%.
-Na mesma revisão do OpenDSS e sobre o mesmo modelo, a mesma função nesta
-máquina reprova 15 passos e devolve outro número. É determinístico em cada
-máquina e diferente entre elas: o modelo está no limiar, e diferenças
-numéricas de plataforma decidem se o passo cai no ponto bom ou no espúrio.
+Medido na NEOENERGIA385/MOG02 com o modelo **anterior** aos achados 32 e 34,
+que tinha ~24 MW de `PVSystem` instalados: a série diária reportou pico de
+**164.668 kW** — 6,8x o instalado — com 96 de 96 passos "convergidos", e daí
+saiu a perda do dia de 72,265% que o `PERDA_ALTA` usou como verdade.
 
-E a perda do dia alimenta o `PERDA_ALTA` desde o achado 29 — sem o teto, a
-causa atribuída à subestação depende da máquina que rodou.
+**Correção de 09/09/2026, e o erro foi de método.** A primeira redação
+afirmava que o resultado dependia da MÁQUINA (72,265% no cluster contra 14,58%
+aqui). Era comparação inválida: o número do cluster vinha de uma retomada em
+cache, sobre o modelo velho. Refeito com `--refazer`, os dois lados devolvem
+333.740,7 kWh e ~9,5% — a determinação entre laptop e cluster continua de pé.
+
+O que sobrou, e justifica o teto: com o modelo antigo o ponto espúrio existia
+e passava por convergido. Com as correções, o pico cai para 9.325 kW contra
+9.916 instalados e este guarda não dispara nenhuma vez — ele é rede de
+segurança do que já se viu acontecer, não conserto de defeito ativo.
 """
 import os
 import sys

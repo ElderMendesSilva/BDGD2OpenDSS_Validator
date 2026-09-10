@@ -113,22 +113,31 @@ def dia(dss, master, passos=96):
     # O TETO FISICO DA GERACAO — achado 35.
     #
     # Nenhum gerador entrega mais do que a propria capacidade instalada. O
-    # teto sai do modelo, uma vez, e serve para reprovar o passo que devolver
-    # o impossivel: a convergencia do OpenDSS e sobre a TOLERANCIA DE TENSAO,
+    # teto sai do modelo, uma vez, e reprova o passo que devolver o
+    # impossivel: `Converged()` fala da TOLERANCIA DE TENSAO, e nao da fisica,
     # e um ponto de operacao espurio pode satisfaze-la e ser reportado como
     # sucesso.
     #
-    # Medido na NEOENERGIA385/MOG02, com 4.341,2 kWp de PVSystem instalados:
-    # no cluster a serie diaria reportou pico de 164.668 kW — 37,9x o
-    # instalado — com 96 de 96 passos "convergidos", e dai saiu uma perda do
-    # dia de 72,265%. Na mesma revisao do OpenDSS, sobre o mesmo modelo, a
-    # mesma funcao nesta maquina reprova 15 passos e devolve 14,58%. O
-    # resultado e deterministico em cada maquina e diferente entre elas: o
-    # modelo esta no limiar, e diferencas numericas de plataforma decidem se
-    # o passo cai no ponto bom ou no espurio.
+    # Medido na NEOENERGIA385/MOG02 com o modelo ANTERIOR aos achados 32 e 34,
+    # que tinha ~24 MW de PVSystem instalados: a serie diaria reportou pico de
+    # 164.668 kW — 6,8x o instalado — com 96 de 96 passos "convergidos", e dai
+    # saiu uma perda do dia de 72,265% que o `PERDA_ALTA` do achado 29 usou
+    # como verdade.
     #
-    # A perda do dia alimenta o `PERDA_ALTA` desde o achado 29. Sem este teto,
-    # a causa atribuida a subestacao depende da maquina que rodou.
+    # CORRECAO DE 09/09/2026, e o erro foi meu. A primeira redacao deste bloco
+    # afirmava que o resultado dependia da MAQUINA — 72,265% no cluster contra
+    # 14,58% aqui, mesma revisao do OpenDSS. Era comparacao invalida: o numero
+    # do cluster vinha de uma RETOMADA, que reaproveitou o cache da V33 e nunca
+    # recalculou sobre o modelo corrigido. Refeito com `--refazer`, o cluster
+    # devolve 333.740,7 kWh injetados e 9,496% de perda, contra 333.740,7 e
+    # 9,50% nesta maquina: os dois lados batem, e a determinacao entre laptop
+    # e cluster que o CHANGELOG promete continua de pe.
+    #
+    # O que sobrou de verdade, e que justifica o teto: com o modelo antigo o
+    # ponto espurio EXISTIA e passava por convergido. Com os achados 32 e 34
+    # aplicados, o pico cai para 9.325 kW contra 9.916 instalados, e este
+    # guarda nao dispara nenhuma vez. Ele fica como rede de seguranca do que
+    # ja foi visto acontecer, e nao como correcao de um defeito ativo.
     teto_gd = 0.0
     i = dss.PVsystems.First()
     while i:
