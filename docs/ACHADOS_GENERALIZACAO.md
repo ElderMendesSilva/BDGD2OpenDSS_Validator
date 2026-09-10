@@ -2319,6 +2319,63 @@ de 14,58% para 9,50%.
 **O que continua aberto:** **15 dos 96 passos não convergem**, igualmente nos
 dois ambientes, e são os do fim do dia. Não investigado.
 
+## Achado 65 — 17 bases foram dadas como convertidas sem uma carga dentro
+
+O conversor gera **por subestação**: agrupa os alimentadores por `CTMT.SUB` e
+percorre os grupos. Quem tem `SUB` vazio não entra em grupo nenhum, e até a V34
+saía da rodada sem uma linha de log.
+
+Em **17 das 99 bases da safra 2025** *todos* os alimentadores são assim — são
+cooperativas e permissionárias, que compram energia num ponto de conexão e não
+têm subestação própria. Não é um caso de borda: são **113 alimentadores e
+180.615 UCs**.
+
+| base | alimentadores | UCs |
+|---|---:|---:|
+| DCELT87 | 5 | 43.000 |
+| CELETRO5343 | 21 | 25.620 |
+| CEREJ5352 | 18 | 18.387 |
+| CERACA6897 | 4 | 13.506 |
+| COORSEL7016 | 4 | 10.131 |
+| COOPERNORT5345 | 7 | 10.015 |
+| CERCOS5377 | 1 | 9.349 |
+| CERAL_ARAR6603 | 4 | 8.856 |
+| CEDRAP5381 | 9 | 8.577 |
+| COOPERSUL5346 | 3 | 6.961 |
+| CERDRI5366, CERTREL5369, CERVAM5375, CERAL_ANIT5351, CERMC6610, COOPERMILA5373, CERALDIS4248 | 33 | 26.213 |
+| **total** | **113** | **180.615** |
+
+**O que a rodada dizia sobre elas.** `converter`: "BDGD com 0 subestacoes e 9
+alimentadores; gerando 0". `energia`: "nenhum MASTER". `validador`: **"1 de 1
+modelos sem ressalva"** — o único modelo era o `MASTER-AT.dss`, com 0 vãos, 0
+cargas, perda 0,0% e Vmed 1,0 pu. Uma base sem nada dentro é, para o
+classificador, uma base perfeita. As 17 entraram nos agregados nacionais como
+convertidas.
+
+É o mesmo formato do achado 61 e do 62: **o silêncio sai plausível**. Zero
+carga com zero perda passa por qualquer teste que pergunte "está coerente?", e
+só não passa por um que pergunte "havia algo para converter?".
+
+**O que se corrigiu, e o que não.** O conversor não inventa a subestação que a
+base não tem — agrupar os órfãos num barramento sintético é decisão de
+modelagem, e ainda não há medida que justifique uma escolha. O que ele passa a
+fazer é **recusar-se a calar**:
+
+- conta os órfãos e os anuncia no log;
+- grava `alimentadores_sem_sub` no `relatorio_rede.json`;
+- sai com **código 2** quando a base tinha alimentadores e nenhuma subestação
+  foi gerada, para que o ciclo pare antes de validar o vazio.
+
+As 17 bases passam a **falhar visivelmente**, que é o estado honesto: 82 das 99
+convertidas, e 17 declaradas fora do alcance de hoje. O número nacional de 99
+bases era, até aqui, 82.
+
+**Por que só se descobriu na V34.** Nenhum número olhado até então era por
+base: os agregados eram por subestação, e as 17 não contribuíam com nenhuma. A
+base vazia não aparece numa soma de subestações. Só apareceu quando se contou
+quantas bases tinham produzido `validacao_balanco.json` — 82 de 99 — e se foi
+atrás das 17 que faltavam.
+
 ## Validação externa e contaminação
 
 A âncora nacional de 7,4% de perda técnica total da ANEEL é apenas um **teste

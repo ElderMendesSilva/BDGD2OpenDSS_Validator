@@ -826,10 +826,26 @@ def main():
     tr_invertidos = transformadores.pacs_invertidos(b, log)
     kv_por_ctmt = {k: v['kv'] for k, v in ctmt_info.items()}
     ses = collections.defaultdict(list)
+    orfaos = []
     for cod, c in ctmt_info.items():
         if c['sub']:
             ses[c['sub']].append(cod)
+        else:
+            orfaos.append(cod)
     ses = dict(ses)
+    # ACHADO 65: alimentador com `CTMT.SUB` vazio nao pertence a subestacao
+    # nenhuma, e o conversor gera POR SUBESTACAO — entao ele saia da rodada
+    # sem uma linha de log. Nas 17 cooperativas e permissionarias da safra
+    # 2025 (CEDRAP, CERACA, DCELT...) TODOS os alimentadores sao assim: a
+    # base inteira virava um MASTER-AT.dss vazio, e o validador declarava
+    # "1 de 1 modelos sem ressalva". Foram 113 alimentadores e 180.615 UCs
+    # dados como convertidos sem que uma unica carga existisse.
+    # O conversor nao inventa a subestacao que a base nao tem; o que ele
+    # passa a fazer e RECUSAR-SE A CALAR.
+    if orfaos:
+        print(f'  ACHADO 65: {len(orfaos)} de {len(ctmt_info)} alimentadores '
+              f'sem CTMT.SUB — nao pertencem a subestacao nenhuma e NAO serao '
+              f'convertidos.', flush=True)
     alvo = a.se or sorted(ses)
 
     prontas = [s for s in alvo if ja_gerada(a.saida, s)]
@@ -1086,6 +1102,9 @@ def main():
            'subestacoes_na_bdgd': len(ses),
            'subestacoes_geradas': len(resumo) + len(prontas),
            'alimentadores': len(ctmt_info),
+           # ACHADO 65: quantos alimentadores a base tem e o conversor
+           # nao pode alcancar por nao declararem subestacao.
+           'alimentadores_sem_sub': len(orfaos),
            'bt': a.bt, 'mes': a.mes, 'dia': a.dia,
            'fator_carga': a.fator_carga,
            'codigos_tensao_desconhecidos': tensoes.desconhecidos(),
@@ -1106,6 +1125,15 @@ def main():
               f'{", ".join(tensoes.desconhecidos())} — usaram o padrao. '
               f'Preencha em bdgd2dss/tensoes.py se souber os valores.', flush=True)
     print(f'\nFIM — {len(resumo)} subestacoes em {(time.time()-t0)/60:.1f} min', flush=True)
+
+    # ACHADO 65: base que tem alimentadores e nao gerou subestacao nenhuma nao
+    # e uma conversao vazia — e uma conversao FALHA. Sem este `exit`, o ciclo
+    # seguia para `validador`, que via um MASTER-AT.dss sem carga alguma e
+    # anunciava "1 de 1 modelos sem ressalva".
+    if not resumo and not prontas and ctmt_info:
+        print(f'FALHA: a base tem {len(ctmt_info)} alimentadores e nenhuma '
+              f'subestacao foi gerada. Nada aqui pode ser validado.', flush=True)
+        sys.exit(2)
 
 
 if __name__ == '__main__':
