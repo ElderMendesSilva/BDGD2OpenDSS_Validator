@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-ORIENTACAO DOS REGULADORES DE TENSAO — achado 30
+ORIENTACAO DOS REGULADORES DE TENSAO — achado 59
 ================================================
 
     python reguladores.py MODELOS_CMIG_V30
@@ -171,7 +171,7 @@ def main():
                          if os.path.isdir(os.path.join(raiz, x))
                          and not x.startswith('_'))
 
-    print('ORIENTACAO DOS REGULADORES — achado 30')
+    print('ORIENTACAO DOS REGULADORES — achado 59')
     print(f'{len(ses)} subestacoes | o criterio e a direcao do fluxo\n',
           flush=True)
     print(f'{"SE":14s} {"regs":>6s} {"corrig":>7s} {"sem flx":>8s} '

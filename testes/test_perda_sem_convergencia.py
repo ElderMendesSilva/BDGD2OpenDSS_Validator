@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Solução que não fechou não tem percentual — achado 33.
+"""Solução que não fechou não tem percentual — achado 62.
 
 O percentual de perda é a razão de dois números da MESMA solução. Quando ela
 diverge, as parcelas viram lixo mas a razão entre elas sai **plausível** — e

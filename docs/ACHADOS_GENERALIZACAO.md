@@ -8,6 +8,36 @@ uma conclusão minha caiu no teste seguinte, a correção está **dentro do pró
 achado**, com o número velho visível — quatro delas caíram, e isso é parte do
 resultado.
 
+## A NUMERAÇÃO É ÚNICA, E O NÚMERO É O ENDEREÇO
+
+Cada achado é uma **lei**: alguma coisa que já se errou uma vez, medida, e que
+não se deve errar de novo. Uma lei que não se consegue localizar sem
+ambiguidade não é lei, e por isso o número importa tanto quanto o conteúdo.
+
+**Há uma série só, de 1 a 64**, e nenhum número é reaproveitado. Ela mora em
+dois lugares, e é preciso saber disso para procurar:
+
+| onde | quais | o que são |
+|---|---|---|
+| **este arquivo** | 1–29, 59–64 | achados de **generalização**: medidos sobre as 97 ou 99 bases, com número nacional. São os que sustentam o artigo. |
+| **comentário no código** | 30–58 | achados de **conversão**: defeito encontrado e corrigido num módulo, documentado no ponto onde a correção mora. Ex.: 34 em `bdgd2dss/ampacidade.py`, 51 em `bdgd2dss/linhas.py`, 54 em `bdgd2dss/transformadores.py`. |
+
+Os números **37, 38, 42, 43 e 46 nunca foram usados** — o vão é real e não
+esconde achado perdido.
+
+**Por que 59 e não 36.** Em 08 e 09/09/2026 os achados novos entraram aqui
+numerados de 30 a 35, por cima de cinco leis que já existiam no código: 30 (o
+inversor de BT que ia para barra de MT), 31 (a quarta preferência dos vãos),
+32 (o regulador que não toca a SSDMT), 33 (a ligação da componente
+desenergizada) e 34 (a substituição por ampacidade). Durante dois dias
+`achado 34` significou duas coisas conforme o arquivo em que se lia. A colisão
+foi desfeita renumerando **só o que era novo**, para 59 em diante — as cinco
+leis originais mantiveram o número que sempre tiveram, porque quem renumera
+uma lei já citada em vinte lugares cria dois problemas no lugar de um.
+
+**Antes de numerar um achado novo, procure o maior número em uso**, no código
+e aqui — não no último que este arquivo mostra.
+
 ## O que o projeto demonstrou
 
 - A BDGD padroniza o **formato**, não a qualidade nem a semântica local do
@@ -1586,7 +1616,7 @@ depurar a coisa errada; mas não é o ganho que eu previa.
 todos estão no tape máximo»*, medido no mesmo instantâneo, e a suspeita de que
 o instantâneo a distorça continua **levantada e não verificada**.
 
-## Achado 30 — o regulador de tensão que aponta para o lado errado
+## Achado 59 — o regulador de tensão que aponta para o lado errado
 
 A suspeita levantada no achado 29 (`REGULADOR_SATURADO` medido no mesmo
 instantâneo suspeito) foi verificada — e a causa não era o instantâneo.
@@ -1650,7 +1680,7 @@ rodaram sem a correção nunca ser aplicada; `REGULADOR_SATURADO` ficou
 estagnado em 98 nas duas. Corrigido em 04/09/2026 (commit `79f0014`), depois
 de comparar V29 com V30 e ver que o número esperado não caiu.
 
-## Achado 30-B — a CTAT sumiu em nove bases da safra 2025, com a Enel em duas
+## Achado 59-B — a CTAT sumiu em nove bases da safra 2025, com a Enel em duas
 
 Medido em 04/09/2026, depois de o chefe do Elder relatar que a CTAT da Enel SP
 "veio vazia". Conferido direto nos `.gdb`, não de memória: **728 registros em
@@ -1748,13 +1778,13 @@ completa, com relatório — só que com a fidelidade da AT documentada acima
 (49 → 1 fontes em cabeceira real) registrada como limitação conhecida do
 dado, não do conversor.
 
-## Achado 31 — `REGULADOR_SATURADO` esconde severidades muito diferentes
+## Achado 60 — `REGULADOR_SATURADO` esconde severidades muito diferentes
 
 Medido em 04/09/2026, investigando as **18 subestações** que continuam
-`REGULADOR_SATURADO` depois da correção do achado 30 (V31, contra 98 na V29).
+`REGULADOR_SATURADO` depois da correção do achado 59 (V31, contra 98 na V29).
 
 **Nenhuma das 18 tem regulador mal orientado.** Em todas, `reguladores.json`
-mostra `corrigidos: 0` — o achado 30 mediu a direção do fluxo e concluiu que a
+mostra `corrigidos: 0` — o achado 59 mediu a direção do fluxo e concluiu que a
 orientação já estava certa (ou não havia fluxo suficiente pra decidir). O
 regulador não é o defeito aqui; ele está fazendo o que pode.
 
@@ -1855,7 +1885,7 @@ volta a injetar potência como uma subestação normal.
 
 **Mas a tensão não melhorou:** `V_MT_mediana` foi de 0,129 para 0,109 e a
 perda de 81,3% para 82,6%. O `kv` da GD explicava a medição de geração e o
-sinal da fonte; **não** explica a tensão implausível. Esse pedaço do achado 31
+sinal da fonte; **não** explica a tensão implausível. Esse pedaço do achado 60
 continua aberto — e é justamente a faixa que deveria ter veredicto próprio.
 
 (A `causa` desta rodada avulsa saiu `REDE_EXTENSA`, e isso é artefato do
@@ -1908,7 +1938,7 @@ causa continua desconhecida. E resta a dúvida do achado 19: alimentador de
 1.631 km pode ser cadastro real de rede rural ou artefato de agrupamento de
 CTMT, e distinguir os dois exige abrir a `.gdb`, não o modelo.
 
-**O que isto não é:** uma falha do achado 30. A correção fez exatamente o que
+**O que isto não é:** uma falha do achado 59. A correção fez exatamente o que
 prometeu — resolveu 80 das 98 saturações por orientação errada. As 18 que
 sobraram são um problema **diferente e pré-existente**, que só ficou visível
 porque o ruído das 80 parou de encobrir.
@@ -1919,9 +1949,9 @@ mesmo padrão do achado 29 (que separou `PERDA_ALTA` de `TENSAO_BAIXA` porque
 um rótulo genérico escondia dois problemas). E investigar os três casos de
 `P_fonte_kW` negativo isoladamente, abrindo o modelo como se fez no achado 22.
 
-## Achado 31-B — o veredicto que existia, sumiu, e voltou medido
+## Achado 60-B — o veredicto que existia, sumiu, e voltou medido
 
-Implementado em 08/09/2026, fechando a pendência que o achado 31 deixou.
+Implementado em 08/09/2026, fechando a pendência que o achado 60 deixou.
 
 `TENSAO_IMPLAUSIVEL` nasceu no achado 1 e **desapareceu** quando o
 classificador graduado dos achados 25 e 29 substituiu o código antigo — sem
@@ -1936,7 +1966,7 @@ herdeiro, sem nota, sem que a suíte notasse. Ninguém percebeu por dez dias.
 | `CARGA_ALTA` | 4 |
 | **total reclassificado** | **34** (0,83%) |
 
-**A surpresa é de onde vem a maioria.** O achado 31 apontou o rótulo de
+**A surpresa é de onde vem a maioria.** O achado 60 apontou o rótulo de
 regulador, e ele responde por 5 casos; **25 vinham de `TENSAO_BAIXA`** — a
 classe que o achado 29 já tinha limpado uma vez. Exemplos, todos hoje
 chamados de "tensão baixa":
@@ -1971,9 +2001,9 @@ física, não pelos dados. Doze testes novos travam a precedência, para que
 reordenar a cascata quebre a suíte em vez de sumir com o veredicto de novo —
 que foi exatamente o que aconteceu da primeira vez.
 
-## Achado 32 — a energia declarada da GD não cabe na potência declarada dela
+## Achado 61 — a energia declarada da GD não cabe na potência declarada dela
 
-Medido em 08/09/2026, perseguindo as quatro subestações do achado 31 que
+Medido em 08/09/2026, perseguindo as quatro subestações do achado 60 que
 saturavam **sem** ser longas. Elas não eram um fenômeno só, e a maior delas
 abriu um achado maior que a pergunta original.
 
@@ -2024,7 +2054,7 @@ leitura em que os dois campos estejam certos.
 
 **E isto respinga numa escolha nossa.** O conversor dimensiona a GD pela
 ENERGIA e não pelo `POT_INST`, e com razão documentada: `POT_INST` replicava
-o `CAR_INST` do consumidor, errando por até 540x. O achado 32 mostra o outro
+o `CAR_INST` do consumidor, errando por até 540x. O achado 61 mostra o outro
 lado da moeda — **nenhum dos dois campos serve sozinho**. Onde os dois
 discordam por ordens de grandeza, o que falta é o teste de plausibilidade
 cruzado entre eles, que hoje não existe.
@@ -2033,7 +2063,7 @@ cruzado entre eles, que hoje não existe.
 este. Conferir exige ler `UGMT_tab`/`UGBT_tab` das 99 bases — lê `.gdb`,
 então é job, não leitura de modelo.
 
-## Achado 33 — a razão de dois lixos sai plausível
+## Achado 62 — a razão de dois lixos sai plausível
 
 Achado em 08/09/2026, conferindo a V32. Não estava sendo procurado: apareceu
 porque o total nacional de GD deu **10⁷⁰ kW** ao somar as 4.078 subestações.
@@ -2078,10 +2108,10 @@ base inválida, consumido adiante sem guarda. O achado 21 foi
 razão de dois estouros. A lição que se repete: **o que passa despercebido não
 é o valor absurdo, é o valor razoável calculado sobre ele.**
 
-## Achado 33-B — dois rótulos que explicam tensão, dados a quem tem tensão boa
+## Achado 62-B — dois rótulos que explicam tensão, dados a quem tem tensão boa
 
 Medido em 08/09/2026 sobre a V32, fechando a última das quatro subestações
-curtas que o achado 31 deixou sem explicação.
+curtas que o achado 60 deixou sem explicação.
 
 `REDE_EXTENSA` e `REGULADOR_SATURADO` se justificam, os dois, **por queda de
 tensão** — está escrito na doutrina de cada um: *«nesses casos a queda de
@@ -2099,11 +2129,11 @@ O caso que não admite defesa: a **NEOENERGIA47/SBC, em 1,036 pu** — acima da
 nominal — carimbada como rede extensa demais para sustentar tensão. As oito
 reprovam por **perda** (15,1% a 41,8%), e é ela que tem de nomeá-las.
 
-**A NEOENERGIA385/UBA02 era uma das quatro do achado 31**: 0,938 pu de tensão,
+**A NEOENERGIA385/UBA02 era uma das quatro do achado 60**: 0,938 pu de tensão,
 perda do dia de 16,2%, nove reguladores no tape máximo. Ela não tinha defeito
 de regulador nenhum — reprovava por um ponto percentual de perda acima do
-limite, e levava o nome do regulador. Com a trava, as quatro do achado 31
-ficam explicadas: duas por GD desproporcional (achado 32), duas por rótulo
+limite, e levava o nome do regulador. Com a trava, as quatro do achado 60
+ficam explicadas: duas por GD desproporcional (achado 61), duas por rótulo
 trocado (este).
 
 **`CARGA_ALTA` fica fora da trava, de propósito.** Ela afirma algo sobre
@@ -2113,9 +2143,9 @@ alta por si só. Duas subestações com tensão boa continuam nela, e está cert
 **Nenhuma das oito vira `OK`** — a perda continua reprovando. É relabelagem,
 não aprovação, e há teste travando exatamente isso.
 
-## Achado 34 — o divisor tem de casar com a curva, e não com a placa
+## Achado 63 — o divisor tem de casar com a curva, e não com a placa
 
-Medido em 09/09/2026, perseguindo a subestação que o achado 32 **não**
+Medido em 09/09/2026, perseguindo a subestação que o achado 61 **não**
 consertou: a NEOENERGIA385/MOG02 seguia com 86% de perda depois do guarda de
 GD implausível, porque a declaração dela não se contradiz.
 
@@ -2156,7 +2186,7 @@ O docstring de `complementos.geracao` explica, com medida própria, por que
 de bater com a energia declarada —, e dele sai a regra: **o divisor tem de
 casar com a curva que se anexa**. Curva solar, divide-se pelo fator dela;
 curva plana, não se divide por nada. `POT_INST` fica no papel em que é
-confiável: teste de plausibilidade, que o achado 32 já lhe deu.
+confiável: teste de plausibilidade, que o achado 61 já lhe deu.
 
 Usina firme com CEG próprio (`PCH`, `CGH`, `UHE`, `UTE`, `UTN`, `EOL`) passa a
 sair como **`Generator`** com curva plana e `kW = ENE/730` — 561 unidades na
@@ -2202,7 +2232,7 @@ fator de capacidade real de ~8%: baixo demais para solar, e **não sei
 explicar** (placa em CC contra energia em CA? usina conectada no meio do ano?
 curtailment?). Mexer nos dois sem entender seria inventar rede.
 
-## Achado 35 — `Converged()` fala de tensão, não de física
+## Achado 64 — `Converged()` fala de tensão, não de física
 
 Medido em 09/09/2026, e este achado **nasceu errado e foi corrigido no mesmo
 dia**; o número velho fica visível abaixo porque o erro é de método e vale
@@ -2224,7 +2254,7 @@ determinística entre laptop e cluster»* do `CHANGELOG` estava quebrada.
 
 **Era comparação inválida.** O número do cluster vinha de uma **retomada** —
 `energia.py` pula subestação já medida —, então era o cache da V33, calculado
-sobre o modelo **anterior** aos achados 32 e 34. Comparei modelo velho lá
+sobre o modelo **anterior** aos achados 61 e 63. Comparei modelo velho lá
 contra modelo novo aqui e atribuí a diferença à plataforma. A mensagem *«já
 medidas — retomando»* estava na saída, e eu tinha olhado só o `tail -3`.
 
@@ -2235,7 +2265,7 @@ batem, e a garantia do `CHANGELOG` continua de pé.
 ### O que se sustenta, e o guarda que ficou
 
 Com o modelo antigo o ponto espúrio **existia** e passava por convergido.
-Com os achados 32 e 34 aplicados, o pico cai para **9.325 kW** contra 9.916
+Com os achados 61 e 63 aplicados, o pico cai para **9.325 kW** contra 9.916
 instalados, e o teto novo **não dispara nenhuma vez**.
 
 O teto é físico e sai do próprio modelo — soma de `Pmpp` dos `PVSystem` mais
@@ -2246,7 +2276,7 @@ próxima rodada nacional não o acusar em nenhuma das 4.078 subestações, vale
 reavaliar se ele paga o próprio custo.
 
 **Um segundo subcount apareceu no caminho:** a série diária também somava só
-`PVSystem`, então a geração firme do achado 34 ficaria fora do balanço de
+`PVSystem`, então a geração firme do achado 63 ficaria fora do balanço de
 energia. Era o mesmo erro que eu já tinha corrigido no `validador.py` e não vi
 que existia aqui. Na MOG02, incluir a usina no denominador leva a perda do dia
 de 14,58% para 9,50%.

@@ -85,3 +85,33 @@ comando registrado reproduza.
 **Nunca apagar sem olhar:** `dados/` é insumo, não resultado. `relatorios/`
 não se refaz. E código, mesmo morto, sai por `git rm` e não por `rm` — fica
 recuperável no histórico.
+
+## Os achados são leis, e o número é o endereço
+
+Cada achado é algo que já se errou uma vez, foi medido, e não se deve errar de
+novo. Uma lei que não se localiza sem ambiguidade não é lei — por isso o
+número importa tanto quanto o conteúdo.
+
+**Uma série só, de 1 a 64, sem número reaproveitado**, morando em dois
+lugares:
+
+- **`docs/ACHADOS_GENERALIZACAO.md`** — os de generalização (1–29, 59–64),
+  medidos sobre as 97 ou 99 bases, com número nacional.
+- **comentário no código** — os de conversão (30–58), no ponto onde a
+  correção mora: 34 em `bdgd2dss/ampacidade.py`, 51 em `bdgd2dss/linhas.py`,
+  54 em `bdgd2dss/transformadores.py`, e assim por diante.
+
+Os números 37, 38, 42, 43 e 46 nunca foram usados.
+
+**ANTES DE NUMERAR UM ACHADO NOVO, PROCURE O MAIOR EM USO** — no código e no
+documento, não o último que o documento mostra:
+
+```bash
+git ls-files | xargs grep -rhoiE "achado [0-9]+" | grep -oE "[0-9]+" | sort -n | tail -1
+```
+
+Em 08/09/2026 seis achados novos foram numerados de 30 a 35 sem essa
+verificação, por cima de cinco leis que já existiam no código. Por dois dias
+`achado 34` significou ampacidade num arquivo e divisor de GD em outro.
+Desfazer custou renumerar 84 linhas em 19 arquivos — e a regra é renumerar **o
+novo**, nunca a lei já citada em vinte lugares.

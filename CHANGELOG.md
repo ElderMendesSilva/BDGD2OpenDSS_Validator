@@ -33,31 +33,31 @@ com o mapa abaixo:**
 | `SUBESTACAO_ILHADA`, `REDE_PARCIAL`, `RAMAIS_SOLTOS` | achado 25 | `MODELO_QUEBRADO` (era 96,7% dela) |
 | `PERDA_ALTA`, `SEM_CARGA` | achado 29 | `TENSAO_BAIXA` (era 58% dela) |
 | `NAO_CONVERGE_COM_GD` | achado 26 | `MODELO_QUEBRADO` |
-| `TENSAO_IMPLAUSIVEL` | achados 1 e 31-B | `TENSAO_BAIXA`, `REGULADOR_SATURADO`, `CARGA_ALTA` |
+| `TENSAO_IMPLAUSIVEL` | achados 1 e 60-B | `TENSAO_BAIXA`, `REGULADOR_SATURADO`, `CARGA_ALTA` |
 
 `diagnostico.SEM_TENSAO` existe no código para reproduzir a contagem antiga.
 
 ### Correções de conversão desta versão
 
-- **Regulador com o `RegControl` no lado da fonte** (achado 30). O tape corria
+- **Regulador com o `RegControl` no lado da fonte** (achado 59). O tape corria
   ao limite e *dividia* a tensão do lado da carga. Corrigido pela direção do
   fluxo; `REGULADOR_SATURADO` caiu de 98 para 12 no país.
-- **GD com `kv` fixo de 13,8 kV** (achado 31), mesmo em alimentador de 34,5 kV
+- **GD com `kv` fixo de 13,8 kV** (achado 60), mesmo em alimentador de 34,5 kV
   — o `PVSystem` entregava de 0,03x a 4,0x o `Pmpp` conforme a tensão local.
-- **Geração cuja energia não cabe na própria potência** (achado 32): 221
+- **Geração cuja energia não cabe na própria potência** (achado 61): 221
   unidades no país passam do teto de 5 MW da mini-GD e somam 10,3% da GD
   declarada. Desligadas em `_GD_IMPLAUSIVEL.dss`, premissa reversível.
-- **Percentual publicado sobre solução divergida** (achado 33): 19 das 29
+- **Percentual publicado sobre solução divergida** (achado 62): 19 das 29
   subestações que não convergem publicavam perda entre 0 e 15%, plausível e
   falsa.
 
 ### O que ela NÃO faz
 
-- **Não incorpora as correções dos achados 32 e 33 em rodada nacional.** Elas
+- **Não incorpora as correções dos achados 61 e 62 em rodada nacional.** Elas
   entraram depois da V32; os números acima são da V32 e a V33 é que os refaz.
 - **Herda todas as limitações da 1.0 abaixo** que não estejam explicitamente
   corrigidas aqui — em especial a ausência de referência externa.
-- **Não explica quatro das subestações do achado 31** que saturam sem serem
+- **Não explica quatro das subestações do achado 60** que saturam sem serem
   longas nem terem GD desproporcional.
 
 ## 1.0.0 — 01/09/2026

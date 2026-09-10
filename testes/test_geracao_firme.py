@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Usina firme não se dimensiona pelo fator solar — achado 34.
+"""Usina firme não se dimensiona pelo fator solar — achado 63.
 
 O conversor dimensionava TODA geração por `ENE / 730 / 0,286`, e 0,286 é o
 fator de capacidade da **curva solar**. A conta está certa para solar e só

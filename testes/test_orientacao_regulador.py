@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""A orientacao do regulador de tensao — achado 30.
+"""A orientacao do regulador de tensao — achado 59.
 
 O `RegControl` e emitido com `winding=2`, assumindo que o `PAC_2` do UNREMT e
 o lado da carga. A BDGD nao declara direcao, e quando o `PAC_2` e o lado da

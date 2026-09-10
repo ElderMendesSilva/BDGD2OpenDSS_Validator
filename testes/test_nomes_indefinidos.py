@@ -62,7 +62,7 @@ class TestOVerificador(unittest.TestCase):
 
             def _uma_se(C, se, k):
                 if C:
-                    log('ACHADO 32')
+                    log('ACHADO 61')
             ''')
         self.assertEqual(len(achados), 1)
         self.assertEqual(achados[0][2:], ('_uma_se', 'log'))

@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Trava o achado 30-B: etapas/converter.py monta o caminho de
+"""Trava o achado 59-B: etapas/converter.py monta o caminho de
 dados/de_para_mnemonicos.csv relativo a etapas/, entao mover converter.py
 de pasta (ou qualquer refactor no calculo do caminho) tem que quebrar a
 suite aqui, e nao falhar em silencio numa rodada de producao.

@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """A orientação do regulador de tensão — de que lado está a carga.
 
-ACHADO 30. O `RegControl` é emitido com `winding=2`, o que assume que o
+ACHADO 59. O `RegControl` é emitido com `winding=2`, o que assume que o
 `PAC_2` do registro UNREMT é o lado da carga. **A BDGD não declara direção.**
 Quando o `PAC_2` é o lado da fonte, três coisas acontecem juntas:
 
@@ -81,7 +81,7 @@ def corrigir(reguladores):
 
 
 CABECALHO = """! ==========================================================================
-!  ORIENTACAO DOS REGULADORES — achado 30
+!  ORIENTACAO DOS REGULADORES — achado 59
 ! ==========================================================================
 !  O `RegControl` e emitido com `winding=2`, assumindo que o PAC_2 do UNREMT e
 !  o lado da CARGA. A BDGD nao declara direcao, e quando o PAC_2 e o lado da

@@ -153,7 +153,7 @@ def valida(pasta, referencia=None):
     # Uma solucao extra so no caso que falhou — 23 de 4.078 — transforma o
     # veredicto em diagnostico.
     if not r['converge']:
-        # A GERACAO FIRME ENTRA NA SONDA — achado 34. Ela sai como
+        # A GERACAO FIRME ENTRA NA SONDA — achado 63. Ela sai como
         # `Generator`, e desligar so os `PVSystem` mediria "sem GD" com a PCH
         # ainda injetando: o diagnostico sairia errado justamente nas
         # subestacoes que tem usina.
@@ -241,7 +241,7 @@ def valida(pasta, referencia=None):
     # contra 54.339 kW de GD, o que dava 305% de perdas sobre a fonte e
     # 9,44% sobre a injetada. Varias subestacoes foram classificadas como
     # TENSAO_BAIXA por causa dessa razao inflada.
-    # OS DOIS TIPOS CONTAM — achado 34. A geracao firme (PCH, CGH, UHE, UTE,
+    # OS DOIS TIPOS CONTAM — achado 63. A geracao firme (PCH, CGH, UHE, UTE,
     # EOL, identificada pelo CEG proprio) sai como `Generator`, e nao como
     # `PVSystem`, porque e o que ela e. Somar so os PVSystem passaria a
     # subcontar a GD EM SILENCIO — 601 unidades no pais —, que e exatamente o
@@ -385,7 +385,7 @@ def valida(pasta, referencia=None):
     # gravado ao lado, porque comparar os dois E o achado.
     r['perdas_pct_dia'] = _perda_do_dia(pasta, r.get('modelo'))
 
-    # SOLUCAO QUE NAO FECHOU NAO TEM PERCENTUAL — achado 33.
+    # SOLUCAO QUE NAO FECHOU NAO TEM PERCENTUAL — achado 62.
     #
     # O percentual e a razao de dois numeros da mesma solucao, entao quando ela
     # diverge a razao sai PLAUSIVEL enquanto as parcelas sao lixo. Medido na

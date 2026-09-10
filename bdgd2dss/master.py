@@ -212,7 +212,7 @@ redirect _CHAVES_ABERTAS.dss
 ! subestacao INTEIRA. Vazio quando nao ha nenhum. Ver linhas.ilhadas_bt.
 redirect _BT_ILHADA.dss
 
-! Orientacao dos reguladores — achado 30. O `RegControl` e emitido no
+! Orientacao dos reguladores — achado 59. O `RegControl` e emitido no
 ! enrolamento 2 supondo que o PAC_2 do UNREMT e o lado da carga, e a BDGD nao
 ! declara direcao: quando o PAC_2 e o lado da FONTE o controle regula o que nao
 ! pode mudar, satura o tape e DIVIDE a tensao do lado da carga. Vazio ate
@@ -226,7 +226,7 @@ redirect _REGULADORES.dss
 ! o modelo ao que a BDGD declara.
 redirect _AMPACIDADE.dss
 
-! Geracao cuja energia declarada nao cabe na propria POT_INST — achado 32.
+! Geracao cuja energia declarada nao cabe na propria POT_INST — achado 61.
 ! `ENE_XX` acima de `POT_INST` x 730 h e fator de capacidade maior que 100%, e
 ! os dois campos sao da mesma linha da UGMT_tab/UGBT_tab. Vazio quando a base
 ! nao tem nenhuma. Apagar esta linha devolve o modelo a declaracao crua, com a

@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""O veredicto de tensão implausível — achados 1, 31 e 32.
+"""O veredicto de tensão implausível — achados 1, 60 e 61.
 
 Este veredicto já existiu. Nasceu no achado 1 (28/08/2026), quando 71
 subestações da COPELDIS2866 saíam `OK` publicando perda de até 10.309.528%
@@ -65,7 +65,7 @@ class TestPrecedencia(unittest.TestCase):
     """Os três rótulos que ela tira da frente. Todos SÃO verdade aqui."""
 
     def test_vence_regulador_saturado(self):
-        """O caso do achado 31: 5 subestações com o rótulo errado na V31."""
+        """O caso do achado 60: 5 subestações com o rótulo errado na V31."""
         extra = {'reg_total': 19, 'reg_saturados': 19}
         self.assertEqual(classificar(0.109, extra=extra)[0],
                          'TENSAO_IMPLAUSIVEL')
@@ -118,7 +118,7 @@ class TestContrato(unittest.TestCase):
 
 class TestSoValeComTensaoRuim(unittest.TestCase):
     """`REDE_EXTENSA` e `REGULADOR_SATURADO` explicam queda de tensão — e
-    com a tensão adequada não há queda a explicar (achado 33-B).
+    com a tensão adequada não há queda a explicar (achado 62-B).
 
     Medido na V32: 3 das 11 `REDE_EXTENSA` e 5 das 12 `REGULADOR_SATURADO`
     tinham tensão acima de 0,90 pu, e a NEOENERGIA47/SBC estava em 1,036 pu —

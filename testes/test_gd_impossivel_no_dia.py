@@ -1,10 +1,10 @@
 # -*- coding: utf-8 -*-
-"""Passo que devolve mais geração do que existe é reprovado — achado 35.
+"""Passo que devolve mais geração do que existe é reprovado — achado 64.
 
 `Converged()` no OpenDSS fala da **tolerância de tensão**, não da física. Um
 ponto de operação espúrio pode satisfazê-la e ser reportado como sucesso.
 
-Medido na NEOENERGIA385/MOG02 com o modelo **anterior** aos achados 32 e 34,
+Medido na NEOENERGIA385/MOG02 com o modelo **anterior** aos achados 61 e 63,
 que tinha ~24 MW de `PVSystem` instalados: a série diária reportou pico de
 **164.668 kW** — 6,8x o instalado — com 96 de 96 passos "convergidos", e daí
 saiu a perda do dia de 72,265% que o `PERDA_ALTA` usou como verdade.
@@ -63,7 +63,7 @@ class TestOTeto(unittest.TestCase):
 
 
 class TestAGeracaoFirmeEntraNoBalanco(unittest.TestCase):
-    """Achado 34: somar só `PVSystem` deixaria 601 unidades fora."""
+    """Achado 63: somar só `PVSystem` deixaria 601 unidades fora."""
 
     def setUp(self):
         with open(FONTE, encoding='utf-8') as fh:

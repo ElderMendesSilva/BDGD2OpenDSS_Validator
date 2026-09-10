@@ -110,7 +110,7 @@ def dia(dss, master, passos=96):
     ent = perd = 0.0
     ok, falhos, n_comp = 0, [], 1
 
-    # O TETO FISICO DA GERACAO — achado 35.
+    # O TETO FISICO DA GERACAO — achado 64.
     #
     # Nenhum gerador entrega mais do que a propria capacidade instalada. O
     # teto sai do modelo, uma vez, e reprova o passo que devolver o
@@ -118,7 +118,7 @@ def dia(dss, master, passos=96):
     # e um ponto de operacao espurio pode satisfaze-la e ser reportado como
     # sucesso.
     #
-    # Medido na NEOENERGIA385/MOG02 com o modelo ANTERIOR aos achados 32 e 34,
+    # Medido na NEOENERGIA385/MOG02 com o modelo ANTERIOR aos achados 61 e 63,
     # que tinha ~24 MW de PVSystem instalados: a serie diaria reportou pico de
     # 164.668 kW — 6,8x o instalado — com 96 de 96 passos "convergidos", e dai
     # saiu uma perda do dia de 72,265% que o `PERDA_ALTA` do achado 29 usou
@@ -134,7 +134,7 @@ def dia(dss, master, passos=96):
     # e cluster que o CHANGELOG promete continua de pe.
     #
     # O que sobrou de verdade, e que justifica o teto: com o modelo antigo o
-    # ponto espurio EXISTIA e passava por convergido. Com os achados 32 e 34
+    # ponto espurio EXISTIA e passava por convergido. Com os achados 61 e 63
     # aplicados, o pico cai para 9.325 kW contra 9.916 instalados, e este
     # guarda nao dispara nenhuma vez. Ele fica como rede de seguranca do que
     # ja foi visto acontecer, e nao como correcao de um defeito ativo.
@@ -190,7 +190,7 @@ def dia(dss, master, passos=96):
         if math.isnan(p) or math.isnan(L):
             falhos.append(k)
             continue
-        # OS DOIS TIPOS — achado 34. A geracao firme (PCH, CGH, UHE, UTE, EOL)
+        # OS DOIS TIPOS — achado 63. A geracao firme (PCH, CGH, UHE, UTE, EOL)
         # sai como `Generator`, e somar so os `PVSystem` deixaria 601 unidades
         # do pais fora do balanco de energia, em silencio.
         gd = 0.0
@@ -202,7 +202,7 @@ def dia(dss, master, passos=96):
                 pw = dss.CktElement.Powers()[0::2]
                 gd += -sum(pw[:dss.CktElement.NumPhases()])
                 i = colecao.Next()
-        # ACHADO 35: passo que devolve mais geracao do que existe e reprovado.
+        # ACHADO 64: passo que devolve mais geracao do que existe e reprovado.
         # `Converged()` fala da tolerancia de tensao, e nao da fisica.
         if teto_gd > 0 and gd > teto_gd:
             gd_impossivel.append(k)

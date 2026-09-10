@@ -58,7 +58,7 @@ As causas, na ordem em que sao testadas:
                     a perda medida e a da propria subtensao. Vem ANTES de
                     CARGA_ALTA, REDE_EXTENSA e REGULADOR_SATURADO porque os
                     tres podem ser verdade ao mesmo tempo e descrevem o
-                    sintoma, nao a doenca (achados 1, 31 e 32). Acionavel: a
+                    sintoma, nao a doenca (achados 1, 60 e 61). Acionavel: a
                     acao e nao publicar o numero.
 
   REDE_EXTENSA      alimentador muito acima do normal da concessao (a
@@ -67,7 +67,7 @@ As causas, na ordem em que sao testadas:
                     queda de tensao e fisicamente correta e nao ha o que
                     corrigir sem o ajuste de campo dos reguladores.
 
-                    SO VALE COM A TENSAO RUIM (achado 33-B). Alimentador
+                    SO VALE COM A TENSAO RUIM (achado 62-B). Alimentador
                     longo com a tensao adequada nao tem problema de tensao a
                     explicar — a NEOENERGIA47/SBC levava este rotulo com
                     1,036 pu, ACIMA da nominal.
@@ -116,7 +116,7 @@ PERDAS_ALTA = 15.0
 USO_ALTO = 90.0
 
 # ---------------------------------------------------------------------------
-# TENSAO_IMPLAUSIVEL: o corte de 0,5 pu — achados 1 e 31
+# TENSAO_IMPLAUSIVEL: o corte de 0,5 pu — achados 1 e 60
 # ---------------------------------------------------------------------------
 # Este veredicto existia no achado 1 (28/08/2026), sumiu quando o classificador
 # graduado dos achados 25 e 29 substituiu o codigo antigo, e voltou em
@@ -127,7 +127,7 @@ USO_ALTO = 90.0
 #
 # A FISICA, que e o que sustenta o corte: carga de potencia constante a 0,08 pu
 # puxa ~12x a corrente nominal e a perda joule sobe ~150x. Medido na
-# EQUATORIAL6072/5002404 (achado 31): perdas de 12,7 MW sobre 5,1 MW de carga,
+# EQUATORIAL6072/5002404 (achado 60): perdas de 12,7 MW sobre 5,1 MW de carga,
 # 2,5x. Nao e perda de rede, e uma solucao fora da bacia de operacao — o numero
 # dela nao pode entrar em agregado nenhum.
 #
@@ -253,7 +253,7 @@ def classificar(v, resumo, extra=None, referencia=None):
     if vmed >= V_BAIXA and perda < PERDAS_ALTA:
         return ('OK', '', False)
 
-    # TENSAO IMPLAUSIVEL VEM ANTES DE TUDO O QUE ELA EXPLICA — achados 1 e 31.
+    # TENSAO IMPLAUSIVEL VEM ANTES DE TUDO O QUE ELA EXPLICA — achados 1 e 60.
     # Abaixo de meio pu a solucao saiu da bacia de operacao: a carga de
     # potencia constante puxa corrente demais, a perda cresce com o quadrado
     # dela, e nenhum numero desta subestacao — perda, energia, carregamento —
@@ -274,7 +274,7 @@ def classificar(v, resumo, extra=None, referencia=None):
         return ('CARGA_ALTA',
                 f'{kw/1000:.1f} MW sobre {mva:.0f} MVA instalados ({uso:.0f}%)', True)
 
-    # OS DOIS TESTES ABAIXO SO VALEM COM A TENSAO RUIM — achado 33-B.
+    # OS DOIS TESTES ABAIXO SO VALEM COM A TENSAO RUIM — achado 62-B.
     #
     # `REDE_EXTENSA` e `REGULADOR_SATURADO` se justificam, os dois, por queda
     # de tensao: um diz que "a queda e fisicamente correta num alimentador
@@ -336,7 +336,7 @@ ACIONAVEL = {'MODELO_QUEBRADO', 'SUBESTACAO_ILHADA', 'REDE_PARCIAL',
              'NAO_CONVERGE_COM_GD', 'PERDA_ALTA', 'TENSAO_IMPLAUSIVEL'}
 
 # `TENSAO_IMPLAUSIVEL` entra em ACIONAVEL mesmo quando a causa raiz e do
-# cadastro (condutor fino demais no achado 31, GD superdimensionada no achado
+# cadastro (condutor fino demais no achado 60, GD superdimensionada no achado
 # 32), e a escolha e deliberada: a acao existe e e NOSSA — nao publicar o
 # numero dessa subestacao. `REDE_EXTENSA` fica de fora porque ali a queda e
 # fisicamente correta e o numero vale; aqui ele nao vale.

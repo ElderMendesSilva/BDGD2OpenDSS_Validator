@@ -155,7 +155,7 @@ def gerar_at(bdgd, a, ctmt_info, mapa_cnd, log, subs_alvo=None):
         anc = {n: (s & subs_alvo) for n, s in anc.items()}
         anc = {n: s for n, s in anc.items() if s}
     if not depara:
-        # Achado 30-B: um de-para vazio nao e erro que trava a rodada, mas
+        # Achado 59-B: um de-para vazio nao e erro que trava a rodada, mas
         # tambem nao pode ficar mudo — foi assim que o caminho quebrado
         # rodou nove bases da safra 2025 sem ninguem perceber.
         log(f'  AVISO: de-para de mnemonicos vazio ({caminho_depara} '
@@ -471,11 +471,11 @@ def _uma_se(C, se, k):
         # por causa desta linha, e so nelas, porque a mensagem so e alcancada
         # quando ha unidade implausivel de verdade. O teste de fumaca na
         # `.gdb` minima passou justamente por nao ter nenhuma.
-        print(f'  ACHADO 32: {gd_impl} unidade(s) de GD com energia acima do '
+        print(f'  ACHADO 61: {gd_impl} unidade(s) de GD com energia acima do '
               f'que a propria POT_INST comporta ({gd_impl_kw:,.0f} kW) — '
               f'desligadas em _GD_IMPLAUSIVEL.dss', flush=True)
     if gd_firme:
-        print(f'  ACHADO 34: {gd_firme} usina(s) firme(s) com CEG proprio '
+        print(f'  ACHADO 63: {gd_firme} usina(s) firme(s) com CEG proprio '
               f'({gd_firme_kw:,.0f} kW) — Generator com curva plana, e nao '
               f'PVSystem com curva solar', flush=True)
 
@@ -524,10 +524,10 @@ def _uma_se(C, se, k):
 
     # Mesma razao dos dois acima: o MASTER redireciona `_REGULADORES.dss`
     # sempre, e `Redirect` de arquivo ausente derruba a subestacao inteira.
-    # Quem preenche e o `reguladores.py` (achado 30), que roda depois porque
+    # Quem preenche e o `reguladores.py` (achado 59), que roda depois porque
     # precisa do fluxo resolvido para decidir o lado da fonte.
     open(os.path.join(d, '_REGULADORES.dss'), 'w', encoding='utf-8', newline=escrita.FIM_DE_LINHA).write(
-        '! Orientacao do RegControl invertido — achado 30.\n'
+        '! Orientacao do RegControl invertido — achado 59.\n'
         '! Vazio: rode `python reguladores.py <pasta>` para preencher.\n'
         '! Sem isso o modelo reproduz o enrolamento que o conversor supos.\n')
 

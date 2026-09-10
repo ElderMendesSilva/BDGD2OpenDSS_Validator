@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
-"""A geração cuja energia não cabe na própria potência — achado 32.
+"""A geração cuja energia não cabe na própria potência — achado 61.
 
 O conversor dimensiona a GD pela ENERGIA declarada, e a razão está no
 docstring de `complementos.geracao`: `POT_INST` replica o `CAR_INST` do
-consumidor, errando por até 540x. O achado 32 mostrou o outro lado da moeda —
+consumidor, errando por até 540x. O achado 61 mostrou o outro lado da moeda —
 o maior "gerador distribuído" do país declara `POT_INST` de 109,4 kW com
 `ENE_01` de 25,4 GWh no mês, **317 mil vezes** o que a potência comporta.
 
@@ -89,7 +89,7 @@ class TestContratoDaPremissa(unittest.TestCase):
     def test_o_arquivo_e_sempre_escrito_mesmo_vazio(self):
         """O MASTER redireciona sem condição; ausente aborta a compilação."""
         _, _, impl = _gera(1000.0, 1000.0 * 730 * 0.20)
-        self.assertIn('achado 32', impl)
+        self.assertIn('achado 61', impl)
         self.assertIn('0 unidade(s) desligada(s)', impl)
 
     def test_a_unidade_continua_declarada_no_gd(self):
