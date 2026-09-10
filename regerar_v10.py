@@ -54,6 +54,7 @@ from bdgd2dss import pausa                           # noqa: E402
 from bdgd2dss import escrita
 from bdgd2dss import plataforma      # noqa: E402
 from bdgd2dss import cobertura       # noqa: E402
+from bdgd2dss import carimbo        # noqa: E402
 
 AQUI = os.path.dirname(os.path.abspath(__file__))
 CRIT = os.path.dirname(AQUI)
@@ -372,6 +373,23 @@ def _versao_do_motor():
         except Exception:                                        # noqa: BLE001
             v[mod] = None
     return v
+
+
+def _resumos_das_ses(pasta):
+    """Os `resumo.json` de cada subestacao desta pasta.
+
+    E de la que sai a contagem de commits: o `resumo.json` e escrito por
+    subestacao, no fim da conversao dela, e leva o commit que a gerou.
+    """
+    import glob as _glob
+    out = []
+    for caminho in _glob.glob(os.path.join(pasta, '*', 'resumo.json')):
+        try:
+            with open(caminho, encoding='utf-8') as fh:
+                out.append(json.load(fh) or {})
+        except Exception:                                        # noqa: BLE001
+            out.append({})
+    return out
 
 
 def procedencia():
@@ -1060,7 +1078,19 @@ def main():
             json.dump(dict(proc, base=tag,
                            safra=_safra(gdb) or None,
                            data_base=_data_base(gdb) or None,
-                           gdb=os.path.basename(gdb)),
+                           gdb=os.path.basename(gdb),
+                           # QUAIS COMMITS ESTAO DENTRO DESTA PASTA. `proc`
+                           # carimba a pasta com o commit de QUEM RODOU POR
+                           # ULTIMO, e numa retomada esse commit vale para as
+                           # subestacoes novas e MENTE sobre as antigas.
+                           # `commits` e a contagem real, lida dos
+                           # `resumo.json`: mais de um item significa colcha,
+                           # e nenhum numero da pasta pertence a uma geracao
+                           # so. Ver bdgd2dss/carimbo.py.
+                           commits=[
+                               {'commit': c, 'subestacoes': n}
+                               for c, n in carimbo.mistura(
+                                   _resumos_das_ses(os.path.join(AQUI, saida)))]),
                       fh, indent=1, ensure_ascii=False)
         gravar(proc, resumo)
 

@@ -2412,6 +2412,51 @@ consciente.
 `coverage`. Responde uma pergunta estreita — *cada lei é exercitada por alguma
 fixture?* — que é a que já custou uma rodada nacional.
 
+## A retomada passou a gritar, e cada número diz de qual código veio
+
+Retomar é sempre melhor do que recomeçar: uma queda no meio da noite não pode
+custar a noite inteira. Mas retomar **mistura duas gerações de código na mesma
+pasta**, e até a V34 nada registrava isso.
+
+**O que custou.** Em 09/09/2026, medindo a MOG02 no cluster depois de corrigir
+o achado 63, o `energia.py` reaproveitou a medida antiga com uma linha
+discreta — *"1 subestacoes ja medidas — retomando"*. Ela passou despercebida
+num `tail -3`, e o resultado foi comparar **72,265%** (modelo anterior ao
+achado 63) com **14,58%** (modelo corrigido) e concluir que **as duas máquinas
+discordavam** — a ponto de se escrever que a garantia de determinismo do
+CHANGELOG estava quebrada. Com `--refazer`, as duas davam 333.740,7 kWh.
+
+O erro não foi do cache. Foi de o cache não dizer de quando era.
+
+**O `_procedencia.json` não resolvia isto.** Ele carimba a PASTA com o commit
+de quem rodou por último — e numa retomada esse commit vale para as
+subestações novas e mente sobre as antigas.
+
+**O que mudou:**
+
+- o carimbo é **por entrada**: cada `resumo.json` e cada item do
+  `energia_dia.json` leva o commit que o gerou;
+- o `_procedencia.json` ganhou `commits`, a contagem real lida dos
+  `resumo.json`. Mais de um item significa colcha, e nenhum número daquela
+  pasta pertence a uma geração só;
+- o aviso de retomada ocupa quatro linhas, nomeia os commits envolvidos e diz
+  o que está em jogo:
+
+```
+  !! RETOMADA: 1 subestacoes ja medidas vieram do disco e NAO foram recalculadas.
+  !! CODIGO MISTURADO: 1 de 8105ea247c; o resto e de 550d0fe6ff.
+  !! Numero comparado entre geracoes diferentes nao mede mudanca de codigo.
+  !! Para uma medida de uma geracao so, use --refazer.
+```
+
+**Rodada limpa não ganha ruído nenhum** — e isso é deliberado. Aviso que
+aparece sempre deixa de ser lido, que foi exatamente como a linha antiga
+morreu.
+
+**Entrada sem carimbo conta como `desconhecido`**, e não como "do mesmo
+código": todo modelo gerado antes deste mecanismo cai aí, e passar por igual
+seria repetir o erro que ele existe para impedir.
+
 ## Validação externa e contaminação
 
 A âncora nacional de 7,4% de perda técnica total da ANEEL é apenas um **teste

@@ -49,7 +49,7 @@ import sys
 # mudanca para `etapas/`, apontar para o proprio diretorio nao acha
 # `bdgd2dss` — e o erro so aparece ao RODAR, nunca ao importar.
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from bdgd2dss import lote, pausa, plataforma                # noqa: E402
+from bdgd2dss import lote, pausa, plataforma, carimbo       # noqa: E402
 from bdgd2dss import escrita
 
 CWD = os.getcwd()
@@ -468,14 +468,29 @@ def main():
             saida = []          # arquivo truncado nao pode travar a rodada
     prontas = {x['se'] for x in saida if x.get('passos_ok')}
     if prontas:
-        print(f'{len(prontas)} subestacoes ja medidas — retomando '
-              f'(use --refazer para ignorar)', flush=True)
+        for linha in carimbo.aviso(
+                [x for x in saida if x.get('passos_ok')], len(prontas),
+                o_que='subestacoes ja medidas'):
+            print(linha, flush=True)
 
     # A ORDEM DO ARQUIVO NAO PODE DEPENDER DE QUEM TERMINOU PRIMEIRO. Em
     # paralelo as subestacoes fecham fora de ordem; o JSON continua saindo na
     # ordem de `itens`, que e a mesma da execucao em serie.
     ordem = [se for se, _ in itens]
-    por_se = {x['se']: x for x in saida if x.get('se')}
+    # QUEM CARIMBA E A GRAVACAO, E NAO CADA PONTO QUE MONTA O ITEM. Sao
+    # quatro caminhos que escrevem em `por_se` — sucesso, falha do lote, falha
+    # do processo e o serial —, e carimbar tres deles daria um carimbo pior
+    # que nenhum: a entrada sem commit passaria por reaproveitada.
+    #
+    # As entradas vindas do disco entram pelo CONSTRUTOR, que nao passa por
+    # `__setitem__`: elas guardam o commit que ja tinham, que e o ponto.
+    class _Carimbados(dict):
+        def __setitem__(self, k, v):
+            if isinstance(v, dict):
+                v = dict(v, commit=carimbo.marca())
+            dict.__setitem__(self, k, v)
+
+    por_se = _Carimbados({x['se']: x for x in saida if x.get('se')})
 
     def grava():
         # arquivo temporario e troca atomica: uma queda no meio do dump

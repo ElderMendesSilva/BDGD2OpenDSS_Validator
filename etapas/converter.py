@@ -43,7 +43,7 @@ from bdgd2dss import (linecodes, linhas, chaves, transformadores, cargas,
                       tabelas,
                       complementos, master, subtransmissao, transmissao,
                       tensoes, malha_at, coordenadas, pausa, escrita,
-                      plataforma)
+                      plataforma, carimbo)
 
 
 def ja_gerada(pasta, se):
@@ -51,6 +51,15 @@ def ja_gerada(pasta, se):
     escrito no fim, entao sua presenca garante que nao ficou pela metade."""
     return (os.path.exists(os.path.join(pasta, se, f'MASTER-{se}.dss'))
             and os.path.exists(os.path.join(pasta, se, 'resumo.json')))
+
+
+def _le_json(caminho):
+    """O JSON, ou `{}` — resumo truncado nao pode travar a retomada."""
+    try:
+        with open(caminho, encoding='utf-8') as fh:
+            return json.load(fh) or {}
+    except Exception:                                            # noqa: BLE001
+        return {}
 
 
 def memoria_gb():
@@ -660,6 +669,10 @@ def _uma_se(C, se, k):
          # para separar "rede carregada" de "modelo com defeito"
          'mva_at': round((info_tr or {}).get('mva_por_sub', {}).get(se, 0), 1)
          if info_tr else 0,
+         # DE QUAL CODIGO VEIO ESTA SUBESTACAO. Numa retomada a pasta mistura
+         # geracoes, e o `_procedencia.json` da rodada carimba so a ultima —
+         # mentindo sobre as anteriores. Ver bdgd2dss/carimbo.py.
+         'commit': carimbo.marca(),
          **info}
     json.dump(r, open(os.path.join(d, 'resumo.json'), 'w', encoding='utf-8', newline=escrita.FIM_DE_LINHA),
               indent=1, ensure_ascii=False)
@@ -851,8 +864,14 @@ def main():
     prontas = [s for s in alvo if ja_gerada(a.saida, s)]
     if prontas and not a.refazer:
         alvo = [s for s in alvo if s not in prontas]
-        print(f'{len(prontas)} subestacoes ja existem na pasta e serao puladas '
-              f'(use --refazer para regerar).', flush=True)
+        # A LINHA DISCRETA JA EXISTIA, E PASSOU DESPERCEBIDA. Em 09/09/2026 um
+        # aviso deste tamanho num `tail -3` me fez comparar modelo velho com
+        # modelo novo e concluir que duas maquinas discordavam. O aviso agora
+        # diz DE QUANDO e o que veio do disco.
+        for linha in carimbo.aviso(
+                [_le_json(os.path.join(a.saida, s, 'resumo.json'))
+                 for s in prontas], len(prontas)):
+            print(linha, flush=True)
     print(f'BDGD com {len(ses)} subestacoes e {len(ctmt_info)} alimentadores; '
           f'gerando {len(alvo)}.', flush=True)
 
