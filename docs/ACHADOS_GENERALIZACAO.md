@@ -2636,6 +2636,12 @@ com o bypass fechado a fonte entrega **34,7 MW para 2,4 kW** de carga; aberto,
 2,4 kW, sem perder nó. `testes/test_bypass_fora_do_par.py` trava também o caso
 sem decisão (dois bypass em paralelo).
 
+**Conferida na `5001306` real**, rodando a etapa sobre a cópia local da V34:
+abriu **as mesmas seis chaves** da validação manual, nenhuma sem decisão, em
+61 s. Resultado idêntico: 64,5% de perda, 88.003 nós vivos, V mediana
+0,745 pu. Com o bypass aberto, a orientação passou a corrigir 3 reguladores;
+33 dos 36 seguem saturados.
+
 O que ela **não** faz: os laços sem regulador continuam fechados, e na
 `5001306` são eles que carregam o grosso (64,5% de perda depois do bypass).
 
