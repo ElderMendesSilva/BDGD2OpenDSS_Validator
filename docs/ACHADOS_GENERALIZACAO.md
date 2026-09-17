@@ -2543,6 +2543,21 @@ mesma SE que tem barras a 0,08 pu. Carga normal, reguladores no limite e
 tensão alta e baixa ao mesmo tempo não se explicam por queda ao longo do
 alimentador.
 
+**Duas medidas depois da prova (17/09/2026), no snapshot da `5001306`:**
+
+- *O sentido dos reguladores.* 30 dos 36 têm a potência entrando pelo
+  enrolamento 1, como deve ser — e **já recebem tensão entre 0,08 e 0,46 pu**.
+  O colapso acontece antes deles; eles não o causam. Os outros 6 (dois bancos)
+  têm fluxo contrário, um deles com 4,2 MW, e ficam anotados.
+- *O perfil da fonte até o regulador mais colapsado.* A queda de 0,84 pu se
+  espalha por 1.025 elementos, sem um culpado único. Mas há **um trecho de
+  120 m com 609 A em que a tensão sobe de 0,57 para 1,42 pu**, e chaves de
+  impedância zero com 0,1 pu de diferença entre os lados. Numa rede radial
+  isso não existe: é a assinatura de uma **malha** fechando dois pontos com
+  tensões muito diferentes, com corrente circulando entre eles. É a pista mais
+  forte que sobrou — e a medida por média de fases pode enganar onde as fases
+  mudam, então ela precisa de confirmação fase a fase.
+
 ## Em aberto — transformador que não é da distribuidora
 
 A FORCEL83 perde **1,34×** o que a ANEEL declara **mesmo só nas subestações
