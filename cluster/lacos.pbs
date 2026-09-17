@@ -1,0 +1,25 @@
+#!/bin/bash
+# Lacos fechados na media tensao, em todas as subestacoes de uma rodada.
+#
+#     qsub -N lacos -q BIRA_Q3 -l nodes=1:ppn=16 -l mem=48gb \
+#          -l walltime=04:00:00 -j oe -o logs/cluster/ \
+#          -v "PROJETO=$PWD,SUF_LACOS=V36" cluster/lacos.pbs
+#
+# Na EQUATORIAL6072, abrir os lacos das duas piores subestacoes levou a
+# perda de 77% para 11,5% e de 67% para 14,6%, sem desligar no nenhum. Ver
+# `diagnosticos/lacos.py`. Este job mede isso nas 99 bases.
+#
+# O nome da variavel NAO e `SUFIXO`: o PBS repassa o ambiente de quem submete
+# e a herdada vence — ver cluster/coletor.pbs. Compila cada SE, nao resolve.
+set -uo pipefail
+cd "${PBS_O_WORKDIR:-$PROJETO}"
+source .venv/bin/activate
+export BDGD2DSS_MODO=cluster
+SUF="${SUF_LACOS:?passe SUF_LACOS por -v}"
+echo "## lacos da rodada $SUF — $(date)"
+mkdir -p medicoes
+python -u diagnosticos/lacos.py --raiz . --sufixo "$SUF" \
+    --jobs "${PBS_NP:-4}" --saida-json "medicoes/lacos_${SUF}.json"
+rc=$?
+echo "## fim $(date)  (rc=$rc)"
+exit $rc

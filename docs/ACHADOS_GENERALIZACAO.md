@@ -2558,6 +2558,53 @@ alimentador.
   forte que sobrou — e a medida por média de fases pode enganar onde as fases
   mudam, então ela precisa de confirmação fase a fase.
 
+## Achado 69 — a rede de Goiás colapsa por laços fechados na própria BDGD
+
+É o que fecha o "em aberto" da EQUATORIAL6072, depois de quatro hipóteses
+descartadas. **Medido em 17/09/2026, localmente, nas duas piores subestações**:
+
+| SE | laços fechados | com regulador | perda como está | perda com os laços abertos |
+|---|---:|---:|---:|---:|
+| 5001306 | 38 | 6 | 77,2% | **11,5%** |
+| 5001242 | 55 | 2 | 66,8% | **14,6%** |
+
+Na `5001306`, abrir os 38 laços leva a fonte de 34.347 kW para **14.181 kW** —
+praticamente a carga de 14,1 MW — e a tensão mediana de 0,376 para **0,932 pu**,
+**sem desligar nó nenhum** (88.003 vivos antes e depois). São laços de
+verdade, e todos vêm da BDGD: `Linhas.dss` e `Chaves.dss`, nenhum do
+`_LIGACAO.dss`.
+
+**Seis laços têm um regulador dentro**, todos de 8 elementos e com os maiores
+fluxos (394 a 2.027 A). Os códigos denunciam o arranjo de campo: a chave
+`5896505` fecha o laço do regulador `5896508`, a `5893878` o do `5893880`, a
+`5875740` o do `5875739`. Chave de entrada, regulador, chave de saída e
+**chave de bypass**, esta fechada. Com o regulador tentando impor 10% de
+diferença e o bypass impondo zero, a corrente circula. É o **achado 48 por
+outro caminho**: a trava de hoje só reconhece o bypass que liga exatamente os
+dois PACs do regulador, e este liga os das chaves vizinhas.
+
+Abrir só os seis bypass **ajuda sem resolver** (77% → 65%): os outros 32 laços,
+sem regulador, também carregam corrente — um deles 530 A.
+
+**Como a medida errou antes de acertar, e isso fica escrito:**
+
+- o primeiro grafo foi montado **por barra**, e um trecho na fase A e outro
+  na B entre as mesmas barras passavam por laço — desligá-los derrubava 70 mil
+  nós. O grafo certo é **por fase**;
+- depois, **chaves normalmente abertas** fechavam "laços" que não conduzem. Elas
+  ficam fora do grafo (`SwtControl State=Open` e `_CHAVES_ABERTAS.dss`).
+
+**O que ainda não se sabe**, e por isso ainda não há correção:
+
+- **quanto disto é nacional** — o censo está em `diagnosticos/lacos.py` (job
+  `cluster/lacos.pbs`), a rodar sobre a V36. A SE `65` da ENERGISA_M405, a que
+  não convergia, também tem 9 laços; a FORCEL83 não tem nenhum;
+- **qual aresta abrir.** Abrir laço é decisão de operação, e a escolha do
+  teste foi arbitrária — prova a causa, mas deixou um trecho a 31 pu na
+  `5001306`, e isso não é modelo que se publique. Para o bypass de regulador a
+  regra é clara (ele fica aberto com o regulador em serviço); para os outros,
+  não.
+
 ## Achado 68 — um quarto da transformação do país não é da distribuidora
 
 A FORCEL83 perdia **1,34×** o que a ANEEL declara mesmo só nas subestações
