@@ -2558,28 +2558,54 @@ alimentador.
   forte que sobrou — e a medida por média de fases pode enganar onde as fases
   mudam, então ela precisa de confirmação fase a fase.
 
-## Em aberto — transformador que não é da distribuidora
+## Achado 68 — um quarto da transformação do país não é da distribuidora
 
-A FORCEL83 perde **1,34×** o que a ANEEL declara **mesmo só nas subestações
-`OK`** — o segundo tipo da fila, o do modelo que erra sem que o classificador
-perceba. Decomposta localmente, **45% da perda nos transformadores é ferro**
-de transformador quase vazio (carregamento mediano de 6%), e o campo
-`UNTRMT.POS` explica parte disso:
+A FORCEL83 perdia **1,34×** o que a ANEEL declara mesmo só nas subestações
+`OK`. Decomposta localmente, 45% da perda nos transformadores era ferro de
+transformador quase vazio, e o campo `UNTRMT.POS` — que o projeto nunca tinha
+lido — mostrou por quê: **46% dos kVA dela não são da distribuidora**
+(`POS = 'O'`), e o modelo somava o ferro desses transformadores, 24 horas por
+dia, como perda da rede.
 
-| posse | transformadores | kVA | ferro declarado | com cliente de BT |
-|---|---:|---:|---:|---:|
-| `PD` | 660 | 27.685 | 157 kW | 646 |
-| `O` | **95** | **23.298** | **71 kW** | 43 |
+**O censo das 99 bases** (`diagnosticos/posse.py`, job 36583, 17/09/2026):
 
-**46% dos kVA e 31% do ferro não são da distribuidora**, e o modelo soma esse
-ferro, 24 horas por dia, como perda da rede. A perda regulatória cobre os
-transformadores da distribuidora; o de um cliente atendido em média tensão
-fica depois da medição dele. Tirando só esse ferro, a Forcel vai de 5,09% para
-~4,44% — razão 1,34 → **1,17**. Explica metade do excesso, não tudo.
+| | país |
+|---|---:|
+| transformadores `PD` | 5.929.909 |
+| transformadores com outro código | 290.026 |
+| **capacidade fora de `PD`** | **76 de 309 GVA (24,6%)** |
+| **ferro fora de `PD`** | **134 de 1.059 MW (12,6%)** |
 
-**Ainda não é achado, porque uma base não faz lei.** O censo das 99 está em
-`diagnosticos/posse.py` (job `cluster/posse.pbs`). O campo nunca tinha sido
-lido pelo projeto.
+Os códigos encontrados são `PD`, `O` (157.632), `CS` (128.372), `CO` (3.848),
+`G`, `OD`, `T` e `A`. **O significado de cada um não está confirmado**: a BDGD
+não traz as tabelas de domínio, e o Módulo 10 do PRODIST recusou o acesso
+automatizado. `PD` é o transformador da própria distribuidora; o resto não se
+supõe.
+
+**O efeito, nas 49 bases com referência da ANEEL**, tirando da perda o ferro de
+todo transformador fora de `PD`:
+
+| | antes | depois |
+|---|---:|---:|
+| mediana da razão modelo/ANEEL | 0,651 | 0,609 |
+| bases acima de 1,2 | 6 | 4 |
+| FORCEL83 | 1,34 | 1,17 |
+| COCEL82 | 1,22 | 1,06 |
+| ELETROCAR398 | 1,18 | 1,01 |
+| HIDROPAN399 | 1,03 | 0,87 |
+
+**O que isto NÃO é: o viés nacional.** A correlação (Spearman) entre a razão e
+a fração de transformação fora de `PD` é **+0,04** — nula. O efeito se
+concentra onde há muito transformador de terceiro e pouca perda de rede, que é
+exatamente o perfil das pequenas distribuidoras do Sul que motivaram a busca.
+
+**A lei, e o que falta para aplicá-la.** Perda em transformador que não é da
+distribuidora não é perda da rede dela: o transformador do cliente atendido em
+média tensão fica depois da medição dele. A correção natural é uma premissa
+reversível que zere o `%noloadloss` desses transformadores sem tirá-los de
+serviço — eles continuam conduzindo a carga pendurada neles. **Ela só entra
+depois de confirmado o significado de cada código**: tirar `CS` ou `CO` sem
+saber o que são pode apagar perda que é da distribuidora.
 
 ## A cobertura das leis, medida
 
