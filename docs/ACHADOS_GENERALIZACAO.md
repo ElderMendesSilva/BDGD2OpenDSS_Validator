@@ -14,12 +14,12 @@ Cada achado é uma **lei**: alguma coisa que já se errou uma vez, medida, e que
 não se deve errar de novo. Uma lei que não se consegue localizar sem
 ambiguidade não é lei, e por isso o número importa tanto quanto o conteúdo.
 
-**Há uma série só, de 1 a 64**, e nenhum número é reaproveitado. Ela mora em
+**Há uma série só, de 1 a 70**, e nenhum número é reaproveitado. Ela mora em
 dois lugares, e é preciso saber disso para procurar:
 
 | onde | quais | o que são |
 |---|---|---|
-| **este arquivo** | 1–29, 59–64 | achados de **generalização**: medidos sobre as 97 ou 99 bases, com número nacional. São os que sustentam o artigo. |
+| **este arquivo** | 1–29, 59–70 | achados de **generalização**: medidos sobre as 97 ou 99 bases, com número nacional. São os que sustentam o artigo. |
 | **comentário no código** | 30–58 | achados de **conversão**: defeito encontrado e corrigido num módulo, documentado no ponto onde a correção mora. Ex.: 34 em `bdgd2dss/ampacidade.py`, 51 em `bdgd2dss/linhas.py`, 54 em `bdgd2dss/transformadores.py`. |
 
 Os números **35, 37, 38, 42, 43 e 46 estão livres** — o vão é real e não
@@ -2557,6 +2557,53 @@ alimentador.
   tensões muito diferentes, com corrente circulando entre eles. É a pista mais
   forte que sobrou — e a medida por média de fases pode enganar onde as fases
   mudam, então ela precisa de confirmação fase a fase.
+
+## Achado 70 — o laço que faz mal é o que atravessa uma mudança de tensão
+
+Com os seis bypass abertos (achado 69), a `5001306` da EQUATORIAL6072 seguia em
+64,5%. Dos 32 laços que sobravam, **um só** passava por um transformador: 42
+elementos que ligavam, por três chaves de MT fechadas, os dois lados do
+abaixador `MCG-D-TRF-TR1` (34,5/13,8 kV, 5 MVA). O laço impõe a mesma tensão a
+barras que o transformador separa por um fator 2,5, e a diferença circula.
+**Medido em 17/09/2026:**
+
+| `5001306` | perda | nós vivos |
+|---|---:|---:|
+| como estava | 77,2% | 88.003 |
+| com os seis bypass (achado 69) | 64,5% | 88.003 |
+| + abrir uma das três chaves do laço do abaixador | **11,6%** | 88.003 |
+| todos os 38 laços abertos | 11,5% | 88.003 |
+
+**Os outros 31 laços não fazem nada.** Na `5001242`, abrir só os dois bypass
+leva a perda de 66,8% para 14,6% — o mesmo número de abrir os 55 laços. Laço na
+mesma tensão é malha, e a malha divide a corrente sem criá-la.
+
+**A lei é a relação líquida em volta do laço.** O grafo por fase
+(`bdgd2dss/lacos.py`) carrega a relação de tensão de cada transformador, e
+cada laço sai com o produto dela ao percorrê-lo. Diferente de 1 (tolerância de
+5%, o dobro do degrau de tape), o laço é incoerente. Igual a 1, é coerente —
+dois transformadores de subestação em paralelo, ou um que desce e outro que
+sobe — e não se toca.
+
+**A premissa é `_LACOS.dss`**, preenchida pela etapa `etapas/reguladores.py`
+antes do bypass e da orientação. Das chaves do laço, servem as que, abertas,
+não desenergizam nó nenhum; delas abre-se a de menor perda. As três do
+abaixador estão em série no mesmo caminho e dão a mesma perda, e o arquivo diz
+isso ("3 chaves equivalentes"). Laço sem chave, ou sem candidata que sirva,
+fica como a BDGD declara, listado. Apagar o `redirect _LACOS.dss` do MASTER
+devolve a BDGD crua.
+
+**A etapa, rodada nas duas subestações:** `5001306` de 77,2% para **11,6%**
+(reguladores saturados de 36 para 21), `5001242` de 66,8% para **14,6%**, sem
+nó perdido. A variante `laco_por_transformador` da fixture reproduz a forma em
+escala — 3.295 kW na fonte para 2,4 kW de carga — e mantém fechado o laço CHM1
+da mínima, que é na mesma tensão.
+
+**O que ainda não se sabe:** quantos laços incoerentes o país tem. O censo
+(`diagnosticos/lacos.py`, coluna `c/ trf`) roda sobre a V36 no job
+`cluster/lacos.pbs`. E por que a BDGD declara fechadas as chaves entre os dois
+lados de um abaixador — engano de estado normal, ou abaixador que não existe
+mais em campo — é pergunta para a distribuidora.
 
 ## Achado 69 — a rede de Goiás colapsa por laços fechados na própria BDGD
 

@@ -212,6 +212,13 @@ redirect _CHAVES_ABERTAS.dss
 ! subestacao INTEIRA. Vazio quando nao ha nenhum. Ver linhas.ilhadas_bt.
 redirect _BT_ILHADA.dss
 
+! Laco fechado atraves de transformador — achado 70. Um caminho de MT que liga
+! os dois lados de um abaixador impoe a mesma tensao a duas barras que o
+! transformador separa por 34,5/13,8, e a diferenca circula. Na 5001306 da
+! EQUATORIAL6072, um laco so levava a perda de 11,6% a 64,5%. Vazio ate alguem
+! rodar `reguladores.py`; apagar esta linha devolve os lacos da BDGD.
+redirect _LACOS.dss
+
 ! Orientacao dos reguladores — achado 59. O `RegControl` e emitido no
 ! enrolamento 2 supondo que o PAC_2 do UNREMT e o lado da carga, e a BDGD nao
 ! declara direcao: quando o PAC_2 e o lado da FONTE o controle regula o que nao

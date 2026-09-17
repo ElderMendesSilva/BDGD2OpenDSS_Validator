@@ -550,6 +550,12 @@ def _uma_se(C, se, k):
         '! Vazio: rode `python reguladores.py <pasta>` para preencher.\n'
         '! Sem isso o modelo reproduz o enrolamento que o conversor supos.\n')
 
+    # E o mesmo para `_LACOS.dss` (achado 70), preenchido pela mesma etapa.
+    open(os.path.join(d, '_LACOS.dss'), 'w', encoding='utf-8', newline=escrita.FIM_DE_LINHA).write(
+        '! Laco fechado atraves de transformador — achado 70.\n'
+        '! Vazio: rode `python reguladores.py <pasta>` para preencher.\n'
+        '! Sem isso o modelo reproduz os lacos que a BDGD declara.\n')
+
     # coordenadas geograficas desta subestacao
     # a geometria e lida UMA VEZ POR LOTE e filtrada pelas barras desta
     # subestacao — era 85% do tempo de conversao. Ver `coordenadas.do_lote`
@@ -1086,6 +1092,7 @@ def main():
         # ajustes aplicados depois que a rede inteira ja existe
         aberturas += [f'{s}/_AMPACIDADE.dss' for s in todas]
         aberturas += [f'{s}/_LIGACAO.dss' for s in todas]
+        aberturas += [f'{s}/_LACOS.dss' for s in todas]
         aberturas += [f'{s}/_REGULADORES.dss' for s in todas]
         aberturas += [f'{s}/_GD_IMPLAUSIVEL.dss' for s in todas]
         aberturas += [f'{s}/_POSSE.dss' for s in todas]

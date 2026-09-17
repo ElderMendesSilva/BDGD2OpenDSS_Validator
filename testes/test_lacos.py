@@ -25,6 +25,7 @@ sys.path.insert(0, AQUI)
 
 import fixture                                             # noqa: E402
 import lacos                                               # noqa: E402
+from bdgd2dss import lacos as nucleo                       # noqa: E402
 
 
 class TestOCenso(unittest.TestCase):
@@ -109,6 +110,49 @@ class TestOCenso(unittest.TestCase):
         r = lacos.lacos_da_se(m)
         self.assertEqual(r['lacos'], self.base + 1)
         self.assertEqual(r['por_elo_nosso'], 1)
+
+    def test_laco_atraves_de_abaixador_e_incoerente(self):
+        """Achado 70: a linha que volta do lado de 6,9 kV para a barra de
+        13,8 kV fecha um laco com relacao liquida 2."""
+        m = self._com('New Transformer.ABX phases=3 windings=2 XHL=5 '
+                      'buses=[b1.1.2.3 xb.1.2.3] kVs=[13.8 6.9] kVAs=[500 500]',
+                      'New Line.VOLTA phases=3 Bus1=xb.1.2.3 Bus2=b2.1.2.3 '
+                      'r1=0.1 x1=0.1 length=0.1')
+        r = lacos.lacos_da_se(m)
+        self.assertEqual(r['lacos'], self.base + 1)
+        self.assertEqual(r['atraves_de_transformador'], 1)
+
+    def test_descer_e_subir_de_novo_e_coerente(self):
+        """Dois transformadores que se desfazem — 13,8/6,9 e 6,9/13,8 — dao
+        relacao 1: e o caso dos transformadores de subestacao em paralelo,
+        e nao pode ser aberto."""
+        m = self._com('New Transformer.DESCE phases=3 windings=2 XHL=5 '
+                      'buses=[b1.1.2.3 xb.1.2.3] kVs=[13.8 6.9] kVAs=[500 500]',
+                      'New Transformer.SOBE phases=3 windings=2 XHL=5 '
+                      'buses=[xb.1.2.3 xc.1.2.3] kVs=[6.9 13.8] kVAs=[500 500]',
+                      'New Line.VOLTA phases=3 Bus1=xc.1.2.3 Bus2=b2.1.2.3 '
+                      'r1=0.1 x1=0.1 length=0.1')
+        r = lacos.lacos_da_se(m)
+        self.assertEqual(r['lacos'], self.base + 1)
+        self.assertEqual(r['atraves_de_transformador'], 0)
+
+    def test_o_ciclo_longo_sai_inteiro(self):
+        """O laco do achado 70 na 5001306 tem 42 elementos; o ciclo nao pode
+        ser cortado no limite do bypass."""
+        extra = ['New Line.L%d phases=3 Bus1=y%d.1.2.3 Bus2=y%d.1.2.3 '
+                 'r1=0.1 x1=0.1 length=0.1' % (k, k, k + 1) for k in range(30)]
+        extra[0] = extra[0].replace('Bus1=y0', 'Bus1=b1')
+        extra.append('New Line.FECHA phases=3 Bus1=y30.1.2.3 Bus2=b2.1.2.3 '
+                     'r1=0.1 x1=0.1 length=0.1')
+        m = self._com(*extra)
+        import opendssdirect as dss
+        lacos.lacos_da_se(m)
+        lista = nucleo.lacos(dss, nucleo.abertas(os.path.dirname(m)))
+        longo = max(lista, key=lambda x: len(x['ciclo']))
+        self.assertGreater(len(longo['ciclo']), nucleo.CICLO_CURTO + 1)
+        nomes = {e.lower() for e in longo['ciclo']}
+        self.assertTrue({'line.l0', 'line.l29', 'line.fecha'} <= nomes)
+        self.assertIsNone(longo['regulador'])
 
 
 if __name__ == '__main__':

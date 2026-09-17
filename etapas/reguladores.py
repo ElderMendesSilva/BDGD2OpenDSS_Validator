@@ -16,7 +16,12 @@ com o controle no lado da FONTE. O arquivo e legivel, conta quantos foram, e
 apagar o `redirect _REGULADORES.dss` do MASTER devolve o modelo ao que a BDGD
 declara.
 
-ANTES DA ORIENTACAO, O BYPASS — achado 69. Regulador com a chave de bypass
+ANTES DE TUDO, O LACO ATRAVES DE TRANSFORMADOR — achado 70. Um caminho de MT
+que liga os dois lados de um abaixador circula a diferenca de tensao, e com
+ele fechado nenhuma medida adiante vale. Vai para `_LACOS.dss`. Ver
+`escolher_lacos_de_transformador`.
+
+DEPOIS, O BYPASS — achado 69. Regulador com a chave de bypass
 fechada circula corrente de laco, e a direcao medida nele e a do laco, nao a
 da carga. Das chaves de cada ciclo curto que contem um regulador, abre-se a
 UNICA que, aberta, nao desenergiza no nenhum e deixa o regulador conduzindo;
@@ -115,6 +120,102 @@ def _vivos():
     return sum(1 for v in dss.Circuit.AllBusMagPu() if v > 1e-3)
 
 
+# Laco atraves de transformador com mais chaves que isto fica sem decisao: cada
+# uma e uma compilacao. O da 5001306 tem tres.
+MAX_CHAVES_LACO_TRAFO = 12
+# Duas candidatas cuja perda difere menos que isto sao a mesma manobra — chaves
+# em serie no mesmo caminho.
+PERDA_EQUIVALENTE_KW = 1.0
+
+
+def _chaves(elementos):
+    saida = []
+    for e in elementos:
+        e = e.lower()
+        if e.startswith('line.'):
+            dss.Lines.Name(e.split('.', 1)[1])
+            if dss.Lines.IsSwitch():
+                saida.append(e)
+    return saida
+
+
+def _compila(master, chaves, controle):
+    dss.Text.Command('Clear')
+    dss.Text.Command(f'Redirect "{master}"')
+    for c in chaves:
+        dss.Text.Command(f'Edit {c} enabled=no')
+        if controle.get(c):
+            dss.Text.Command(f'Edit {controle[c]} enabled=no')
+    if chaves:
+        dss.Text.Command('Solve')
+    return bool(dss.Solution.Converged()), _vivos()
+
+
+def escolher_lacos_de_transformador(master):
+    """Quais lacos atraves de transformador abrir: `(abertas, sem_decisao)`.
+
+    ACHADO 70. Na 5001306 da EQUATORIAL6072, depois dos seis bypass, um laco
+    de 42 elementos ligava por chaves de MT os dois lados do abaixador
+    `MCG-D-TRF-TR1`, 34,5/13,8 kV. Abrir qualquer uma das tres chaves dele
+    levou a perda de 64,5% para 11,6%, com os 88.003 nos vivos. Os outros 31
+    lacos, na mesma tensao, nao mudavam nada.
+
+    Um laco de cada vez, recompilando: abrir um pode desfazer outro.
+    Chamada com o circuito compilado; deixa-o compilado de outro jeito.
+    """
+    pasta = os.path.dirname(master)
+    fora = lacos.abertas(pasta)
+    controle = _controles_das_chaves()
+    abertas, sem_decisao = [], []
+    decididas, vistos = [], set()
+    base = _vivos()
+    compilacoes = 0
+    while True:
+        lista = [x for x in lacos.lacos(dss, fora | set(decididas))
+                 if lacos.incoerente(x) and x['fecha'].lower() not in vistos]
+        if not lista:
+            break
+        lc = lista[0]
+        vistos.add(lc['fecha'].lower())
+        cands = _chaves(lc['ciclo'])
+        motivo = None
+        if not cands:
+            motivo = 'nenhuma chave no laco'
+        elif len(cands) > MAX_CHAVES_LACO_TRAFO:
+            motivo = '%d chaves no laco' % len(cands)
+        elif compilacoes + len(cands) > MAX_COMPILACOES_BYPASS:
+            sem_decisao += [{'fecha': x['fecha'], 'razao': x['razao'],
+                             'motivo': 'limite de compilacoes'} for x in lista]
+            break
+        servem = []
+        for c in ([] if motivo else cands):
+            compilacoes += 1
+            conv, viv = _compila(master, decididas + [c], controle)
+            # ACHADO 70: so a que nao desenergiza no nenhum
+            if conv and viv >= base:
+                servem.append((dss.Circuit.Losses()[0] / 1000, c))
+        if not motivo and not servem:
+            motivo = 'nenhuma candidata mantem todos os nos'
+        if motivo:
+            sem_decisao.append({'fecha': lc['fecha'], 'razao': lc['razao'],
+                                'motivo': motivo})
+        else:
+            servem.sort()
+            perda, c = servem[0]
+            eq = sum(1 for p, _ in servem if p - perda < PERDA_EQUIVALENTE_KW)
+            decididas.append(c)
+            abertas.append({'chave': 'Line.' + c.split('.', 1)[1],
+                            'controle': controle.get(c),
+                            'transformadores': [t.split('.', 1)[1] for t in
+                                                lc['transformadores']],
+                            'razao': lc['razao'], 'perda_kW': perda,
+                            'equivalentes': eq})
+        # a lista seguinte sai do circuito com as decididas abertas
+        compilacoes += 1
+        _compila(master, decididas, controle)
+    return abertas, sem_decisao
+
+
 def escolher_bypass(master, regs):
     """Quais chaves de bypass abrir: `(abertas, sem_decisao)`.
 
@@ -147,15 +248,7 @@ def escolher_bypass(master, regs):
 
     def estado(chaves):
         compilacoes[0] += 1
-        dss.Text.Command('Clear')
-        dss.Text.Command(f'Redirect "{master}"')
-        for c in chaves:
-            dss.Text.Command(f'Edit {c} enabled=no')
-            if controle.get(c):
-                dss.Text.Command(f'Edit {controle[c]} enabled=no')
-        if chaves:
-            dss.Text.Command('Solve')
-        return bool(dss.Solution.Converged()), _vivos()
+        return _compila(master, chaves, controle)
 
     _, base = estado([])
     decididas = []
@@ -204,10 +297,28 @@ def uma(pasta, se):
         # MASTER redireciona este arquivo, e medir com a correcao anterior
         # aplicada mediria o fluxo de um circuito JA corrigido. Zera-se antes.
         orientacao.escrever('_REGULADORES.dss', [], 0, ())
+        # modelo anterior ao achado 70 nao redireciona o arquivo: escrever
+        # nele nao mudaria nada, e a decisao sairia sem efeito
+        with open(f'MASTER-{se}.dss', encoding='utf-8', errors='replace') as fh:
+            tem_lacos = 'redirect _lacos.dss' in fh.read().lower()
+        if tem_lacos:
+            lacos.escrever('_LACOS.dss')
         dss.Text.Command('Clear')
         dss.Text.Command(f'Redirect MASTER-{se}.dss')
         if not dss.Solution.Converged():
             return {'se': se, 'erro': 'nao convergiu'}
+
+        # O LACO ATRAVES DE TRANSFORMADOR VEM PRIMEIRO (achado 70): com ele
+        # fechado a rede inteira esta em circulacao, e nem o bypass nem a
+        # orientacao medem o que devem.
+        l_abertos, l_sem = [], []
+        if tem_lacos:
+            master_abs = os.path.abspath(f'MASTER-{se}.dss')
+            l_abertos, l_sem = escolher_lacos_de_transformador(master_abs)
+            if l_abertos or l_sem:
+                lacos.escrever('_LACOS.dss', l_abertos, l_sem)
+                dss.Text.Command('Clear')
+                dss.Text.Command(f'Redirect MASTER-{se}.dss')
 
         # O BYPASS VEM PRIMEIRO (achado 69): com ele fechado, o fluxo medido
         # no regulador e corrente de laco, e a orientacao sairia dela.
@@ -252,6 +363,8 @@ def uma(pasta, se):
             i = dss.RegControls.Next()
         return {'se': se, 'reguladores': len(regs), 'corrigidos': len(corr),
                 'sem_fluxo': len(sem), 'saturados_depois': sat,
+                'lacos_abertos': [x['chave'] for x in l_abertos],
+                'lacos_sem_decisao': l_sem,
                 'bypass_abertos': [x['chave'] for x in bypass],
                 'bypass_sem_decisao': sem_decisao,
                 'V_mediana_depois': round(v[len(v) // 2], 4) if v else None,
@@ -304,7 +417,8 @@ def main():
     print(f'{len(ses)} subestacoes | o criterio e a direcao do fluxo\n',
           flush=True)
     print(f'{"SE":14s} {"regs":>6s} {"corrig":>7s} {"sem flx":>8s} '
-          f'{"satur":>6s} {"V med":>8s} {"bypass":>7s}', flush=True)
+          f'{"satur":>6s} {"V med":>8s} {"bypass":>7s} {"lacos":>6s}',
+          flush=True)
     t0 = time.time()
     por_se = {}
 
@@ -316,7 +430,8 @@ def main():
               f'{r.get("corrigidos",0):7d} {r.get("sem_fluxo",0):8d} '
               f'{r.get("saturados_depois",0):6d} '
               f'{(r.get("V_mediana_depois") or 0):8.4f} '
-              f'{len(r.get("bypass_abertos") or ()):7d}', flush=True)
+              f'{len(r.get("bypass_abertos") or ()):7d} '
+              f'{len(r.get("lacos_abertos") or ()):6d}', flush=True)
 
     def grava():
         """No disco o que ja terminou, na ordem de `ses`.
@@ -334,6 +449,8 @@ def main():
                        'sem_fluxo': sem,
                        'bypass_abertos': sum(len(x.get('bypass_abertos') or ())
                                              for x in s_),
+                       'lacos_abertos': sum(len(x.get('lacos_abertos') or ())
+                                            for x in s_),
                        'subestacoes': s_}, fh,
                       indent=1, ensure_ascii=False)
         return s_
@@ -365,6 +482,11 @@ def main():
     afetadas = sum(1 for r in saida if (r.get('corrigidos') or 0))
     byp = sum(len(r.get('bypass_abertos') or ()) for r in saida)
     amb = sum(len(r.get('bypass_sem_decisao') or ()) for r in saida)
+    lac = sum(len(r.get('lacos_abertos') or ()) for r in saida)
+    lsd = sum(len(r.get('lacos_sem_decisao') or ()) for r in saida)
+    if lac or lsd:
+        print(f'ACHADO 70: {lac} laco(s) atraves de transformador aberto(s), '
+              f'{lsd} sem decisao')
     if byp or amb:
         print(f'ACHADO 69: {byp} bypass de regulador aberto(s), '
               f'{amb} laco(s) com regulador sem decisao')

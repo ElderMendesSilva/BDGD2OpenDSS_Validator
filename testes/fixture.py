@@ -408,8 +408,54 @@ def _bypass_de_regulador(t):
     t['UCMT_tab']['PAC'] = _obj('B5', 'B11')
 
 
+def _laco_por_transformador(t):
+    """ACHADO 70: um caminho de MT liga os dois lados de um abaixador.
+
+    O TA abaixa de 13,8 para 6,9 kV na B3 do F1; da B6, do lado de baixo, o
+    trecho S6 segue ate a B7, e a chave CT, fechada, liga a B7 de volta a B2 —
+    que esta em 13,8 kV. A forma do `MCG-D-TRF-TR1` da 5001306 da
+    EQUATORIAL6072, que levava a perda de 11,6% a 64,5%. Todo no continua
+    alimentado com a CT aberta, pelo TA.
+
+    O laco do CHM1, que a minima ja tem, fica: e na mesma tensao, e nao pode
+    ser aberto.
+    """
+    u = t['UNSEMT']
+    u['COD_ID'] = _obj('CHM1', 'CT')
+    u['PAC_1'] = _obj('B2', 'B7')
+    u['PAC_2'] = _obj('B3', 'B2')
+    u['CTMT'] = _obj('F1', 'F1')
+    u['FAS_CON'] = _obj('ABC', 'ABC')
+    u['P_N_OPE'] = _obj('F', 'F')
+    u['COR_NOM'] = _flt(400.0, 400.0)
+    u['TIP_UNID'] = _obj('35', '35')
+    s = t['SSDMT']
+    s['COD_ID'] = _obj(*s['COD_ID'], 'S6')
+    s['PAC_1'] = _obj(*s['PAC_1'], 'B6')
+    s['PAC_2'] = _obj(*s['PAC_2'], 'B7')
+    s['CTMT'] = _obj(*s['CTMT'], 'F1')
+    s['TIP_CND'] = _obj(*s['TIP_CND'], 'C1')
+    s['COMP'] = _flt(*s['COMP'], 150.0)
+    s['FAS_CON'] = _obj(*s['FAS_CON'], 'ABC')
+    tr = t['UNTRMT']
+    tr['COD_ID'] = _obj(*tr['COD_ID'], 'TA')
+    tr['PAC_1'] = _obj(*tr['PAC_1'], 'B3')
+    tr['PAC_2'] = _obj(*tr['PAC_2'], 'B6')
+    tr['CTMT'] = _obj(*tr['CTMT'], 'F1')
+    tr['POT_NOM'] = _flt(*tr['POT_NOM'], 1000.0)
+    tr['TEN_LIN_SE'] = _flt(*tr['TEN_LIN_SE'], 6.9)
+    tr['FAS_CON_P'] = _obj(*tr['FAS_CON_P'], 'ABC')
+    tr['FAS_CON_S'] = _obj(*tr['FAS_CON_S'], 'ABC')
+    eq = t['EQTRMT']
+    eq['UNI_TR_MT'] = _obj(*eq['UNI_TR_MT'], 'TA')
+    eq['R'] = _flt(*eq['R'], 0.5)
+    eq['XHL'] = _flt(*eq['XHL'], 5.0)
+    eq['POT_NOM'] = _flt(*eq['POT_NOM'], 1000.0)
+
+
 VARIANTES = {
     'bypass_de_regulador': _bypass_de_regulador,
+    'laco_por_transformador': _laco_por_transformador,
     'sem_subestacao': _sem_subestacao,
     'gd_na_bt': _gd_na_bt,
     'gd_implausivel': _gd_implausivel,

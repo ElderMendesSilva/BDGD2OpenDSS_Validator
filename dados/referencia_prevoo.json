@@ -126,6 +126,38 @@
   "validador_rc": 0,
   "verifica_rc": 0
  },
+ "laco_por_transformador": {
+  "achados": [
+   59,
+   70
+  ],
+  "ampacidade_rc": 0,
+  "converter_rc": 0,
+  "energia_rc": 0,
+  "ligacao_rc": 0,
+  "reguladores_rc": 0,
+  "ses": {
+   "SE1": {
+    "P_gd_kW": 0.0,
+    "V_MT_max": 1.0,
+    "V_MT_mediana": 1.0,
+    "V_MT_min": 0.5,
+    "causa": "OK",
+    "compila": true,
+    "converge": true,
+    "linhas_acima_ampacidade": 0,
+    "n_barras": 17,
+    "n_cargas": 12,
+    "n_linhas": 10,
+    "n_trafos": 7,
+    "perdas_pct": 0.01,
+    "reguladores": 0,
+    "reguladores_saturados": 0
+   }
+  },
+  "validador_rc": 0,
+  "verifica_rc": 0
+ },
  "minima": {
   "achados": [
    59

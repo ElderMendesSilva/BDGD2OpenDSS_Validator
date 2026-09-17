@@ -8,6 +8,23 @@ número, estão em [docs/ACHADOS_GENERALIZACAO.md](docs/ACHADOS_GENERALIZACAO.md
 
 ## 1.1.0 — em aberto (safra 2025-12-31)
 
+### Laco fechado atraves de transformador (achado 70)
+
+Nova premissa `_LACOS.dss`, preenchida pela etapa `reguladores.py` antes do
+bypass e da orientacao: abre-se uma chave de cada laco cuja relacao de tensao
+liquida e diferente de 1 — o caminho de MT que liga os dois lados de um
+abaixador. Das chaves do laco, servem as que nao desenergizam no nenhum, e
+abre-se a de menor perda. Lacos na mesma tensao, e transformadores em paralelo,
+nao sao tocados. Nova variante `laco_por_transformador`; o `lacos.py` do censo
+ganhou a coluna `c/ trf`.
+
+Medido nas duas piores subestacoes da EQUATORIAL6072, com a etapa inteira:
+5001306 de 77,2% para 11,6%, 5001242 de 66,8% para 14,6%, sem no perdido.
+
+O que ela NAO faz: nao abre laco na mesma tensao (nas duas, abri-los nao muda
+a perda), e modelo convertido antes dela — sem o `redirect _LACOS.dss` no
+MASTER — segue sem a premissa ate ser reconvertido.
+
 ### Bypass de regulador fechado fora do par de PACs (achado 69)
 
 A etapa `reguladores.py` abre, antes de medir a orientacao, a chave de bypass

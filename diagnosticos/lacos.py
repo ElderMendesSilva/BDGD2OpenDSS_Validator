@@ -27,6 +27,8 @@ uma rodada:
 - os lacos fechados por FASE (um trecho na fase A e outro na B entre as
   mesmas barras nao sao laco);
 - quantos tem um regulador num ciclo curto — a forma do bypass;
+- quantos atravessam uma mudanca de tensao (achado 70): relacao liquida em
+  volta do laco diferente de 1, como o do abaixador da 5001306;
 - quantos sao fechados por elo que NOS criamos (`VAO_EXTRA_*`, achado 33) e
   nao pela BDGD.
 
@@ -101,7 +103,7 @@ def main(argv=None):
             continue
         por_base[tag][se] = r
 
-    print(f'\n{"base":20s} {"SEs":>5s} {"com laco":>9s} {"lacos":>7s} {"c/ reg":>7s} {"nossos":>7s}')
+    print(f'\n{"base":20s} {"SEs":>5s} {"com laco":>9s} {"lacos":>7s} {"c/ reg":>7s} {"c/ trf":>7s} {"nossos":>7s}')
     tot = collections.Counter()
     for tag in sorted(por_base):
         ses = por_base[tag]
@@ -110,15 +112,20 @@ def main(argv=None):
         for r in ses.values():
             c['lacos'] += r['lacos']
             c['reg'] += r['com_regulador']
+            c['trf'] += r.get('atraves_de_transformador', 0)
             c['nossos'] += r['por_elo_nosso']
         tot['ses'] += len(ses)
         tot['com_laco'] += n_l
         tot['com_reg'] += sum(1 for r in ses.values() if r['com_regulador'])
+        tot['com_trf'] += sum(1 for r in ses.values()
+                              if r.get('atraves_de_transformador'))
         tot.update(c)
-        print(f'{tag[:20]:20s} {len(ses):5d} {n_l:9d} {c["lacos"]:7d} {c["reg"]:7d} {c["nossos"]:7d}')
+        print(f'{tag[:20]:20s} {len(ses):5d} {n_l:9d} {c["lacos"]:7d} {c["reg"]:7d} {c["trf"]:7d} {c["nossos"]:7d}')
     print(f'\nPAIS: {tot["ses"]} SEs | {tot["com_laco"]} com laco | '
           f'{tot["com_reg"]} com laco passando por regulador | '
+          f'{tot["com_trf"]} com laco atraves de transformador | '
           f'{tot["lacos"]} lacos, {tot["reg"]} com regulador, '
+          f'{tot["trf"]} atraves de transformador, '
           f'{tot["nossos"]} fechados por elo nosso | {erros} erros')
     if a.saida_json:
         os.makedirs(os.path.dirname(a.saida_json) or '.', exist_ok=True)
