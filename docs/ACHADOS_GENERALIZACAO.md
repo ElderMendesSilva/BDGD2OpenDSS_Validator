@@ -2619,6 +2619,26 @@ colapso está nos 32 laços sem regulador.
   regra é clara (ele fica aberto com o regulador em serviço); para os outros,
   não.
 
+**O bypass virou premissa, em 17/09/2026.** A etapa `etapas/reguladores.py`
+acha, antes de medir a orientação (achado 59), os ciclos curtos que contêm um
+regulador (`bdgd2dss/lacos.py`, o mesmo grafo do censo) e testa as chaves de
+cada um pelo critério acima. Abre-se **só quando exatamente uma** candidata
+serve; laço com nenhuma ou com mais de uma fica como a BDGD declara, e o
+arquivo diz qual. Elemento e controle saem juntos (`Edit Line.X enabled=no` e
+`Edit SwtControl.SW_X enabled=no`) no próprio `_REGULADORES.dss` — apagar o
+`redirect` devolve a BDGD crua, como nas outras premissas. A orientação passou
+a ser medida com o bypass já aberto: com ele fechado, o fluxo no regulador é
+corrente de laço, e a direção sairia dela.
+
+A variante `bypass_de_regulador` da fixture reproduz a forma de campo (chave de
+entrada, regulador, chave de saída e bypass por fora) e o colapso em escala:
+com o bypass fechado a fonte entrega **34,7 MW para 2,4 kW** de carga; aberto,
+2,4 kW, sem perder nó. `testes/test_bypass_fora_do_par.py` trava também o caso
+sem decisão (dois bypass em paralelo).
+
+O que ela **não** faz: os laços sem regulador continuam fechados, e na
+`5001306` são eles que carregam o grosso (64,5% de perda depois do bypass).
+
 ## Achado 68 — um quarto da transformação do país não é da distribuidora
 
 A FORCEL83 perdia **1,34×** o que a ANEEL declara mesmo só nas subestações

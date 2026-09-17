@@ -367,7 +367,49 @@ def _trafo_de_consumidor(t):
     t['EQTRMT']['PER_TOT'] = _flt(1500.0, 1000.0, 2000.0, 700.0)
 
 
+def _bypass_de_regulador(t):
+    """ACHADO 69: regulador com a chave de bypass fechada, na forma de campo.
+
+    Depois da B3 do F1, em serie: chave de entrada CE, regulador RG1, chave de
+    saida CS e o trecho S5 ate a carga M1. A chave CB liga B3 a B4 POR FORA,
+    fechada como a BDGD a declara. Nenhuma das tres toca os dois PACs do
+    regulador (R1 e R2), entao a trava do achado 48 nao a ve — e a forma da
+    5001306 da EQUATORIAL6072.
+
+    Aberta sozinha, CE ou CS deixa o regulador com 0 kW; CB e a unica que
+    mantem todos os nos e poe a carga pelo regulador.
+    """
+    u = t['UNSEMT']
+    novas = (('CE', 'B3', 'R1'), ('CS', 'R2', 'B4'), ('CB', 'B3', 'B4'))
+    u['COD_ID'] = _obj('CHM1', *(n[0] for n in novas))
+    u['PAC_1'] = _obj('B2', *(n[1] for n in novas))
+    u['PAC_2'] = _obj('B3', *(n[2] for n in novas))
+    u['CTMT'] = _obj(*['F1'] * 4)
+    u['FAS_CON'] = _obj(*['ABC'] * 4)
+    u['P_N_OPE'] = _obj(*['F'] * 4)
+    u['COR_NOM'] = _flt(*[400.0] * 4)
+    u['TIP_UNID'] = _obj(*['35'] * 4)
+    s = t['SSDMT']
+    s['COD_ID'] = _obj(*s['COD_ID'], 'S5')
+    s['PAC_1'] = _obj(*s['PAC_1'], 'B4')
+    s['PAC_2'] = _obj(*s['PAC_2'], 'B5')
+    s['CTMT'] = _obj(*s['CTMT'], 'F1')
+    s['TIP_CND'] = _obj(*s['TIP_CND'], 'C1')
+    s['COMP'] = _flt(*s['COMP'], 200.0)
+    s['FAS_CON'] = _obj(*s['FAS_CON'], 'ABC')
+    t['UNREMT'] = {
+        'COD_ID': _obj('RG1',),
+        'PAC_1': _obj('R1',),
+        'PAC_2': _obj('R2',),
+        'CTMT': _obj('F1',),
+        'FAS_CON': _obj('ABC',),
+    }
+    # a carga de MT do F1 vai para depois do regulador
+    t['UCMT_tab']['PAC'] = _obj('B5', 'B11')
+
+
 VARIANTES = {
+    'bypass_de_regulador': _bypass_de_regulador,
     'sem_subestacao': _sem_subestacao,
     'gd_na_bt': _gd_na_bt,
     'gd_implausivel': _gd_implausivel,

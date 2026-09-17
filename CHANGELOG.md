@@ -8,6 +8,19 @@ número, estão em [docs/ACHADOS_GENERALIZACAO.md](docs/ACHADOS_GENERALIZACAO.md
 
 ## 1.1.0 — em aberto (safra 2025-12-31)
 
+### Bypass de regulador fechado fora do par de PACs (achado 69)
+
+A etapa `reguladores.py` abre, antes de medir a orientacao, a chave de bypass
+que a BDGD declara fechada em volta do regulador — a forma de campo que a
+trava do achado 48 nao ve, porque liga os PACs das chaves vizinhas e nao os do
+regulador. O criterio e eletrico: abre-se a UNICA chave do ciclo curto que,
+aberta sozinha, nao desenergiza no nenhum e deixa o regulador conduzindo. Sem
+candidata unica, nada se abre, e o `_REGULADORES.dss` diz qual laco ficou.
+Nova variante `bypass_de_regulador` na fixture e no pre-voo.
+
+O que ela NAO faz: nao abre laco sem regulador. Na 5001306 da EQUATORIAL6072
+o bypass leva a perda de 77,2% a 64,5%, e o resto vem desses.
+
 
 ### V35 — a primeira rodada nacional que passou pela porta
 

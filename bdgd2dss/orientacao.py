@@ -104,14 +104,61 @@ CABECALHO = """! ===============================================================
 ! =========================================================================="""
 
 
-def escrever(caminho, correcoes, total=0, sem_fluxo=(), escreve=None):
+CABECALHO_BYPASS = """
+! --------------------------------------------------------------------------
+!  BYPASS DE REGULADOR FECHADO — achado 69
+! --------------------------------------------------------------------------
+!  Em campo o regulador fica entre uma chave de entrada e uma de saida, e uma
+!  CHAVE DE BYPASS liga as duas pontas por fora. Com o regulador em servico o
+!  bypass fica ABERTO; a BDGD o declara fechado, e o regulador tentando impor
+!  10% contra um caminho de impedancia nula circula corrente de laco. Na
+!  5001306 da EQUATORIAL6072 eram seis, com 394 a 2.027 A.
+!
+!  A trava do achado 48 so reconhece o bypass entre os dois PACs do proprio
+!  regulador. Este liga os PACs das chaves vizinhas, e nenhuma das chaves do
+!  laco toca o regulador — a regra topologica marcaria todas.
+!
+!  O CRITERIO E ELETRICO: das chaves do laco, abre-se a UNICA que, aberta
+!  sozinha, nao desenergiza no nenhum E deixa o regulador conduzindo. A chave
+!  em serie, aberta, deixa o regulador com 0 kW. Laco com zero ou mais de uma
+!  candidata assim fica como a BDGD declara, e e listado abaixo.
+!
+!  O elemento e o controle saem juntos: `SwtControl State=Closed` fecharia de
+!  novo a chave que um `Open` abrisse.
+!
+!  {n} bypass aberto(s), {amb} laco(s) com regulador sem decisao.
+! --------------------------------------------------------------------------"""
+
+
+def escrever(caminho, correcoes, total=0, sem_fluxo=(), escreve=None,
+             bypass=(), sem_decisao=()):
     """Escreve o `_REGULADORES.dss`. SEMPRE, mesmo vazio.
 
     O MASTER redireciona sem condição, e `redirect` de arquivo ausente aborta
     a compilação. Vazio também é informação: diz que a conferência rodou.
+
+    `bypass` são as chaves abertas pelo achado 69, cada uma
+    `{'chave', 'controle', 'regulador', 'kW'}`, e vêm ANTES da orientação:
+    a orientação foi medida com elas já abertas. `sem_decisao` são
+    `{'regulador', 'candidatas', 'motivo'}`.
     """
-    out = [CABECALHO.format(n=len(correcoes), total=total,
-                            sem=len(sem_fluxo)), '']
+    out = []
+    if bypass or sem_decisao:
+        out += [CABECALHO_BYPASS.format(n=len(bypass),
+                                        amb=len(sem_decisao)).lstrip('\n'), '']
+        for b in bypass:
+            out.append('Edit %s enabled=no   ! bypass de %s, que passa a '
+                       'conduzir %.1f kW' % (b['chave'], b['regulador'],
+                                             b['kW']))
+            if b.get('controle'):
+                out.append('Edit %s enabled=no' % b['controle'])
+        for s in sem_decisao:
+            out.append('! sem decisao: %s — %s (%s)'
+                       % (s['regulador'], s['motivo'],
+                          ', '.join(s['candidatas']) or 'nenhuma chave'))
+        out.append('')
+    out += [CABECALHO.format(n=len(correcoes), total=total,
+                             sem=len(sem_fluxo)), '']
     if correcoes:
         for c in sorted(correcoes, key=lambda x: -x['kW']):
             out.append('RegControl.%s.winding=%d'
