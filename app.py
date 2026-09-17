@@ -246,6 +246,14 @@ class App(tk.Tk):
                         variable=self.v_refazer).grid(
                             row=14, column=0, columnspan=3, sticky='w',
                             padx=6, pady=(0, 8))
+        # Achado 49 desligado. Opcao de EXPERIMENTO: o padrao continua sendo
+        # a tensao que o parque de transformadores declara.
+        self.v_cabecalho = tk.BooleanVar(value=False)
+        ttk.Checkbutton(self.f5, text='Tensão do alimentador pelo cabeçalho '
+                        '(CTMT.TEN_NOM), sem conciliar com o parque — experimento',
+                        variable=self.v_cabecalho).grid(
+                            row=15, column=0, columnspan=3, sticky='w',
+                            padx=6, pady=(0, 8))
         self.f5.columnconfigure(2, weight=1)
 
         # --- acoes
@@ -403,6 +411,8 @@ class App(tk.Tk):
                 argv.append('--clima-forcar')
             if self.v_refazer.get():
                 argv.append('--refazer')
+            if self.v_cabecalho.get():
+                argv.append('--tensao-do-cabecalho')
             if self.v_semat.get():
                 argv.append('--sem-at')
             ses = self.v_se.get().split()
