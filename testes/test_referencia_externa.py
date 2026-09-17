@@ -51,8 +51,11 @@ from bdgd2dss import referencia as ref                    # noqa: E402
 class OSentidoDoTeste(unittest.TestCase):
 
     def test_acima_do_sistema_inteiro_reprova(self):
-        """Roraima na V18: 9,83% em MT contra 7,4% da distribuicao inteira."""
-        c = ref.comparar(9.83, tabela={})
+        """Roraima na V18: 9,83% em MT contra 7,4% da distribuicao inteira.
+
+        A V18 e da safra 2024, e por isso o `ano=2024` — sem ele o teste
+        julgaria um numero de 2024 pela ancora de 2025."""
+        c = ref.comparar(9.83, tabela={}, ano=2024)
         self.assertTrue(c['reprova'])
         self.assertAlmostEqual(c['razao'], 1.328, places=3)
 
@@ -66,8 +69,14 @@ class OSentidoDoTeste(unittest.TestCase):
         self.assertNotIn('aprova', str(c).lower())
 
     def test_o_limite_e_exatamente_74(self):
-        self.assertFalse(ref.comparar(7.4, tabela={})['reprova'])
-        self.assertTrue(ref.comparar(7.41, tabela={})['reprova'])
+        # O TETO E O DA SAFRA, e nao um literal: a de 2024 era 7,4% e a de
+        # 2025 e 7,38%. A regra que se trava e "acima reprova, igual nao".
+        t = ref.TETO
+        self.assertFalse(ref.comparar(t, tabela={})['reprova'])
+        self.assertTrue(ref.comparar(t + 0.01, tabela={})['reprova'])
+        # e a safra 2024 continua julgada pela ancora de 2024
+        self.assertFalse(ref.comparar(7.4, tabela={}, ano=2024)['reprova'])
+        self.assertTrue(ref.comparar(7.41, tabela={}, ano=2024)['reprova'])
 
     def test_sem_perda_agregada_nao_quebra_nem_reprova(self):
         c = ref.comparar(None, tabela={})
@@ -84,9 +93,20 @@ class AFonteViajaJunto(unittest.TestCase):
         self.assertIn('Figura', f)
 
     def test_o_rodape_imprime_a_fonte(self):
-        t = '\n'.join(ref.linhas(ref.comparar(9.83, tabela={})))
+        t = '\n'.join(ref.linhas(ref.comparar(9.83, tabela={}, ano=2024)))
         self.assertIn('ANEEL', t)
         self.assertIn('Figura 3', t)
+
+    def test_o_rodape_da_safra_2025_cita_o_painel(self):
+        t = '\n'.join(ref.linhas(ref.comparar(5.0, tabela={}, ano=2025)))
+        self.assertIn('ANEEL 2025', t)
+        self.assertIn('dados subjacentes', t)
+
+    def test_o_rodape_nao_arredonda_a_ancora(self):
+        """Com uma casa, 7,38% saia impresso "7.4%" — a mudanca de ancora de
+        2024 para 2025 ficava invisivel justamente onde alguem le."""
+        t = '\n'.join(ref.linhas(ref.comparar(5.0, tabela={}, ano=2025)))
+        self.assertIn('7.38%', t)
 
     def test_as_parcelas_fecham_com_o_total(self):
         """14,0% = 7,4% tecnica + 6,6% nao tecnica, como o relatorio diz."""

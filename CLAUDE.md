@@ -8,14 +8,14 @@ começo** — mover depois quebra caminho que alguém já escreveu.
 | pasta | o que vai nela |
 |---|---|
 | **raiz** | só as PORTAS DE ENTRADA: `Validator.py` (o menu, com todas as opções), `painel.py`, `app.py`, `regerar_v10.py` e `relatorio.py`. Mais o `README.md`, o `CHANGELOG.md` e o `requirements.txt` |
-| **`etapas/`** | os executáveis do ciclo, chamados pelo `regerar_v10` e pelo menu: `converter.py`, `verifica.py`, `energia.py`, `validador.py`, `valida_*.py`, `ampacidade.py`, `ligacao.py`, `auditoria.py`, `decompor.py`, `doutor.py`, `pausa.py`, `baixar_*.py`, `analise_com.py` |
+| **`etapas/`** | os executáveis do ciclo, chamados pelo `regerar_v10` e pelo menu: `converter.py`, `verifica.py`, `energia.py`, `validador.py`, `valida_*.py`, `ampacidade.py`, `ligacao.py`, `auditoria.py`, `decompor.py`, `doutor.py`, `pausa.py`, `baixar_*.py`, `analise_com.py`, `prevoo.py`, `importar_perdas_aneel.py` |
 | **`docs/`** | todo `.md` que não seja o `README.md` — achados, planos, relatórios, respostas |
 | **`logs/`** | log de execução. A regeração escreve em `logs/<sufixo>/`: `logs/v13/`, `logs/v14/`… Log solto de script avulso fica em `logs/` mesmo |
 | **`medicoes/`** | JSON de medição avulsa: alcance, censo de condutor, e o que mais sair de script de diagnóstico |
 | **`bdgd2dss/`** | os módulos do conversor |
 | **`testes/`** | a suíte, e o `fixture.py` que gera a BDGD mínima |
 | **`analise/`** | scripts de análise que rodam sobre modelos já gerados |
-| **`dados/`** | insumo do conversor, versionado — hoje o `de_para_mnemonicos.csv` |
+| **`dados/`** | insumo, versionado — o `de_para_mnemonicos.csv`, o `perdas_aneel.csv` (referência externa por distribuidora, gerado por `etapas/importar_perdas_aneel.py`) e o `referencia_prevoo.json` |
 | **`MODELOS_<TAG>_<SUFIXO>/`** | saída do conversor. **Não versionada e não reorganizável** |
 
 ## Reorganização de 02/09/2026
@@ -92,10 +92,10 @@ Cada achado é algo que já se errou uma vez, foi medido, e não se deve errar d
 novo. Uma lei que não se localiza sem ambiguidade não é lei — por isso o
 número importa tanto quanto o conteúdo.
 
-**Uma série só, de 1 a 65, sem número reaproveitado**, morando em dois
+**Uma série só, de 1 a 66, sem número reaproveitado**, morando em dois
 lugares:
 
-- **`docs/ACHADOS_GENERALIZACAO.md`** — os de generalização (1–29, 59–65),
+- **`docs/ACHADOS_GENERALIZACAO.md`** — os de generalização (1–29, 59–66),
   medidos sobre as 97 ou 99 bases, com número nacional.
 - **comentário no código** — os de conversão (30–58), no ponto onde a
   correção mora: 34 em `bdgd2dss/ampacidade.py`, 51 em `bdgd2dss/linhas.py`,

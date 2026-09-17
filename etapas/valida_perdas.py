@@ -34,6 +34,7 @@ O mes do modelo tem de ser o mesmo do clima e da carga (--mes do conversor).
 import argparse
 import json
 import os
+import re
 import statistics
 import sys
 
@@ -421,8 +422,12 @@ def main():
     # A ANCORA DE FORA DA BDGD. Tudo acima compara o modelo com o
     # `PERD_A4` da CTMT, que sai do MESMO arquivo que o modelo le —
     # autoconsistencia, e nao validacao. Ver `bdgd2dss/referencia.py`.
+    # A SAFRA VEM DO NOME DA `.gdb`: comparar a BDGD de 2025 com a perda
+    # regulatoria de 2024 mede o ano, e nao o modelo.
+    _m = re.search(r'_(\d{4})-\d{2}-\d{2}_', os.path.basename(a.gdb))
     ext = referencia.comparar(concordancia.agregado(quatro)["pct_modelo"],
-                              agente=_agente(a.gdb))
+                              agente=_agente(a.gdb),
+                              ano=_m.group(1) if _m else None)
     print()
     for _l in referencia.linhas(ext):
         print(_l)

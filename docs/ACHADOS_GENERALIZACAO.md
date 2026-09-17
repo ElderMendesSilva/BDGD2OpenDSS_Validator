@@ -2376,6 +2376,92 @@ base vazia não aparece numa soma de subestações. Só apareceu quando se conto
 quantas bases tinham produzido `validacao_balanco.json` — 82 de 99 — e se foi
 atrás das 17 que faltavam.
 
+## Achado 66 — a média nacional julgava errado uma base em seis
+
+Desde a V18 o `bdgd2dss/referencia.py` tinha o encaixe para comparar a perda
+do modelo com a perda técnica regulatória **da própria distribuidora**, e o
+arquivo `dados/perdas_aneel.csv` nunca existiu. Toda comparação rodava contra
+a média nacional.
+
+Em 16/09/2026 o arquivo passou a existir, exportado dos **dados subjacentes**
+do painel público da ANEEL (`etapas/importar_perdas_aneel.py`). Os subjacentes
+trazem `idagente`, o mesmo código da BDGD, e a energia e a perda em MWh — o
+percentual é recalculado, e não lido de gráfico.
+
+| | safra 2025 |
+|---|---:|
+| concessionárias exportadas | 51 |
+| energia injetada | 614,1 TWh |
+| perda técnica regulatória | 45,33 TWh |
+| **perda técnica média** | **7,38%** |
+| bases com referência própria | **50 de 99** |
+
+As 49 bases sem referência são permissionárias, que a exportação não traz.
+Três concessionárias vêm agrupadas pela ANEEL com código sintético (CPFL Santa
+Cruz, Energisa Sul-Sudeste, RGE); casadas por nome e UF.
+
+**Uma discrepância que fica escrita.** As notícias de julho de 2026 citam
+7,2% (45,2 TWh). A perda quase bate; o denominador não — 628 TWh contra 614,1.
+Vale o número que se consegue refazer.
+
+**O resultado na V34** — perda do dia completo (MT e transformadores, BT
+agregada) sobre a perda técnica regulatória da distribuidora, 49 bases:
+
+| razão modelo/ANEEL | valor |
+|---|---:|
+| mediana | **0,69** |
+| quartis | 0,45 – 0,99 |
+| acima de 1 (impossível) | **11** |
+| acima de 1,2 (robusto) | **7** |
+
+**O teste antigo errava nos dois sentidos, em 8 das 49.** Contra a média de
+7,4%, reprovavam distribuidoras cuja rede é naturalmente perdedora e passavam
+redes enxutas que o modelo exagera:
+
+- **passam a reprovar** (a média as deixava passar): COCEL82, ELETROCAR398,
+  FORCEL83, HIDROPAN399 — a Forcel perde 3,78% segundo a ANEEL e o modelo dá
+  5,09% só em MT;
+- **deixam de reprovar** (reprovavam por perder muito, legitimamente):
+  ENERGISA_R369, NEOENERGIA47 (Coelba, 10,85%), SANTA_MARI381, SULGIPE46
+  (11,47%).
+
+**A fila, em ordem de razão** — acima de 1,2, onde o mês simulado não explica:
+
+| base | ANEEL | modelo, dia | razão |
+|---|---:|---:|---:|
+| ENERGISA_M405 | 8,78% | 26,50% | **3,02** |
+| EQUATORIAL6072 | 9,45% | 24,77% | **2,62** |
+| NEOENERGIA385 | 5,78% | 9,88% | 1,71 |
+| NEOENERGIA40 | 9,16% | 14,68% | 1,60 |
+| RGE396 | 6,08% | 9,40% | 1,55 |
+| FORCEL83 | 3,78% | 5,09% | 1,34 |
+| COCEL82 | 4,18% | 5,10% | 1,22 |
+
+A ENERGISA_M405 é a do achado 61, e a NEOENERGIA385 é a da MOG02 (achado 63):
+as duas correções baixaram muito o número, e não o bastante. A EQUATORIAL38
+merece nota à parte: amostra declarada dá 2,68% e o dia inteiro dá 12,72% — o
+modelo discorda de si mesmo por 4,7×.
+
+**A cauda baixa não é aleatória.** As oito bases abaixo de 0,35 são todas
+Equatorial, Energisa ou Amazonas, sete delas do Norte e do Nordeste, e todas
+com perda regulatória entre 8% e 12%. Ou a perda dessas redes mora onde o
+modelo não tem — AT e BT rural —, ou o modelo subestima de forma regional. Com
+o dado de hoje, não se separa uma coisa da outra.
+
+**O que isto NÃO mede.** A perda regulatória cobre AT, MT, transformadores, BT,
+ramais e medidores; o modelo agregado tem só MT e transformadores. Por isso a
+razão abaixo de 1 é esperada e não é acerto — a mediana de 0,69 não pode ser
+chamada de viés sem a **decomposição por segmento**, que existe só nas notas
+técnicas de revisão tarifária, uma por distribuidora. E o dia simulado é um
+**dia útil de janeiro**, de carga alta: perda cresce com o quadrado da carga,
+e razão entre 1,0 e 1,2 pode ser o mês.
+
+**O que muda no código.** A âncora nacional passou a ser **por safra**
+(`referencia.ancora`): 7,4% para 2024, 7,38% para 2025, e a tabela por
+distribuidora só vale para o próprio ano. O rodapé imprimia a âncora com uma
+casa, e 7,38% saía "7.4%" — a mudança ficava invisível justamente onde alguém
+lê.
+
 ## A cobertura das leis, medida
 
 Cada achado é uma lei, e cada lei mora num guarda de código. **Um guarda que
