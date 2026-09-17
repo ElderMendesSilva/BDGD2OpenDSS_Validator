@@ -118,7 +118,9 @@ python analise/cobertura_achados.py --variantes --frios
 
 Ele roda o ciclo sob `sys.settrace` e diz quais guardas `# ACHADO N` nunca
 executam o proprio corpo. Em 10/09/2026: 41 achados com guarda, **19 com pelo
-menos um guarda frio**. A V33 caiu em 35 das 99 bases num guarda frio, com a
+menos um guarda frio**. Em 17/09/2026: 43 e 21 — o 67 e frio declarado (nenhuma
+fixture "converge" dissipando mais do que recebe), e o 65 aparece so por um
+comentario no `prevoo.py`, com os tres guardas reais cobertos. A V33 caiu em 35 das 99 bases num guarda frio, com a
 suite verde.
 
 Fixture nova que ligue um achado vai em `VARIANTES`, no `testes/fixture.py` —

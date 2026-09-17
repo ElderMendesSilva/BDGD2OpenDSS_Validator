@@ -162,5 +162,37 @@
    65
   ],
   "converter_rc": 2
+ },
+ "trafo_de_consumidor": {
+  "achados": [
+   59,
+   68
+  ],
+  "ampacidade_rc": 0,
+  "converter_rc": 0,
+  "energia_rc": 0,
+  "ligacao_rc": 0,
+  "reguladores_rc": 0,
+  "ses": {
+   "SE1": {
+    "P_gd_kW": 0.0,
+    "V_MT_max": 1.0,
+    "V_MT_mediana": 1.0,
+    "V_MT_min": 0.866,
+    "causa": "PERDA_ALTA",
+    "compila": true,
+    "converge": true,
+    "linhas_acima_ampacidade": 0,
+    "n_barras": 15,
+    "n_cargas": 12,
+    "n_linhas": 8,
+    "n_trafos": 6,
+    "perdas_pct": 16.99,
+    "reguladores": 0,
+    "reguladores_saturados": 0
+   }
+  },
+  "validador_rc": 0,
+  "verifica_rc": 0
  }
 }

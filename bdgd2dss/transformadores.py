@@ -489,8 +489,20 @@ def _inverte_pacs(col, invertidos):
     return pares, tocados
 
 
+# ACHADO 68: transformador que nao e da distribuidora. `UNTRMT.POS` declara a
+# posse; `PD` e da propria distribuidora, e `O` e `CS` sao de CONSUMIDOR
+# (confirmado pelo Elder em 17/09/2026, contra o Modulo 10 do PRODIST). O
+# ferro desses transformadores acontece depois da medicao do cliente e nao e
+# perda da rede — e no pais sao 24,6% dos kVA e 12,6% do ferro.
+#
+# `CO`, `G`, `OD`, `T` e `A` tambem existem e ficam FORA de proposito: o
+# significado deles nao foi confirmado, e zerar o ferro de um transformador
+# que e da distribuidora apagaria perda de verdade.
+POSSE_CONSUMIDOR = frozenset({'O', 'CS'})
+
+
 def gerar(bdgd, ctmts, caminho_trafos, caminho_aterramento, kv_mt=13.8,
-          kv_por_ctmt=None, invertidos=None, log=None):
+          kv_por_ctmt=None, invertidos=None, log=None, caminho_posse=None):
     """`kv_por_ctmt` da a tensao primaria de cada alimentador; `kv_mt` e o
     padrao para quem nao estiver no mapa.
 
@@ -502,6 +514,18 @@ def gerar(bdgd, ctmts, caminho_trafos, caminho_aterramento, kv_mt=13.8,
             'FAS_CON_P', 'FAS_CON_S']
     col = bdgd.ler_filtrado('UNTRMT', 'CTMT', ctmts, cols)
     n = len(col['COD_ID'])
+    # a posse e lida A PARTE: base sem o campo converte igual, so sem a
+    # premissa. O leitor devolve coluna vazia, e nao erro, para campo ausente.
+    posse = None
+    if caminho_posse:
+        try:
+            _p = bdgd.ler_filtrado('UNTRMT', 'CTMT', ctmts, ['COD_ID', 'POS'])
+            if len(_p.get('POS', [])) == len(_p['COD_ID']):
+                posse = {txt(c): txt(v).strip().upper()
+                         for c, v in zip(_p['COD_ID'], _p['POS'])}
+        except Exception:                                # noqa: BLE001
+            posse = None
+    de_consumidor = []
 
     # impedancias e PERDAS por transformador (EQTRMT), quando disponiveis
     imp, censo_placa = {}, {}
@@ -543,6 +567,8 @@ def gerar(bdgd, ctmts, caminho_trafos, caminho_aterramento, kv_mt=13.8,
         b1, b2 = pares[i]
         if not b1 or not b2:
             continue
+        if posse and posse.get(cod) in POSSE_CONSUMIDOR:
+            de_consumidor.append(cod)
         kva = num(col['POT_NOM'][i], 45.0) or 45.0
         _tl0 = num(col['TEN_LIN_SE'][i], 0.22) or 0.22
         tl = _linha(_tl0)
@@ -650,4 +676,25 @@ def gerar(bdgd, ctmts, caminho_trafos, caminho_aterramento, kv_mt=13.8,
         at.append(f'New Reactor.NEUTRO_{b} phases=1 bus1={b}.4 bus2={b}.0 '
                   f'R={R_ATERRAMENTO} X=0')
     open(caminho_aterramento, 'w', encoding='utf-8', newline=escrita.FIM_DE_LINHA).write('\n'.join(at) + '\n')
+    if caminho_posse:
+        # SEMPRE escrito, mesmo vazio: `redirect` de arquivo ausente aborta a
+        # compilacao da subestacao inteira.
+        pz = ['! ==========================================================',
+              '! PREMISSA — achado 68: transformador de CONSUMIDOR',
+              '! `UNTRMT.POS` em ' + ', '.join(sorted(POSSE_CONSUMIDOR)) +
+              ': o transformador e do cliente,',
+              '! e o ferro dele fica depois da medicao — nao e perda da rede.',
+              '! Ele CONTINUA em servico, alimentando a carga ligada nele;',
+              '! so a perda a vazio sai. Apagar o redirect no MASTER devolve',
+              '! o modelo a BDGD crua.',
+              '! ==========================================================']
+        if posse is None:
+            pz.append('! esta base nao declara UNTRMT.POS: nada a ajustar')
+        pz += [f'Edit Transformer.{c} %noloadloss=0' for c in sorted(de_consumidor)]
+        open(caminho_posse, 'w', encoding='utf-8',
+             newline=escrita.FIM_DE_LINHA).write('\n'.join(pz) + '\n')
+        if log and de_consumidor:
+            log(f'  ACHADO 68: {len(de_consumidor):,} transformadores de '
+                f'consumidor (POS {"/".join(sorted(POSSE_CONSUMIDOR))}) — '
+                f'ferro zerado em _POSSE.dss')
     return n, sec, invertidos

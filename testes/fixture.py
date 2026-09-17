@@ -350,12 +350,30 @@ def _pac_invertido(t):
     t['UNTRMT']['PAC_2'] = _obj('N1', 'N2', 'B11', 'N4')
 
 
+def _trafo_de_consumidor(t):
+    """ACHADO 68: transformador que nao e da distribuidora.
+
+    TR3 e TR4 sao declarados de consumidor (`POS` O e CS), e a placa da EQTRMT
+    ganha ferro para que zerar o `%noloadloss` deles mude o resultado. Os
+    quatro continuam em servico: a carga pendurada neles nao pode sumir.
+    """
+    t['UNTRMT']['POS'] = _obj('PD', 'PD', 'O', 'CS')
+    # A potencia da EQTRMT e CODIGO do dominio TPOTAPRT, e nao kVA: sem isso
+    # a placa e descartada, o ferro sai zero antes da premissa, e o teste nao
+    # mediria nada. 16/13/20/8 = 75/45/112,5/30 kVA.
+    t['EQTRMT']['POT_NOM'] = _obj('16', '13', '20', '8')
+    # ferro dentro da escala esperada (achado 56): 289/195/395/143 W
+    t['EQTRMT']['PER_FER'] = _flt(300.0, 190.0, 420.0, 150.0)
+    t['EQTRMT']['PER_TOT'] = _flt(1500.0, 1000.0, 2000.0, 700.0)
+
+
 VARIANTES = {
     'sem_subestacao': _sem_subestacao,
     'gd_na_bt': _gd_na_bt,
     'gd_implausivel': _gd_implausivel,
     'geracao_firme': _geracao_firme,
     'pac_invertido': _pac_invertido,
+    'trafo_de_consumidor': _trafo_de_consumidor,
 }
 
 

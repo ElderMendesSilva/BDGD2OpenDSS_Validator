@@ -392,7 +392,8 @@ def _uma_se(C, se, k):
     n_tr, sec, tr_invertidos = transformadores.gerar(
         b, ctmts, os.path.join(d, 'Trafos.dss'),
         os.path.join(d, '_ATERRAMENTO.dss'), a.kv_mt, kv_por_ctmt,
-        invertidos=C['tr_invertidos'], log=print)
+        invertidos=C['tr_invertidos'], log=print,
+        caminho_posse=os.path.join(d, '_POSSE.dss'))
     # Conjunto de pontos de conexao que a rede realmente tem. Um shunt
     # (carga, banco, PVSystem) num PAC ausente daqui cria a barra sozinho,
     # a ilha fica sem fonte e a solucao devolve NaN — foi o que travava a
@@ -1087,6 +1088,7 @@ def main():
         aberturas += [f'{s}/_LIGACAO.dss' for s in todas]
         aberturas += [f'{s}/_REGULADORES.dss' for s in todas]
         aberturas += [f'{s}/_GD_IMPLAUSIVEL.dss' for s in todas]
+        aberturas += [f'{s}/_POSSE.dss' for s in todas]
         aberturas = [x for x in aberturas if os.path.exists(os.path.join(a.saida, x))]
         vaos_todos = [c for s_ in todas for c in ses[s_]
                       if c in (vaos_lig or {})]

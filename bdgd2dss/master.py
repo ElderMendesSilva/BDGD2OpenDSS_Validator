@@ -234,6 +234,12 @@ redirect _AMPACIDADE.dss
 ! 1,877 pu e 75.729 kW de perdas.
 redirect _GD_IMPLAUSIVEL.dss
 
+! Transformador de CONSUMIDOR — achado 68. `UNTRMT.POS` em O ou CS: o
+! transformador e do cliente e o ferro dele fica depois da medicao, entao sai
+! da perda da rede. Ele continua em servico. No pais, 24,6% dos kVA e 12,6% do
+! ferro. Apagar esta linha devolve o modelo a BDGD crua.
+redirect _POSSE.dss
+
 ! Premissa de modelagem que INVENTA um elo — achado 33, forma B. Vazio ate
 ! alguem rodar `ligacao.py`. Apagar esta linha devolve o modelo a topologia
 ! que a BDGD declara.

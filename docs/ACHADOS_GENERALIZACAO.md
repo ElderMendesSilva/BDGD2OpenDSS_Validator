@@ -2599,13 +2599,24 @@ a fração de transformação fora de `PD` é **+0,04** — nula. O efeito se
 concentra onde há muito transformador de terceiro e pouca perda de rede, que é
 exatamente o perfil das pequenas distribuidoras do Sul que motivaram a busca.
 
-**A lei, e o que falta para aplicá-la.** Perda em transformador que não é da
-distribuidora não é perda da rede dela: o transformador do cliente atendido em
-média tensão fica depois da medição dele. A correção natural é uma premissa
-reversível que zere o `%noloadloss` desses transformadores sem tirá-los de
-serviço — eles continuam conduzindo a carga pendurada neles. **Ela só entra
-depois de confirmado o significado de cada código**: tirar `CS` ou `CO` sem
-saber o que são pode apagar perda que é da distribuidora.
+**A lei.** Perda em transformador que não é da distribuidora não é perda da
+rede dela: o transformador do cliente atendido em média tensão fica depois da
+medição dele.
+
+**A correção, aplicada em 17/09/2026.** `O` e `CS` são de consumidor —
+confirmado pelo Elder contra o Módulo 10. O conversor escreve, por
+subestação, um `_POSSE.dss` que zera o `%noloadloss` desses transformadores
+**sem tirá-los de serviço**: eles continuam conduzindo a carga pendurada neles.
+É uma premissa reversível como as outras — apagar o `redirect _POSSE.dss` no
+MASTER devolve a BDGD crua — e o arquivo é escrito mesmo vazio.
+
+`CO`, `G`, `OD`, `T` e `A` **ficam de fora de propósito**: não confirmados, e
+zerar o ferro de um transformador da distribuidora apagaria perda de verdade.
+
+**Medido na FORCEL83, reconvertida com a premissa:** 95 transformadores
+ajustados, perda nos transformadores de 232,8 para 165,6 kW, perda do dia de
+5,09% para **4,46%** — razão modelo/ANEEL de 1,34 para **1,18**, como a conta
+sobre o censo tinha previsto.
 
 ## A cobertura das leis, medida
 
