@@ -2529,10 +2529,42 @@ de novo:
    alimentador.* As 1.369 barras são **todas** alcançáveis a partir da fonte de
    34,5 kV sem atravessar abaixador nem regulador de 7,97 kV.
 
-**O que falta para fechar:** entender por que `CalcVoltagebases` vê essas
-barras abaixo de 60% de 34,5 kV **sem carga**, e o experimento decisivo —
-reconverter a SE com a conciliação do achado 49 desligada e ver se o colapso
-some. As duas coisas exigem a BDGD da base, que só está no cluster.
+4. *O achado 49 como causa.* O experimento foi feito (job 36582, 17/09/2026):
+   a SE `5001306` convertida com e sem a conciliação, pela opção
+   `--tensao-do-cabecalho`. Sem ela, a tensão mediana sobe de 0,315 para
+   0,708 pu, mas **a perda piora** (76,9% → 81,2%), os trechos acima da
+   ampacidade vão de 1.044 para 1.441, e só 4 dos 8 alimentadores declaram
+   34,5 kV no cabeçalho. A coincidência 13,8/34,5 = 0,40 era sugestiva e não
+   é o mecanismo. **O achado 49 fica inocentado nesta SE.**
+
+**O que continua de pé, e aponta para o próximo passo:** 33 dos 36
+reguladores saturados nos dois modos, e **sobretensão de 1,58 a 1,64 pu** na
+mesma SE que tem barras a 0,08 pu. Carga normal, reguladores no limite e
+tensão alta e baixa ao mesmo tempo não se explicam por queda ao longo do
+alimentador.
+
+## Em aberto — transformador que não é da distribuidora
+
+A FORCEL83 perde **1,34×** o que a ANEEL declara **mesmo só nas subestações
+`OK`** — o segundo tipo da fila, o do modelo que erra sem que o classificador
+perceba. Decomposta localmente, **45% da perda nos transformadores é ferro**
+de transformador quase vazio (carregamento mediano de 6%), e o campo
+`UNTRMT.POS` explica parte disso:
+
+| posse | transformadores | kVA | ferro declarado | com cliente de BT |
+|---|---:|---:|---:|---:|
+| `PD` | 660 | 27.685 | 157 kW | 646 |
+| `O` | **95** | **23.298** | **71 kW** | 43 |
+
+**46% dos kVA e 31% do ferro não são da distribuidora**, e o modelo soma esse
+ferro, 24 horas por dia, como perda da rede. A perda regulatória cobre os
+transformadores da distribuidora; o de um cliente atendido em média tensão
+fica depois da medição dele. Tirando só esse ferro, a Forcel vai de 5,09% para
+~4,44% — razão 1,34 → **1,17**. Explica metade do excesso, não tudo.
+
+**Ainda não é achado, porque uma base não faz lei.** O censo das 99 está em
+`diagnosticos/posse.py` (job `cluster/posse.pbs`). O campo nunca tinha sido
+lido pelo projeto.
 
 ## A cobertura das leis, medida
 

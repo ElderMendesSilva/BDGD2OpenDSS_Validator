@@ -1,0 +1,27 @@
+#!/bin/bash
+# De quem sao os transformadores que o modelo conta como rede — nas 99 bases.
+#
+#     qsub -N posse -q BIRA_Q3 -l nodes=1:ppn=4 -l mem=16gb \
+#          -l walltime=03:00:00 -j oe -o logs/cluster/ \
+#          -v "PROJETO=$PWD,BDGD2DSS_BASES=$HOME/elder/bdgds_2025" \
+#          cluster/posse.pbs
+#
+# Na FORCEL83, 46% dos kVA instalados tem `UNTRMT.POS = 'O'` — nao sao da
+# distribuidora —, e o ferro deles entra na perda modelada como se fosse da
+# rede. Ver `diagnosticos/posse.py`. Este job mede isso nas 99.
+#
+# Le `.gdb`, entao e job — o head node nao processa. Nao simula nada.
+# A saida vai para `medicoes/`, que o git ignora: a arvore fica limpa.
+set -uo pipefail
+cd "${PBS_O_WORKDIR:-$PROJETO}"
+source .venv/bin/activate
+export BDGD2DSS_MODO=cluster
+
+echo "## posse dos transformadores — $(date)"
+echo "## bases em: ${BDGD2DSS_BASES:-<nao definido>}"
+mkdir -p medicoes
+python -u diagnosticos/posse.py --bases "$BDGD2DSS_BASES" \
+    --saida-json medicoes/posse.json
+rc=$?
+echo "## fim $(date)  (rc=$rc)"
+exit $rc
