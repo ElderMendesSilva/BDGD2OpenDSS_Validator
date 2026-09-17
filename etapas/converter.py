@@ -81,7 +81,7 @@ def concilia_tensao(info, bdgd, log):
     return tensoes.concilia(info, tensoes.por_equipamento(bdgd, log), log)
 
 
-def ler_ctmt(bdgd, kv_mt_padrao, log):
+def ler_ctmt(bdgd, kv_mt_padrao, log, conciliar=True):
     """Cadastro dos alimentadores: subestacao, trafo de AT que o alimenta,
     barra de saida, cabeceira e tensao.
 
@@ -117,7 +117,16 @@ def ler_ctmt(bdgd, kv_mt_padrao, log):
     # e 603 dos 714 trafos dizem 13,8 kV, e a subestacao tem um unico trafo
     # de AT, 69 -> 13,8. Acreditar no cabecalho fazia o achado 39 criar
     # barra derivada e INVENTAR um transformador de barra de 10 MVA.
-    concilia_tensao(info, bdgd, log)
+    #
+    # `conciliar=False` desliga isso e vale o CTMT.TEN_NOM. Existe para o
+    # experimento da EQUATORIAL6072: la o achado 49 trocou 142 alimentadores
+    # de 34,5 para 13,8 kV e a rede colapsa perto de 13,8/34,5 = 0,40 pu. A
+    # troca e a suspeita, e a unica prova e reconverter sem ela.
+    if conciliar:
+        concilia_tensao(info, bdgd, log)
+    else:
+        log('  ACHADO 49 DESLIGADO (--tensao-do-cabecalho): vale CTMT.TEN_NOM, '
+            'mesmo quando o parque de transformadores discorda')
 
     return info
 
@@ -809,6 +818,12 @@ def main():
     ap.add_argument('--reg-kva', type=float, default=5000.0)
     ap.add_argument('--cache', default='_cache_ucbt.pkl',
                     help='arquivo de cache da agregacao da UCBT (reuso entre execucoes)')
+    ap.add_argument('--tensao-do-cabecalho', action='store_true',
+                    help='desliga o achado 49: a tensao do alimentador e a do '
+                         'CTMT.TEN_NOM, mesmo quando a maioria dos seus '
+                         'transformadores declara outra. Para experimento — o '
+                         'padrao continua sendo conciliar. Fica registrado no '
+                         'relatorio_rede.json')
     ap.add_argument('--refazer', action='store_true',
                     help='regera as subestacoes ja existentes (padrao: pula e continua)')
     ap.add_argument('--jobs', type=int, default=1, metavar='N',
@@ -832,7 +847,8 @@ def main():
         cand = os.path.join(os.path.dirname(os.path.abspath(a.gdb)), '..', 'Excel')
         a.excel = os.path.abspath(cand) if os.path.isdir(cand) else None
 
-    ctmt_info = ler_ctmt(b, a.kv_mt, log)
+    ctmt_info = ler_ctmt(b, a.kv_mt, log,
+                         conciliar=not a.tensao_do_cabecalho)
     # ACHADO 57: pergunta sobre a REDE, feita a rede INTEIRA e uma vez so.
     # O que viaja para os trabalhadores sao dezenas de COD_ID, e nao os
     # milhoes de nos de media que a resposta consumiu.
@@ -1124,6 +1140,8 @@ def main():
            # ACHADO 65: quantos alimentadores a base tem e o conversor
            # nao pode alcancar por nao declararem subestacao.
            'alimentadores_sem_sub': len(orfaos),
+           # a premissa do achado 49, dita em vez de suposta
+           'tensao_conciliada_pelo_parque': not a.tensao_do_cabecalho,
            'bt': a.bt, 'mes': a.mes, 'dia': a.dia,
            'fator_carga': a.fator_carga,
            'codigos_tensao_desconhecidos': tensoes.desconhecidos(),

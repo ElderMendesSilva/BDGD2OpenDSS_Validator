@@ -1,0 +1,86 @@
+#!/bin/bash
+# O EXPERIMENTO DO ACHADO 49 NA EQUATORIAL6072.
+#
+#     qsub -N prova49 -q BIRA_Q3 -l nodes=1:ppn=8 -l mem=24gb \
+#          -l walltime=02:00:00 -j oe -o logs/cluster/ \
+#          -v "PROJETO=$PWD,BDGD2DSS_BASES=$HOME/elder/bdgds_2025" \
+#          cluster/prova_49.pbs
+#
+# A PERGUNTA. Na V34, a EQUATORIAL6072 perde 2,62x o que a ANEEL declara, e
+# 42% da energia dela esta em subestacoes que colapsam perto de 0,40 pu —
+# 13,8 / 34,5. O achado 49 trocou 142 alimentadores dessa base de 34,5 para
+# 13,8 kV. Se a troca e a causa, reconverter SEM ela tira o colapso.
+#
+# O QUE ELE FAZ. O mesmo ciclo, duas vezes, so na SE 5001306 — a pior das
+# medidas localmente: com a conciliacao (o padrao) e com
+# `--tensao-do-cabecalho`. No fim, os numeros lado a lado.
+#
+# AS PASTAS COMECAM COM `MODELOS_` de proposito: o `.gitignore` as cobre. Uma
+# pasta fora dele sujaria a arvore, e o `submeter_todas.sh` recusaria a
+# proxima rodada nacional.
+set -uo pipefail
+cd "${PBS_O_WORKDIR:-$PROJETO}"
+[[ -f .venv/bin/activate ]] && source .venv/bin/activate
+export BDGD2DSS_MODO=cluster
+
+SE="${SE:-5001306}"
+GDB="${GDB:-${BDGD2DSS_BASES:?defina BDGD2DSS_BASES}/Equatorial_GO_6072_2025-12-31_V11_20260821-0952.gdb}"
+[[ -d "$GDB" ]] || { echo "!! nao achei $GDB"; exit 1; }
+JOBS="${PBS_NP:-4}"
+
+echo "## prova do achado 49 — SE $SE — $(date)"
+echo "## gdb: $GDB"
+
+for modo in padrao cabecalho; do
+    OUT="MODELOS_PROVA49_GO_${modo}"
+    EXTRA=""
+    [[ $modo == cabecalho ]] && EXTRA="--tensao-do-cabecalho"
+    echo
+    echo "################ $modo  ->  $OUT"
+    rm -rf "$OUT"
+    python -u etapas/converter.py "$GDB" --saida "$OUT" --se "$SE" $EXTRA || { echo "!! converter falhou em $modo"; continue; }
+    for etapa in ligacao reguladores ampacidade energia; do
+        echo "== $etapa"
+        python -u "etapas/$etapa.py" "$OUT" --jobs "$JOBS" 2>&1 | tail -4
+    done
+    echo "== validador"
+    python -u etapas/validador.py "$OUT" --ses --jobs "$JOBS" 2>&1 | tail -4
+done
+
+echo
+echo "################ LADO A LADO"
+python - "$SE" <<'PY'
+import json, os, re, sys
+se = sys.argv[1]
+def le(p):
+    try:
+        with open(p, encoding='utf-8') as fh:
+            return json.load(fh)
+    except Exception:
+        return None
+campos = ('causa', 'converge', 'perdas_pct', 'perdas_pct_dia', 'V_MT_min',
+          'V_MT_mediana', 'V_MT_max', 'reguladores_saturados', 'reguladores',
+          'linhas_acima_ampacidade', 'P_fonte_kW', 'perdas_kW')
+linhas = {}
+for modo in ('padrao', 'cabecalho'):
+    d = f'MODELOS_PROVA49_GO_{modo}'
+    v = next((x for x in (le(f'{d}/validacao.json') or []) if str(x.get('modelo')) == se), {})
+    e = next((x for x in (le(f'{d}/energia_dia.json') or []) if str(x.get('se')) == se), {})
+    vaos = open(f'{d}/{se}/Vaos.dss', encoding='utf-8').read() if os.path.exists(f'{d}/{se}/Vaos.dss') else ''
+    barras = re.findall(r'Bus1=(\S+?)\.1\.2\.3', vaos)
+    r = {c: v.get(c) for c in campos}
+    r['dia_passos_ok'] = e.get('passos_ok')
+    r['dia_fisica_impossivel'] = len(e.get('passos_fisica_impossivel') or [])
+    r['dia_injetado_MWh'] = round((e.get('kWh_injetado') or 0) / 1e3, 1)
+    r['dia_perdas_MWh'] = round((e.get('kWh_perdas') or 0) / 1e3, 1)
+    r['vaos_em_34p5'] = sum(1 for b in barras if '34p5' in b)
+    r['vaos_total'] = len(barras)
+    linhas[modo] = r
+print(f'{"":26s} {"padrao":>14s} {"cabecalho":>14s}')
+for k in linhas['padrao']:
+    a, b = linhas['padrao'][k], linhas['cabecalho'][k]
+    f = lambda x: '-' if x is None else (f'{x:,.3f}' if isinstance(x, float) else str(x))
+    print(f'{k:26s} {f(a):>14s} {f(b):>14s}')
+PY
+echo
+echo "## fim $(date)"
