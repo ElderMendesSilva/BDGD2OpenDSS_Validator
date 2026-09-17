@@ -2594,6 +2594,20 @@ sem regulador, também carregam corrente — um deles 530 A.
 - depois, **chaves normalmente abertas** fechavam "laços" que não conduzem. Elas
   ficam fora do grafo (`SwtControl State=Open` e `_CHAVES_ABERTAS.dss`).
 
+**Qual chave é o bypass — o critério, validado em 17/09/2026.** Cada laço com
+regulador tem **duas** chaves, e nenhuma toca diretamente as barras do
+regulador: há trechos no meio. A regra topológica ("a chave que não toca o
+regulador") marcou as duas, e abrir as doze derrubou 33 mil nós. O critério
+que funciona é **elétrico**: abrir cada candidata sozinha e exigir que nenhum
+nó perca tensão **e** que o regulador passe a conduzir. A chave em série,
+aberta, deixa o regulador pendurado com 0 kW; o bypass, aberto, deixa-o com
+fluxo. Nos seis laços da `5001306` a separação foi limpa, e decidida um laço
+de cada vez.
+
+**E o efeito é parcial:** com os seis bypass certos abertos, a perda vai de
+77,2% para **64,5%**, e os 36 reguladores continuam saturados. O grosso do
+colapso está nos 32 laços sem regulador.
+
 **O que ainda não se sabe**, e por isso ainda não há correção:
 
 - **quanto disto é nacional** — o censo está em `diagnosticos/lacos.py` (job
