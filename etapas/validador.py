@@ -24,6 +24,7 @@ import os, sys, math, json, glob, statistics
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from bdgd2dss import diagnostico, lote, pausa, plataforma, pool
 from bdgd2dss import escrita
+from bdgd2dss import dia
 
 try:
     import opendssdirect as dss
@@ -77,8 +78,8 @@ def _perda_do_dia(pasta, modelo):
                 # instantaneo poe toda carga no pico e fica ACIMA do dia, entao
                 # a subestacao tende a ser marcada, e nao absolvida, por falta
                 # de medida.
-                completo = (x.get('passos_ok') or 0) >= (x.get('passos') or 0)
-                d[str(x.get('se'))] = x.get('perdas_pct') if completo else None
+                d[str(x.get('se'))] = (x.get('perdas_pct')
+                                       if dia.completo(x) else None)
         except Exception:                                    # noqa: BLE001
             d = {}
         _CACHE_DIA[base] = d

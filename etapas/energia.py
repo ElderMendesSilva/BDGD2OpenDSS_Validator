@@ -149,6 +149,7 @@ def dia(dss, master, passos=96):
         i = dss.Generators.Next()
     teto_gd *= 1.05          # folga para o passo de tempo e o arredondamento
     gd_impossivel = []
+    fisica_impossivel = []
     # Serie do dia, para as curvas de geracao. Sai de graca: fonte, GD e
     # perdas ja sao lidas a cada passo para o balanco de energia — aqui elas
     # so param de ser jogadas fora depois de somadas. Passo que falha fica
@@ -208,6 +209,20 @@ def dia(dss, master, passos=96):
             gd_impossivel.append(k)
             falhos.append(k)
             continue
+        # ACHADO 67: a perda nao cabe na energia que entra. Conservacao de
+        # energia, e nao limiar escolhido: num passo, o circuito nao dissipa
+        # mais do que a fonte e a GD entregam juntas.
+        #
+        # Medido na ENERGISA_M405/65 (V34): o instantaneo parou em 500
+        # iteracoes sem convergir, e o modo diario HERDOU o estado — cada
+        # passo "convergia" em 2 iteracoes sem sair do lugar, com 161.760 kW
+        # de perda para 5.349 kW entrando, identicos nos 96 passos enquanto
+        # a GD ia de 0 a 17.842 kW. Uma subestacao so fazia a perda do dia da
+        # base inteira ir de 4,16% para 26,50%.
+        if L > max(-p + gd, 0.0) + 1e-6:
+            fisica_impossivel.append(k)
+            falhos.append(k)
+            continue
         ent += (-p + gd) * h_passo               # energia INJETADA (fonte + GD)
         perd += L * h_passo
         ok += 1
@@ -255,6 +270,7 @@ def dia(dss, master, passos=96):
     # ninguem sabe de onde veio. Vai dentro da serie para nao mudar a aridade
     # do retorno, que sete chamadores desempacotam.
     serie['passos_gd_impossivel'] = gd_impossivel
+    serie['passos_fisica_impossivel'] = fisica_impossivel
     return ent, perd, ok, falhos, n_comp, por_alim, serie
 
 
@@ -523,6 +539,8 @@ def main():
                 'passos_falhos': falhos, 'compilacoes': n_comp,
                 'passos_gd_impossivel':
                     (serie or {}).get('passos_gd_impossivel', []),
+                'passos_fisica_impossivel':
+                    (serie or {}).get('passos_fisica_impossivel', []),
                 'kWh_gd': round(sum(gd) * 24.0 / a.passos, 1),
                 'pico_gd_kW': round(max(gd), 1) if gd else 0.0,
                 'serie': serie,
@@ -609,6 +627,8 @@ def main():
                       'passos_falhos': falhos, 'compilacoes': n_comp,
                       'passos_gd_impossivel':
                           (serie or {}).get('passos_gd_impossivel', []),
+                      'passos_fisica_impossivel':
+                          (serie or {}).get('passos_fisica_impossivel', []),
                       'kWh_gd': round(sum(gd) * 24.0 / a.passos, 1),
                       'pico_gd_kW': round(max(gd), 1) if gd else 0.0,
                       'serie': serie,

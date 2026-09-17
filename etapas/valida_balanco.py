@@ -63,6 +63,7 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from bdgd2dss.leitor import BDGD, num, txt          # noqa: E402
 from bdgd2dss import escrita
+from bdgd2dss import dia
 
 MESES = [f'ENE_{i:02d}' for i in range(1, 13)]
 
@@ -275,7 +276,12 @@ def main():
     arq = os.path.join(raiz, 'energia_dia.json')
     if not os.path.exists(arq):
         raise SystemExit(f'rode antes:  python energia.py {a.raiz}')
-    modelo = json.load(open(arq, encoding='utf-8'))
+    # SO O DIA INTEIRO CONTA — a mesma lei do `validador`. Ver
+    # `bdgd2dss/dia.py`.
+    modelo, dia_incompleto = dia.medidas(json.load(open(arq, encoding='utf-8')))
+    if dia_incompleto:
+        print(f'{dia_incompleto} subestacao(oes) fora: o dia nao fechou',
+              flush=True)
 
     print('lendo a energia MEDIDA na BDGD (injetada e faturada)...', flush=True)
     inj, fat, sub, n_uc = energia_medida(a.gdb)

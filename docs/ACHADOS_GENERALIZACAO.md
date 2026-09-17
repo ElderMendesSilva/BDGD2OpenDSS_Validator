@@ -2462,6 +2462,78 @@ distribuidora só vale para o próprio ano. O rodapé imprimia a âncora com uma
 casa, e 7,38% saía "7.4%" — a mudança ficava invisível justamente onde alguém
 lê.
 
+## Achado 67 — a perda não cabe na energia que entra
+
+A referência externa do achado 66 pôs a **ENERGISA_M405** no topo da fila:
+26,50% de perda no dia contra 8,78% da ANEEL, **3,02×**. Uma única
+subestação respondia por 84,5% dessa perda: a `65`, com **3.882 MWh de perda
+sobre 264 MWh injetados — 1.471%**. Sem ela, a base dá **4,16%** (razão
+0,47), no meio da distribuição.
+
+**O mecanismo, reproduzido localmente.** O instantâneo da `65` parou em 500
+iterações sem convergir, e o modo diário **herdou o estado**: cada passo
+"convergia" em 2 iterações sem sair do lugar. Os 96 passos devolviam os
+mesmos 161.760 kW de perda para 5.349 kW entrando, enquanto a GD ia de 0 a
+17.842 kW. `Converged()` dizia sim a todos — é o achado 64 por outro lado.
+
+**O guarda é conservação de energia, e não limiar escolhido:** num passo, o
+circuito não dissipa mais do que a fonte e a GD entregam juntas. O
+`energia.py` passa a recusar esse passo antes de somá-lo, e a contagem vai
+para `passos_fisica_impossivel`. Na `65`, os 96 passos são recusados, o dia
+fica incompleto e a perda sai `None`.
+
+**A segunda metade é a mesma lei em três lugares.** O `validador` já recusava
+o dia parcial (achados 29 e 64); o `valida_perdas` e o `valida_balanco` liam o
+mesmo `energia_dia.json` e somavam tudo — e na M405 isso contaminava também o
+número oficial da amostra declarada (7,52%). A regra passou a morar num lugar
+só, `bdgd2dss/dia.py`, e os três a chamam.
+
+**O que não se cobre.** Nenhuma fixture de 73 KB produz um circuito que
+"converge" dissipando mais do que recebe: este guarda é frio no pré-voo, e
+fica declarado assim.
+
+## Em aberto — EQUATORIAL6072, a rede que colapsa com carga normal
+
+A outra base do topo da fila (**2,62×**) não é uma subestação só. Nas 75 SEs
+com causa `OK` a perda é **4,57%** (razão 0,48); **42% da energia** está em
+subestações que colapsam, com tensão mínima abaixo de 0,1 pu. Tirar as
+`TENSAO_IMPLAUSIVEL` (achado 60) não basta — sobra 2,23×, porque o corte olha a
+mediana.
+
+**O que está medido:**
+
+- **a carga não está exagerada:** a energia que passa nos medidores do modelo
+  é 0,71 a 0,92 da energia injetada medida;
+- **é a rede que não fecha:** nas SEs colapsadas o modelo dissipa 143% da
+  energia real que entra; nas `OK`, 4,2%;
+- **a medição da própria base é degenerada:** a BDGD declara mais energia
+  faturada do que injetada em todos os grupos (−3,4% a −13,8%). O
+  `valida_balanco` não julga esta base, e por isso o defeito só apareceu com
+  a referência externa;
+- **o achado 49 trocou 142 alimentadores de 34,5 para 13,8 kV** nesta base
+  (log da V34), com a maioria do parque em 13,8 kV;
+- **na SE `5001306`** o snapshot dá 77% de perda, os 36 reguladores estão no
+  tap +16, há trechos de 34,5 kV com 2.027 A (16× a ampacidade) e **1.369
+  barras** recebem de `CalcVoltagebases` a base de 13,8 kV embora tenham
+  transformadores de 34,5 kV pendurados. **13,8 / 34,5 = 0,40**, e a rede
+  opera perto disso.
+
+**Três hipóteses testadas e descartadas** — ficam aqui para não serem testadas
+de novo:
+
+1. *PT de regulador de 13,8 kV em rede de 34,5 kV.* Os 15 reguladores com PT
+   66,4 estão em transformadores de 7,97 kV, em barras de 7,97 kV: coerentes.
+2. *√3 aplicado a monofásico declarado em tensão de linha.* Os monofásicos
+   saem em 7,97 e 19,92 kV fase-neutro, coerentes com 13,8 e 34,5.
+3. *Transformadores depois de um abaixador 34,5/13,8 recebendo o primário do
+   alimentador.* As 1.369 barras são **todas** alcançáveis a partir da fonte de
+   34,5 kV sem atravessar abaixador nem regulador de 7,97 kV.
+
+**O que falta para fechar:** entender por que `CalcVoltagebases` vê essas
+barras abaixo de 60% de 34,5 kV **sem carga**, e o experimento decisivo —
+reconverter a SE com a conciliação do achado 49 desligada e ver se o colapso
+some. As duas coisas exigem a BDGD da base, que só está no cluster.
+
 ## A cobertura das leis, medida
 
 Cada achado é uma lei, e cada lei mora num guarda de código. **Um guarda que

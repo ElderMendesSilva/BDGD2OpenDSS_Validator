@@ -45,6 +45,7 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from bdgd2dss.leitor import BDGD, num, txt          # noqa: E402
 from bdgd2dss import escrita
+from bdgd2dss import dia
 from bdgd2dss import concordancia
 from bdgd2dss import referencia
 
@@ -333,7 +334,13 @@ def main():
     arq = os.path.join(raiz, 'energia_dia.json')
     if not os.path.exists(arq):
         raise SystemExit(f'rode antes:  python energia.py {a.raiz}')
-    modelo = json.load(open(arq, encoding='utf-8'))
+    # SO O DIA INTEIRO CONTA — a mesma lei do `validador`, que ate aqui so
+    # ele aplicava. Ver `bdgd2dss/dia.py`.
+    modelo, dia_incompleto = dia.medidas(json.load(open(arq, encoding='utf-8')))
+    if dia_incompleto:
+        print(f'  {dia_incompleto} subestacao(oes) fora: o dia nao fechou '
+              f'(passo sem convergir, GD acima da placa ou perda acima do '
+              f'que entra)')
     if a.parcelas:
         parc, motivo = list(a.parcelas), 'escolhido em --parcelas'
     else:
