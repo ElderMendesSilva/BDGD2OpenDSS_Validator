@@ -4,6 +4,7 @@
     python etapas/prevoo.py                  # confere e sai 0 ou 1
     python etapas/prevoo.py --gravar         # (re)grava a referência
     python etapas/prevoo.py --selo logs/prevoo   # grava <commit>.ok se passar
+    python etapas/prevoo.py --como-no        # AQUI, antes de pedir no cluster
 
 POR QUE EXISTE. Uma rodada nacional custa 99 jobs e horas de cluster. A V33
 gastou tudo isso para descobrir um `NameError` de uma linha, e a V29 e a
@@ -139,6 +140,37 @@ def um_caso(variante, tmp, verboso=True):
     return caso
 
 
+def ambiente_do_no():
+    """O ambiente de um no de calculo do Ubiratan, montado nesta maquina.
+
+    POR QUE EXISTE. Das quatro submissoes do pre-voo (36069, 36070, 36072,
+    36480), tres reprovaram — e a maior parte por AMBIENTE, nao por codigo.
+    Cada ida custa fila, minutos e uma mensagem. Parte disso se reproduz
+    aqui, de graca:
+
+    - **`git` fora do PATH** — tira toda entrada onde ele e encontrado;
+    - **`PBS_NP` e `BDGD2DSS_MODO=cluster`** — como dentro de um job;
+    - **`BDGD2DSS_COMMIT`** — como a submissao passa por `-v`, porque sem git
+      e a unica fonte do commit.
+
+    O QUE ELE TERIA PEGO, E O QUE NAO. Teria pego os testes que chamavam
+    `git` sem guarda (36069 e 36480) e o `PBS_NP` do job vazando nos testes
+    de plataforma (36069). NAO teria pego o `_sigla` com caminho do Windows
+    (36069), que so falha num Linux, nem o `sys.path` faltando (36070), que
+    morava no caminho do selo — e `--como-no` muda so o ambiente da SUITE.
+    """
+    env = dict(os.environ)
+    commit = carimbo.commit(curto=False)
+    partes = [d for d in env.get('PATH', '').split(os.pathsep)
+              if d and not shutil.which('git', path=d)]
+    env['PATH'] = os.pathsep.join(partes)
+    env['PBS_NP'] = '4'
+    env['BDGD2DSS_MODO'] = 'cluster'
+    if commit:
+        env['BDGD2DSS_COMMIT'] = commit
+    return env
+
+
 def compara(atual, gravado):
     """As diferenças, em linguagem de quem vai decidir se submete."""
     fora = []
@@ -167,6 +199,10 @@ def main():
                     help='(re)grava a referencia com o que sair agora')
     ap.add_argument('--sem-testes', action='store_true',
                     help='pula a suite (para depurar so o ciclo)')
+    ap.add_argument('--como-no', action='store_true',
+                    help='roda a suite como num no de calculo: sem git no '
+                         'PATH, com PBS_NP e BDGD2DSS_MODO=cluster. Para '
+                         'rodar AQUI antes de pedir o pre-voo no cluster')
     ap.add_argument('--selo', metavar='PASTA',
                     help='grava PASTA/<commit>.ok quando tudo passa — e o que '
                          'o submeter_todas.sh confere antes de gastar o cluster')
@@ -174,8 +210,11 @@ def main():
 
     if not a.sem_testes:
         print('== a suite', flush=True)
+        env = ambiente_do_no() if a.como_no else None
+        if a.como_no:
+            print('   (como num no de calculo: sem git, PBS_NP=4)', flush=True)
         p = subprocess.run([sys.executable, '-m', 'unittest', 'discover',
-                            '-s', 'testes', '-q'], cwd=RAIZ,
+                            '-s', 'testes', '-q'], cwd=RAIZ, env=env,
                            capture_output=True, text=True, timeout=3600)
         if p.returncode != 0:
             print(p.stdout[-4000:] + p.stderr[-4000:])

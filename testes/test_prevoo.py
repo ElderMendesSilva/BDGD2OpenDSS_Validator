@@ -43,6 +43,21 @@ SUBMETER = os.path.join(RAIZ, 'cluster', 'submeter_todas.sh')
 PBS = os.path.join(RAIZ, 'cluster', 'prevoo.pbs')
 
 
+def _git(caso, *args):
+    """Roda `git` a partir da raiz, ou PULA o teste quando nao ha git.
+
+    POR QUE UM HELPER. O no de calculo NAO TEM GIT, e e la que o pre-voo roda
+    esta suite. Tres testes chamavam `git` direto, cada um com a sua guarda —
+    e num deles a chamada vinha ANTES da guarda. O pre-voo 36480 reprovou por
+    isso, com o mesmo erro ja corrigido no teste vizinho seis dias antes.
+    Guarda que cada teste tem de lembrar e guarda que um deles esquece.
+    """
+    if not shutil.which('git'):
+        caso.skipTest('sem git nesta maquina (o no de calculo nao tem)')
+    return subprocess.run(['git'] + list(args), cwd=RAIZ,
+                          capture_output=True, text=True)
+
+
 class TestAComparacao(unittest.TestCase):
     """A comparação tem de ACUSAR. Uma que só sabe aprovar não é porta."""
 
@@ -109,11 +124,8 @@ class TestAReferencia(unittest.TestCase):
         # O NO DE CALCULO NAO TEM GIT — e la que o pre-voo roda. Sem esta
         # guarda o proprio pre-voo reprovava por causa deste teste, que e
         # sobre o repositorio e nao sobre o produto.
-        if not shutil.which('git'):
-            self.skipTest('sem git nesta maquina')
-        p = subprocess.run(['git', 'ls-files', '--error-unmatch',
-                            os.path.relpath(prevoo.REFERENCIA, RAIZ)],
-                           cwd=RAIZ, capture_output=True, text=True)
+        p = _git(self, 'ls-files', '--error-unmatch',
+                 os.path.relpath(prevoo.REFERENCIA, RAIZ))
         self.assertEqual(p.returncode, 0, 'a referencia nao esta no git')
 
     def test_cobre_todas_as_fixtures(self):
@@ -151,22 +163,15 @@ class TestAArvoreFicaLimpa(unittest.TestCase):
     """
 
     def test_a_gdb_minima_NAO_esta_versionada(self):
-        if not shutil.which('git'):
-            self.skipTest('sem git nesta maquina')
-        p = subprocess.run(['git', 'ls-files', 'testes/bdgd_minima.gdb'],
-                           cwd=RAIZ, capture_output=True, text=True)
+        p = _git(self, 'ls-files', 'testes/bdgd_minima.gdb')
         self.assertEqual(
             p.stdout.strip(), '',
             'a .gdb minima voltou para o git: rodar a suite vai sujar a '
             'arvore e a submissao nacional vai recusar')
 
     def test_o_gitignore_a_cobre(self):
-        p = subprocess.run(
-            ['git', 'check-ignore', '-q',
-             'testes/bdgd_minima.gdb/a00000001.gdbtable'],
-            cwd=RAIZ, capture_output=True, text=True)
-        if not shutil.which('git'):
-            self.skipTest('sem git nesta maquina')
+        p = _git(self, 'check-ignore', '-q',
+                 'testes/bdgd_minima.gdb/a00000001.gdbtable')
         self.assertEqual(p.returncode, 0,
                          'a .gdb minima nao esta coberta pelo .gitignore')
 
@@ -264,6 +269,39 @@ class TestRodaComoScript(unittest.TestCase):
             cwd=tempfile.gettempdir(), capture_output=True, text=True,
             timeout=120)
         self.assertNotIn('ModuleNotFoundError', p.stderr)
+
+
+class TestComoNo(unittest.TestCase):
+    """`--como-no` monta, aqui, o ambiente em que a suite falhou no cluster."""
+
+    def test_tira_o_git_do_path(self):
+        env = prevoo.ambiente_do_no()
+        self.assertIsNone(shutil.which('git', path=env['PATH']),
+                          'o git continua visivel: a simulacao nao simula')
+
+    def test_nao_tira_o_resto_do_path(self):
+        """Tirar TUDO faria a suite falhar por outro motivo, e a simulacao
+        acusaria um defeito que o no nao tem."""
+        env = prevoo.ambiente_do_no()
+        self.assertTrue(env['PATH'], 'o PATH ficou vazio')
+
+    def test_poe_o_que_o_job_tem(self):
+        env = prevoo.ambiente_do_no()
+        self.assertEqual(env['PBS_NP'], '4')
+        self.assertEqual(env['BDGD2DSS_MODO'], 'cluster')
+
+    def test_leva_o_commit_como_a_submissao_leva(self):
+        """Sem git, `BDGD2DSS_COMMIT` e a unica fonte do commit."""
+        from bdgd2dss import carimbo                        # noqa: PLC0415
+        if not carimbo.commit():
+            self.skipTest('sem commit conhecido nesta maquina')
+        self.assertEqual(prevoo.ambiente_do_no().get('BDGD2DSS_COMMIT'),
+                         carimbo.commit(curto=False))
+
+    def test_nao_mexe_no_ambiente_deste_processo(self):
+        antes = dict(os.environ)
+        prevoo.ambiente_do_no()
+        self.assertEqual(dict(os.environ), antes)
 
 
 class TestOSelo(unittest.TestCase):

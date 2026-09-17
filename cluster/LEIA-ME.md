@@ -193,6 +193,17 @@ qstat -u $USER                              # 2. espere fechar
 SUFIXO=V35 bash cluster/submeter_todas.sh --rodar
 ```
 
+**Antes de pedir o pré-voo no cluster, rode aqui como se fosse o nó:**
+
+```bash
+python etapas/prevoo.py --como-no
+```
+
+Ele tira o `git` do PATH e define `PBS_NP` e `BDGD2DSS_MODO=cluster`, que é
+como o nó é. Das três reprovações do pré-voo em setembro, duas foram por essas
+diferenças, e teriam aparecido aqui em um minuto em vez de na fila. Não pega
+tudo — o nó é Linux, e o caminho do selo só roda lá.
+
 O pré-voo roda a suíte e o ciclo inteiro sobre as fixtures — inclusive as
 variantes que ligam um achado cada — e compara contra
 `dados/referencia_prevoo.json`. Passando, grava `logs/prevoo/<commit>.ok`. É
