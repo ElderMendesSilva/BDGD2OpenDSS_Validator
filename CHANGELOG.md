@@ -9,6 +9,21 @@ número, estão em [docs/ACHADOS_GENERALIZACAO.md](docs/ACHADOS_GENERALIZACAO.md
 ## 1.1.0 — em aberto (safra 2025-12-31)
 
 
+### V35 — a primeira rodada nacional que passou pela porta
+
+Commit `cadbd37`, submetida so depois do pre-voo 36481 aprovar com a arvore
+limpa. **82 das 99 bases** validadas: as 17 cooperativas sem `CTMT.SUB` agora
+FALHAM visivelmente (achado 65), em vez de entrarem como um `MASTER-AT.dss`
+vazio que o validador dava por "sem ressalva".
+
+Frente a V34: 4.061 subestacoes (as 17 a menos eram esses modelos vazios) e
+**nenhuma causa mudou** nas subestacoes em comum. O `_procedencia.json` das
+82 bases lista um commit so para as 4.061 subestacoes — a primeira rodada em
+que isso se pode afirmar lendo o arquivo, e nao supondo.
+
+O que ela NAO tem: o achado 67 (commit `f23a2bd`, posterior). A SE `65` da
+ENERGISA_M405 ainda entra nos numeros desta rodada.
+
 ### Pre-voo: a rodada nacional passou a ter porta
 
 `bash cluster/submeter_todas.sh --prevoo` roda, num no de calculo, a suite e o
