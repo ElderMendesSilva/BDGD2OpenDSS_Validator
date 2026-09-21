@@ -2599,6 +2599,21 @@ nó perdido. A variante `laco_por_transformador` da fixture reproduz a forma em
 escala — 3.295 kW na fonte para 2,4 kW de carga — e mantém fechado o laço CHM1
 da mínima, que é na mesma tensão.
 
+**A segunda base, e a forma mais simples: a RGE396** (medido em 21/09/2026,
+sobre a V36). As quatro subestações que colapsavam — VSA, AGA, PNT e JQR, de
+84% a 94% de perda no dia — têm 6 laços através de transformador e nenhum
+bypass de regulador. Nelas o laço é uma **chave de bypass declarada na própria
+BDGD**, `BY-<código do transformador>`, fechada e ligada direto nos dois PACs
+de um transformador MT/MT de 23,1/13,8 kV. É a forma do achado 48, só que num
+transformador em vez de regulador, e a regra do achado 70 a pegou sem nenhum
+caso especial. Só nessas quatro há 43 chaves `BY-`, a maioria já aberta.
+Com a etapa (13 s para as quatro), a perda instantânea cai de 19,7 / 13,9 /
+4,6 / 8,3 MW para cerca de 200 kW cada, sem nó perdido.
+
+Na RGE, 64% da perda modelada vinha de 20 alimentadores implausíveis; sem eles
+o modelo fica em 2,83%, 0,47× a ANEEL. É ela, e não a rede, que punha a base a
+1,3× da referência.
+
 **O que ainda não se sabe:** quantos laços incoerentes o país tem. O censo
 (`diagnosticos/lacos.py`, coluna `c/ trf`) roda sobre a V36 no job
 `cluster/lacos.pbs`. E por que a BDGD declara fechadas as chaves entre os dois
