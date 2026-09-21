@@ -248,14 +248,53 @@ def candidatos_de_bypass(dss, lista):
     return por_banco
 
 
+# AVISO DE SOLUCAO NAO E MODELO QUEBRADO. O MASTER termina com `Solve`, e o
+# `Max Control Iterations Exceeded` (#485) sobe como excecao do `Redirect`
+# depois que o circuito ja esta montado. Ate 21/09/2026 a etapa
+# `reguladores.py` desistia da subestacao por ele — e eram justamente as que
+# nao convergem, sete delas na EQUATORIAL6072, as que mais precisam dos
+# achados 69 e 70. O `validador.py` ja tinha aprendido isso.
+#
+# SO o #485. O `Duplicate new element definition` (#266) aborta a montagem no
+# meio, e um censo sobre meio circuito mente: esse continua erro.
+AVISOS_DE_SOLUCAO = ('(#485)',)
+
+
+def _aviso_de_solucao(e):
+    return any(a in str(e) for a in AVISOS_DE_SOLUCAO)
+
+
+def compilar(dss, master):
+    """`Clear` + `Redirect`, tolerando aviso de solucao. Devolve o aviso, ou
+    `None`; qualquer outro erro sobe."""
+    dss.Text.Command('Clear')
+    try:
+        dss.Text.Command(f'Redirect "{os.path.abspath(master)}"')
+        return None
+    except Exception as e:                                   # noqa: BLE001
+        if _aviso_de_solucao(e) and (dss.Circuit.NumCktElements() or 0) > 0:
+            return str(e).splitlines()[0][:120]
+        raise
+
+
+def resolver(dss):
+    """`Solve` que devolve False, em vez de subir, num aviso de solucao."""
+    try:
+        dss.Text.Command('Solve')
+        return True
+    except Exception as e:                                   # noqa: BLE001
+        if _aviso_de_solucao(e):
+            return False
+        raise
+
+
 def lacos_da_se(master):
     """O censo de uma subestacao: quantos lacos, quantos com regulador,
     quantos atravessam uma mudanca de tensao (achado 70) e quantos sao
     fechados por elo nosso (`VAO_EXTRA_*`, achado 33)."""
     import opendssdirect as dss
     fora = abertas(os.path.dirname(master))
-    dss.Text.Command('Clear')
-    dss.Text.Command(f'Redirect "{os.path.abspath(master)}"')
+    compilar(dss, master)
     lista = lacos(dss, fora)
     com_reg = [x['fecha'] for x in lista if x['regulador']]
     com_trafo = [x['fecha'] for x in lista if incoerente(x)]

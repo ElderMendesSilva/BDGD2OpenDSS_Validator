@@ -140,15 +140,18 @@ def _chaves(elementos):
 
 
 def _compila(master, chaves, controle):
-    dss.Text.Command('Clear')
-    dss.Text.Command(f'Redirect "{master}"')
+    """Compila com as `chaves` abertas: `(convergiu, nos_vivos)`.
+
+    Aviso de solucao (#485) nao derruba: vira `convergiu=False`, e a
+    candidata que o provoca e recusada — ver `lacos.compilar`.
+    """
+    aviso = lacos.compilar(dss, master)
     for c in chaves:
         dss.Text.Command(f'Edit {c} enabled=no')
         if controle.get(c):
             dss.Text.Command(f'Edit {controle[c]} enabled=no')
-    if chaves:
-        dss.Text.Command('Solve')
-    return bool(dss.Solution.Converged()), _vivos()
+    ok = lacos.resolver(dss) if chaves else aviso is None
+    return bool(ok and dss.Solution.Converged()), _vivos()
 
 
 def escolher_lacos_de_transformador(master):
@@ -303,33 +306,43 @@ def uma(pasta, se):
             tem_lacos = 'redirect _lacos.dss' in fh.read().lower()
         if tem_lacos:
             lacos.escrever('_LACOS.dss')
-        dss.Text.Command('Clear')
-        dss.Text.Command(f'Redirect MASTER-{se}.dss')
-        if not dss.Solution.Converged():
-            return {'se': se, 'erro': 'nao convergiu'}
+        master_abs = os.path.abspath(f'MASTER-{se}.dss')
+        # NAO CONVERGIR NAO E MOTIVO PARA DESISTIR AQUI. Ate 21/09/2026 a
+        # etapa voltava neste ponto, e o `Max Control Iterations Exceeded`
+        # subia como erro: as sete subestacoes da EQUATORIAL6072 que nao
+        # convergem nunca tiveram laco nem bypass tratados — e o laco e a
+        # causa mais provavel de nao convergirem. Os dois criterios decidem
+        # por candidata; so a orientacao, abaixo, precisa do fluxo resolvido.
+        aviso = lacos.compilar(dss, master_abs)
 
         # O LACO ATRAVES DE TRANSFORMADOR VEM PRIMEIRO (achado 70): com ele
         # fechado a rede inteira esta em circulacao, e nem o bypass nem a
         # orientacao medem o que devem.
         l_abertos, l_sem = [], []
         if tem_lacos:
-            master_abs = os.path.abspath(f'MASTER-{se}.dss')
             l_abertos, l_sem = escolher_lacos_de_transformador(master_abs)
             if l_abertos or l_sem:
                 lacos.escrever('_LACOS.dss', l_abertos, l_sem)
-                dss.Text.Command('Clear')
-                dss.Text.Command(f'Redirect MASTER-{se}.dss')
+                aviso = lacos.compilar(dss, master_abs)
 
         # O BYPASS VEM PRIMEIRO (achado 69): com ele fechado, o fluxo medido
         # no regulador e corrente de laco, e a orientacao sairia dela.
-        bypass, sem_decisao = escolher_bypass(
-            os.path.abspath(f'MASTER-{se}.dss'), quais())
+        bypass, sem_decisao = escolher_bypass(master_abs, quais())
         if bypass or sem_decisao:
             # a escolha deixou o circuito com a ultima candidata aberta
             orientacao.escrever('_REGULADORES.dss', [], 0, (),
                                 bypass=bypass, sem_decisao=sem_decisao)
-            dss.Text.Command('Clear')
-            dss.Text.Command(f'Redirect MASTER-{se}.dss')
+            aviso = lacos.compilar(dss, master_abs)
+
+        decididos = {'lacos_abertos': [x['chave'] for x in l_abertos],
+                     'lacos_sem_decisao': l_sem,
+                     'bypass_abertos': [x['chave'] for x in bypass],
+                     'bypass_sem_decisao': sem_decisao}
+        if aviso or not dss.Solution.Converged():
+            # sem fluxo resolvido nao ha direcao a medir: a orientacao fica
+            # de fora, e o que foi decidido acima continua valendo
+            return {'se': se, 'erro': 'nao convergiu' + (f' ({aviso})' if aviso else ''),
+                    **decididos}
 
         # O TAPE VOLTA AO NEUTRO ANTES DE MEDIR. O `Solve` embutido no MASTER
         # ja correu o tape ao limite, e o tape mexe na tensao dos dois lados —
@@ -342,7 +355,7 @@ def uma(pasta, se):
             dss.Text.Command('Transformer.%s.tap=1.0' % r['transformador'])
             dss.Text.Command('RegControl.%s.enabled=no' % r['nome'])
         if regs:
-            dss.Text.Command('Solve')
+            lacos.resolver(dss)
             fluxos(regs)
 
         corr, sem = orientacao.corrigir(regs)
@@ -351,8 +364,7 @@ def uma(pasta, se):
 
         # CONFERE NO PROPRIO MOTOR: o arquivo vale o que ele faz. Recompila do
         # zero, porque acima os controles ficaram desabilitados.
-        dss.Text.Command('Clear')
-        dss.Text.Command(f'Redirect MASTER-{se}.dss')
+        aviso = lacos.compilar(dss, master_abs)
         v = sorted(x for x in dss.Circuit.AllBusMagPu() if x > 1e-6)
         sat = 0
         i = dss.RegControls.First()
@@ -363,12 +375,9 @@ def uma(pasta, se):
             i = dss.RegControls.Next()
         return {'se': se, 'reguladores': len(regs), 'corrigidos': len(corr),
                 'sem_fluxo': len(sem), 'saturados_depois': sat,
-                'lacos_abertos': [x['chave'] for x in l_abertos],
-                'lacos_sem_decisao': l_sem,
-                'bypass_abertos': [x['chave'] for x in bypass],
-                'bypass_sem_decisao': sem_decisao,
+                **decididos,
                 'V_mediana_depois': round(v[len(v) // 2], 4) if v else None,
-                'convergiu': bool(dss.Solution.Converged())}
+                'convergiu': bool(dss.Solution.Converged()) and not aviso}
     except Exception as e:
         # UMA SUBESTACAO NAO PODE DERRUBAR A ETAPA — a licao da 1726671.
         return {'se': se, 'erro': f'{type(e).__name__}: {str(e)[:200]}'}

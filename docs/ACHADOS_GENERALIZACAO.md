@@ -2615,9 +2615,35 @@ Na RGE, 64% da perda modelada vinha de 20 alimentadores implausíveis; sem eles
 o modelo fica em 2,83%, 0,47× a ANEEL. É ela, e não a rede, que punha a base a
 1,3× da referência.
 
-**O que ainda não se sabe:** quantos laços incoerentes o país tem. O censo
-(`diagnosticos/lacos.py`, coluna `c/ trf`) roda sobre a V36 no job
-`cluster/lacos.pbs`. E por que a BDGD declara fechadas as chaves entre os dois
+**O tamanho nacional — censo sobre a V36** (job 36735, 21/09/2026, 4.046
+subestações; 15 não entraram, ver abaixo):
+
+| | subestações | laços |
+|---|---:|---:|
+| com algum laço fechado | 1.743 | 227.727 |
+| **bypass de regulador (achado 69)** | **62** | 92 |
+| **através de transformador (achado 70)** | **74** | 111 |
+
+Os dois achados moram em poucas bases. Bypass: EQUATORIAL6072 (66 laços),
+NEOENERGIA47 (15), NEOENERGIA40 e 43 (3 cada). Através de transformador:
+COPELDIS2866 (60), RGE396 (14), ENERGISA_R369 (11), NEOENERGIA47 (8) e
+COPREL2351 e ENERGISA_A26 (6 cada). Os outros 227 mil laços são na mesma tensão —
+a NEOENERGIA385 sozinha tem 163.853 —, e pelo que se mediu em Goiás não fazem mal.
+
+**As 15 que o censo não leu, e a lição que elas deram.** Doze pararam no
+`Max Control Iterations Exceeded` (#485), sete delas na EQUATORIAL6072; três no
+`Duplicate new element definition` (#266). O #485 é aviso do `Solve` do fim do
+MASTER, com o circuito já montado, e a etapa `reguladores.py` também desistia
+por ele: **as subestações que não convergem — as que mais precisam dos achados
+69 e 70 — eram justamente as que nunca eram tratadas**. Desde 21/09/2026,
+`lacos.compilar` tolera só o #485 (o #266 aborta a montagem no meio e continua
+erro), e a decisão de laço e bypass não depende mais de convergir antes. Na
+`5001232`, que a V36 deixava em 80,7%, o bypass passou a ser aberto e a
+subestação converge com 11,5% (82,7% no mesmo instantâneo sem ele). Na
+`5000882` o bypass também foi aberto e ela converge, mas a perda fica em 39,5%:
+o resto é outra causa (`REDE_PARCIAL` na V36).
+
+**O que ainda não se sabe:** por que a BDGD declara fechadas as chaves entre os dois
 lados de um abaixador — engano de estado normal, ou abaixador que não existe
 mais em campo — é pergunta para a distribuidora.
 

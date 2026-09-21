@@ -77,6 +77,58 @@ class TestOArquivo(unittest.TestCase):
         self.assertTrue(lacos.incoerente({'razao': 2.5}))
 
 
+class _DssFalso:
+    """So o que `lacos.compilar` e `lacos.resolver` tocam."""
+
+    def __init__(self, erro, elementos):
+        erro_, n = erro, elementos
+
+        class Text:
+            @staticmethod
+            def Command(cmd):
+                if erro_ and cmd != 'Clear':
+                    raise RuntimeError(erro_)
+
+        class Circuit:
+            @staticmethod
+            def NumCktElements():
+                return n
+
+        self.Text, self.Circuit = Text, Circuit
+
+
+class TestAvisoDeSolucao(unittest.TestCase):
+    """O `Max Control Iterations Exceeded` (#485) sobe do `Solve` no fim do
+    MASTER, com o circuito ja montado. Ate 21/09/2026 a etapa desistia da
+    subestacao por ele — sete na EQUATORIAL6072, justamente as que nao
+    convergem. Na 5001232, tratada, a perda foi de 82,7% para 11,5%."""
+
+    MAX = '(#485) Warning Max Control Iterations Exceeded.\nTip: Show Eventlog'
+    DUP = '(#266) Warning: Duplicate new element definition: "Line.50870".'
+
+    def test_sem_erro_devolve_none(self):
+        self.assertIsNone(lacos.compilar(_DssFalso(None, 10), 'M.dss'))
+        self.assertTrue(lacos.resolver(_DssFalso(None, 10)))
+
+    def test_485_com_circuito_montado_e_aviso(self):
+        aviso = lacos.compilar(_DssFalso(self.MAX, 10), 'M.dss')
+        self.assertIn('#485', aviso)
+        self.assertNotIn('\n', aviso)
+        self.assertFalse(lacos.resolver(_DssFalso(self.MAX, 10)))
+
+    def test_485_sem_circuito_sobe(self):
+        with self.assertRaises(RuntimeError):
+            lacos.compilar(_DssFalso(self.MAX, 0), 'M.dss')
+
+    def test_duplicata_continua_erro(self):
+        """O #266 aborta a montagem no meio: censo e decisao sobre meio
+        circuito mentiriam."""
+        with self.assertRaises(RuntimeError):
+            lacos.compilar(_DssFalso(self.DUP, 10), 'M.dss')
+        with self.assertRaises(RuntimeError):
+            lacos.resolver(_DssFalso(self.DUP, 10))
+
+
 class TestNaVariante(unittest.TestCase):
 
     @classmethod
