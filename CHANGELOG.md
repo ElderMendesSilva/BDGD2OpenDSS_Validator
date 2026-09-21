@@ -39,6 +39,28 @@ O que ela NAO faz: nao abre laco sem regulador. Na 5001306 da EQUATORIAL6072
 o bypass leva a perda de 77,2% a 64,5%, e o resto vem desses.
 
 
+### V36 — achados 67 e 68 aplicados
+
+Commit `5189014`, pre-voo 36584, coletor 36684 fechado em 17/09/2026. As mesmas
+99 bases e 4.061 subestacoes da V35, 82 bases com rede, um commit so; 3.995
+sadias (V35: 3.993) e 26 sem convergir (V35: 28).
+
+Contra a ANEEL, nos 45 agentes com numero proprio, a razao modelo/referencia
+mediana foi de 0,60 para **0,51**, e acima de 1,2 ficaram **2** (V35: 4) — a
+COCEL82 e a FORCEL83 sairam, pelo ferro de transformador de consumidor. As
+maiores quedas, todas explicadas:
+
+| base | V35 | V36 | por que |
+|---|---:|---:|---|
+| NEOENERGIA43 | 10,63% | 4,87% | achado 67: sai o alimentador de 2.626%, fisicamente impossivel |
+| ENERGISA_M405 | 7,52% | 1,86% | achado 67 (SE 65) e 68: metade dos kVA e de consumidor |
+| ENERGISA_R369 | 7,12% | 2,41% | achado 68: 22% dos kVA de consumidor |
+| FORCEL83 | 5,09% | 4,29% | achado 68: 46% dos kVA de consumidor |
+
+O que ela NAO tem: os achados 69 e 70 (posteriores). A EQUATORIAL6072 segue em
+28,55%, 3,0x a ANEEL — e e ela que os dois resolvem nas subestacoes medidas.
+Sete bases reprovam a ancora externa; a RGE396 (1,3x) e a proxima a olhar.
+
 ### V35 — a primeira rodada nacional que passou pela porta
 
 Commit `cadbd37`, submetida so depois do pre-voo 36481 aprovar com a arvore
