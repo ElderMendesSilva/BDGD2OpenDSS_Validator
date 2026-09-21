@@ -45,10 +45,12 @@ class TestOGuardaFisico(unittest.TestCase):
 
     def test_o_passo_e_rejeitado_e_contado(self):
         i = self.fonte.index('if L > max(-p + gd, 0.0) + 1e-6:')
-        bloco = self.fonte[i:i + 200]
+        bloco = self.fonte[i:i + 400]
         self.assertIn('fisica_impossivel.append(k)', bloco)
         self.assertIn('falhos.append(k)', bloco)
         self.assertIn('continue', bloco)
+        # achado 71: reprovar sem limpar o estado so adia a falha
+        self.assertIn('compila()', bloco)
 
     def test_vem_antes_de_somar_a_energia(self):
         """Rejeitar DEPOIS de somar nao adianta: o dia ja estaria sujo."""

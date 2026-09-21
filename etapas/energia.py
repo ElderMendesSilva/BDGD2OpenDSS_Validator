@@ -90,6 +90,36 @@ def _masters(raiz, alvo=None):
     return saida
 
 
+def passo_sadio(dss):
+    """O passo resolveu E devolveu numero — as duas coisas, e nao so a primeira.
+
+    ACHADO 71. `Converged()` fala da tolerancia de tensao, e o OpenDSS pode
+    dize-la satisfeita com a solucao em NaN. Medido na Enel SP, subestacao
+    DBFU, com a BT completa (101.818 cargas, 43.744 linhas): o passo 37 gastou
+    468 iteracoes e voltou `Converged() = True` com potencia e perda NaN. O
+    modo diario herdou esse estado, e cada passo seguinte "convergiu" em 2
+    iteracoes carregando o NaN adiante — 59 dos 96 passos perdidos, e as tres
+    etapas seguintes (`valida_perdas`, `valida_balanco`, `relatorio`)
+    derrubadas junto, porque o dia "nao fechou".
+
+    Nao era a rede: resolvido isolado, o passo 37 converge em 3 iteracoes, e
+    todos os outros tambem. O `energia.py` ja sabia recompilar para limpar o
+    estado — so que disparava a recompilacao pelo `Converged()`, que dizia
+    sim. Com o NaN contado como falha, o mesmo modelo fecha 96 de 96, com 5
+    compilacoes.
+
+    E o mesmo mecanismo do achado 67, que viu o modo diario herdar um ponto
+    de fisica impossivel. Por isso os guardas de GD (64) e de fisica (67)
+    tambem passam a recompilar ao reprovar: reprovar o passo sem limpar o
+    estado so adia a mesma falha para o passo seguinte.
+    """
+    if not dss.Solution.Converged():
+        return False
+    p = dss.Circuit.TotalPower()[0]
+    L = dss.Circuit.Losses()[0]
+    return not (math.isnan(p) or math.isnan(L))
+
+
 def dia(dss, master, passos=96):
     """Roda o dia em `passos` instantaneos independentes.
 
@@ -178,19 +208,20 @@ def dia(dss, master, passos=96):
             dss.Text.Command(f'Set sec={int(round((t - int(t)) * 3600))}')
             dss.Text.Command('Solve')
             os.chdir(CWD)
-            if dss.Solution.Converged():
+            if passo_sadio(dss):
                 break
             if tentativa == 0:
                 compila()
                 n_comp += 1
-        if not dss.Solution.Converged():
+        if not passo_sadio(dss):
             falhos.append(k)
+            # ACHADO 71: o estado envenenado nao pode chegar ao passo seguinte.
+            # Recompilar aqui custa uma compilacao e salva o resto do dia.
+            compila()
+            n_comp += 1
             continue
         p, q = dss.Circuit.TotalPower()[:2]      # kW e kvar, negativo = entregue
         L = dss.Circuit.Losses()[0] / 1000.0     # kW
-        if math.isnan(p) or math.isnan(L):
-            falhos.append(k)
-            continue
         # OS DOIS TIPOS — achado 63. A geracao firme (PCH, CGH, UHE, UTE, EOL)
         # sai como `Generator`, e somar so os `PVSystem` deixaria 601 unidades
         # do pais fora do balanco de energia, em silencio.
@@ -208,6 +239,8 @@ def dia(dss, master, passos=96):
         if teto_gd > 0 and gd > teto_gd:
             gd_impossivel.append(k)
             falhos.append(k)
+            compila()                  # achado 71: nao herdar o ponto espurio
+            n_comp += 1
             continue
         # ACHADO 67: a perda nao cabe na energia que entra. Conservacao de
         # energia, e nao limiar escolhido: num passo, o circuito nao dissipa
@@ -222,6 +255,8 @@ def dia(dss, master, passos=96):
         if L > max(-p + gd, 0.0) + 1e-6:
             fisica_impossivel.append(k)
             falhos.append(k)
+            compila()                  # achado 71: nao herdar o ponto espurio
+            n_comp += 1
             continue
         ent += (-p + gd) * h_passo               # energia INJETADA (fonte + GD)
         perd += L * h_passo
