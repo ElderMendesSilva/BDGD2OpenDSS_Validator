@@ -206,21 +206,32 @@ echo "commit   : ${COMMIT:0:10}  $DESCRICAO"
 echo
 
 # --- o que ja esta rodando NOSSO conta contra o orcamento -------------------
-EM_USO=$(qstat -u "$USER" -f 2>/dev/null \
-         | tr -d ' ' | grep -o 'Resource_List.ncpus=[0-9]*' \
-         | cut -d= -f2 | paste -sd+ - | bc 2>/dev/null || echo 0)
-EM_USO=${EM_USO:-0}
-echo "nucleos ja comprometidos na fila: $EM_USO"
+# Ate 21/09/2026 isto era `qstat -u $USER -f`, e neste PBS o `-u` faz o `-f`
+# ser ignorado: a soma dava ZERO em toda rodada. Agora os ids saem do
+# `qstat -u` e o detalhe do `qstat -f <ids>`; quem soma e o `cluster/em_uso.py`
+# (R, Q e W contam; H e a proxima base de uma corrente e nao conta). A
+# memoria entra junto, porque o teto de GB e o que estoura em silencio.
+IDS=$(qstat -u "$USER" 2>/dev/null | awk 'NR>5 && $1 ~ /^[0-9]/ {print $1}')
+EM_USO=0; EM_USO_GB=0
+if [[ -n "$IDS" ]]; then
+    read -r EM_USO EM_USO_GB < <(qstat -f $IDS 2>/dev/null \
+                                 | "$PY_VENV" cluster/em_uso.py || echo "0 0")
+fi
+# so digitos: um `` de fim de linha quebraria a aritmetica abaixo
+EM_USO=${EM_USO//[!0-9]/}; EM_USO_GB=${EM_USO_GB//[!0-9]/}
+EM_USO=${EM_USO:-0}; EM_USO_GB=${EM_USO_GB:-0}
+echo "nucleos ja comprometidos na fila: $EM_USO  ($EM_USO_GB GB)"
 DISPONIVEL=$(( ORCAMENTO - EM_USO ))
-if (( DISPONIVEL <= 0 )); then
+DISPONIVEL_GB=$(( ORCAMENTO_GB - EM_USO_GB ))
+if (( DISPONIVEL <= 0 || DISPONIVEL_GB <= 0 )); then
     echo "!! o orcamento ja esta tomado. Espere terminar, ou use ORCAMENTO=<n> conscientemente."
     exit 1
 fi
-echo "disponivel para esta submissao  : $DISPONIVEL"
+echo "disponivel para esta submissao  : $DISPONIVEL nucleos, $DISPONIVEL_GB GB"
 echo
 
 # --- planeja: classifica por tamanho e distribui em correntes ---------------
-"$PY_VENV" - "$DISPONIVEL" "$TAMPA" "$ORCAMENTO_GB" "$GB_POR_NUCLEO" > /tmp/plano_ondas.txt <<'PY'
+"$PY_VENV" - "$DISPONIVEL" "$TAMPA" "$DISPONIVEL_GB" "$GB_POR_NUCLEO" > /tmp/plano_ondas.txt <<'PY'
 import os, sys
 sys.path.insert(0, ".")
 import regerar_v10 as r
@@ -346,7 +357,7 @@ PICOGB=$(awk '$1=="PICOGB"{print $2}' /tmp/plano_ondas.txt)
 MEDIDAS=$(awk '/^MEDIDAS/{print $2}' /tmp/plano_ondas.txt)
 [[ "${MEDIDAS:-0}" != "0" ]] && echo "bases medidas agora (as demais vieram do cache): $MEDIDAS"
 
-echo "plano: $CORRENTES correntes, pico de $PICO nucleos (teto $ORCAMENTO)"      "e $PICOGB GB (teto $ORCAMENTO_GB)"
+echo "plano: $CORRENTES correntes, pico de $PICO nucleos (disponivel $DISPONIVEL de $ORCAMENTO)"      "e $PICOGB GB (disponivel $DISPONIVEL_GB de $ORCAMENTO_GB)"
 echo
 if [[ "$RAMPA" -gt 0 ]]; then
     echo "rampa: uma corrente a cada ${RAMPA}s; carga cheia em ~$(( (CORRENTES - 1) * RAMPA / 60 )) min"
@@ -356,7 +367,7 @@ fi
 awk '/^CHAIN/{n=$2; mx=$3; $1=$2=$3=""; printf "  corrente %-2s (ate %2s nucleos):%s\n", n, mx, $0}' /tmp/plano_ondas.txt
 echo
 
-if (( PICO > DISPONIVEL )); then
+if (( PICO > DISPONIVEL || ${PICOGB:-0} > DISPONIVEL_GB )); then
     echo "!! o plano estoura o disponivel. Nao submeto."
     exit 1
 fi
@@ -417,4 +428,4 @@ echo "  coletor (espera as $CORRENTES pontas) -> $ID_COLETOR"
 
 echo
 echo "acompanhe com:  qstat -an -u \$USER"
-echo "nucleos em uso: qstat -u \$USER -f | tr -d ' ' | grep -o 'Resource_List.ncpus=[0-9]*' | cut -d= -f2 | paste -sd+ - | bc"
+echo "nucleos em uso: qstat -f \$(qstat -u \$USER | awk 'NR>5{print \$1}') | .venv/bin/python cluster/em_uso.py"
