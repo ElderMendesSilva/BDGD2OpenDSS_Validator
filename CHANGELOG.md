@@ -39,6 +39,32 @@ O que ela NAO faz: nao abre laco sem regulador. Na 5001306 da EQUATORIAL6072
 o bypass leva a perda de 77,2% a 64,5%, e o resto vem desses.
 
 
+### V37 — achados 69 e 70 aplicados
+
+Commit `afd5c6f`, pre-voo 36736, coletor 36837 fechado em 21/09/2026. As mesmas
+99 bases e 4.061 subestacoes; 4.001 sadias (V36: 3.995), 26 sem convergir.
+Mudaram SO as bases que os dois achados alcancam — o resto saiu identico:
+
+| base | V36 | V37 | |
+|---|---:|---:|---|
+| EQUATORIAL6072 | 28,55% | **12,09%** | 51 bypass e 3 lacos abertos; sadias 124 -> 129 |
+| RGE396 | 7,90% | **3,53%** | 13 lacos pela chave `BY-` da propria BDGD |
+| NEOENERGIA47 | 8,61% | 8,13% | 3 bypass, 8 lacos |
+
+Contra a ANEEL, acima de 1,2 ficou uma base so (V36: 2): a EQUATORIAL6072,
+1,28x, que ja foi 3,0x. Seis reprovam a ancora (V36: 7) — a RGE saiu.
+
+A etapa abriu 110 dos 111 lacos atraves de transformador e 55 bypass; 31 bypass
+ficaram sem decisao, ditos no arquivo (16 sem candidata, 11 sem chave no laco,
+4 com mais de uma).
+
+O que ela NAO tem, e a proxima rodada precisa: (1) a etapa ainda desistia da
+subestacao com `Max Control Iterations` (#485) — 7 na EQUATORIAL6072 ficaram
+sem os dois achados (corrigido em `5f95db7`); (2) os 59 lacos da COPELDIS2866,
+e os da ENERGISA_R369 e A26, estavam em ilha sem fonte e nao mudaram nada —
+a etapa passa a ignora-los; (3) a contagem de nucleos do `submeter_todas.sh`
+(`15b51ac`).
+
 ### V36 — achados 67 e 68 aplicados
 
 Commit `5189014`, pre-voo 36584, coletor 36684 fechado em 17/09/2026. As mesmas

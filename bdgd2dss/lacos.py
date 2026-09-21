@@ -206,15 +206,24 @@ def lacos(dss, fora=(), reguladores=None):
                if curto else None)
         trafos = [e for e in c if e.lower().startswith('transformer.')
                   and not e_regulador(e, reguladores)]
+        # ILHA SEM FONTE NAO CIRCULA NADA. Na COPELDIS2866 (V37) a etapa abriu
+        # 59 lacos de relacao 6,25 — dois transformadores de 34,5/13,8 ligados
+        # de costas — e nenhuma das 45 subestacoes mudou na segunda casa: os
+        # lacos estavam inteiros em ilha desenergizada, 0 kV em todo no. A
+        # decisao era inocua, mas custava quatro compilacoes cada e inflava o
+        # censo. A fonte e a raiz do union-find, entao saber custa nada.
+        energizado = bool(fontes) and acha(o) == acha(fontes[0])
         saida.append({'fecha': el, 'ciclo': c if len(c) > 1 else [],
                       'regulador': reg, 'transformadores': trafos,
-                      'razao': razao})
+                      'razao': razao, 'energizado': energizado})
     return saida
 
 
 def incoerente(laco, tolerancia=RAZAO_TOLERADA):
-    """O laco atravessa uma mudanca de tensao que ele mesmo desfaz."""
-    return abs(laco.get('razao', 1.0) - 1.0) > tolerancia
+    """O laco atravessa uma mudanca de tensao que ele mesmo desfaz, e esta
+    ligado a fonte — em ilha desenergizada nao ha o que circular."""
+    return (laco.get('energizado', True)
+            and abs(laco.get('razao', 1.0) - 1.0) > tolerancia)
 
 
 def banco(transformador):
@@ -298,11 +307,14 @@ def lacos_da_se(master):
     lista = lacos(dss, fora)
     com_reg = [x['fecha'] for x in lista if x['regulador']]
     com_trafo = [x['fecha'] for x in lista if incoerente(x)]
+    ilhados = [x['fecha'] for x in lista if not x.get('energizado', True)
+               and abs(x.get('razao', 1.0) - 1.0) > RAZAO_TOLERADA]
     nossos = [x['fecha'] for x in lista
               if x['fecha'].lower().startswith('line.vao_extra')]
     return {'lacos': len(lista), 'com_regulador': len(com_reg),
             'por_elo_nosso': len(nossos),
             'atraves_de_transformador': len(com_trafo),
+            'atraves_de_transformador_em_ilha': len(ilhados),
             'exemplos_atraves_de_transformador': com_trafo[:5],
             'exemplos_com_regulador': com_reg[:5]}
 

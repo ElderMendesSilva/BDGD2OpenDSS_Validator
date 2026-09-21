@@ -136,6 +136,19 @@ class TestOCenso(unittest.TestCase):
         self.assertEqual(r['lacos'], self.base + 1)
         self.assertEqual(r['atraves_de_transformador'], 0)
 
+    def test_laco_incoerente_em_ilha_nao_conta(self):
+        """Na COPELDIS2866 (V37) a etapa abriu 59 lacos de relacao 6,25, e
+        nenhuma subestacao mudou: estavam em ilha, 0 kV em todo no. Sem
+        fonte, nada circula."""
+        m = self._com('New Transformer.ILHA phases=3 windings=2 XHL=5 '
+                      'buses=[ia.1.2.3 ib.1.2.3] kVs=[13.8 6.9] kVAs=[500 500]',
+                      'New Line.VOLTA_ILHA phases=3 Bus1=ib.1.2.3 Bus2=ia.1.2.3 '
+                      'r1=0.1 x1=0.1 length=0.1')
+        r = lacos.lacos_da_se(m)
+        self.assertEqual(r['lacos'], self.base + 1)
+        self.assertEqual(r['atraves_de_transformador'], 0)
+        self.assertEqual(r['atraves_de_transformador_em_ilha'], 1)
+
     def test_o_ciclo_longo_sai_inteiro(self):
         """O laco do achado 70 na 5001306 tem 42 elementos; o ciclo nao pode
         ser cortado no limite do bypass."""

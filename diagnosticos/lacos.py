@@ -113,6 +113,7 @@ def main(argv=None):
             c['lacos'] += r['lacos']
             c['reg'] += r['com_regulador']
             c['trf'] += r.get('atraves_de_transformador', 0)
+            c['trf_ilha'] += r.get('atraves_de_transformador_em_ilha', 0)
             c['nossos'] += r['por_elo_nosso']
         tot['ses'] += len(ses)
         tot['com_laco'] += n_l
@@ -125,7 +126,8 @@ def main(argv=None):
           f'{tot["com_reg"]} com laco passando por regulador | '
           f'{tot["com_trf"]} com laco atraves de transformador | '
           f'{tot["lacos"]} lacos, {tot["reg"]} com regulador, '
-          f'{tot["trf"]} atraves de transformador, '
+          f'{tot["trf"]} atraves de transformador '
+          f'(+{tot["trf_ilha"]} em ilha sem fonte, que nao circulam), '
           f'{tot["nossos"]} fechados por elo nosso | {erros} erros')
     if a.saida_json:
         os.makedirs(os.path.dirname(a.saida_json) or '.', exist_ok=True)
