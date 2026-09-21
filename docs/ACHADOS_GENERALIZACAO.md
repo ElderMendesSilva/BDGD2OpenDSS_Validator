@@ -2606,7 +2606,8 @@ bypass de regulador. Nelas o laço é uma **chave de bypass declarada na própri
 BDGD**, `BY-<código do transformador>`, fechada e ligada direto nos dois PACs
 de um transformador MT/MT de 23,1/13,8 kV. É a forma do achado 48, só que num
 transformador em vez de regulador, e a regra do achado 70 a pegou sem nenhum
-caso especial. Só nessas quatro há 43 chaves `BY-`, a maioria já aberta.
+caso especial. Só nessas quatro há 43 chaves `BY-`: 21 abertas na BDGD e 22 fechadas, das
+quais só as 6 abertas pela etapa formam laço com relação diferente de 1.
 Com a etapa (13 s para as quatro), a perda instantânea cai de 19,7 / 13,9 /
 4,6 / 8,3 MW para cerca de 200 kW cada, sem nó perdido.
 
