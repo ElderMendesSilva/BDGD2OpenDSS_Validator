@@ -47,7 +47,7 @@ class CodIdRepetidoNaoColide(unittest.TestCase):
         alvo = os.path.join(d, 'CargasBT.dss')
         r = cargas.gerar_bt_completa(
             _LeitorFalso(linhas), ['C1'],
-            {'TR1': {'kv_fn': 0.127, 'nos': ['1']}},
+            {'TR1': {'kv_fn': 0.127, 'nos': ['1', '2', '3']}},
             alvo, mes=1, curvas_validas={'RES-Tipo02'})
         return r, io.open(alvo, encoding='utf-8').read()
 
@@ -87,6 +87,43 @@ class CodIdRepetidoNaoColide(unittest.TestCase):
         self.assertIn('New Load.UC_BI_1 ', txt)
         self.assertIn('New Load.UC_BI_2 ', txt)
         self.assertEqual(r['cod_id_repetido'], 0)
+
+
+class AFaseTemDeExistirNoTrafo(unittest.TestCase):
+    """ACHADO 72. UC ABC sob trafo de tap central (so fases 1 e 2): a carga da
+    fase 3 ia para um no que nada alimenta. Na Enel SP/DBFU, 565 kW."""
+
+    def _gera(self, fas, nos):
+        d = tempfile.mkdtemp()
+        alvo = os.path.join(d, 'CargasBT.dss')
+        r = cargas.gerar_bt_completa(
+            _LeitorFalso([_uc('U', fas=fas, ene=730.0 * 3)]), ['C1'],
+            {'TR1': {'kv_fn': 0.12, 'nos': nos}},
+            alvo, mes=1, curvas_validas={'RES-Tipo02'})
+        return r, io.open(alvo, encoding='utf-8').read()
+
+    def test_nenhuma_carga_na_fase_que_o_trafo_nao_tem(self):
+        _, txt = self._gera('ABC', ['1', '2'])
+        self.assertNotIn('.3.4', txt)
+        self.assertIn('New Load.UC_U_1 ', txt)
+        self.assertIn('New Load.UC_U_2 ', txt)
+
+    def test_a_energia_fica_inteira(self):
+        r, txt = self._gera('ABC', ['1', '2'])
+        kw = sum(float(l.split('kW=')[1].split()[0])
+                 for l in txt.splitlines() if l.startswith('New Load.'))
+        self.assertAlmostEqual(kw, 3.0, places=5)
+        self.assertEqual(r['fase_fora_do_trafo'], 1)
+
+    def test_uc_so_na_fase_ausente_vai_para_as_do_trafo(self):
+        _, txt = self._gera('C', ['1', '2'])
+        self.assertNotIn('.3.4', txt)
+        self.assertEqual(txt.count('New Load.'), 2)
+
+    def test_trafo_trifasico_nao_muda_nada(self):
+        r, txt = self._gera('ABC', ['1', '2', '3'])
+        self.assertIn('.3.4', txt)
+        self.assertEqual(r['fase_fora_do_trafo'], 0)
 
 
 class ONomeDaLinhaLevaACamada(unittest.TestCase):

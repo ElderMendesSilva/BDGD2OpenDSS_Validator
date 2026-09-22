@@ -325,6 +325,7 @@ def gerar_bt_completa(bdgd, ctmts, sec, caminho_saida, mes=1,
     # gera o mesmo arquivo byte a byte, que e requisito do projeto.
     vistos = collections.Counter()
     repetidos = 0
+    fora_do_trafo = 0
     # Mesmo recurso da agregada: a curva mais usada que EXISTE nesta base.
     recurso = curva_padrao(curvas_validas,
                            collections.Counter(txt(v) for v in col['TIP_CC']))
@@ -340,6 +341,15 @@ def gerar_bt_completa(bdgd, ctmts, sec, caminho_saida, mes=1,
             sem_rede += 1
             continue
         fs = [FASES[c] for c in txt(col['FAS_CON'][i], 'A').upper() if c in FASES] or ['1']
+        # ACHADO 72: a fase da UC tem de existir no transformador. Sob trafo
+        # monofasico de tap central (secundario .1.4/.4.2), UC declarada ABC
+        # virava tres cargas e a da fase 3 ficava num no que nada alimenta —
+        # sem tensao e sem consumo, em silencio. Medido na Enel SP/DBFU: 1.823
+        # cargas, 565 kW, 1,81% da BT. A energia fica inteira: so muda o no.
+        pernas = s.get('nos') or []
+        if pernas and not set(fs) <= set(pernas):
+            fs = [f for f in fs if f in pernas] or list(pernas)
+            fora_do_trafo += 1
         curva = txt(col['TIP_CC'][i])
         if curva not in curvas_validas:
             curva = recurso
@@ -360,6 +370,9 @@ def gerar_bt_completa(bdgd, ctmts, sec, caminho_saida, mes=1,
     if repetidos:
         out.insert(4, f'! {repetidos} cargas com COD_ID repetido na UCBT_tab: '
                       f'sufixo __N para nao colidir. Nenhuma foi descartada.')
+    if fora_do_trafo:
+        out.insert(4, f'! {fora_do_trafo} UCs com fase que o transformador nao '
+                      f'tem: redistribuidas nas fases dele (achado 72).')
     open(caminho_saida, 'w', encoding='utf-8', newline=escrita.FIM_DE_LINHA).write('\n'.join(out) + '\n')
     return {'n_cargas_bt': n, 'kW_BT': round(tot, 1), 'sem_trafo': sem_rede,
-            'cod_id_repetido': repetidos}
+            'cod_id_repetido': repetidos, 'fase_fora_do_trafo': fora_do_trafo}

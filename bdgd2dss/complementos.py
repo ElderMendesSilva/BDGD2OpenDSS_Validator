@@ -719,6 +719,14 @@ def geracao(bdgd, ctmts, sec, caminho, kv_mt=13.8, barras=None,
                     pac = s.get('barra', pac)
                     fs = s['nos'] or ['1']            # pernas reais do secundario
                     realocados += 1
+                # ACHADO 72: mesma regra das UCs da BT completa — a fase tem
+                # de existir no transformador que a alimenta, senao a unidade
+                # injeta num no morto.
+                dono = s or (sec.get(txt(col['UNI_TR_MT'][i]))
+                             if 'UNI_TR_MT' in col else None)
+                pernas = (dono or {}).get('nos') or []
+                if pernas and not set(fs) <= set(pernas):
+                    fs = [f for f in fs if f in pernas] or list(pernas)
                 kv = s['kv_fn'] if s else 0.127
                 # segura para o segundo passe, que limita pela capacidade do
                 # transformador antes de escrever
