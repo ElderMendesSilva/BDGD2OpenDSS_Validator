@@ -2731,6 +2731,22 @@ abriu **as mesmas seis chaves** da validação manual, nenhuma sem decisão, em
 0,745 pu. Com o bypass aberto, a orientação passou a corrigir 3 reguladores;
 33 dos 36 seguem saturados.
 
+**Os 31 que a V37 deixou sem decisão, e as quatro formas** (22/09/2026). A
+regra de "candidata única" era estreita demais. Nas seis subestações
+examinadas — de cada motivo — nenhum caso era ambíguo de verdade:
+
+| forma | exemplo | o que a regra passou a fazer | perda antes → depois |
+|---|---|---|---:|
+| chaves em **paralelo** no mesmo par de barras | ETR (NEOENERGIA47), 4 chaves | abrem juntas, como um candidato | 3.460 → 173 kW |
+| chaves em **série** no mesmo caminho | 5000858, 3 chaves | abre a que mais carga põe no regulador; empates ditos | 11.209 → 313 kW |
+| regulador **sem carga a jusante** | 5000944, 5000749 | nenhuma abertura o põe a conduzir; abre-se a de menor perda, dito | 7.000 → 595 kW |
+| laço **só de trechos** | AGT (NEOENERGIA43) | trecho como último recurso, dito | 3.945 → 369 kW |
+
+Nas seis, nenhum nó perdido e todas convergindo. A ordem importa: chave que
+põe o regulador em serviço, depois trecho que o põe, e só então "sem carga" —
+senão, com o bypass num trecho, a regra abriria a chave em série e desligaria
+o regulador. `testes/test_bypass_fora_do_par.py` trava as quatro.
+
 O que ela **não** faz: os laços sem regulador continuam fechados, e na
 `5001306` são eles que carregam o grosso (64,5% de perda depois do bypass).
 

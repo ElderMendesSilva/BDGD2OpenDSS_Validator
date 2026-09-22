@@ -23,9 +23,9 @@ ele fechado nenhuma medida adiante vale. Vai para `_LACOS.dss`. Ver
 
 DEPOIS, O BYPASS — achado 69. Regulador com a chave de bypass
 fechada circula corrente de laco, e a direcao medida nele e a do laco, nao a
-da carga. Das chaves de cada ciclo curto que contem um regulador, abre-se a
-UNICA que, aberta, nao desenergiza no nenhum e deixa o regulador conduzindo;
-as duas medidas vao para o mesmo `_REGULADORES.dss`. Ver `escolher_bypass`.
+da carga. Dos candidatos de cada ciclo curto que contem um regulador, abre-se
+o que nao desenergiza no nenhum e poe mais carga no regulador; as duas
+medidas vao para o mesmo `_REGULADORES.dss`. Ver `escolher_bypass`.
 
 POR QUE NAO DA PARA DECIDIR NA CONVERSAO. A BDGD nao declara qual PAC do
 UNREMT e o lado da fonte, e a resposta depende da topologia resolvida — a
@@ -93,6 +93,12 @@ MAX_COMPILACOES_BYPASS = 60
 # Laco com mais chaves que isto nao tem a forma de campo (entrada, saida e
 # bypass): abrir a chave errada dele seria manobra inventada.
 MAX_CHAVES_NO_LACO = 4
+# Laco so de trechos (a AGT da NEOENERGIA43 tem seis): o teto e mais alto
+# porque cada trecho e um candidato, e nao ha agrupamento em paralelo.
+MAX_TRECHOS_NO_LACO = 12
+# Dois candidatos que poem no regulador cargas a menos disto um do outro sao
+# a mesma manobra — chaves em serie no mesmo caminho.
+KW_EQUIVALENTE = 1.0
 
 
 def _controles_das_chaves():
@@ -220,7 +226,8 @@ def escolher_lacos_de_transformador(master):
 
 
 def escolher_bypass(master, regs):
-    """Quais chaves de bypass abrir: `(abertas, sem_decisao)`.
+    """Quais elementos abrir para desfazer o laco do regulador:
+    `(abertas, sem_decisao)`.
 
     ACHADO 69. So o criterio eletrico serve. Na 5001306, as duas chaves de
     cada laco ficam a trechos de distancia do regulador, e a regra
@@ -229,6 +236,21 @@ def escolher_bypass(master, regs):
     regulador pendurado com 0 kW; o BYPASS, aberto, deixa-o conduzindo, e
     nenhum no perde tensao. Validado com os seis: 77,2% -> 64,5% de perda,
     88.003 nos vivos antes e depois.
+
+    AS QUATRO FORMAS, medidas nos 31 que a V37 deixou sem decisao:
+
+    - chaves em PARALELO no mesmo par de barras (ETR, NEOENERGIA47): abrem
+      juntas, como um candidato so — ver `lacos.candidatos_de_bypass`;
+    - chaves em SERIE no mesmo caminho (5000858, EQUATORIAL6072): todas
+      deixam o regulador com os mesmos 250 kW. Sao a mesma manobra; abre-se
+      a que mais carga poe no regulador, e o arquivo diz quantas empatavam;
+    - regulador SEM CARGA A JUSANTE (5000749 e 5000944): entrada e saida
+      voltam ao mesmo no, 5 kA e 4,6 kA circulando, e nenhuma abertura faz o
+      regulador conduzir — porque nao ha o que ele alimente. O laco nao
+      pode operar fechado; abre-se o candidato de menor perda, dito;
+    - laco SO DE TRECHOS (AGT, NEOENERGIA43): 28 MW circulando e nenhuma
+      chave. Trecho entra como ultimo recurso, e o arquivo diz que nao e
+      manobra de campo.
 
     Decide-se um banco de cada vez, com os ja decididos abertos, porque dois
     bypass no mesmo anel mudam a resposta um do outro. Chamada com o
@@ -249,41 +271,85 @@ def escolher_bypass(master, regs):
     abertas, sem_decisao = [], []
     compilacoes = [0]
 
-    def estado(chaves):
+    def estado(elementos):
         compilacoes[0] += 1
-        return _compila(master, chaves, controle)
+        return _compila(master, elementos, controle)
+
+    def perda():
+        return dss.Circuit.Losses()[0] / 1000
 
     _, base = estado([])
     decididas = []
-    for bco, cands in candidatos.items():
-        if not cands or len(cands) > MAX_CHAVES_NO_LACO:
-            sem_decisao.append({'regulador': bco, 'candidatas': cands,
-                                'motivo': ('nenhuma chave no laco' if not cands
+
+    def medir(bco, grupos, limite):
+        """`None` se o laco nao cabe no teto ou no orcamento; senao as
+        medidas `(grupo, kW no regulador, perda)` dos que nao apagam no."""
+        if not grupos or len(grupos) > limite:
+            return None
+        if compilacoes[0] + len(grupos) + 1 > MAX_COMPILACOES_BYPASS:
+            return None
+        out = []
+        for g in grupos:
+            conv, viv = estado(decididas + list(g))
+            # ACHADO 69: nenhum candidato pode desenergizar no
+            if conv and viv >= base:
+                out.append((g, _p_banco(fases.get(bco, [])), perda()))
+        return out
+
+    def conduzem(medidas):
+        return [m for m in medidas or [] if m[1] > orientacao.FLUXO_MINIMO_KW]
+
+    for bco, cand in candidatos.items():
+        todos = [e for g in cand['chaves'] + cand['trechos'] for e in g]
+        if not todos:
+            sem_decisao.append({'regulador': bco, 'candidatas': [],
+                                'motivo': 'nenhum elemento no laco'})
+            continue
+        # A ORDEM: chave que poe o regulador em servico; senao trecho que o
+        # poe; so entao "sem carga a jusante". Com chaves que so tiram o
+        # regulador de servico e o bypass num trecho, pular direto para "sem
+        # carga" abriria a chave errada e desligaria o regulador.
+        tipo, medidas = 'chave', medir(bco, cand['chaves'], MAX_CHAVES_NO_LACO)
+        conduz = conduzem(medidas)
+        if not conduz and cand['trechos']:
+            m_t = medir(bco, cand['trechos'], MAX_TRECHOS_NO_LACO)
+            if conduzem(m_t) or not medidas:
+                tipo, medidas, conduz = 'trecho', m_t, conduzem(m_t)
+        if medidas is None:
+            sem_decisao.append({'regulador': bco, 'candidatas': todos,
+                                'motivo': ('limite de compilacoes'
+                                           if compilacoes[0] >= MAX_COMPILACOES_BYPASS
                                            else 'laco sem a forma de bypass')})
             continue
-        if compilacoes[0] + len(cands) > MAX_COMPILACOES_BYPASS:
-            sem_decisao.append({'regulador': bco, 'candidatas': cands,
-                                'motivo': 'limite de compilacoes'})
+        sem_carga = False
+        if conduz:
+            # o regulador de volta em servico, com a maior carga possivel —
+            # o criterio da validacao manual na 5001306
+            g, kw, _p = max(conduz, key=lambda m: (m[1], -m[2]))
+            eq = sum(1 for m in conduz if kw - m[1] < KW_EQUIVALENTE)
+        elif medidas:
+            estado(decididas)
+            atual = perda()
+            g, kw, p_ = min(medidas, key=lambda m: m[2])
+            # so abre se desfizer circulacao de verdade; laco que nao circula
+            # nada fica como a BDGD declara
+            if atual - p_ < PERDA_EQUIVALENTE_KW:
+                sem_decisao.append({'regulador': bco, 'candidatas': todos,
+                                    'motivo': 'nenhuma candidata'})
+                continue
+            sem_carga = True
+            eq = sum(1 for m in medidas if m[2] - p_ < PERDA_EQUIVALENTE_KW)
+        else:
+            sem_decisao.append({'regulador': bco, 'candidatas': todos,
+                                'motivo': 'nenhuma candidata'})
             continue
-        servem = []
-        for c in cands:
-            conv, viv = estado(decididas + [c])
-            kw = _p_banco(fases.get(bco, []))
-            # ACHADO 69: as duas condicoes juntas. So "nao desenergiza"
-            # aceitaria a chave em serie; so "o regulador conduz" aceitaria a
-            # chave que isola um ramal inteiro.
-            if conv and viv >= base and kw > orientacao.FLUXO_MINIMO_KW:
-                servem.append((c, kw))
-        if len(servem) != 1:
-            sem_decisao.append({'regulador': bco, 'candidatas': cands,
-                                'motivo': ('nenhuma candidata' if not servem
-                                           else '%d candidatas' % len(servem))})
-            continue
-        c, kw = servem[0]
-        decididas.append(c)
-        abertas.append({'chave': 'Line.' + c.split('.', 1)[1],
-                        'controle': controle.get(c),
-                        'regulador': bco, 'kW': kw})
+        decididas += list(g)
+        abertas.append({'chave': 'Line.' + g[0].split('.', 1)[1],
+                        'chaves': ['Line.' + e.split('.', 1)[1] for e in g],
+                        'controle': controle.get(g[0]),
+                        'controles': [controle[e] for e in g if controle.get(e)],
+                        'regulador': bco, 'kW': kw, 'tipo': tipo,
+                        'equivalentes': eq, 'sem_carga': sem_carga})
     return abertas, sem_decisao
 
 
@@ -336,7 +402,7 @@ def uma(pasta, se):
 
         decididos = {'lacos_abertos': [x['chave'] for x in l_abertos],
                      'lacos_sem_decisao': l_sem,
-                     'bypass_abertos': [x['chave'] for x in bypass],
+                     'bypass_abertos': [c for x in bypass for c in x.get('chaves', [x['chave']])],
                      'bypass_sem_decisao': sem_decisao}
         if aviso or not dss.Solution.Converged():
             # sem fluxo resolvido nao ha direcao a medir: a orientacao fica

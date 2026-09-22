@@ -118,10 +118,13 @@ CABECALHO_BYPASS = """
 !  regulador. Este liga os PACs das chaves vizinhas, e nenhuma das chaves do
 !  laco toca o regulador — a regra topologica marcaria todas.
 !
-!  O CRITERIO E ELETRICO: das chaves do laco, abre-se a UNICA que, aberta
-!  sozinha, nao desenergiza no nenhum E deixa o regulador conduzindo. A chave
-!  em serie, aberta, deixa o regulador com 0 kW. Laco com zero ou mais de uma
-!  candidata assim fica como a BDGD declara, e e listado abaixo.
+!  O CRITERIO E ELETRICO: dos candidatos do laco, servem os que, abertos,
+!  nao desenergizam no nenhum; deles abre-se o que poe mais carga no
+!  regulador. A chave em serie, aberta, deixa o regulador com 0 kW. Chaves em
+!  paralelo no mesmo par de barras abrem juntas. Quando nenhum candidato faz
+!  o regulador conduzir mas abrir desfaz a circulacao, o regulador nao tem
+!  carga a jusante e abre-se o de menor perda. Trecho de linha so entra se o
+!  laco nao tem chave. Cada caso e dito na linha dele.
 !
 !  O elemento e o controle saem juntos: `SwtControl State=Closed` fecharia de
 !  novo a chave que um `Open` abrisse.
@@ -147,11 +150,25 @@ def escrever(caminho, correcoes, total=0, sem_fluxo=(), escreve=None,
         out += [CABECALHO_BYPASS.format(n=len(bypass),
                                         amb=len(sem_decisao)).lstrip('\n'), '']
         for b in bypass:
-            out.append('Edit %s enabled=no   ! bypass de %s, que passa a '
-                       'conduzir %.1f kW' % (b['chave'], b['regulador'],
-                                             b['kW']))
-            if b.get('controle'):
-                out.append('Edit %s enabled=no' % b['controle'])
+            elementos = b.get('chaves') or [b['chave']]
+            if b.get('sem_carga'):
+                nota = ('laco de %s; regulador sem carga a jusante, aberto o '
+                        'de menor perda' % b['regulador'])
+            else:
+                nota = ('bypass de %s, que passa a conduzir %.1f kW'
+                        % (b['regulador'], b['kW']))
+            if len(elementos) > 1:
+                nota += '; %d em paralelo, abertos juntos' % len(elementos)
+            if (b.get('equivalentes') or 1) > 1:
+                nota += '; %d candidatos equivalentes' % b['equivalentes']
+            if b.get('tipo') == 'trecho':
+                nota += '; TRECHO de linha, nao chave: o laco nao tem chave'
+            for i, e in enumerate(elementos):
+                out.append('Edit %s enabled=no%s'
+                           % (e, '   ! ' + nota if i == 0 else ''))
+            for c in (b.get('controles')
+                      or ([b['controle']] if b.get('controle') else [])):
+                out.append('Edit %s enabled=no' % c)
         for s in sem_decisao:
             out.append('! sem decisao: %s — %s (%s)'
                        % (s['regulador'], s['motivo'],

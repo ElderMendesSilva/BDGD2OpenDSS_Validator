@@ -9,9 +9,9 @@ do proprio regulador; este liga os das chaves vizinhas.
 
 Na 5001306 da EQUATORIAL6072 eram seis, com 394 a 2.027 A circulando. A regra
 topologica ("a chave que nao toca o regulador") marcou as doze chaves dos seis
-lacos, e abri-las derrubou 33 mil nos. O criterio que serve e ELETRICO: das
-chaves do laco, a UNICA que, aberta sozinha, nao desenergiza no nenhum e deixa
-o regulador conduzindo.
+lacos, e abri-las derrubou 33 mil nos. O criterio que serve e ELETRICO: dos
+candidatos do laco, os que, abertos sozinhos, nao desenergizam no nenhum; deles,
+o que poe mais carga no regulador.
 
 A variante `bypass_de_regulador` reproduz o colapso em escala: com o bypass
 fechado a fonte entrega 34,7 MW para 2,4 kW de carga.
@@ -160,10 +160,11 @@ class TestNaVariante(unittest.TestCase):
         self.assertEqual(_le(self.se, '_REGULADORES.dss'), self.arquivo)
 
 
-class TestSemDecisao(unittest.TestCase):
-    """Dois bypass em paralelo: abrir qualquer um sozinho deixa o outro
-    fechado e o regulador em 0 kW. Nenhuma candidata serve, e o laco fica
-    como a BDGD declara — dito no arquivo, e nao adivinhado."""
+class TestBypassEmParalelo(unittest.TestCase):
+    """Dois bypass em paralelo no mesmo par de barras: abrir um so deixa o
+    outro segurando o laco. Ate a V37 isso saia "sem decisao"; na ETR da
+    NEOENERGIA47 eram quatro chaves em paralelo e 29 MW circulando. Agora o
+    grupo abre junto, como um candidato so."""
 
     @classmethod
     def setUpClass(cls):
@@ -189,14 +190,99 @@ class TestSemDecisao(unittest.TestCase):
     def tearDownClass(cls):
         shutil.rmtree(cls.tmp, ignore_errors=True)
 
-    def test_nada_e_aberto(self):
+    def test_os_dois_abrem_juntos(self):
         self.assertEqual(self.p.returncode, 0, self.p.stderr[-1500:])
-        self.assertNotIn('enabled=no', self.arquivo)
+        for e in ('Line.cb', 'Line.cb2', 'SwtControl.sw_cb', 'SwtControl.sw_cb2'):
+            self.assertIn(f'Edit {e} enabled=no', self.arquivo)
+        self.assertIn('2 em paralelo, abertos juntos', self.arquivo)
 
-    def test_fica_escrito(self):
-        self.assertIn('sem decisao: reg_rg1', self.arquivo)
-        self.assertIn('0 bypass de regulador aberto(s), 1 laco(s)',
+    def test_as_chaves_em_serie_ficam(self):
+        for serie in ('line.ce', 'line.cs'):
+            self.assertNotIn(f'edit {serie} ', self.arquivo.lower())
+
+    def test_o_log_conta_as_duas(self):
+        self.assertIn('ACHADO 69: 2 bypass de regulador aberto(s), 0 laco(s)',
                       self.p.stdout)
+
+
+def _variante_com(prefixo, chaves='', controles='', linhas='', regs=''):
+    """Converte a `bypass_de_regulador` e acrescenta elementos ao modelo."""
+    tmp = tempfile.mkdtemp(prefix=prefixo)
+    gdb = fixture.gerar(os.path.join(tmp, 'b.gdb'), variante='bypass_de_regulador')
+    saida = os.path.join(tmp, 'M')
+    p = _roda(os.path.join(RAIZ, 'etapas', 'converter.py'), gdb, '--saida', saida)
+    assert p.returncode == 0, p.stderr[-1500:]
+    se = os.path.join(saida, 'SE1')
+    for nome, extra in (('Chaves.dss', chaves), ('Controles.dss', controles),
+                        ('Linhas.dss', linhas), ('Reguladores.dss', regs)):
+        if extra:
+            with io.open(os.path.join(se, nome), 'a', encoding='utf-8') as fh:
+                fh.write('\n' + extra + '\n')
+    p = _roda(os.path.join(RAIZ, 'etapas', 'reguladores.py'), saida, '--jobs', '1')
+    return tmp, p, _le(se, '_REGULADORES.dss')
+
+
+class TestBypassPorTrecho(unittest.TestCase):
+    """O bypass e um TRECHO, e as chaves do laco so tiram o regulador de
+    servico. A regra nao pode pular para "sem carga" e abrir uma chave: tem de
+    abrir o trecho, que devolve o regulador a carga. Na AGT da NEOENERGIA43
+    o laco era so de trechos, com 28 MW circulando."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.tmp, cls.p, cls.arquivo = _variante_com(
+            'bypass69t_',
+            controles='Edit SwtControl.SW_CB State=Open',
+            linhas='New Line.TB phases=3 Bus1=b3.1.2.3 Bus2=b4.1.2.3 '
+                   'r1=0.001 x1=0.001 length=0.01 units=km')
+
+    @classmethod
+    def tearDownClass(cls):
+        shutil.rmtree(cls.tmp, ignore_errors=True)
+
+    def test_abre_o_trecho_e_nao_a_chave(self):
+        self.assertEqual(self.p.returncode, 0, self.p.stderr[-1500:])
+        self.assertIn('Edit Line.tb enabled=no', self.arquivo)
+        self.assertIn('TRECHO de linha', self.arquivo)
+        for serie in ('line.ce', 'line.cs'):
+            self.assertNotIn(f'edit {serie} ', self.arquivo.lower())
+        self.assertNotIn('sem carga', self.arquivo)
+
+
+class TestReguladorSemCarga(unittest.TestCase):
+    """Entrada e saida do regulador voltam ao mesmo no, e nada depende dele.
+    Nenhuma abertura o poe a conduzir — nao ha o que alimentar —, mas o laco
+    nao pode operar fechado: na 5000944 da EQUATORIAL6072 circulavam 4,6 kA.
+    Abre-se o candidato de menor perda, e o arquivo diz por que."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.tmp, cls.p, cls.arquivo = _variante_com(
+            'bypass69s_',
+            chaves='New Line.X1 Phases=3 Bus1=b5.1.2.3 Bus2=q1.1.2.3 Switch=Y '
+                   'r1=1e-4 x1=1e-4 r0=1e-4 x0=1e-4\n'
+                   'New Line.X2 Phases=1 Bus1=q2.1 Bus2=q1.1 Switch=Y '
+                   'r1=1e-4 x1=1e-4 r0=1e-4 x0=1e-4',
+            regs='New Transformer.REG_Q_1 phases=1 windings=2 XHL=0.04\n'
+                 '~ buses=[q1.1 q2.1] conns=[wye wye] kVs=[7.9674 7.9674] '
+                 'kVAs=[5000 5000] %Rs=[0.01 0.01] maxtap=1.10 mintap=0.90 '
+                 'numtaps=32\n'
+                 'New RegControl.RC_REG_Q_1 transformer=REG_Q_1 winding=2 '
+                 'vreg=125 band=2 ptratio=66.4 delay=15 maxtapchange=1')
+
+    @classmethod
+    def tearDownClass(cls):
+        shutil.rmtree(cls.tmp, ignore_errors=True)
+
+    def test_abre_e_diz_por_que(self):
+        self.assertEqual(self.p.returncode, 0, self.p.stderr[-1500:])
+        self.assertIn('Edit Line.x2 enabled=no', self.arquivo)
+        self.assertIn('regulador sem carga a jusante', self.arquivo)
+        self.assertNotIn('edit line.x1 ', self.arquivo.lower())
+
+    def test_o_bypass_de_campo_continua_certo(self):
+        """O outro regulador da variante segue com a decisao de sempre."""
+        self.assertIn('Edit Line.cb enabled=no', self.arquivo)
 
 
 if __name__ == '__main__':

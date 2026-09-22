@@ -234,27 +234,44 @@ def banco(transformador):
 
 
 def candidatos_de_bypass(dss, lista):
-    """Por banco de regulador, as CHAVES dos ciclos curtos que o contem.
+    """Por banco de regulador, os candidatos a bypass dos ciclos curtos que o
+    contem: `{banco: {'chaves': [grupo, ...], 'trechos': [grupo, ...]}}`.
 
-    So chave: abrir trecho de condutor nao e manobra de campo. A decisao de
-    qual delas e o bypass e eletrica e fica com quem chama.
+    CADA CANDIDATO E UM GRUPO, e nao um elemento: os que ligam o MESMO par de
+    barras abrem juntos. Na ETR da NEOENERGIA47 (V37) quatro chaves em
+    paralelo — `h29417`, `a`, `b` e `p` — fechavam o laco do regulador; abrir
+    uma so deixava as outras tres segurando 29 MW de circulacao, e as quatro
+    saiam como "4 candidatas" sem decisao.
+
+    Chave primeiro. Trecho de condutor so entra se o laco nao tem chave
+    nenhuma — na AGT da NEOENERGIA43 o laco era so de trechos, com 28 MW
+    circulando. Abrir trecho nao e manobra de campo, e quem chama diz isso no
+    arquivo.
     """
-    chaves = {}
+    tipo, barras = {}, {}
     por_banco = collections.OrderedDict()
     for lc in lista:
         if not lc['regulador']:
             continue
-        cs = por_banco.setdefault(banco(lc['regulador']), [])
+        b = por_banco.setdefault(banco(lc['regulador']),
+                                 {'chaves': collections.OrderedDict(),
+                                  'trechos': collections.OrderedDict()})
         for e in lc['ciclo']:
             e = e.lower()
-            if not e.startswith('line.') or e in cs:
+            if not e.startswith('line.'):
                 continue
-            if e not in chaves:
+            if e not in tipo:
                 dss.Lines.Name(e.split('.', 1)[1])
-                chaves[e] = bool(dss.Lines.IsSwitch())
-            if chaves[e]:
-                cs.append(e)
-    return por_banco
+                tipo[e] = 'chaves' if dss.Lines.IsSwitch() else 'trechos'
+                dss.Circuit.SetActiveElement(e)
+                barras[e] = frozenset(x.split('.')[0].lower()
+                                      for x in dss.CktElement.BusNames()[:2])
+            grupo = b[tipo[e]].setdefault(barras[e], [])
+            if e not in grupo:
+                grupo.append(e)
+    return collections.OrderedDict(
+        (k, {t: [tuple(g) for g in v[t].values()] for t in v})
+        for k, v in por_banco.items())
 
 
 # AVISO DE SOLUCAO NAO E MODELO QUEBRADO. O MASTER termina com `Solve`, e o
