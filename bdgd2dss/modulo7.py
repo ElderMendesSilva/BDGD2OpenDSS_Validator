@@ -118,11 +118,31 @@ def perda_medidores(bdgd, ano=2025):
 
 
 def _resistencias(bdgd):
-    """{TIP_CND: ohm/km} da SEGCON, sem correcao: o ramal usa o condutor
-    declarado, e a correcao do `linecodes` e sobre a coerencia R x ampacidade
-    de condutor de rede."""
-    s = bdgd.ler('SEGCON', ['COD_ID', 'R1'])
-    return {txt(c): num(r) for c, r in zip(s['COD_ID'], s['R1']) if num(r) > 0}
+    """{TIP_CND: ohm/km} da SEGCON, com a MESMA correcao do `linecodes`.
+
+    Ler o R1 cru nao serve, e a primeira medida nacional provou: a Copel deu
+    372 W medios por ramal contra 0,6 W da FORCEL83, e a CPFL Santa Cruz
+    2,5 TWh/ano so em ramal. A causa e a que o achado dos condutores
+    incoerentes ja tinha medido — R1 dezenas de vezes acima do previsto para a
+    ampacidade do cabo —, e o `linecodes` corrige isso desde entao. A perda do
+    ramal vai com o quadrado da corrente mas e LINEAR em R: um R 100x errado e
+    uma perda 100x errada.
+    """
+    from . import linecodes
+    s = bdgd.ler('SEGCON', ['COD_ID', 'R1', 'CNOM'])
+    pares = [(num(r), num(c)) for r, c in zip(s['R1'], s['CNOM'])]
+    aj = linecodes._ajuste(pares) if linecodes.FATOR_CORRIGE else None
+    out = {}
+    for cod, r1, cnom in zip(s['COD_ID'], s['R1'], s['CNOM']):
+        r1, cnom = num(r1), num(cnom)
+        if r1 <= 0:
+            continue
+        if aj and cnom > 0:
+            prev = math.exp(aj[1]) * cnom ** aj[0]
+            if r1 > linecodes.FATOR_CORRIGE * prev:
+                r1 = prev
+        out[txt(cod)] = r1
+    return out
 
 
 def _curvas(bdgd):

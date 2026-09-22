@@ -30,14 +30,39 @@ MASTER — segue sem a premissa ate ser reconvertido.
 A etapa `reguladores.py` abre, antes de medir a orientacao, a chave de bypass
 que a BDGD declara fechada em volta do regulador — a forma de campo que a
 trava do achado 48 nao ve, porque liga os PACs das chaves vizinhas e nao os do
-regulador. O criterio e eletrico: abre-se a UNICA chave do ciclo curto que,
-aberta sozinha, nao desenergiza no nenhum e deixa o regulador conduzindo. Sem
-candidata unica, nada se abre, e o `_REGULADORES.dss` diz qual laco ficou.
+regulador. O criterio e eletrico: dos candidatos do ciclo curto, servem os
+que, abertos, nao desenergizam no nenhum; deles abre-se o que poe mais carga
+no regulador. Chaves em paralelo abrem juntas; sem candidato que faca o
+regulador conduzir, abre-se o de menor perda e o arquivo diz que o regulador
+nao tem carga a jusante; laco so de trechos usa trecho como ultimo recurso.
 Nova variante `bypass_de_regulador` na fixture e no pre-voo.
 
 O que ela NAO faz: nao abre laco sem regulador. Na 5001306 da EQUATORIAL6072
 o bypass leva a perda de 77,2% a 64,5%, e o resto vem desses.
 
+
+### V39 — nenhuma base acima de 1,2x a ANEEL
+
+Commit `6d6c189`, pre-voo 36940, coletor 37042 fechado em 22/09/2026. Traz o
+achado 69 com as quatro formas de bypass, o laco em ilha que deixou de ser
+decidido, e a etapa que nao desiste mais da subestacao com aviso #485.
+
+| | V38 | V39 |
+|---|---:|---:|
+| EQUATORIAL6072 | 12,23% | **9,31%** (0,98x a ANEEL; era 3,0x na V36) |
+| NEOENERGIA47 | 8,13% | 7,18% |
+| NEOENERGIA43 | 4,87% | 4,08% |
+| subestacoes sadias | 4.008 | 4.014 |
+| bases acima de 1,2x a ANEEL | 1 | **0** |
+
+Cinco bases ainda reprovam a ancora externa, todas por pouco: CERNHE6609
+(7,70%), CERMISSOES2381 (7,54%), DMED51 (4,94%), COCEL82 (4,71%) e FORCEL83
+(4,29%). A razao mediana segue em 0,51, e o que falta para ela virar erro
+medido continua sendo o recorte: o modelo cobre MT e transformadores, e a
+referencia soma o sistema inteiro.
+
+O que ela NAO tem: BT completa (prevista para o fim de semana de 25-28/09) e
+a decomposicao por segmento da ANEEL, pedida por LAI.
 
 ### V37 — achados 69 e 70 aplicados
 

@@ -106,6 +106,33 @@ class TestMedidor(unittest.TestCase):
         self.assertEqual(d[1], {'DU': 23, 'SA': 4, 'DO': 4})
 
 
+class TestResistencia(unittest.TestCase):
+    """O R1 do ramal passa pela mesma correcao do `linecodes`. Sem ela, a
+    primeira medida nacional deu 372 W medios por ramal na Copel e 2,5 TWh/ano
+    na CPFL Santa Cruz — a perda e linear em R, e um R 100x errado e uma perda
+    100x errada."""
+
+    def _segcon(self, extra):
+        cod, r1, cnom = [], [], []
+        for k in range(60):                      # miolo coerente: R = 100/CNOM
+            c = 50 + 10 * k
+            cod.append(f'C{k}')
+            r1.append(100.0 / c)
+            cnom.append(float(c))
+        for nome, r, c in extra:
+            cod.append(nome)
+            r1.append(r)
+            cnom.append(c)
+        return BDGDFalsa({'SEGCON': {'COD_ID': cod, 'R1': r1, 'CNOM': cnom}})
+
+    def test_r_absurdo_e_substituido_pelo_previsto(self):
+        b = self._segcon([('ABSURDO', 100.0, 200.0), ('OK', 0.5, 200.0)])
+        r = modulo7._resistencias(b)
+        self.assertAlmostEqual(r['OK'], 0.5)                 # coerente, intocado
+        self.assertLess(r['ABSURDO'], 1.0)                   # 100 ohm/km nao passa
+        self.assertAlmostEqual(r['ABSURDO'], 100.0 / 200.0, places=2)
+
+
 class TestRamal(unittest.TestCase):
 
     def test_ramal_mono_bate_com_a_conta(self):

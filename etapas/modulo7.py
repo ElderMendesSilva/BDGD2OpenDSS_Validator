@@ -33,9 +33,24 @@ def uma(gdb, ano):
         b = leitor.BDGD(gdb, verbose=False)
         med = modulo7.perda_medidores(b, ano)
         ram, censo = modulo7.perda_ramais(b, ano)
+        # O DENOMINADOR NAO PODE SER SO A CTMT. Na primeira medida nacional
+        # (22/09/2026) as cooperativas deram ramal em 918% e medidor em 300%
+        # da "energia injetada": a soma de `CTMT.ENE` nelas e quase zero,
+        # enquanto as unidades consumidoras declaram energia. Vale a MAIOR
+        # entre a energia dos alimentadores e a fornecida as unidades, e o
+        # arquivo diz qual foi usada.
         ct = b.ler('CTMT', ['COD_ID'] + [f'ENE_{m:02d}' for m in range(1, 13)])
-        inj = sum(leitor.num(ct[f'ENE_{m:02d}'][i])
-                  for i in range(len(ct['COD_ID'])) for m in range(1, 13)) / 1000.0
+        inj_ctmt = sum(leitor.num(ct[f'ENE_{m:02d}'][i])
+                       for i in range(len(ct['COD_ID'])) for m in range(1, 13)) / 1000.0
+        forn = 0.0
+        for tab in ('UCBT_tab', 'UCMT_tab', 'UCAT_tab'):
+            try:
+                u = b.ler(tab, [f'ENE_{m:02d}' for m in range(1, 13)])
+            except Exception:                                        # noqa: BLE001
+                continue
+            forn += sum(leitor.num(x) for m in range(1, 13)
+                        for x in u[f'ENE_{m:02d}']) / 1000.0
+        inj = max(inj_ctmt, forn)
     except Exception as e:                                           # noqa: BLE001
         return {'gdb': os.path.basename(gdb), 'erro': f'{type(e).__name__}: {str(e)[:200]}'}
     m = {k: sum(v[k] for v in med.values()) for k in ('provavel', 'teto', 'piso', 'n', 'sem_tipo')}
@@ -47,6 +62,9 @@ def uma(gdb, ano):
     dist = re.search(r'_(\d+)_\d{4}-\d{2}-\d{2}', os.path.basename(gdb))
     return {'gdb': os.path.basename(gdb), 'dist': dist.group(1) if dist else None,
             'energia_injetada_mwh': round(inj, 1),
+            'energia_ctmt_mwh': round(inj_ctmt, 1),
+            'energia_fornecida_mwh': round(forn, 1),
+            'denominador': 'CTMT' if inj_ctmt >= forn else 'unidades',
             'unidades_bt': m['n'], 'medidores_sem_tipo': m['sem_tipo'],
             'medidores_mwh': {k: round(m[k], 2) for k in ('provavel', 'piso', 'teto')},
             'ramais_mwh': round(r, 2), 'ramais_censo': censo,
