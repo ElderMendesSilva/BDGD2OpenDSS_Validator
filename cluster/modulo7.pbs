@@ -1,0 +1,26 @@
+#!/bin/bash
+# Ramais e medidores pelo Modulo 7 do PRODIST, nas BDGDs de uma safra.
+#
+#     qsub -N modulo7 -q BIRA_Q3 -l nodes=1:ppn=16 -l mem=48gb \
+#          -l walltime=02:00:00 -j oe -o logs/cluster/ \
+#          -v "PROJETO=$PWD,BASES_M7=$HOME/elder/bdgds_2025,ANO_M7=2025" cluster/modulo7.pbs
+#
+# Os dois segmentos que a perda tecnica regulatoria da ANEEL soma e o modelo
+# com BT agregada nao tem. Le so a BDGD, sem modelo convertido. Na FORCEL83
+# deram 0,18% da energia injetada. Ver `etapas/modulo7.py`.
+#
+# Os nomes das variaveis nao sao genericos de proposito: o PBS repassa o
+# ambiente de quem submete e a herdada vence — ver cluster/coletor.pbs.
+set -uo pipefail
+cd "${PBS_O_WORKDIR:-$PROJETO}"
+source .venv/bin/activate
+export BDGD2DSS_MODO=cluster
+BASES="${BASES_M7:?passe BASES_M7 por -v}"
+ANO="${ANO_M7:-2025}"
+echo "## modulo 7 (ramais e medidores), safra $ANO — $(date)"
+mkdir -p medicoes
+python -u etapas/modulo7.py --pasta "$BASES" --ano "$ANO" \
+    --jobs "${PBS_NP:-4}" --saida-json "medicoes/modulo7_${ANO}.json"
+rc=$?
+echo "## fim $(date)  (rc=$rc)"
+exit $rc

@@ -8,7 +8,7 @@ começo** — mover depois quebra caminho que alguém já escreveu.
 | pasta | o que vai nela |
 |---|---|
 | **raiz** | só as PORTAS DE ENTRADA: `Validator.py` (o menu, com todas as opções), `painel.py`, `app.py`, `regerar_v10.py` e `relatorio.py`. Mais o `README.md`, o `CHANGELOG.md` e o `requirements.txt` |
-| **`etapas/`** | os executáveis do ciclo, chamados pelo `regerar_v10` e pelo menu: `converter.py`, `verifica.py`, `energia.py`, `validador.py`, `valida_*.py`, `ampacidade.py`, `ligacao.py`, `auditoria.py`, `decompor.py`, `doutor.py`, `pausa.py`, `baixar_*.py`, `analise_com.py`, `prevoo.py`, `importar_perdas_aneel.py` |
+| **`etapas/`** | os executáveis do ciclo, chamados pelo `regerar_v10` e pelo menu: `converter.py`, `verifica.py`, `energia.py`, `validador.py`, `valida_*.py`, `ampacidade.py`, `ligacao.py`, `auditoria.py`, `decompor.py`, `doutor.py`, `pausa.py`, `baixar_*.py`, `analise_com.py`, `prevoo.py`, `importar_perdas_aneel.py`, `modulo7.py` |
 | **`docs/`** | todo `.md` que não seja o `README.md` — achados, planos, relatórios, respostas |
 | **`logs/`** | log de execução. A regeração escreve em `logs/<sufixo>/`: `logs/v13/`, `logs/v14/`… Log solto de script avulso fica em `logs/` mesmo |
 | **`medicoes/`** | JSON de medição avulsa: alcance, censo de condutor, e o que mais sair de script de diagnóstico |
