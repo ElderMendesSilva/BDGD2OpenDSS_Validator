@@ -2462,6 +2462,24 @@ distribuidora só vale para o próprio ano. O rodapé imprimia a âncora com uma
 casa, e 7,38% saía "7.4%" — a mudança ficava invisível justamente onde alguém
 lê.
 
+**A referência é o próprio cálculo da ANEEL no OpenDSS — confirmado em
+22/09/2026.** A ANEEL calcula a perda técnica regulatória com o
+**ProgGeoPerdas**, que monta a rede a partir da BDGD e resolve no OpenDSS
+desde a NT 0057/2014 — a mesma entrada e o mesmo motor deste projeto. A página
+do painel se chama "Perdas Totais sobre Energia Injetada", mas a coluna lida é
+`PTecReg`, a perda técnica regulatória; a total (`Ptot`) é outra. A prova é
+independente: a NT 180/2025-STR (revisão tarifária da Equatorial MA) fixa a
+perda técnica em **11,4982%**, "calculado segundo o Módulo 7 do PRODIST" pela
+STD, e `dados/perdas_aneel.csv` traz exatamente 11,4982 para o agente 37.
+
+O que isso muda: a razão modelo/ANEEL compara duas simulações OpenDSS da mesma
+BDGD. O que ainda a impede de virar erro medido é o recorte — o número da ANEEL
+soma alta, média, baixa, transformadores, ramais e medidores, e o modelo cobre
+média tensão e transformadores com a BT agregada. A decomposição por segmento
+não está nas notas técnicas nem no relatório anual; foi pedida por LAI
+(protocolos 48003.019520/2026-30, o programa, e 48003.019521/2026-84, os
+resultados por segmento e por alimentador; prazo 13/10/2026).
+
 ## Achado 67 — a perda não cabe na energia que entra
 
 A referência externa do achado 66 pôs a **ENERGISA_M405** no topo da fila:

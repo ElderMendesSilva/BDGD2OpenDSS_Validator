@@ -93,9 +93,15 @@ ANEEL_2025 = {
     'tecnica_pct': 7.38,
     'tecnica_twh': 45.33,
     'nao_tecnica_pct': 7.32,
-    'fonte': ('ANEEL, painel "Perdas de Energia" — Perdas Totais sobre '
-              'Energia Injetada, Ano Civil 2025, dados subjacentes '
-              'exportados em 16/09/2026 (51 concessionarias)'),
+    # A PAGINA do painel se chama "Perdas Totais sobre Energia Injetada", mas
+    # a coluna lida e a PERDA TECNICA REGULATORIA (`PTecReg`), a que a STD
+    # calcula pelo Modulo 7 do PRODIST — ProgGeoPerdas sobre a BDGD, no
+    # OpenDSS. Conferido contra a NT 180/2025-STR (RTP da Equatorial MA): a
+    # nota fixa 11,4982%, e a tabela traz 11,4982 para o agente 37.
+    'fonte': ('ANEEL, painel "Perdas de Energia" — perda tecnica regulatoria '
+              '(coluna PTecReg, Modulo 7 do PRODIST) sobre energia injetada, '
+              'Ano Civil 2025, dados subjacentes exportados em 16/09/2026 '
+              '(51 concessionarias)'),
     'url': 'https://portalrelatorios.aneel.gov.br/luznatarifa/perdasenergias',
 }
 
