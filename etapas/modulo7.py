@@ -68,6 +68,8 @@ def uma(gdb, ano):
             'unidades_bt': m['n'], 'medidores_sem_tipo': m['sem_tipo'],
             'medidores_mwh': {k: round(m[k], 2) for k in ('provavel', 'piso', 'teto')},
             'ramais_mwh': round(r, 2), 'ramais_censo': censo,
+            # achado 73: ramais acima de 2x a ampacidade, fora da soma
+            'ramais_implausiveis_mwh': censo.get('mwh_implausivel', 0.0),
             'pct': {'medidores': pct(m['provavel']), 'ramais': pct(r),
                     'soma': pct(m['provavel'] + r),
                     'soma_teto': pct(m['teto'] + r), 'soma_piso': pct(m['piso'] + r)},

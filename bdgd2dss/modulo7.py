@@ -52,6 +52,11 @@ TIPMED_PROVAVEL = {'1': 'eletromecanico', '2': 'eletronico'}
 RAMAL_SEM_CADASTRO_M = 15.0
 RAMAL_MAXIMO_M = 30.0
 FP = 0.92
+# Um ramal nao conduz, em regime, o dobro da ampacidade do proprio condutor.
+# Acima disso a corrente e da ENERGIA declarada e nao da rede: unidade de BT
+# com energia implausivel, que o quadrado da corrente amplifica. Ver
+# `perda_ramais`.
+FATOR_AMPACIDADE = 2.0
 PASSOS = 96                       # CRVCRG: 96 pontos de 15 min
 DT_H = 24.0 / PASSOS
 DIAS = ('DU', 'SA', 'DO')
@@ -170,6 +175,8 @@ def perda_ramais(bdgd, ano=2025, kv_bt_padrao=0.22, lote=20000):
         # base sem RAMLIG: nao ha ramal a somar, e isso e dito, nao zerado
         return {}, {'sem_tabela': 'RAMLIG'}
     ohm_km = _resistencias(bdgd)
+    s_ = bdgd.ler('SEGCON', ['COD_ID', 'CNOM'])
+    ampac = {txt(c): num(a) for c, a in zip(s_['COD_ID'], s_['CNOM']) if num(a) > 0}
     curvas = _curvas(bdgd)
     uc = bdgd.ler('UCBT_tab', ['RAMAL', 'TIP_CC', 'FAS_CON', 'TEN_FORN'] +
                   [f'ENE_{m:02d}' for m in range(1, 13)])
@@ -193,7 +200,8 @@ def perda_ramais(bdgd, ano=2025, kv_bt_padrao=0.22, lote=20000):
             censo['condutor_desconhecido'] += 1
         f = txt(fas).upper()
         nf = max(1, sum(1 for c in 'ABC' if c in f))
-        ram[txt(cod)] = (txt(ct), rk * L / 1000.0, nf, 'N' in f)
+        ram[txt(cod)] = (txt(ct), rk * L / 1000.0, nf, 'N' in f,
+                         ampac.get(txt(cnd), 0.0))
     censo['ramais'] = len(ram)
 
     # As unidades, agrupadas por ramal: a potencia de cada instante e a SOMA.
@@ -228,7 +236,9 @@ def perda_ramais(bdgd, ano=2025, kv_bt_padrao=0.22, lote=20000):
     # monofasico com neutro: a corrente volta pelo neutro, 2 condutores
     NCOND = NF + np.array([1 if (v[2] == 1 and v[3]) else 0 for v in ram.values()])
     dias = dias_por_tipo(ano)
+    AMP = np.array([v[4] for v in ram.values()])
     perda_kwh = np.zeros(n_r)
+    i_max = np.zeros(n_r)
     for m in range(12):
         ene = np.array([num(x) for x in uc[f'ENE_{m + 1:02d}']])
         E = np.zeros((n_r, n_t), dtype=np.float64)
@@ -244,11 +254,27 @@ def perda_ramais(bdgd, ano=2025, kv_bt_padrao=0.22, lote=20000):
                 # W em cada instante: E/(24 h x dias) x curva de media 1
                 P = (E[a:b, :] / (24.0 * nd)) @ S * 1000.0
                 I = P / (NF[a:b, None] * v_fn[a:b, None] * FP)
+                i_max[a:b] = np.maximum(i_max[a:b], I.max(axis=1))
                 w = NCOND[a:b, None] * R[a:b, None] * I ** 2
                 perda_kwh[a:b] += w.sum(axis=1) * DT_H * dias[m + 1][d] / 1000.0
+    # ACHADO 73 — O RAMAL QUE CONDUZ O QUE NENHUM CABO CONDUZ. A primeira
+    # medida nacional deu 71,7% da energia injetada em ramal na CPFL Santa
+    # Cruz e 56,6% na Copel, com resistencia (0,67 e 0,59 ohm/km), comprimento
+    # e unidades por ramal (1,08) normais — e 579 W medios por ramal, contra
+    # 0,7 W da mediana do pais. Para isso a corrente media teria de ser ~100 A
+    # numa unidade residencial: e a ENERGIA declarada de poucas unidades,
+    # implausivel para a BT, que o quadrado da corrente faz dominar a base.
+    # O ramal cuja corrente de pico passa de FATOR_AMPACIDADE x a ampacidade
+    # do proprio condutor sai da soma e e contado a parte, como o modelo
+    # principal faz com o alimentador implausivel.
+    implausivel = (AMP > 0) & (i_max > FATOR_AMPACIDADE * AMP)
+    censo['ramais_implausiveis'] = int(implausivel.sum())
+    censo['mwh_implausivel'] = round(float(perda_kwh[implausivel].sum()) / 1000.0, 1)
     por_ct = collections.defaultdict(float)
-    for (ct, *_), p in zip(ram.values(), perda_kwh):
-        por_ct[ct] += p / 1000.0                                        # MWh
+    for (ct, *_), p, fora in zip(ram.values(), perda_kwh, implausivel):
+        if not fora:
+            por_ct[ct] += p / 1000.0                                    # MWh
+    perda_kwh = np.where(implausivel, 0.0, perda_kwh)
     # DIAGNOSTICO, porque a primeira medida nacional teve base com 70% da
     # energia injetada em ramal e a causa nao apareceu no censo: a resistencia
     # mediana usada, quantas unidades pendura cada ramal e o watt medio de

@@ -161,6 +161,26 @@ class TestRamal(unittest.TestCase):
                                        kv_bt_padrao=0.127)
         self.assertAlmostEqual(dois['F1'] / um['F1'], 4.0, places=6)
 
+    def test_ramal_acima_da_ampacidade_sai_da_soma(self):
+        """Achado 73. Uma unidade de BT com energia de consumidor grande num
+        ramal de cabo de 60 A: 50 kW continuos pedem ~430 A. Nenhum cabo
+        conduz isso, e o quadrado da corrente faria essa unica unidade
+        dominar a base. Sai da soma e e contada a parte."""
+        b = _bdgd_ramal(20, [('AN', 50.0)])
+        b.t['SEGCON']['CNOM'] = [60.0]
+        ram, censo = modulo7.perda_ramais(b, kv_bt_padrao=0.127)
+        self.assertEqual(ram.get('F1', 0.0), 0.0)
+        self.assertEqual(censo['ramais_implausiveis'], 1)
+        self.assertAlmostEqual(censo['mwh_implausivel'],
+                               round(_esperado_mono(50.0, 20), 1), places=1)
+
+    def test_ramal_dentro_da_ampacidade_fica(self):
+        b = _bdgd_ramal(20, [('AN', 1.27)])
+        b.t['SEGCON']['CNOM'] = [60.0]                      # 11 A num cabo de 60 A
+        ram, censo = modulo7.perda_ramais(b, kv_bt_padrao=0.127)
+        self.assertAlmostEqual(ram['F1'], _esperado_mono(1.27, 20), places=6)
+        self.assertEqual(censo['ramais_implausiveis'], 0)
+
     def test_base_sem_ramlig_diz_que_nao_tem(self):
         ram, censo = modulo7.perda_ramais(BDGDFalsa({}))
         self.assertEqual(ram, {})
