@@ -249,4 +249,21 @@ def perda_ramais(bdgd, ano=2025, kv_bt_padrao=0.22, lote=20000):
     por_ct = collections.defaultdict(float)
     for (ct, *_), p in zip(ram.values(), perda_kwh):
         por_ct[ct] += p / 1000.0                                        # MWh
+    # DIAGNOSTICO, porque a primeira medida nacional teve base com 70% da
+    # energia injetada em ramal e a causa nao apareceu no censo: a resistencia
+    # mediana usada, quantas unidades pendura cada ramal e o watt medio de
+    # cada um dizem, juntos, se o absurdo e do dado ou da conta.
+    if len(perda_kwh):
+        censo['w_medio_por_ramal'] = round(
+            float(perda_kwh.sum()) * 1000.0 / len(perda_kwh) / horas_do_ano(ano), 2)
+    if ohm_km:
+        censo['ohm_km_mediano'] = round(float(np.median(list(ohm_km.values()))), 4)
+    if n_r:
+        por_ramal = np.bincount(J[ok], minlength=n_r) if n_uc else np.zeros(n_r)
+        censo['uc_por_ramal_medio'] = round(float(por_ramal.mean()), 2)
+        censo['uc_por_ramal_max'] = int(por_ramal.max()) if n_r else 0
+        # R = ohm/km x L/1000  ->  L = R x 1000 / (ohm/km)
+        censo['comprimento_medio_m'] = round(
+            float(np.mean([v[1] for v in ram.values()])) * 1000.0
+            / max(1e-9, float(np.median(list(ohm_km.values())) if ohm_km else 1)), 1)
     return dict(por_ct), dict(censo)
