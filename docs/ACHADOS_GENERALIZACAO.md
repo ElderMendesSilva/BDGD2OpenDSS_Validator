@@ -2576,6 +2576,52 @@ alimentador.
   forte que sobrou — e a medida por média de fases pode enganar onde as fases
   mudam, então ela precisa de confirmação fase a fase.
 
+## Achado 73 — o ramal que conduz o que nenhum cabo conduz
+
+A referência da ANEEL soma ramais de ligação e medidores, e o modelo com BT
+agregada não tem nenhum dos dois. `bdgd2dss/modulo7.py` os calcula só da BDGD,
+pelas regras do Módulo 7 do PRODIST (REN 956/2021, Anexo VII): medidor com
+1 W por circuito de tensão no eletromecânico e 0,5 W no eletrônico; ramal com
+R × I² da corrente das unidades penduradas nele, 15 m sem cadastro e 30 m no
+máximo.
+
+**A primeira medida nacional deu absurdo, e por três causas diferentes.** O
+denominador (`CTMT.ENE`, quase zero nas cooperativas) pôs ramal em 918% da
+energia injetada; o R1 lido cru, sem a correção do `linecodes`, também
+pesava; e, corrigidos os dois, a CPFL Santa Cruz seguia com **71,7%** e a
+Copel com **56,6%**. O diagnóstico por base descartou dado de rede —
+resistência (0,67 e 0,59 ohm/km), comprimento e unidades por ramal (1,08)
+normais — e mostrou **579 W médios por ramal**, contra 0,7 W da mediana do
+país. É a energia declarada de poucas unidades, implausível para a BT, que o
+quadrado da corrente faz dominar a base.
+
+**A lei:** o ramal cuja corrente de pico passa de 2× a ampacidade do próprio
+condutor sai da soma e é contado à parte, como o modelo principal faz com o
+alimentador implausível. **Medido nas 99 bases (job 37049, 23/09/2026):**
+
+| | país |
+|---|---:|
+| ramais | 84.482.505 |
+| **separados** (acima de 2× a ampacidade) | **107.746 (0,13%)** |
+| "perda" que eles carregavam | **25,1 TWh** |
+| perda dos outros 84 milhões | 745 GWh (0,15% da energia injetada) |
+| perda nos medidores | 942 GWh (0,18%) |
+
+Os separados somavam **33 vezes** a perda de todos os outros ramais do país.
+Até na FORCEL83, onde o número fechava, 20 de 7.002 ramais carregavam 14,3 dos
+37,7 MWh.
+
+**O que isso diz sobre a validação externa:** ramais e medidores somam
+**0,33%** da energia injetada (mediana por base 0,27%, máximo 0,69%), contra
+7,4% de perda técnica da ANEEL. A distância da razão mediana de 0,51 não está
+neles: está na **rede de BT**, que as rodadas nacionais agregam — e é o que a
+BT completa do fim de semana de 25-28/09 mede.
+
+**O que ainda é premissa:** o código `EQME.TIPMED` 1 = eletromecânico e 2 =
+eletrônico é inferido (na FORCEL83, o 2 tem instalação mediana em 2020 contra
+2014 do 1), e por isso o medidor sai com piso e teto; e o fator 2× sobre a
+ampacidade é escolha, não norma.
+
 ## Achado 70 — o laço que faz mal é o que atravessa uma mudança de tensão
 
 Com os seis bypass abertos (achado 69), a `5001306` da EQUATORIAL6072 seguia em
