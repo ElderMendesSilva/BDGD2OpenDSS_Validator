@@ -92,10 +92,10 @@ Cada achado é algo que já se errou uma vez, foi medido, e não se deve errar d
 novo. Uma lei que não se localiza sem ambiguidade não é lei — por isso o
 número importa tanto quanto o conteúdo.
 
-**Uma série só, de 1 a 79, sem número reaproveitado**, morando em dois
+**Uma série só, de 1 a 80, sem número reaproveitado**, morando em dois
 lugares:
 
-- **`docs/ACHADOS_GENERALIZACAO.md`** — os de generalização (1–29, 59–79),
+- **`docs/ACHADOS_GENERALIZACAO.md`** — os de generalização (1–29, 59–80),
   medidos sobre as 97 ou 99 bases, com número nacional.
 - **comentário no código** — os de conversão (30–58), no ponto onde a
   correção mora: 34 em `bdgd2dss/ampacidade.py`, 51 em `bdgd2dss/linhas.py`,
@@ -126,7 +126,8 @@ comentario no `prevoo.py`, com os tres guardas reais cobertos. Com a variante
 `r1_preenchimento`, `chave_com_codigo_de_trecho` e `curva_com_ponto_zerado`:
 53 e 27 — os guardas do 75 a 78 no ciclo estao quentes; frios so os do
 `modulo7.py`, que o ciclo nao roda. Com o 79, que a propria minima ja
-exercita: 54 e 27. A V33 caiu em 35 das 99 bases num guarda
+exercita: 54 e 27. O 80 e frio declarado: a minima nao tem monofasico
+declarando a tensao de linha, e o `test_monofasico_em_linha` o alcanca. A V33 caiu em 35 das 99 bases num guarda
 frio, com a suite verde.
 
 Fixture nova que ligue um achado vai em `VARIANTES`, no `testes/fixture.py` —

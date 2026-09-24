@@ -1,7 +1,8 @@
 #!/bin/bash
-# Quatro censos de BDGD antes da V40: R1 de preenchimento (achado 76),
+# Cinco censos de BDGD antes da V40: R1 de preenchimento (achado 76),
 # declaracao de perda degenerada (achado 75) e codigo repetido entre chave e
-# trecho de MT (achado 77) e ponto zerado na curva de carga (achado 78).
+# trecho de MT (achado 77), ponto zerado na curva de carga (achado 78) e
+# monofasico que declara a tensao de linha (achado 80).
 #
 #     qsub -N censo -q BIRA_Q3 -l nodes=1:ppn=8 -l mem=32gb \
 #          -l walltime=01:00:00 -j oe -o logs/cluster/ \

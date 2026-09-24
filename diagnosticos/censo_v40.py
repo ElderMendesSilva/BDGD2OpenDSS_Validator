@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Quatro censos de BDGD antes da V40, uma linha por base. So le a BDGD.
+"""Cinco censos de BDGD antes da V40, uma linha por base. So le a BDGD.
 
     python diagnosticos/censo_v40.py --pasta ~/elder/bdgds_2025 --jobs 8 \\
         --saida-json medicoes/censo_v40.json
@@ -21,6 +21,11 @@
 4. PONTO ISOLADO ZERADO NA CURVA DE CARGA (achado 78). Quantas curvas da
    CRVCRG tem um ponto zerado entre dois positivos, e em que posicao. A
    Elektro tem POT_96 = 0 em todas, e 84 subestacoes perderam o passo 95.
+
+5. MONOFASICO QUE DECLARA A TENSAO DE LINHA (achado 80). Quantos
+   alimentadores o voto do parque (`tensoes.por_equipamento`) decide numa
+   tensao diferente com e sem a trava do achado 80, e para qual. Na V39 as
+   Energisa foram a 59,8 kV (34,5 x raiz(3)).
 """
 import argparse
 import concurrent.futures as cf
@@ -111,6 +116,25 @@ def uma(gdb):
     except Exception as e:                                         # noqa: BLE001
         r['curvas'] = {'erro': f'{type(e).__name__}: {e}'[:200]}
 
+    # 5. voto do parque, com e sem a trava do achado 80
+    try:
+        from bdgd2dss import tensoes
+        tensoes.PERTO_DO_NIVEL = -1.0
+        velho = tensoes.por_equipamento(b)
+        tensoes.PERTO_DO_NIVEL = 0.05
+        msgs = []
+        novo = tensoes.por_equipamento(b, log=msgs.append)
+        muda = collections.Counter()
+        for c in set(velho) | set(novo):
+            a_, n_ = (velho.get(c) or (None,))[0], (novo.get(c) or (None,))[0]
+            if a_ != n_:
+                muda[f'{a_}->{n_}'] += 1
+        r['voto'] = {'decididos': len(novo), 'mudam': sum(muda.values()),
+                     'como': dict(muda.most_common(5)),
+                     'aviso': next((m.strip() for m in msgs if 'ACHADO 80' in m), '')}
+    except Exception as e:                                         # noqa: BLE001
+        r['voto'] = {'erro': f'{type(e).__name__}: {e}'[:200]}
+
     r['segundos'] = round(time.time() - t0, 1)
     return r
 
@@ -129,12 +153,14 @@ def main(argv=None):
             res.append(r)
             sg, ct, nm = r.get('segcon') or {}, r.get('ctmt') or {}, r.get('nomes') or {}
             cv = r.get('curvas') or {}
+            vt = r.get('voto') or {}
             print(f'  {r["gdb"][:34]:34s} R1topo={sg.get("r1_topo")} '
                   f'({sg.get("fatia_topo")}) exp={sg.get("expoente")} '
                   f'PREENCH={sg.get("preenchimento")} | decl med='
                   f'{ct.get("mediana_pct")}% dentro={ct.get("dentro_do_corte")}/'
                   f'{ct.get("com_energia")} | repetidos={nm.get("repetidos")} '
                   f'| zero isolado={cv.get("com_zero_isolado")}/{cv.get("n")} '
+                  f'| voto muda={vt.get("mudam")} {vt.get("como", "")} '
                   f'{r.get("erro", "")}', flush=True)
             with open(a.saida_json, 'w', encoding='utf-8') as fh:
                 json.dump({'bases': res}, fh, ensure_ascii=False, indent=1)

@@ -2576,6 +2576,48 @@ alimentador.
   forte que sobrou — e a medida por média de fases pode enganar onde as fases
   mudam, então ela precisa de confirmação fase a fase.
 
+## Achado 80 — o monofásico que já declara a tensão de linha
+
+O voto do parque (achado 49, `tensoes.por_equipamento`) lê o `TEN_PRI` do
+transformador de um nó como **fase-neutro** e o multiplica por √3 (achado 41).
+É o que a Equatorial PA declara — 19,919 e 7,96 kV em 154 mil monofásicos, que
+viram 34,5 e 13,8 — e a Ceriluz (13,8 num sistema de 24,2). **As Energisa
+declaram no monofásico a tensão de LINHA** do alimentador: 34,5 × √3 = 59,8
+kV, 13,8 × √3 = 23,9, 11,4 × √3 = 19,7, que não existem. Na V39 o achado 49
+trocou por isso 198 alimentadores da Energisa MT e 108 da TO para 59,8 kV, 121
+da RO para 23,9 e 111 da Minas Rio para 19,7 — cada um atrás de um
+transformador de barra inventado, que o achado 79 depois mostrou sem fonte. As
+Energisa são as bases de menor razão contra a ANEEL do país (0,19 a 0,26×,
+contra ~0,5 nas demais).
+
+A trava: os níveis de linha da base são os que os trafos de dois ou três nós
+declaram (com pelo menos 5 votos). No monofásico, √3 só vale se levar a um
+desses níveis; se o valor cru já é um deles, ele é a tensão de linha e fica.
+Base sem trafo de dois ou três nós: o achado 41 como era.
+
+Nas BDGDs locais: a Equatorial PA, a Cosern e cinco cooperativas **não mudam
+um alimentador**; a Energisa TO muda 123 (59,8→34,5 em 79, 23,9→13,8 em 29) e
+a Minas Rio 128 (19,7→11,4 em 103, 38,1→22 em 8).
+
+Ciclo completo local nas cinco subestações da Energisa TO com mais carga
+morta na V39:
+
+| subestação | kW morto V39 | com o 80 | perda V39 | com o 80 |
+|---|---:|---:|---:|---:|
+| 58 | 8.652 de 9.895 | 84 | 2,04% | 4,05% |
+| 75 | 7.867 de 30.663 | 423 | 1,59% | 2,50% |
+| 67 | 7.663 de 14.742 | 105 | 1,31% | 2,77% |
+| 86 | 4.350 de 14.366 | 66 | 2,00% | 3,25% |
+| 32 | 4.352 de 8.032 | 4.352 | 1,89% | 2,00% |
+
+Carga morta de **42% para 6%**; o achado 49 passa a trocar 4 alimentadores
+em vez de 108. **O custo, dito:** a rede que acorda traz a GD dela, e três das
+cinco perdem de 4 a 6 passos do meio-dia sem convergir (75: 15 MW de pico de
+GD) — a classe `NAO_CONVERGE_COM_GD`, que pede o corte do inversor por
+sobretensão (NBR 16149) e fica para depois da V40. O guarda é frio no pré-voo:
+a BDGD mínima não tem monofásico declarando linha; o `test_monofasico_em_linha`
+o alcança.
+
 ## Achado 79 — a barra da subestação que ninguém alimenta
 
 Quando um alimentador declara tensão diferente da barra da subestação, o

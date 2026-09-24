@@ -8,6 +8,19 @@ número, estão em [docs/ACHADOS_GENERALIZACAO.md](docs/ACHADOS_GENERALIZACAO.md
 
 ## 1.1.0 — em aberto (safra 2025-12-31)
 
+### O monofásico que já declara a tensão de linha (achado 80)
+
+O voto do parque (achado 49) multiplicava por √3 o `TEN_PRI` de todo
+monofásico; as Energisa declaram nele a tensão de linha, e 59,8 kV saía em
+centenas de alimentadores. Agora √3 só vale se levar a um nível de linha que os
+trafos de dois ou três nós da base declaram. Energisa TO, cinco subestações:
+carga morta de 42% para 6%, perda de ~1,8% para 2-4%. Equatorial PA, Cosern e
+cooperativas: nenhum alimentador muda.
+
+O que NAO faz: não resolve a GD que acorda junto — três das cinco perdem
+passos do meio-dia sem convergir; o corte do inversor por sobretensão fica
+para depois.
+
 ### Barra de origem de transformador de barra sem fonte (achado 79)
 
 A etapa `ligacao.py` põe uma fonte na barra de origem de um `TRB_*` que está

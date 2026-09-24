@@ -295,6 +295,8 @@ def censo_bt(bdgd, log=None):
 #   absoluto.)
 
 MAIORIA = 0.60           # fracao dos trafos que tem de concordar entre si
+# ACHADO 80: distancia relativa para "este valor E um nivel de linha da base"
+PERTO_DO_NIVEL = 0.05
 VOTOS_MINIMOS = 5        # abaixo disto a amostra nao decide nada
 TOLERANCIA_KV = 0.5      # diferenca menor que isto e arredondamento
 
@@ -323,7 +325,25 @@ def por_equipamento(bdgd, log=None):
         ctmt_do_tr[k] = txt(u['CTMT'][i]).strip()
         fases_do_tr[k] = max(1, len([c for c in txt(u['FAS_CON_P'][i]).upper()
                                      if c in 'ABC']))
-    urna = collections.defaultdict(collections.Counter)
+    # ---------------------------------------------------------------------
+    # ACHADO 80 — O MONOFASICO QUE JA DECLARA A TENSAO DE LINHA
+    # ---------------------------------------------------------------------
+    # O achado 41 le o TEN_PRI do trafo de UM no como fase-neutro e multiplica
+    # por raiz(3). E o que a Equatorial PA faz (19,919 e 7,96 kV em 154 mil
+    # monofasicos -> 34,5 e 13,8) e a Ceriluz (13,8 num sistema de 24,2). As
+    # Energisa, nao: declaram no monofasico a tensao de LINHA do alimentador,
+    # e o voto virava 34,5 x raiz(3) = 59,8 kV, que nao existe. Na V39 o
+    # achado 49 trocou por isso 198 alimentadores da Energisa MT e 108 da TO
+    # para 59,8 kV, 121 da RO para 23,9, 111 da Minas Rio para 19,7 — cada um
+    # atras de um transformador de barra inventado. As Energisa sao as bases
+    # de menor razao contra a ANEEL do pais (0,19 a 0,26x, contra ~0,5).
+    #
+    # A REGRA: os niveis de linha da base sao os que os trafos de dois ou tres
+    # nos declaram. No monofasico, raiz(3) so vale se levar a um desses
+    # niveis; se o valor cru ja e um deles, ele e a tensao de linha e fica.
+    # Base sem trafo de dois ou tres nos: o achado 41 como era.
+    brutos = []
+    niveis_cont = collections.Counter()
     for i in range(len(e['UNI_TR_MT'])):
         k = txt(e['UNI_TR_MT'][i]).strip()
         c = ctmt_do_tr.get(k)
@@ -332,10 +352,30 @@ def por_equipamento(bdgd, log=None):
         kv = TENSAO_KV.get(txt(e['TEN_PRI'][i]).strip())
         if not kv:
             continue
-        # achado 41: um no e fase-neutro, dois ou tres e tensao de linha
-        if fases_do_tr.get(k, 1) < 2:
-            kv *= 3 ** 0.5
+        mono = fases_do_tr.get(k, 1) < 2
+        brutos.append((c, kv, mono))
+        if not mono:
+            niveis_cont[round(kv, 1)] += 1
+    niveis = [n for n, q in niveis_cont.items() if q >= VOTOS_MINIMOS]
+
+    def _nivel(x):
+        return any(abs(x - n) <= PERTO_DO_NIVEL * n for n in niveis)
+
+    urna = collections.defaultdict(collections.Counter)
+    linha_declarada = 0
+    for c, kv, mono in brutos:
+        # achado 41: um no e fase-neutro, dois ou tres e tensao de linha —
+        # com a trava do achado 80
+        if mono:
+            if niveis and not _nivel(kv * 3 ** 0.5) and _nivel(kv):
+                linha_declarada += 1
+            else:
+                kv *= 3 ** 0.5
         urna[c][round(kv, 1)] += 1
+    if log and linha_declarada:
+        log(f'  ACHADO 80: {linha_declarada:,} transformadores monofasicos '
+            f'declaram a tensao de LINHA no TEN_PRI (niveis da base: '
+            f'{", ".join(f"{n:g}" for n in sorted(niveis))} kV) — sem raiz(3)')
     out = {}
     for c, v in urna.items():
         total = sum(v.values())
