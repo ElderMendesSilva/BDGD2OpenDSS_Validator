@@ -388,8 +388,15 @@ def _extra_do_modelo(pus, carga, fonte, gd):
         extra['pct_sobrecarga'] = (100.0 * sum(1 for x in carga if x > 100)
                                    / len(carga))
     if gd and any(gd):
+        # O PASSO QUE NAO CONVERGIU VEM COMO `None` nas duas series, e
+        # `None > 0` derrubava a figura da subestacao inteira: "'>' not
+        # supported between instances of 'NoneType' and 'int'", em PPR01 da
+        # Elektro e em MAT, MED e MER da Equatorial PA. Passo sem solucao nao
+        # e reverso nem direto — fica fora da conta.
         total = [(f or 0) + (x or 0) for f, x in zip(fonte, gd)]
-        extra['passos_reversos'] = sum(1 for x, t in zip(gd, total) if x > t)
+        extra['passos_reversos'] = sum(1 for x, t, f in zip(gd, total, fonte)
+                                       if x is not None and f is not None
+                                       and x > t)
     return extra
 
 
