@@ -2610,6 +2610,20 @@ fronteira com outra distribuidora. A correção tem de ligar a ponta à barra da
 subestação próxima **no mesmo nível de tensão**, e deixar as demais como estão,
 contadas.
 
+**A ligação existe, e está desligada** (`--ligar-at`, 23/09/2026). O módulo
+`bdgd2dss/ligacao_at.py` faz exatamente a regra acima; na PA ligou 230 das 367
+pontas soltas, mediana de 47 m, e 95% dos nós da `SSDAT` passaram a estar numa
+componente com subestação. **E o modelo completo piorou**: com três
+subestações da PA, a AT foi de 0 a 5.876 trechos (1.169 km) e o `MASTER-GERAL`
+foi a 73,7% de perda e 0,68 pu de mediana (sem a ligação: 48,0% e 0,986 pu).
+Duas causas, medidas: a regra de fontes põe fonte na cabeceira de `CTAT`, que
+na PA é nó de **linha** — saiu uma de 230 kV no meio da malha, ao lado de uma
+de 69 kV —, e um elo fechou laço pelo transformador 230/138 da MAB (relação
+1,667, a forma do achado 70). Até as duas estarem corrigidas, ligar piora o
+modelo, e a opção fica desligada. **O modelo por subestação — e a razão contra
+a ANEEL, que sai só dos alimentadores de MT — não passa por aqui.** O
+conversor conta as pontas ligáveis em toda base, em `_AT/ligacao_at.json`.
+
 ## Achado 73 — o ramal que conduz o que nenhum cabo conduz
 
 A referência da ANEEL soma ramais de ligação e medidores, e o modelo com BT

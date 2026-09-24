@@ -43,7 +43,7 @@ from bdgd2dss import (linecodes, linhas, chaves, transformadores, cargas,
                       tabelas,
                       complementos, master, subtransmissao, transmissao,
                       tensoes, malha_at, coordenadas, pausa, escrita,
-                      plataforma, carimbo)
+                      plataforma, carimbo, ligacao_at)
 
 
 def ja_gerada(pasta, se):
@@ -142,6 +142,46 @@ def gerar_at(bdgd, a, ctmt_info, mapa_cnd, log, subs_alvo=None):
     os.makedirs(d, exist_ok=True)
     log('Alta tensao (subtransmissao)...')
     dados = subtransmissao.carregar(bdgd, log=log)
+
+    # ACHADO 74 — a subtransmissao solta. Em 23 das 99 bases os nos da SSDAT
+    # nao sao nos de subestacao (na Equatorial PA, `A100275` contra
+    # `MON_490000059`), e a rede de linhas inteira caia fora do modelo. As
+    # pontas soltas sao ligadas, pela geometria, a barra da subestacao mais
+    # proxima no mesmo nivel de tensao — como chaves fechadas virtuais, antes
+    # das componentes, para que o resto da AT as trate como rede ligada.
+    #
+    # DESLIGADO POR PADRAO (`--ligar-at`). No teste de 23/09/2026 com tres
+    # subestacoes da PA, a AT foi de 0 a 5.876 trechos — e o MASTER-GERAL
+    # colapsou (73,7% de perda, 0,68 pu de mediana): a regra de fontes poe
+    # fonte na cabeceira de CTAT, que la e no de LINHA (uma de 230 kV no meio
+    # da malha), e um elo fechou laco pelo trafo 230/138 da MAB. Sem as duas
+    # correcoes, ligar piora o modelo. O modelo por subestacao — e a razao
+    # contra a ANEEL — nao passa por aqui.
+    elos_at, censo_elos = [], {}
+    if getattr(a, 'ligar_at', False):
+        elos_at, censo_elos = ligacao_at.elos(bdgd.gdb, dados)
+        ligacao_at.aplicar(dados, elos_at)
+    else:
+        # o censo roda sempre — ele e so leitura, e diz o tamanho do problema.
+        # E NUNCA derruba a conversao: e diagnostico, e a rodada nacional nao
+        # pode cair numa base por causa dele.
+        try:
+            _, censo_elos = ligacao_at.elos(bdgd.gdb, dados)
+        except Exception as e:                                     # noqa: BLE001
+            censo_elos = {'erro': f'{type(e).__name__}: {str(e)[:120]}'}
+        censo_elos['aplicado'] = False
+    ligacao_at.gravar(os.path.join(d, 'ligacao_at.json'), elos_at, censo_elos)
+    if censo_elos.get('pontas_soltas') and not elos_at:
+        log(f'  ACHADO 74: {censo_elos["pontas_soltas"]} pontas soltas na SSDAT '
+            f'({censo_elos.get("ligadas", 0)} ligaveis pela geometria) — NAO '
+            f'ligadas; use --ligar-at para o experimento')
+    if censo_elos.get('pontas_soltas') and elos_at:
+        log(f'  ACHADO 74: {censo_elos.get("ligadas", 0)} de '
+            f'{censo_elos["pontas_soltas"]} pontas soltas da SSDAT ligadas a '
+            f'barra de AT da subestacao mais proxima (ate '
+            f'{ligacao_at.LIMITE_M:.0f} m, mesmo nivel); '
+            f'{censo_elos.get("longe_de_subestacao", 0)} longe, '
+            f'{censo_elos.get("sem_barra_no_nivel", 0)} sem barra no nivel')
 
     comps, heads = subtransmissao.componentes(dados)
     log(f'  malha de AT: {len(comps)} componentes conexas, '
@@ -825,6 +865,13 @@ def main():
     ap.add_argument('--reg-kva', type=float, default=5000.0)
     ap.add_argument('--cache', default='_cache_ucbt.pkl',
                     help='arquivo de cache da agregacao da UCBT (reuso entre execucoes)')
+    ap.add_argument('--ligar-at', action='store_true',
+                    help='achado 74, EXPERIMENTO: liga pela geometria as '
+                         'pontas soltas da SSDAT a barra de AT da subestacao '
+                         'mais proxima. Desligado por padrao: no teste da '
+                         'Equatorial PA o MASTER-GERAL colapsou (fonte de '
+                         'cabeceira no meio da malha, elo fechando laco por '
+                         'transformador). Nao afeta o modelo por subestacao')
     ap.add_argument('--tensao-do-cabecalho', action='store_true',
                     help='desliga o achado 49: a tensao do alimentador e a do '
                          'CTMT.TEN_NOM, mesmo quando a maioria dos seus '

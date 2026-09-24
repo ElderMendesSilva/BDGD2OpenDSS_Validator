@@ -254,6 +254,14 @@ class App(tk.Tk):
                         variable=self.v_cabecalho).grid(
                             row=15, column=0, columnspan=3, sticky='w',
                             padx=6, pady=(0, 8))
+        # Achado 74 ligado. EXPERIMENTO: desligado por padrao ate a regra de
+        # fontes e o nivel de cada elo serem corrigidos.
+        self.v_ligar_at = tk.BooleanVar(value=False)
+        ttk.Checkbutton(self.f5, text='Ligar a subtransmissão solta pela geometria '
+                        '(achado 74) — experimento',
+                        variable=self.v_ligar_at).grid(
+                            row=16, column=0, columnspan=3, sticky='w',
+                            padx=6, pady=(0, 8))
         self.f5.columnconfigure(2, weight=1)
 
         # --- acoes
@@ -413,6 +421,8 @@ class App(tk.Tk):
                 argv.append('--refazer')
             if self.v_cabecalho.get():
                 argv.append('--tensao-do-cabecalho')
+            if self.v_ligar_at.get():
+                argv.append('--ligar-at')
             if self.v_semat.get():
                 argv.append('--sem-at')
             ses = self.v_se.get().split()
