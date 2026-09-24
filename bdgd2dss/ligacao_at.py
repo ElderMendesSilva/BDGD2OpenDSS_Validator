@@ -146,6 +146,19 @@ def elos(gdb, dados, limite_m=LIMITE_M):
         censo['sem_geometria_de_subestacao'] = len(pontas)
         return [], dict(censo)
 
+    # SUBESTACAO COM MAIS DE UM NIVEL DE AT NAO RECEBE ELO. O `malha_at` da a
+    # cada subestacao UMA barra de AT e liga nela toda componente ancorada ali,
+    # sem olhar o nivel. Sem a SSDAT, o lado de 230 kV e o de 138 kV da MAB
+    # (Equatorial PA) nunca se encontravam por outro caminho; com as linhas de
+    # 138 kV chegando por fora, a barra unica fechou um curto pelo trafo
+    # 230/138 — laco de relacao 1,667, a forma do achado 70, e o MASTER-GERAL
+    # colapsou. Os niveis de AT sao os que os circuitos declaram.
+    niveis_at = {txt(n) for n in dados['ctat']['TEN_NOM'] if txt(n)}
+    niveis_da_sub = collections.defaultdict(set)
+    for sub, nv in zip(bar['SUB'], bar['TEN_NOM']):
+        if txt(nv) in niveis_at:
+            niveis_da_sub[txt(sub)].add(txt(nv))
+
     # a barra de cada (subestacao, nivel): a mais ligada por chave
     uso = collections.Counter(_no(x) for x in list(u['PAC_1']) + list(u['PAC_2']))
     barra = {}
@@ -171,6 +184,9 @@ def elos(gdb, dados, limite_m=LIMITE_M):
                 d_min, sub_min = d, sub
         if d_min is None or d_min > limite_m:
             censo['longe_de_subestacao'] += 1
+            continue
+        if len(niveis_da_sub.get(sub_min, ())) > 1:
+            censo['subestacao_multinivel'] += 1
             continue
         alvo = barra.get((sub_min, nivel_no.get(n, '')))
         if not alvo:

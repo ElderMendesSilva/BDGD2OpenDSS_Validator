@@ -275,9 +275,19 @@ def gerar_at(bdgd, a, ctmt_info, mapa_cnd, log, subs_alvo=None):
             {k: dict(v) for k, v in orfas.items()}, isa,
             os.path.join(d, 'Trafos_Transmissora.dss'), a.kv_mt, log)
 
+    # a tensao de cada cabeceira de CTAT, pelo nivel do proprio circuito — so
+    # com a AT ligada (achado 74); sem ela o comportamento e o de antes
+    kv_cab = None
+    if elos_at:
+        ct = dados['ctat']
+        kv_cab = {}
+        for pac, nv in zip(ct['PAC_INI'], ct['TEN_NOM']):
+            if subtransmissao._no(pac):
+                kv_cab[subtransmissao._no(pac)] = tensoes.kv(nv, a.kv_at)
     est_fontes = transmissao.fontes(grupos, info_tr, heads, isa,
                                     os.path.join(d, 'Fontes.dss'), a.kv_at, log,
-                                    malha['barra_por_sub'])
+                                    malha['barra_por_sub'],
+                                    kv_da_cabeceira=kv_cab)
 
     # vaos: barra de MT -> cabeceira de cada alimentador (so os do recorte)
     ctmt_alvo = {k: v for k, v in ctmt_info.items()
@@ -364,6 +374,12 @@ def gerar_at(bdgd, a, ctmt_info, mapa_cnd, log, subs_alvo=None):
            'orfas_resolvidas_isa': est_orfas['isa'],
            'orfas_equivalente': est_orfas['equivalente'],
            'niveis_transmissora': est_orfas.get('niveis', []),
+           # achado 74: com a AT ligada, a fonte de cabeceira entra no nivel do
+           # circuito (69 kV na Equatorial PA), que nenhum trafo do recorte
+           # declara — sem isto a rede de 69 kV saia a 0,78 pu, medida na base
+           # de 88. Vazio sem a ligacao, e o comportamento e o de antes.
+           'niveis_fontes': ([float(k) for k in est_fontes.get('niveis', {})]
+                             if elos_at else []),
            'cargas_at': n_uc_at, 'kW_AT': kw_at, 'gd_at': n_gd_at,
            'capacitores_at': n_cap_at}
     return arquivos, est, info_tr, ligados, est_fontes
@@ -1132,6 +1148,7 @@ def main():
         if info_tr:
             niveis |= set(info_tr['kv_da_barra'].values())
         niveis |= set(est_at.get('niveis_transmissora') or [])
+        niveis |= set(est_at.get('niveis_fontes') or [])
         niveis = sorted(niveis)
         aberturas = ['_AT/_CHAVES_ABERTAS_AT.dss']
         aberturas += [f'{s}/_CHAVES_ABERTAS.dss' for s in todas]

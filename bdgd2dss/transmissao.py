@@ -166,7 +166,7 @@ def mvasc_estimado(isa, sub, kv_alvo=None):
 # =========================================================== fontes do modelo
 def fontes(componentes, info_trafos, ctat_heads, isa, caminho,
            kv_at_padrao=88.0, log=None, barra_por_sub=None,
-           kv_at_do_trafo=None):
+           kv_at_do_trafo=None, kv_da_cabeceira=None):
     """Uma fonte por patio de AT que tenha transformador.
 
     Preferencia do ponto de injecao, da melhor para a pior:
@@ -250,6 +250,14 @@ def fontes(componentes, info_trafos, ctat_heads, isa, caminho,
                            if kv_at_do_trafo.get(c) and pac_at.get(c) == barra})
         kv_patio = (no_ponto[-1] if no_ponto else
                     (kvs[0] if kvs else kv_at_padrao))
+        # ACHADO 74. Na cabeceira de CTAT nao ha trafo, e o nivel caia no
+        # "mais alto do patio". Com a SSDAT ligada (`--ligar-at`), na
+        # Equatorial PA isso pos uma fonte de 230 kV num no de linha de 69 kV
+        # e o MASTER-GERAL colapsou. A cabeceira tem nivel proprio: o do
+        # circuito que ela abre (CTAT.TEN_NOM). So vem quando ha ligacao.
+        if (kv_da_cabeceira and not no_ponto and origem == 'cabeceira CTAT'
+                and kv_da_cabeceira.get(barra)):
+            kv_patio = kv_da_cabeceira[barra]
         if not no_ponto and len(kvs) > 1:
             # Nenhum transformador NA barra de injecao: o nivel foi deduzido do
             # patio, e nao confirmado pelo ponto. Medido na Equatorial PA, 2 de
