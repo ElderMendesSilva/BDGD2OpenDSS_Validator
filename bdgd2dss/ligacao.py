@@ -368,7 +368,7 @@ def inertes(comps, cargas_por_barra, elementos_por_barra, ramos):
     return fora
 
 def escrever(caminho, ligacoes, barra_por_kv, descartadas=(), inertes_=(),
-             fontes=()):
+             fontes=(), se=None):
     """Escreve o `_LIGACAO.dss`: uma Line por componente ligada, e o `Disable`
     das componentes inertes.
 
@@ -395,12 +395,17 @@ def escrever(caminho, ligacoes, barra_por_kv, descartadas=(), inertes_=(),
                        f"MVAsc3={f['mvasc3']:g} MVAsc1={f['mvasc1']:g}"
                        f"   ! primario do {f['trafo']}")
         out.append('')
+    # O NOME LEVA A SUBESTACAO. O `MASTER-GERAL` carrega o `_LIGACAO.dss` de
+    # todas, e `VAO_EXTRA_1` existia em cada uma que tinha elo: #266
+    # (Duplicate new element) no geral. O prefixo `VAO_EXTRA_` fica, porque
+    # e por ele que o `lacos` reconhece o elo nosso (achado 33).
+    pref = f'VAO_EXTRA_{se}_' if se else 'VAO_EXTRA_'
     for i, l in enumerate(ligacoes, 1):
         de = barra_por_kv(l['kv'])
         if not de:
             continue
         out.append(
-            f"New Line.VAO_EXTRA_{i} phases=3 Bus1={de}.1.2.3 "
+            f"New Line.{pref}{i} phases=3 Bus1={de}.1.2.3 "
             f"Bus2={l['barra']}.1.2.3 Switch=y r1=0.0001 r0=0.0001 "
             f"x1=0 x0=0 c1=0 c0=0"
             f"   ! componente de {l['barras']:,} barras e {l['cargas']:,} "

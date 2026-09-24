@@ -2613,9 +2613,11 @@ muda é a perda da `trafo_de_consumidor`, de 16,99% para 16,98%.
 **Dois defeitos vistos no caminho, não corrigidos:** barras que estavam mortas
 quando o `CalcVoltagebases` rodou recebem base errada (na Energisa MT 92,
 barras de MT com base de 0,12 kV aparecem a 54 pu — só a leitura em pu, não a
-perda); e os elos se chamam `VAO_EXTRA_1`, `VAO_EXTRA_2`… em toda subestação,
-o que colide no `MASTER-GERAL` — provável origem do #266 que o teste da AT
-(achado 74) achou nele.
+perda); e os elos se chamavam `VAO_EXTRA_1`, `VAO_EXTRA_2`… em toda
+subestação, o que colide no `MASTER-GERAL`, que carrega o `_LIGACAO.dss` de
+todas — provável origem do #266 que o teste da AT (achado 74) achou nele. Este
+segundo foi corrigido no mesmo dia: o elo passa a ser `VAO_EXTRA_<SE>_<n>`,
+com o prefixo que o `lacos` reconhece.
 
 ## Achado 78 — a curva de carga que desliga o país às 23:45
 

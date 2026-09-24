@@ -350,7 +350,7 @@ def uma(pasta, se, min_cargas):
         fora = list(fora) + [dict(r, motivo='quebrou a convergencia')
                              for r in recusados]
         ligacao.escrever('_LIGACAO.dss', lig, de_para, fora, inertes,
-                         fontes=fontes)
+                         fontes=fontes, se=se)
 
         # o estado em memoria tem elos desabilitados no meio; recompila do
         # arquivo para medir exatamente o que o usuario vai receber

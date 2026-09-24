@@ -88,5 +88,32 @@ class FonteDeOrigem(unittest.TestCase):
         self.assertIn('achado 79', txt)
 
 
+class NomesNoGeral(unittest.TestCase):
+    """O `MASTER-GERAL` carrega o `_LIGACAO.dss` de todas as subestacoes:
+    `VAO_EXTRA_1` em duas delas era #266 no geral."""
+
+    def _escreve(self, se):
+        import tempfile
+        from bdgd2dss import ligacao
+        caminho = os.path.join(tempfile.mkdtemp(), '_LIGACAO.dss')
+        lig = [{'kv': 13.8, 'barra': 'x', 'barras': 10, 'cargas': 30, 'grau': 3}]
+        ligacao.escrever(caminho, lig, lambda kv: 'bat1', se=se)
+        with open(caminho, encoding='utf-8') as fh:
+            return fh.read()
+
+    def test_o_elo_leva_a_subestacao(self):
+        self.assertIn('New Line.VAO_EXTRA_SE7_1 ', self._escreve('SE7'))
+
+    def test_o_prefixo_que_o_lacos_reconhece_continua(self):
+        self.assertIn('Line.VAO_EXTRA_', self._escreve('SE7'))
+
+    def test_sem_subestacao_fica_como_era(self):
+        self.assertIn('New Line.VAO_EXTRA_1 ', self._escreve(None))
+
+    def test_a_etapa_passa_a_subestacao(self):
+        with open(os.path.join(RAIZ, 'etapas', 'ligacao.py'), encoding='utf-8') as fh:
+            self.assertIn('fontes=fontes, se=se)', fh.read())
+
+
 if __name__ == '__main__':
     unittest.main()

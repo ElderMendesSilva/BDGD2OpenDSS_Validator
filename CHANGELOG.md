@@ -17,8 +17,11 @@ pré-voo passa a anunciar o 79 (a BDGD mínima é um caso misto); o único núme
 que muda é a perda da `trafo_de_consumidor`, de 16,99% para 16,98%.
 
 O que NAO faz: não corrige a base de tensão das barras que estavam mortas no
-`CalcVoltagebases` (afeta a leitura em pu, não a perda), nem os nomes
-`VAO_EXTRA_n` que colidem no `MASTER-GERAL`.
+`CalcVoltagebases` (afeta a leitura em pu, não a perda).
+
+Os elos da premissa de ligação passam a se chamar `VAO_EXTRA_<SE>_<n>`: o
+`MASTER-GERAL` carrega o `_LIGACAO.dss` de todas as subestações, e
+`VAO_EXTRA_1` repetido era #266 nele.
 
 ### Quatro defeitos que a V39 escondia (achados 75 a 78)
 
