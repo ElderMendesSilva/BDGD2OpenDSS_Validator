@@ -2576,6 +2576,47 @@ alimentador.
   forte que sobrou — e a medida por média de fases pode enganar onde as fases
   mudam, então ela precisa de confirmação fase a fase.
 
+## Achado 79 — a barra da subestação que ninguém alimenta
+
+Quando um alimentador declara tensão diferente da barra da subestação, o
+`subtransmissao.vaos` cria uma barra derivada e um `Transformer.TRB_*` entre
+as duas (achado 39). O `converter` põe uma fonte por barra de MT, mas as
+barras de **origem** desses transformadores só ganhavam fonte quando **todas**
+as barras da subestação eram derivadas. No caso misto — uma barra normal e
+outras de origem —, a origem ficava sem caminho até a fonte, e todo
+alimentador pendurado nela morria.
+
+Medido na V39: na 71700 da Copel, **4.581 de 5.253 cargas sem tensão** (24,7
+de 31,4 MW) — é daí que vem boa parte dos 11% de carga morta da Copel no
+país; na Energisa MT, 13 das 96 subestações.
+
+**Pôr fonte em toda origem, às cegas, está errado**, e foi medido: na mesma
+71700 a barra 3390 já era alimentada por outro caminho, e a fonte a mais fez
+circular 70 MW pelo transformador de barra. O critério é elétrico e mora na
+etapa que resolve o fluxo (`etapas/ligacao.py`, `fontes_de_origem`): a origem
+ganha fonte se está **morta depois de resolver**, e **antes** dos elos da
+premissa de ligação, que com ela viva deixam de ser criados para a mesma rede.
+Cada fonte é testada no motor, como os elos, e vai para o `_LIGACAO.dss` com o
+nome da subestação — o `MASTER-GERAL` carrega o arquivo de todas.
+
+| subestação | cargas mortas V39 | com o 79 | perda |
+|---|---:|---:|---:|
+| Copel 71700 | 4.581 | 66 | 1,76% |
+| Energisa MT 92 | 2.135 | 62 | 4,31% |
+| Energisa MT 10 | 595 | 500 | 1,33% |
+| Energisa MT 32 | 9.082 | 7.772 | 1,89% |
+
+A própria BDGD mínima da fixture é um caso misto (o F3 nasce da `bat2`), e
+por isso toda variante do pré-voo passa a anunciar o 79; o único número que
+muda é a perda da `trafo_de_consumidor`, de 16,99% para 16,98%.
+
+**Dois defeitos vistos no caminho, não corrigidos:** barras que estavam mortas
+quando o `CalcVoltagebases` rodou recebem base errada (na Energisa MT 92,
+barras de MT com base de 0,12 kV aparecem a 54 pu — só a leitura em pu, não a
+perda); e os elos se chamam `VAO_EXTRA_1`, `VAO_EXTRA_2`… em toda subestação,
+o que colide no `MASTER-GERAL` — provável origem do #266 que o teste da AT
+(achado 74) achou nele.
+
 ## Achado 78 — a curva de carga que desliga o país às 23:45
 
 A Elektro (Neoenergia, 385) traz `POT_96 = 0` em **todas** as curvas da

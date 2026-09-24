@@ -8,6 +8,18 @@ número, estão em [docs/ACHADOS_GENERALIZACAO.md](docs/ACHADOS_GENERALIZACAO.md
 
 ## 1.1.0 — em aberto (safra 2025-12-31)
 
+### Barra de origem de transformador de barra sem fonte (achado 79)
+
+A etapa `ligacao.py` põe uma fonte na barra de origem de um `TRB_*` que está
+MORTA depois de resolver o fluxo, antes de decidir os elos. Copel 71700: 4.581
+cargas mortas para 66; Energisa MT 92: 2.135 para 62. Toda variante do
+pré-voo passa a anunciar o 79 (a BDGD mínima é um caso misto); o único número
+que muda é a perda da `trafo_de_consumidor`, de 16,99% para 16,98%.
+
+O que NAO faz: não corrige a base de tensão das barras que estavam mortas no
+`CalcVoltagebases` (afeta a leitura em pu, não a perda), nem os nomes
+`VAO_EXTRA_n` que colidem no `MASTER-GERAL`.
+
 ### Quatro defeitos que a V39 escondia (achados 75 a 78)
 
 Varredura dos resultados da V39 antes da V40, 24/09/2026. Nove bases saíram

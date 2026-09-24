@@ -213,6 +213,74 @@ def radiografia():
             barra_de_vao, aberto, ramos_linha, elementos_por_barra)
 
 
+def fontes_de_origem(se):
+    """Fonte na barra de origem MORTA de um transformador de barra — achado 79.
+
+    O `subtransmissao.vaos` cria um `Transformer.TRB_*` quando o alimentador
+    declara tensao diferente da barra da subestacao, e o `converter` poe uma
+    fonte por barra de MT — mas as barras de ORIGEM desses transformadores so
+    ganhavam fonte quando TODAS as barras da subestacao eram derivadas. No
+    caso misto, a origem ficava sem caminho ate a fonte e todo alimentador
+    pendurado nela morria. Medido na V39: a 71700 da Copel com 4.581 de 5.253
+    cargas sem tensao (24,7 MW de 31,4); 13 das 96 subestacoes da Energisa MT.
+
+    POR QUE AQUI, E NAO NO `converter`. Pôr fonte em toda origem, as cegas,
+    fecha circuito entre duas fontes quando a origem ja e alimentada por
+    outro caminho: na mesma 71700, a barra 3390 era, e a fonte a mais fez
+    circular 70 MW pelo transformador de barra. O criterio e eletrico e so a
+    etapa que resolve o fluxo o tem: a origem ganha fonte se esta MORTA
+    depois de resolver, e ANTES dos elos da premissa — que, com ela viva, nao
+    sao mais criados para a mesma rede.
+
+    Cada fonte e testada no motor, como os elos: se a solucao diverge, sai.
+    A tensao e o `pu` sao os da fonte principal da subestacao.
+    """
+    dss.Vsources.First()
+    pu = dss.Vsources.PU()
+    try:
+        dss.Text.Command('? Vsource.source.MVAsc3')
+        mva3 = float(dss.Text.Result())
+        dss.Text.Command('? Vsource.source.MVAsc1')
+        mva1 = float(dss.Text.Result())
+    except Exception:                                        # noqa: BLE001
+        mva3, mva1 = 1000.0, 800.0
+    cand, secundarias = [], set()
+    i = dss.Transformers.First()
+    while i:
+        nome = dss.Transformers.Name()
+        if nome.lower().startswith('trb_'):
+            dss.Circuit.SetActiveElement('Transformer.' + nome)
+            bs = [_bus(x) for x in dss.CktElement.BusNames()]
+            dss.Transformers.Wdg(1)
+            cand.append((nome, bs[0], dss.Transformers.kV()))
+            secundarias.update(bs[1:])
+        i = dss.Transformers.Next()
+    # origem que e secundario de OUTRO transformador de barra vai por ultimo:
+    # a fonte da origem de cima pode bastar para ela
+    cand.sort(key=lambda x: (x[1] in secundarias, x[1]))
+    out, vistas = [], set()
+    for nome, barra, kv in cand:
+        if barra in vistas:
+            continue
+        vistas.add(barra)
+        dss.Circuit.SetActiveBus(barra)
+        v = dss.Bus.VMagAngle()[0::2]
+        if v and max(v) >= MORTA_V:
+            continue
+        fonte = f'FONTE_TRB_{se}_{len(out) + 1}'
+        dss.Text.Command(
+            f'New Vsource.{fonte} bus1={barra} basekV={kv:g} pu={pu:.4f} '
+            f'phases=3 Angle=0 MVAsc3={mva3:g} MVAsc1={mva1:g}')
+        dss.Text.Command('Solve')
+        if dss.Solution.Converged():
+            out.append({'nome': fonte, 'barra': barra, 'kv': kv, 'pu': pu,
+                        'mvasc3': mva3, 'mvasc1': mva1, 'trafo': nome})
+        else:
+            dss.Text.Command(f'Edit Vsource.{fonte} enabled=no')
+            dss.Text.Command('Solve')
+    return out
+
+
 def uma(pasta, se, min_cargas):
     # PAUSA: sempre antes de comecar, nunca no meio. Assim o que espera
     # segura poucos MB em vez do circuito inteiro.
@@ -230,10 +298,14 @@ def uma(pasta, se, min_cargas):
         dss.Text.Command(f'Redirect MASTER-{se}.dss')
         if not dss.Solution.Converged():
             return {'se': se, 'erro': 'nao convergiu'}
+        # a linha de base e ANTES das fontes do achado 79: `mortas_antes`
+        # continua dizendo o que o conversor entregou
+        _adj0, mortas0, cargas0 = radiografia()[:3]
+        mortas_antes = sum(v for b, v in cargas0.items() if b in mortas0)
+        fontes = fontes_de_origem(se)
         (adj, mortas, cargas, kvb, kvs, barra, aberto,
          ramos_linha, elementos_por_barra) = radiografia()
         n_cargas = dss.Loads.Count()
-        mortas_antes = sum(v for b, v in cargas.items() if b in mortas)
         comps = ligacao.componentes(adj, mortas)
         # ACHADO 27. Sobre TODAS as componentes desenergizadas, e nao so as
         # que `decidir` descarta: uma componente inerte nao tem carga, entao
@@ -277,7 +349,8 @@ def uma(pasta, se, min_cargas):
         lig, recusados = ligacao.aceitar(cand, tenta)
         fora = list(fora) + [dict(r, motivo='quebrou a convergencia')
                              for r in recusados]
-        ligacao.escrever('_LIGACAO.dss', lig, de_para, fora, inertes)
+        ligacao.escrever('_LIGACAO.dss', lig, de_para, fora, inertes,
+                         fontes=fontes)
 
         # o estado em memoria tem elos desabilitados no meio; recompila do
         # arquivo para medir exatamente o que o usuario vai receber
@@ -302,6 +375,7 @@ def uma(pasta, se, min_cargas):
             i = dss.Loads.Next()
         p = dss.Circuit.TotalPower()
         return {'se': se, 'elos': len(lig), 'cargas': n_cargas,
+                'fontes_de_origem': len(fontes),
                 'recusados': len(recusados),
                 'mortas_antes': mortas_antes, 'mortas_depois': m2,
                 'componentes': len(comps), 'descartadas': len(fora),
@@ -463,6 +537,11 @@ def main():
     print(f'\n{"="*70}')
     print(f'{sum(r["elos"] for r in ok):,} elos em {len(ok)} subestacoes, '
           f'{rec:,} cargas recuperadas ({time.time()-t0:.0f} s)')
+    n_f = sum(r.get('fontes_de_origem') or 0 for r in ok)
+    if n_f:
+        print(f'ACHADO 79: {n_f} fonte(s) em barra de origem morta de '
+              f'transformador de barra, em '
+              f'{sum(1 for r in ok if r.get("fontes_de_origem"))} subestacao(oes)')
     # As DUAS medidas, e a de kW na frente — ver `bdgd2dss/cobertura.py`.
     l = cobertura.linha(cobertura.energizada(ok))
     if l:

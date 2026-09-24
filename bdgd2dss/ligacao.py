@@ -367,7 +367,8 @@ def inertes(comps, cargas_por_barra, elementos_por_barra, ramos):
             fora.append({'barras': len(comp), 'linhas': sorted(internas)})
     return fora
 
-def escrever(caminho, ligacoes, barra_por_kv, descartadas=(), inertes_=()):
+def escrever(caminho, ligacoes, barra_por_kv, descartadas=(), inertes_=(),
+             fontes=()):
     """Escreve o `_LIGACAO.dss`: uma Line por componente ligada, e o `Disable`
     das componentes inertes.
 
@@ -380,6 +381,20 @@ def escrever(caminho, ligacoes, barra_por_kv, descartadas=(), inertes_=()):
     tot_c = sum(l['cargas'] for l in ligacoes)
     tot_b = sum(l['barras'] for l in ligacoes)
     out = [CABECALHO.format(n=len(ligacoes), cargas=tot_c, barras=tot_b)]
+    if fontes:
+        # ACHADO 79: ver `fontes_de_origem`, em `etapas/ligacao.py`. Vem
+        # ANTES dos elos: foi com elas que os elos foram decididos.
+        out.append('! FONTE NA BARRA DE ORIGEM MORTA DE TRANSFORMADOR DE BARRA — '
+                   'achado 79')
+        out.append('! A barra real da subestacao de onde nasce o transformador '
+                   'de barra ficou sem caminho ate a fonte. Ela ganha a sua,')
+        out.append('! com o pu da fonte principal, como toda barra de MT.')
+        for f in fontes:
+            out.append(f"New Vsource.{f['nome']} bus1={f['barra']} "
+                       f"basekV={f['kv']:g} pu={f['pu']:.4f} phases=3 Angle=0 "
+                       f"MVAsc3={f['mvasc3']:g} MVAsc1={f['mvasc1']:g}"
+                       f"   ! primario do {f['trafo']}")
+        out.append('')
     for i, l in enumerate(ligacoes, 1):
         de = barra_por_kv(l['kv'])
         if not de:
