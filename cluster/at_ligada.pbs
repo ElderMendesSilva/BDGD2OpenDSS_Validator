@@ -1,0 +1,22 @@
+#!/bin/bash
+# A AT ligada (achado 74, --ligar-at) contra a V39, nas bases com a
+# subtransmissao desligada ou parcial.
+#
+#     qsub -N at_lig -q BIRA_Q3 -l nodes=1:ppn=16 -l mem=96gb \
+#          -l walltime=08:00:00 -j oe -o logs/cluster/ \
+#          -v "PROJETO=$PWD,BASES_ATL=$HOME/elder/bdgds_2025" cluster/at_ligada.pbs
+#
+# Converte cada uma com --ligar-at em MODELOS_<TAG>_ATT/ e compara MASTER-AT
+# e MASTER-GERAL com os da V39. Ver diagnosticos/teste_at_ligada.py.
+set -uo pipefail
+cd "${PBS_O_WORKDIR:-$PROJETO}"
+source .venv/bin/activate
+export BDGD2DSS_MODO=cluster
+BASES="${BASES_ATL:?passe BASES_ATL por -v}"
+echo "## AT ligada x V39 — $(date)"
+python -u diagnosticos/teste_at_ligada.py --bases "$BASES" \
+    --censo medicoes/at_2025.json --ref V39 --sufixo ATT \
+    --jobs "${PBS_NP:-4}" --saida-json medicoes/teste_at_ligada.json
+rc=$?
+echo "## fim $(date)  (rc=$rc)"
+exit $rc
