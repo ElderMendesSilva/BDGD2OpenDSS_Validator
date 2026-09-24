@@ -1,0 +1,23 @@
+#!/bin/bash
+# A subtransmissao de cada base: existe, liga nas subestacoes, e a que
+# distancia fica delas quando nao liga.
+#
+#     qsub -N at -q BIRA_Q3 -l nodes=1:ppn=8 -l mem=32gb \
+#          -l walltime=02:00:00 -j oe -o logs/cluster/ \
+#          -v "PROJETO=$PWD,BASES_AT=$HOME/elder/bdgds_2025" cluster/at.pbs
+#
+# Na V39 a Equatorial PA saiu com 0 trechos de AT: os 22.037 da SSDAT usam
+# nos `A<numero>`, e as subestacoes `<sigla>_<codigo>` — zero em comum. Ver
+# `diagnosticos/at_desconexa.py`. So le a BDGD.
+set -uo pipefail
+cd "${PBS_O_WORKDIR:-$PROJETO}"
+source .venv/bin/activate
+export BDGD2DSS_MODO=cluster
+BASES="${BASES_AT:?passe BASES_AT por -v}"
+echo "## subtransmissao das bases — $(date)"
+mkdir -p medicoes
+python -u diagnosticos/at_desconexa.py --pasta "$BASES" \
+    --jobs "${PBS_NP:-4}" --saida-json "medicoes/at_2025.json"
+rc=$?
+echo "## fim $(date)  (rc=$rc)"
+exit $rc
