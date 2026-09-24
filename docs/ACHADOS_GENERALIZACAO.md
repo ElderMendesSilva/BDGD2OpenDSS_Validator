@@ -2576,6 +2576,40 @@ alimentador.
   forte que sobrou — e a medida por média de fases pode enganar onde as fases
   mudam, então ela precisa de confirmação fase a fase.
 
+## Achado 74 — a subtransmissão de 23 bases não toca subestação nenhuma
+
+A Equatorial PA saiu da V39 com **0 trechos de AT** e 96 fontes equivalentes, e
+a BDGD dela tem **22.037 trechos** na `SSDAT`. Os nós da `SSDAT` e da `CTAT`
+são `A<número>` (`A100275`); os das chaves, transformadores e barras de AT são
+`<sigla>_<código>` (`MON_490000059`). São 22.204 nós, **zero em comum** —
+nem os dígitos coincidem. A rede de linhas fica solta, o conversor guarda só
+as componentes que tocam transformador, e a perda de subtransmissão some do
+modelo. O defeito é do cadastro, e a referência da ANEEL tem essa perda.
+
+**O censo das 99 bases** (`diagnosticos/at_desconexa.py`, job 37060,
+23/09/2026):
+
+| estado | bases | trechos na `SSDAT` |
+|---|---:|---:|
+| ligada às subestações | 10 | 158.291 |
+| parcial | 20 | 227.894 |
+| **desligada** (nenhum nó em comum) | **23** | **276.910** |
+| sem `SSDAT` (sem AT cadastrada) | 46 | — |
+
+Só 10 das 53 bases com subtransmissão a têm ligada. Entre as desligadas, 13
+grandes: as sete Equatoriais (PA, MA, PI, AL, GO, CEA, CEEE), Light, Enel RJ,
+RGE e as Neoenergias Coelba, Cosern e Pernambuco — 42% dos trechos de AT
+cadastrados no país.
+
+**A geometria liga boa parte, e não tudo.** A mediana da distância das pontas
+de circuito ao equipamento de subestação mais próximo é 19 m na Light, 33 m
+na Equatorial GO, 82 m na PA — e 2 km na PI, 3,7 km na Coelba. Nas desligadas,
+40% das pontas soltas estão a até 200 m de uma subestação. As outras não são,
+necessariamente, erro: ponta de circuito também atende consumidor de AT e
+fronteira com outra distribuidora. A correção tem de ligar a ponta à barra da
+subestação próxima **no mesmo nível de tensão**, e deixar as demais como estão,
+contadas.
+
 ## Achado 73 — o ramal que conduz o que nenhum cabo conduz
 
 A referência da ANEEL soma ramais de ligação e medidores, e o modelo com BT
