@@ -302,7 +302,34 @@ New XYCurve.MyEff  npts=4 xarray=[0.1 0.2 0.4 1.0] yarray=[0.86 0.90 0.93 0.97]
 
 
 # ------------------------------------------------------------------ curvas
-def curvas(bdgd, caminho, tipo_dia='DU', clima=None):
+def completar(v):
+    """Ponto ISOLADO zerado vira a media dos vizinhos — achado 78.
+
+    Devolve `(curva, quantos pontos foram preenchidos)`.
+
+    A Elektro (Neoenergia, 385) traz POT_96 = 0 em TODAS as curvas da CRVCRG,
+    da residencial a de iluminacao publica, com POT_95 e POT_01 positivos. As
+    23:45 a carga do modelo inteiro some, a rede fica so com a perda no ferro,
+    a perda passa da energia que entra e o passo sai da conta (achado 67): 84
+    das 153 subestacoes da V39 perderam o dia por isso. E a curva, normalizada
+    pela media com o zero dentro, ainda sobe ~1% nos outros 95 pontos.
+
+    So o ponto zerado ENTRE DOIS POSITIVOS (o dia e circular: o vizinho do
+    ultimo e o primeiro). Zero ao lado de zero e curva que desliga de verdade
+    — iluminacao publica de dia — e fica como esta.
+    """
+    n = len(v)
+    out = list(v)
+    feitos = 0
+    for k in range(n):
+        a, b = v[k - 1], v[(k + 1) % n]
+        if v[k] == 0 and a > 0 and b > 0:
+            out[k] = (a + b) / 2.0
+            feitos += 1
+    return out, feitos
+
+
+def curvas(bdgd, caminho, tipo_dia='DU', clima=None, log=None):
     """LoadShapes normalizadas pela media. A BDGD traz POT_01..POT_96.
 
     `clima` = (irradiancia, temperatura de celula) de `carregar_clima`. Sem
@@ -315,10 +342,12 @@ def curvas(bdgd, caminho, tipo_dia='DU', clima=None):
     out = [f'! LoadShapes — CRVCRG, tipo de dia {tipo_dia}',
            '! Normalizadas pela demanda media de cada curva.']
     nomes = set()
+    completadas = 0
     for i in range(len(col['COD_ID'])):
         if txt(col['TIP_DIA'][i]) != tipo_dia:
             continue
-        v = [num(col[f'POT_{k:02d}'][i]) for k in range(1, 97)]
+        v, feitos = completar([num(col[f'POT_{k:02d}'][i]) for k in range(1, 97)])
+        completadas += 1 if feitos else 0
         m = sum(v) / len(v)
         if m <= 0:
             continue
@@ -326,6 +355,13 @@ def curvas(bdgd, caminho, tipo_dia='DU', clima=None):
         nomes.add(cod)
         out.append(f'New LoadShape.{cod} npts=96 interval=0.25 '
                    f'mult=({" ".join(f"{x/m:.4f}" for x in v)})')
+    if completadas:
+        out.insert(2, f'! ACHADO 78: {completadas} curva(s) com ponto isolado '
+                      f'zerado entre dois positivos — preenchido com a media '
+                      f'dos vizinhos.')
+        if log:
+            log(f'  ACHADO 78: {completadas} curva(s) de carga com ponto isolado '
+                f'zerado — preenchido com a media dos vizinhos')
     # irradiancia em kW/m2 (1,0 = STC) e temperatura de celula, 96 pontos
     irr, cel = clima if clima else (IRRAD_DIA, TEMP_DIA)
     fonte = ('MEDIDA em Sao Paulo' if clima

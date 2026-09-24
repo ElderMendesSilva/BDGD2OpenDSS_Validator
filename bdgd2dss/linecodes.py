@@ -60,6 +60,34 @@ K_X0 = 3.5
 # e^2 ~ 7,4: erro de fator 7 nao e dispersao de catalogo, e registro errado.
 FATOR_CORRIGE = 7.4
 
+# ---------------------------------------------------------------------------
+# ACHADO 76 — R1 DE PREENCHIMENTO: quando a propria base nao serve de regua
+# ---------------------------------------------------------------------------
+# A Cosern (Neoenergia, 40) traz R1 = 2,179 ohm/km em 545 dos 598 condutores
+# da SEGCON — o mesmo valor para cabo de 230 A e de 530 A, que deveriam ter
+# ~0,48 e ~0,21. E valor de preenchimento, e nao dado. O ajuste acima, que e
+# calibrado NA PROPRIA BASE, aprende o defeito: sai R1 = 2,4 x CNOM^-0,026,
+# plano, e nada e corrigido porque tudo esta "no previsto". Na V39 a Cosern
+# saiu com perda de MT mediana de 10,4% por alimentador — acima dos 9,16% da
+# perda regulatoria do sistema INTEIRO — e tensao mediana de 0,90 pu.
+#
+# A REGRA. Um valor de R1 que ocupa mais de `FATIA_PREENCHIMENTO` da SEGCON
+# E um ajuste com expoente acima de `EXPOENTE_MAXIMO` (R1 que nao cai com a
+# ampacidade, o que nenhum condutor faz) — as duas condicoes juntas. O valor
+# repetido e trocado, em todos os condutores que o carregam, pelo ajuste do
+# RESTO da SEGCON; se o resto nao basta para um ajuste fisico, pela
+# `REFERENCIA`, a mediana dos ajustes de sete bases sadias (Equatorial PA,
+# Forcel, Ceprag, Cergal, Ceriluz, Coopera, Cooperzem: 0,46 ohm/km a 240 A e
+# 0,22 a 530 A). Nas sete, o expoente fica entre -0,86 e -1,41 e o valor mais
+# repetido cobre de 9% a 21% da tabela: nenhuma dispara.
+#
+# Medido na APD da Cosern, snapshot sem as premissas do ciclo: perda de 17,3%
+# para 5,9%, tensao mediana de 0,904 para 0,967 pu.
+FATIA_PREENCHIMENTO = 0.5
+EXPOENTE_MAXIMO = -0.3
+REFERENCIA = (-0.917, math.log(69.9),
+              'R1 = 69.9 x CNOM^-0.917, referencia de sete bases (achado 76)')
+
 CABECALHO = """! ==========================================================
 ! LINECODES — gerados de SEGCON
 ! R1/X1: dado da BDGD (ohm/km)
@@ -99,6 +127,25 @@ def _ajuste(pares):
     a = (n * sxy - sx * sy) / den
     b = (sy - a * sx) / n
     return a, b, f'R1 = {math.exp(b):.1f} x CNOM^{a:.3f}, n={n}'
+
+
+def calibracao(pares):
+    """`(ajuste, preenchimento)`: o ajuste a usar e o valor de R1 que e
+    preenchimento, ou None — achado 76.
+
+    Sem preenchimento, e o `_ajuste` de sempre, e nada muda.
+    """
+    aj = _ajuste(pares)
+    val = [round(r, 4) for r, c in pares if r > 1e-4 and c > 0]
+    if not val or aj is None or aj[0] <= EXPOENTE_MAXIMO:
+        return aj, None
+    v, n = collections.Counter(val).most_common(1)[0]
+    if n < FATIA_PREENCHIMENTO * len(val):
+        return aj, None
+    resto = _ajuste([(r, c) for r, c in pares if round(r, 4) != v])
+    if resto is None or resto[0] > EXPOENTE_MAXIMO:
+        resto = REFERENCIA
+    return resto, v
 
 
 def coerencia_de_uso(trechos, margem=1.0):
@@ -206,7 +253,9 @@ def gerar(bdgd, caminho_saida):
                               'BIT_FAS_1', 'MAT_FAS_1'])
     n = len(col['COD_ID'])
     pares = [(num(col['R1'][i]), num(col['CNOM'][i])) for i in range(n)]
-    aj = _ajuste(pares) if FATOR_CORRIGE else None
+    aj, preench = calibracao(pares) if FATOR_CORRIGE else (None, None)
+    n_preench = sum(1 for r, c in pares if preench is not None
+                    and round(r, 4) == preench and c > 0)
 
     correcoes = []
     linhas = []
@@ -222,7 +271,20 @@ def gerar(bdgd, caminho_saida):
             continue
 
         marca = ''
-        if aj and r1 > 0 and cnom > 0:
+        if preench is not None and cnom > 0 and round(r1, 4) == preench:
+            a, b, _ = aj
+            prev = math.exp(b) * cnom ** a
+            correcoes.append({'cod': cod, 'cnom': cnom,
+                              'r1_bdgd': round(r1, 4),
+                              'r1_adotado': round(prev, 4),
+                              'fator': round(r1 / prev, 1),
+                              'bitola': txt(col['BIT_FAS_1'][i]),
+                              'material': txt(col['MAT_FAS_1'][i]),
+                              'motivo': 'preenchimento'})
+            marca = (f'   !! R1 DE PREENCHIMENTO: BDGD dizia {r1:.3f} ohm/km, '
+                     f'o mesmo em {n_preench} condutores (achado 76)')
+            r1 = prev
+        elif aj and r1 > 0 and cnom > 0:
             a, b, _ = aj
             prev = math.exp(b) * cnom ** a
             if r1 > FATOR_CORRIGE * prev:
@@ -248,6 +310,10 @@ def gerar(bdgd, caminho_saida):
     linhas.append(CABECALHO.format(
         kr=K_R0, kx=K_X0, n_corr=len(correcoes), fator=FATOR_CORRIGE,
         ajuste=(aj[2] if aj else 'ajuste indisponivel — nada corrigido')))
+    if preench is not None:
+        linhas.append(f'! ACHADO 76: R1 = {preench:g} ohm/km em {n_preench} de '
+                      f'{len(pares)} condutores e PREENCHIMENTO, e nao dado —')
+        linhas.append(f'! trocado pelo ajuste acima em todos eles.')
     linhas += corpo
 
     # condutor generico para trechos sem TIP_CND valido

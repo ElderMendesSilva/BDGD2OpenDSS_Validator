@@ -2576,6 +2576,82 @@ alimentador.
   forte que sobrou — e a medida por média de fases pode enganar onde as fases
   mudam, então ela precisa de confirmação fase a fase.
 
+## Achado 78 — a curva de carga que desliga o país às 23:45
+
+A Elektro (Neoenergia, 385) traz `POT_96 = 0` em **todas** as curvas da
+`CRVCRG` — residencial, comercial, rural, iluminação pública —, com `POT_95` e
+`POT_01` positivos. A Cosern tem o mesmo em 242 de 243 curvas. Às 23:45 a carga
+do modelo inteiro some, a rede fica só com a perda no ferro, a perda passa da
+energia que entra, e o passo sai da conta pelo achado 67: **84 das 153
+subestações da Elektro perderam o dia na V39** (as 89 "fora" do
+`valida_perdas`), quase todas pelo passo 95 e só por ele. E a curva,
+normalizada pela média com o zero dentro, ainda sobe ~1% nos outros 95 pontos.
+
+A regra (`complementos.completar`): ponto zerado **entre dois positivos** vira
+a média dos vizinhos, com o dia circular. Zero ao lado de zero é curva que
+desliga de verdade — iluminação pública de dia — e fica. Vale também para o
+Módulo 7, que lê a mesma tabela. Variante `curva_com_ponto_zerado`.
+
+Na Cosern, com os achados 76 a 78: as quatro subestações medidas fecham
+96/96 passos.
+
+## Achado 77 — a chave com o código de um trecho
+
+`COD_ID` é único dentro de uma tabela, não entre tabelas — o mesmo defeito que
+já tinha derrubado a BT completa (nome das linhas de BT, em `linhas.gerar_bt`).
+Na Cosern, **93 códigos da `UNSEMT` são também códigos da `SSDMT`**; os dois
+viravam `Line.<cod>`, o OpenDSS recusava o segundo com #266, e as
+subestações CCO e MCV saíram `NAO_COMPILA` na V39. Só a chave que colide muda
+de nome (`CH_<cod>`); nas outras bases nada muda. Variante
+`chave_com_codigo_de_trecho`.
+
+## Achado 76 — o R1 que é preenchimento, e o ajuste que aprende o defeito
+
+A Cosern traz **R1 = 2,179 Ω/km em 545 dos 598 condutores** da `SEGCON` — o
+mesmo valor para cabo de 230 A e de 530 A, que deveriam ter ~0,48 e ~0,21. O
+`linecodes._ajuste`, calibrado **na própria base** (a decisão 1 do módulo),
+aprende o defeito: sai `R1 = 2,4 × CNOM^-0,026`, plano, e nada é corrigido
+porque tudo está "no previsto". Na V39 a Cosern saiu com perda de MT mediana de
+**10,4% por alimentador — acima dos 9,16% da perda regulatória do sistema
+inteiro** — e tensão mediana de 0,90 pu, e não reprovou porque a âncora tinha
+morrido junto (achado 75).
+
+Nas sete bases sadias medidas (Equatorial PA, Forcel, Ceprag, Cergal, Ceriluz,
+Coopera, Cooperzem), o expoente fica entre −0,86 e −1,41 e o R1 mais repetido
+cobre de 9% a 21% da tabela; todas dão ~0,46 Ω/km a 240 A e ~0,22 a 530 A.
+
+A regra (`linecodes.calibracao`) exige as **duas** condições: um valor em mais
+de metade da tabela **e** um ajuste com expoente acima de −0,3 (R1 que não cai
+com a ampacidade, o que nenhum condutor faz). O valor repetido é trocado, em
+todos os condutores que o carregam, pelo ajuste do resto da `SEGCON` (na
+Cosern, `13,4 × CNOM^-0,671`, n=50); sem resto suficiente, pela referência das
+sete. O Módulo 7 usa a mesma calibração. Variante `r1_preenchimento`.
+
+| Cosern, subestação | V39 | com 76–78 |
+|---|---:|---:|
+| NEO | 7,90% | 1,86% |
+| APD | 16,95% | 5,26% |
+| CCO | não compila | 2,84% |
+| MCV | não compila | 11,37% (rural, 760 km de MT) |
+
+(perda do dia, 96 passos, sem as etapas de ligação e reguladores.)
+
+## Achado 75 — sem par por alimentador, a âncora de fora morria junto
+
+O `valida_perdas` terminava em `SystemExit('nenhum alimentador casou entre
+modelo e CTMT')` quando nenhum alimentador passava o corte de declaração (0,5%
+a 40%). O `validacao_perdas.json` não era escrito, e com ele sumia a comparação
+com a perda regulatória da ANEEL — que **não depende da CTMT**. Nove bases da
+V39 saíram sem âncora nenhuma: Elektro, Cosern, Energisa MS, ESS e cinco
+cooperativas. O nome da mensagem enganava: os alimentadores casavam (361 de
+361 na Cosern); a declaração é que é degenerada (`PERD_A4` mediana de
+0,0012% na Cosern, ~1000× abaixo do plausível).
+
+Agora a comparação por alimentador some, dita (`comparacao_por_alimentador:
+false`), e a âncora sai do mesmo jeito: sobre os alimentadores com declaração
+e energia, como antes, ou — sem declaração nenhuma — sobre o modelo inteiro
+(`base_da_ancora: modelo_inteiro`).
+
 ## Achado 74 — a subtransmissão de 23 bases não toca subestação nenhuma
 
 A Equatorial PA saiu da V39 com **0 trechos de AT** e 96 fontes equivalentes, e

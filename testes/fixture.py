@@ -453,8 +453,53 @@ def _laco_por_transformador(t):
     eq['POT_NOM'] = _flt(*eq['POT_NOM'], 1000.0)
 
 
+def _r1_preenchimento(t):
+    """ACHADO 76: a SEGCON com um R1 de preenchimento.
+
+    Sessenta condutores de 100 a 690 A, todos com 2,179 ohm/km — a forma da
+    Cosern, 545 de 598. O ajuste da propria base sai plano e, sem a regra, nada
+    e corrigido. O S1 do F1 passa a usar um deles (P50, 600 A).
+    """
+    sg = t['SEGCON']
+    novos = [f'P{i}' for i in range(60)]
+    sg['COD_ID'] = _obj(*sg['COD_ID'], *novos)
+    sg['R1'] = _flt(*sg['R1'], *[2.179] * 60)
+    sg['X1'] = _flt(*sg['X1'], *[0.3] * 60)
+    sg['CNOM'] = _flt(*sg['CNOM'], *[100.0 + i * 10.0 for i in range(60)])
+    sg['CMAX'] = _flt(*sg['CMAX'], *[120.0 + i * 12.0 for i in range(60)])
+    sg['BIT_FAS_1'] = _obj(*sg['BIT_FAS_1'], *['X'] * 60)
+    sg['MAT_FAS_1'] = _obj(*sg['MAT_FAS_1'], *['CA'] * 60)
+    s = t['SSDMT']
+    tip = list(s['TIP_CND'])
+    tip[0] = 'P50'
+    s['TIP_CND'] = _obj(*tip)
+
+
+def _chave_com_codigo_de_trecho(t):
+    """ACHADO 77: a chave CHM1 com o codigo do trecho S2.
+
+    Na Cosern, 93 codigos da UNSEMT sao tambem da SSDMT, e as duas viravam
+    `Line.<cod>`: #266, e a subestacao nao compila.
+    """
+    t['UNSEMT']['COD_ID'] = _obj('S2',)
+
+
+def _curva_com_ponto_zerado(t):
+    """ACHADO 78: POT_96 = 0 em todas as curvas, a forma da Elektro.
+
+    As 23:45 a carga some, a perda no ferro passa da energia que entra e o
+    passo 95 sai da conta (achado 67): 84 das 153 subestacoes da Elektro
+    perderam o dia na V39.
+    """
+    c = t['CRVCRG']
+    c['POT_96'] = _flt(*[0.0] * len(c['POT_96']))
+
+
 VARIANTES = {
     'bypass_de_regulador': _bypass_de_regulador,
+    'chave_com_codigo_de_trecho': _chave_com_codigo_de_trecho,
+    'curva_com_ponto_zerado': _curva_com_ponto_zerado,
+    'r1_preenchimento': _r1_preenchimento,
     'laco_por_transformador': _laco_por_transformador,
     'sem_subestacao': _sem_subestacao,
     'gd_na_bt': _gd_na_bt,

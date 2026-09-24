@@ -8,6 +8,36 @@ número, estão em [docs/ACHADOS_GENERALIZACAO.md](docs/ACHADOS_GENERALIZACAO.md
 
 ## 1.1.0 — em aberto (safra 2025-12-31)
 
+### Quatro defeitos que a V39 escondia (achados 75 a 78)
+
+Varredura dos resultados da V39 antes da V40, 24/09/2026. Nove bases saíram
+sem comparação com a ANEEL, e duas delas — Cosern e Elektro — tinham perda de
+MT acima da perda regulatória do sistema inteiro.
+
+- **75** — sem alimentador comparável, o `valida_perdas` morria e levava junto
+  a âncora da ANEEL. Agora a âncora sai sempre, e o arquivo diz sobre quais
+  alimentadores (`comparacao_por_alimentador`, `base_da_ancora`).
+- **76** — R1 de preenchimento na `SEGCON` (Cosern: 2,179 Ω/km em 545 de 598
+  condutores). Com um valor em mais de metade da tabela e o ajuste plano, o
+  valor é trocado pelo ajuste do resto da tabela ou por uma referência de
+  sete bases. O Módulo 7 usa a mesma calibração.
+- **77** — chave com o `COD_ID` de um trecho de MT vira `CH_<cod>` (Cosern:
+  93 códigos; CCO e MCV não compilavam).
+- **78** — ponto isolado zerado na curva de carga vira a média dos vizinhos
+  (Elektro: `POT_96 = 0` em todas as curvas; 84 de 153 subestações perdiam o
+  dia no passo 95).
+
+Na Cosern, quatro subestações medidas: NEO de 7,90% para 1,86%, APD de
+16,95% para 5,26%, CCO e MCV passam a compilar, as quatro com 96/96 passos.
+Três variantes novas na fixture e no pré-voo: `r1_preenchimento`,
+`chave_com_codigo_de_trecho`, `curva_com_ponto_zerado`; as variantes antigas
+não mudaram um número.
+
+O que NAO faz: não conserta a declaração de perda por alimentador da Cosern
+(ela é ~1000× menor que o plausível — provavelmente MWh sobre kWh, mas isso
+seria inferência); a comparação por alimentador dessas bases continua
+inexistente, e é dito.
+
 ### Laco fechado atraves de transformador (achado 70)
 
 Nova premissa `_LACOS.dss`, preenchida pela etapa `reguladores.py` antes do

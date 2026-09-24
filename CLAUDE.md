@@ -92,10 +92,10 @@ Cada achado é algo que já se errou uma vez, foi medido, e não se deve errar d
 novo. Uma lei que não se localiza sem ambiguidade não é lei — por isso o
 número importa tanto quanto o conteúdo.
 
-**Uma série só, de 1 a 74, sem número reaproveitado**, morando em dois
+**Uma série só, de 1 a 78, sem número reaproveitado**, morando em dois
 lugares:
 
-- **`docs/ACHADOS_GENERALIZACAO.md`** — os de generalização (1–29, 59–74),
+- **`docs/ACHADOS_GENERALIZACAO.md`** — os de generalização (1–29, 59–78),
   medidos sobre as 97 ou 99 bases, com número nacional.
 - **comentário no código** — os de conversão (30–58), no ponto onde a
   correção mora: 34 em `bdgd2dss/ampacidade.py`, 51 em `bdgd2dss/linhas.py`,
@@ -122,8 +122,11 @@ menos um guarda frio**. Em 17/09/2026: 43 e 21 — o 67 e frio declarado (nenhum
 fixture "converge" dissipando mais do que recebe), e o 65 aparece so por um
 comentario no `prevoo.py`, com os tres guardas reais cobertos. Com a variante
 `bypass_de_regulador`, no mesmo dia: 44 e 20, o 69 quente; com `laco_por_transformador`, 45 e 20, o
-70 quente. A V33 caiu em 35 das 99 bases num guarda frio, com a
-suite verde.
+70 quente. Em 24/09/2026, com os achados 71 a 78 e as variantes
+`r1_preenchimento`, `chave_com_codigo_de_trecho` e `curva_com_ponto_zerado`:
+53 e 27 — os guardas do 75 a 78 no ciclo estao quentes; frios so os do
+`modulo7.py`, que o ciclo nao roda. A V33 caiu em 35 das 99 bases num guarda
+frio, com a suite verde.
 
 Fixture nova que ligue um achado vai em `VARIANTES`, no `testes/fixture.py` —
 uma variante por achado, mudando o minimo sobre o caso normal.

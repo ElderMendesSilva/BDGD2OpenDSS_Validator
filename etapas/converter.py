@@ -440,7 +440,8 @@ def _uma_se(C, se, k):
     # subestacao inteira (achado 28)
     n_ch, abertas, ch_ilhadas, barras_chave = chaves.gerar(
         b, ctmts, os.path.join(d, 'Chaves.dss'),
-        os.path.join(d, 'Controles.dss'), barras=barras, log=print)
+        os.path.join(d, 'Controles.dss'), barras=barras, log=print,
+        trechos={c for v in pares_mt.values() for c, _, _ in v})
     # ACHADO 57. Quem decide a inversao de PACs e a rede de media da BASE
     # INTEIRA, decidida uma vez em `main` — e nao a desta subestacao. Com o
     # recorte local, um trafo cujo PAC_1 esta na media da subestacao VIZINHA
@@ -968,9 +969,16 @@ def main():
     mapa_cnd, n_lc, corr_cnd = linecodes.gerar(b, os.path.join(tmp, 'LineCodes.dss'))
     print(f'  {n_lc} condutores', flush=True)
     if corr_cnd:
-        km_c = sum(1 for _ in corr_cnd)
-        print(f'  {km_c} com R1 incoerente com a ampacidade — resistencia '
-              f'substituida pelo ajuste da propria base (ver LineCodes.dss)', flush=True)
+        pre = [c for c in corr_cnd if c.get('motivo') == 'preenchimento']
+        n_pre = len(pre)
+        km_c = len(corr_cnd) - n_pre
+        if km_c:
+            print(f'  {km_c} com R1 incoerente com a ampacidade — resistencia '
+                  f'substituida pelo ajuste da propria base (ver LineCodes.dss)', flush=True)
+        if n_pre:
+            print(f'  ACHADO 76: {n_pre} condutores com R1 de PREENCHIMENTO '
+                  f'({pre[0]["r1_bdgd"]} ohm/km) — trocado pelo ajuste do resto '
+                  f'da SEGCON ou pela referencia', flush=True)
     # --- quem e esta base, segundo ela propria
     # `BASE.DIST` e o codigo ANEEL da distribuidora, e esta em todas as sete
     # bases conferidas. E dado, nao inferencia pelo nome do arquivo.
@@ -991,7 +999,7 @@ def main():
                                         and dist_base != str(a.clima_dist))
                    else 'medido' if clima else 'sintetico')
     nomes_curva, _irr, _cel = complementos.curvas(
-        b, os.path.join(tmp, 'Curvas.dss'), a.dia, clima)
+        b, os.path.join(tmp, 'Curvas.dss'), a.dia, clima, log=log)
     fc_gd = complementos.fc_efetivo(_irr, _cel)
     print(f'  fator de capacidade da curva solar: {fc_gd:.4f} '
           f'(pmpp = {1/fc_gd:.2f}x a potencia media)', flush=True)

@@ -34,6 +34,7 @@ Quem for usar hoje: abra e troque as constantes do topo.
 | `mt_completude.py` | A rede de MT do modelo bate com a que a BDGD declara? Refutou "rede faltando na Light" (100,0% presente). |
 | `at_ligacao.py` | Como o `UNTRAT` liga na rede de AT: por `PAC` ou por `BARR`. Descobriu que `PAC` casa 94,2% na Enel SP e **0,0%** na Light. |
 | `r1_bases.py` | R1 mediano e ponderado por km, por base. |
+| `censo_v40.py` | Quatro censos de BDGD, uma linha por base: R1 de preenchimento (achado 76), declaração de perda degenerada (75), chave com o código de um trecho (77) e ponto isolado zerado na curva de carga (78). Job: `cluster/censo_v40.pbs`. |
 
 ## O que fazer com eles
 

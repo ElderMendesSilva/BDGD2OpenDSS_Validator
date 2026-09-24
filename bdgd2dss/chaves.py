@@ -69,7 +69,8 @@ def bypass_de_regulador(bdgd, ctmts, log=None):
     return pares
 
 
-def gerar(bdgd, ctmts, caminho_chaves, caminho_controles, barras=None, log=None):
+def gerar(bdgd, ctmts, caminho_chaves, caminho_controles, barras=None, log=None,
+          trechos=None):
     """`barras` sao os nos que a rede de media tensao ja criou.
 
     Chave cujos DOIS PACs estao fora dela nao liga nada: cria uma ilha de duas
@@ -105,6 +106,14 @@ def gerar(bdgd, ctmts, caminho_chaves, caminho_controles, barras=None, log=None)
     n_emitidas = 0          # nao contar por len(ch): o arquivo tem avisos
     criadas = set()          # barras que as chaves emitidas trazem
     rede = set(barras) if barras else None
+    # ACHADO 77 — CHAVE COM O CODIGO DE UM TRECHO. `COD_ID` e unico dentro
+    # de uma tabela, nao entre tabelas (o mesmo defeito do nome das linhas de
+    # BT, em `linhas.gerar_bt`). Na Cosern, 93 codigos da UNSEMT sao tambem
+    # codigos da SSDMT; os dois viravam `Line.<cod>`, o OpenDSS recusava o
+    # segundo (#266) e duas subestacoes (CCO, MCV) sairam NAO_COMPILA na V39.
+    # So a chave que colide ganha prefixo: nas outras bases nada muda de nome.
+    trechos = {t.lower() for t in trechos} if trechos else set()
+    renomeadas = []
     for i in range(n):
         b1 = no(col['PAC_1'][i])
         b2 = no(col['PAC_2'][i])
@@ -114,6 +123,9 @@ def gerar(bdgd, ctmts, caminho_chaves, caminho_controles, barras=None, log=None)
             ilhadas.append(txt(col['COD_ID'][i]))
             continue
         nome = txt(col['COD_ID'][i])
+        if nome.lower() in trechos:
+            renomeadas.append(nome)
+            nome = f'CH_{nome}'
         nd = nos(col['FAS_CON'][i])
         nf = max(1, len([c for c in txt(col['FAS_CON'][i]).upper() if c in 'ABC']))
         # A AMPACIDADE DA CHAVE ESTAVA SENDO JOGADA FORA. `COR_NOM` ja era
@@ -153,6 +165,13 @@ def gerar(bdgd, ctmts, caminho_chaves, caminho_controles, barras=None, log=None)
                   f'fechado com regulador em servico e curto no regulador — medido '
                   f'no ESM01 da CPFL: 53,02% de perda com as chaves fechadas, '
                   f'0,75% com elas abertas. Ex.: {", ".join(em_bypass[:3])}')
+    if renomeadas:
+        ch.insert(3, f'! ACHADO 77: {len(renomeadas)} chave(s) com o mesmo COD_ID de '
+                     f'um trecho da SSDMT, emitidas como CH_<cod> — ex.: '
+                     f'{", ".join(renomeadas[:3])}')
+        if log:
+            log(f'  ACHADO 77: {len(renomeadas)} chave(s) com o codigo de um trecho '
+                f'de MT — renomeadas CH_<cod>')
     if ilhadas:
         # dito no proprio arquivo: chave suprimida em silencio e chave que
         # ninguem sabe que faltou

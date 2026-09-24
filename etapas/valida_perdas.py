@@ -393,35 +393,52 @@ def main():
                 continue
             pares.append(reg)
 
-    if not pares:
-        raise SystemExit('nenhum alimentador casou entre modelo e CTMT')
-
-    raz = [m / d for _, _, m, d, _, _ in pares if d > 0]
+    # SEM PAR NENHUM, A ANCORA DE FORA CONTINUA — achado 75. Ate a V39 isto
+    # era um `SystemExit`, e ele levava junto a comparacao com a ANEEL, que
+    # nao depende da CTMT. Nove bases sairam da V39 sem ancora nenhuma, entre
+    # elas a Cosern, a Elektro e a Energisa MS: a Cosern declara `PERD_A4` na
+    # casa de 0,001% (mediana de 342 alimentadores), nenhum passa o corte, o
+    # validador morria — e o modelo dela, com perda de MT acima da perda
+    # regulatoria do sistema INTEIRO, atravessou a rodada sem reprovar.
     pop = concordancia.populacao(no_modelo, len(todos),
                                  b_sem_decl, b_sem_ene, b_ambos)
-    print(f'{len(pares):,} alimentadores na amostra principal, {len(todos):,} '
-          f'comparaveis de {no_modelo:,} no modelo '
-          f'({pop["cobertura_pct"]:.1f}% de cobertura)\n')
-    print(f'{"perdas % do modelo":>22s}: mediana '
-          f'{statistics.median([m for _, _, m, _, _, _ in pares]):6.2f}%')
-    print(f'{"perdas % declarado":>22s}: mediana '
-          f'{statistics.median([d for _, _, _, d, _, _ in pares]):6.2f}%')
-    print()
-    r = sorted(raz)
-    print(f'razao modelo/declarado: mediana {statistics.median(r):5.2f}x  '
-          f'p10 {r[len(r)//10]:5.2f}x  p90 {r[9*len(r)//10]:5.2f}x')
-    for lim in (1.5, 2.0, 3.0):
-        print(f'   acima de {lim:.1f}x: {sum(1 for x in r if x > lim):5,} '
-              f'({100*sum(1 for x in r if x > lim)/len(r):5.1f}%)')
-    print(f'   abaixo de 0,67x: {sum(1 for x in r if x < 0.67):5,} '
-          f'({100*sum(1 for x in r if x < 0.67)/len(r):5.1f}%)')
+    quatro = [(m, d, k, e) for _, _, m, d, k, e in todos]
+    base_da_ancora = 'comparados'
+    if not pares:
+        print(f'nenhum alimentador com declaracao plausivel ({MIN_DECL}% a '
+              f'{MAX_DECL}%): sem comparacao por alimentador')
+        if not quatro:
+            # sem declaracao nenhuma, a ancora usa o modelo inteiro: e a
+            # unica populacao que resta, e o arquivo diz que foi ela
+            quatro = [(v['perdas_pct'], 0.0, v['kWh'], 0.0)
+                      for se in modelo
+                      for v in (se.get('alimentadores') or {}).values()
+                      if v['perdas_pct'] is not None]
+            base_da_ancora = 'modelo_inteiro'
+    else:
+        raz = [m / d for _, _, m, d, _, _ in pares if d > 0]
+        print(f'{len(pares):,} alimentadores na amostra principal, {len(todos):,} '
+              f'comparaveis de {no_modelo:,} no modelo '
+              f'({pop["cobertura_pct"]:.1f}% de cobertura)\n')
+        print(f'{"perdas % do modelo":>22s}: mediana '
+              f'{statistics.median([m for _, _, m, _, _, _ in pares]):6.2f}%')
+        print(f'{"perdas % declarado":>22s}: mediana '
+              f'{statistics.median([d for _, _, _, d, _, _ in pares]):6.2f}%')
+        print()
+        r = sorted(raz)
+        print(f'razao modelo/declarado: mediana {statistics.median(r):5.2f}x  '
+              f'p10 {r[len(r)//10]:5.2f}x  p90 {r[9*len(r)//10]:5.2f}x')
+        for lim in (1.5, 2.0, 3.0):
+            print(f'   acima de {lim:.1f}x: {sum(1 for x in r if x > lim):5,} '
+                  f'({100*sum(1 for x in r if x > lim)/len(r):5.1f}%)')
+        print(f'   abaixo de 0,67x: {sum(1 for x in r if x < 0.67):5,} '
+              f'({100*sum(1 for x in r if x < 0.67)/len(r):5.1f}%)')
 
     # AS TRES MEDIDAS, sobre `todos` — a amostra SEM o corte de
     # plausibilidade. O numero acima depende da escolha do corte tanto
     # quanto do modelo (a Light vai de 1,38x a 0,26x e atravessa o 1,0),
     # e o corte so peneirava a DECLARACAO: modelo com 11.224% de perda
     # passava direto. Ver `bdgd2dss/concordancia.py`.
-    quatro = [(m, d, k, e) for _, _, m, d, k, e in todos]
     print()
     for _l in concordancia.linhas(quatro, pop=pop):
         print(_l)
@@ -473,6 +490,10 @@ def main():
     # diferentes ficariam indistinguiveis no disco.
     json.dump({'parcelas': parc,
                'populacao': pop,
+               # achado 75: sem par plausivel, a ancora sai do mesmo jeito,
+               # e o arquivo diz sobre QUAIS alimentadores ela foi medida
+               'comparacao_por_alimentador': bool(pares),
+               'base_da_ancora': base_da_ancora,
                'referencia_externa': ext,
                # nomeados e nao so contados, e sem teto silencioso: se um
                # dia forem 5.000, o arquivo tem 5.000 linhas e quem le

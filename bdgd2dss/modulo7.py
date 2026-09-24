@@ -44,7 +44,7 @@ import math
 import numpy as np
 
 from .leitor import num, txt
-from . import tensoes
+from . import complementos, tensoes
 
 PC_W = {'eletromecanico': 1.0, 'eletronico': 0.5}
 # INFERIDO, a confirmar no manual da BDGD — ver o cabecalho.
@@ -136,7 +136,8 @@ def _resistencias(bdgd):
     from . import linecodes
     s = bdgd.ler('SEGCON', ['COD_ID', 'R1', 'CNOM'])
     pares = [(num(r), num(c)) for r, c in zip(s['R1'], s['CNOM'])]
-    aj = linecodes._ajuste(pares) if linecodes.FATOR_CORRIGE else None
+    aj, preench = (linecodes.calibracao(pares) if linecodes.FATOR_CORRIGE
+                   else (None, None))
     out = {}
     for cod, r1, cnom in zip(s['COD_ID'], s['R1'], s['CNOM']):
         r1, cnom = num(r1), num(cnom)
@@ -144,7 +145,9 @@ def _resistencias(bdgd):
             continue
         if aj and cnom > 0:
             prev = math.exp(aj[1]) * cnom ** aj[0]
-            if r1 > linecodes.FATOR_CORRIGE * prev:
+            # achado 76: o valor de preenchimento sai sempre
+            if (r1 > linecodes.FATOR_CORRIGE * prev
+                    or (preench is not None and round(r1, 4) == preench)):
                 r1 = prev
         out[txt(cod)] = r1
     return out
@@ -156,7 +159,9 @@ def _curvas(bdgd):
                    [f'POT_{i:02d}' for i in range(1, PASSOS + 1)])
     out = {}
     for i in range(len(col['COD_ID'])):
-        v = np.array([num(col[f'POT_{k:02d}'][i]) for k in range(1, PASSOS + 1)])
+        # achado 78: o mesmo preenchimento do Curvas.dss
+        v = np.array(complementos.completar(
+            [num(col[f'POT_{k:02d}'][i]) for k in range(1, PASSOS + 1)])[0])
         if v.mean() > 0:
             out[(txt(col['COD_ID'][i]), txt(col['TIP_DIA'][i]).upper())] = v / v.mean()
     return out

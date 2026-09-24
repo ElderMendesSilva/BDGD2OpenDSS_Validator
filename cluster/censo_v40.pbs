@@ -1,0 +1,20 @@
+#!/bin/bash
+# Quatro censos de BDGD antes da V40: R1 de preenchimento (achado 76),
+# declaracao de perda degenerada (achado 75) e codigo repetido entre chave e
+# trecho de MT (achado 77) e ponto zerado na curva de carga (achado 78).
+#
+#     qsub -N censo -q BIRA_Q3 -l nodes=1:ppn=8 -l mem=32gb \
+#          -l walltime=01:00:00 -j oe -o logs/cluster/ \
+#          -v "PROJETO=$PWD,BASES_CENSO=$HOME/elder/bdgds_2025" cluster/censo_v40.pbs
+set -uo pipefail
+cd "${PBS_O_WORKDIR:-$PROJETO}"
+source .venv/bin/activate
+export BDGD2DSS_MODO=cluster
+BASES="${BASES_CENSO:?passe BASES_CENSO por -v}"
+echo "## censo V40 — $(date)"
+mkdir -p medicoes
+python -u diagnosticos/censo_v40.py --pasta "$BASES" \
+    --jobs "${PBS_NP:-4}" --saida-json "medicoes/censo_v40.json"
+rc=$?
+echo "## fim $(date)  (rc=$rc)"
+exit $rc
