@@ -2576,6 +2576,36 @@ alimentador.
   forte que sobrou — e a medida por média de fases pode enganar onde as fases
   mudam, então ela precisa de confirmação fase a fase.
 
+## Achado 81 — o trafo de serviço do regulador no caminho da potência
+
+Na CPFL Santa Cruz a entrada de cada banco regulador fica atrás de uma
+`UNTRMT` de **11,4 kV para 11,4 kV com 2,5 a 12,5 kVA** — o trafo de serviço
+do controle do regulador, cadastrado no caminho da potência. Modelado como
+transformador, ele estrangula tudo o que vem depois: na ITS, 1.637 barras de MT
+a 0,02 pu atrás de um de 2,5 kVA; na AVN, 11.877 barras abaixo de 0,5 pu. As
+**seis** subestações `TENSAO_IMPLAUSIVEL` da CPFL_SANTA69 na V39 são esta
+forma. A base tem 54 dessas `UNTRMT`, 17 na entrada de regulador.
+
+A regra (`transformadores.gerar`): relação 1:1 (±10%) entre dois níveis de MT,
+até 100 kVA, e secundário que **continua a rede de MT** — PAC de trecho, de
+chave ou de regulador — vira ligação direta (`Line.TR11_<cod>`). A terceira
+condição separa o trafo de distribuição com `TEN_LIN_SE` de MT por erro de
+cadastro, que tem carga de BT no secundário e continua trafo (o `TR2` da
+mínima). Variante `trafo_de_servico`.
+
+Base inteira, ciclo local, com os achados 76 a 81:
+
+| CPFL_SANTA69 | V39 | com o 81 |
+|---|---:|---:|
+| subestações sadias | 34/40 | 39/40 |
+| perda contra a ANEEL | 4,13% (0,61×) | 6,31% (0,94×) |
+
+A perda sobe porque a rede que existia volta a existir — a V39 media só o
+pedaço vivo. O que ela deixa à vista: a rede acordada é fraca (na ITS, todos
+os reguladores no tap máximo e a MT a 0,6–0,9 pu), e as barras de entrada dos
+reguladores têm nomes de OUTRAS subestações (CPA, VTA, GUA, REC, ALP) — pode
+ser rede que em campo é alimentada pelo outro lado. Fica para investigar.
+
 ## Achado 80 — o monofásico que já declara a tensão de linha
 
 O voto do parque (achado 49, `tensoes.por_equipamento`) lê o `TEN_PRI` do

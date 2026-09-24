@@ -8,6 +8,16 @@ número, estão em [docs/ACHADOS_GENERALIZACAO.md](docs/ACHADOS_GENERALIZACAO.md
 
 ## 1.1.0 — em aberto (safra 2025-12-31)
 
+### Trafo de serviço do regulador no caminho da potência (achado 81)
+
+`UNTRMT` de MT para MT, 1:1, até 100 kVA, com o secundário continuando a rede
+de MT, vira ligação direta. CPFL Santa Cruz, base inteira: sadias de 34 para
+39 de 40, perda de 4,13% para 6,31% (0,61× para 0,94× a ANEEL). Nova variante
+`trafo_de_servico`; o censo ganha o sexto item.
+
+O que NAO faz: não fortalece a rede que acorda — na ITS os reguladores
+saturam no tap máximo e a MT fica entre 0,6 e 0,9 pu.
+
 ### O monofásico que já declara a tensão de linha (achado 80)
 
 O voto do parque (achado 49) multiplicava por √3 o `TEN_PRI` de todo

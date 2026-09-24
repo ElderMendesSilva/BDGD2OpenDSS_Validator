@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Cinco censos de BDGD antes da V40, uma linha por base. So le a BDGD.
+"""Seis censos de BDGD antes da V40, uma linha por base. So le a BDGD.
 
     python diagnosticos/censo_v40.py --pasta ~/elder/bdgds_2025 --jobs 8 \\
         --saida-json medicoes/censo_v40.json
@@ -26,6 +26,11 @@
    alimentadores o voto do parque (`tensoes.por_equipamento`) decide numa
    tensao diferente com e sem a trava do achado 80, e para qual. Na V39 as
    Energisa foram a 59,8 kV (34,5 x raiz(3)).
+
+6. TRAFO DE MT PARA MT, 1:1, DE POUCOS kVA (achado 81). UNTRMT com
+   TEN_LIN_SE de MT (>= 1 kV) e ate 100 kVA: quantos, e quantos com o
+   secundario num PAC de regulador. Na CPFL Santa Cruz sao o trafo de servico
+   do controle do regulador, cadastrado no caminho da potencia.
 """
 import argparse
 import concurrent.futures as cf
@@ -135,6 +140,21 @@ def uma(gdb):
     except Exception as e:                                         # noqa: BLE001
         r['voto'] = {'erro': f'{type(e).__name__}: {e}'[:200]}
 
+    # 6. UNTRMT de MT para MT, poucos kVA
+    try:
+        u = b.ler('UNTRMT', ['COD_ID', 'PAC_2', 'POT_NOM', 'TEN_LIN_SE'])
+        try:
+            rg = b.ler('UNREMT', ['PAC_1', 'PAC_2'])
+            pacs = {txt(x).strip() for x in list(rg['PAC_1']) + list(rg['PAC_2'])}
+        except Exception:                                          # noqa: BLE001
+            pacs = set()
+        mt = [(txt(p).strip(), num(k)) for p, k, t in
+              zip(u['PAC_2'], u['POT_NOM'], u['TEN_LIN_SE'])
+              if num(t) >= 1.0 and 0 < num(k) <= 100.0]
+        r['mt_mt'] = {'n': len(mt), 'no_regulador': sum(1 for p, _ in mt if p in pacs)}
+    except Exception as e:                                         # noqa: BLE001
+        r['mt_mt'] = {'erro': f'{type(e).__name__}: {e}'[:200]}
+
     r['segundos'] = round(time.time() - t0, 1)
     return r
 
@@ -154,6 +174,7 @@ def main(argv=None):
             sg, ct, nm = r.get('segcon') or {}, r.get('ctmt') or {}, r.get('nomes') or {}
             cv = r.get('curvas') or {}
             vt = r.get('voto') or {}
+            mm = r.get('mt_mt') or {}
             print(f'  {r["gdb"][:34]:34s} R1topo={sg.get("r1_topo")} '
                   f'({sg.get("fatia_topo")}) exp={sg.get("expoente")} '
                   f'PREENCH={sg.get("preenchimento")} | decl med='
@@ -161,6 +182,7 @@ def main(argv=None):
                   f'{ct.get("com_energia")} | repetidos={nm.get("repetidos")} '
                   f'| zero isolado={cv.get("com_zero_isolado")}/{cv.get("n")} '
                   f'| voto muda={vt.get("mudam")} {vt.get("como", "")} '
+                  f'| MT/MT={mm.get("n")} (regulador {mm.get("no_regulador")}) '
                   f'{r.get("erro", "")}', flush=True)
             with open(a.saida_json, 'w', encoding='utf-8') as fh:
                 json.dump({'bases': res}, fh, ensure_ascii=False, indent=1)

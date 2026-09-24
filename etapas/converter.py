@@ -446,11 +446,12 @@ def _uma_se(C, se, k):
     # INTEIRA, decidida uma vez em `main` — e nao a desta subestacao. Com o
     # recorte local, um trafo cujo PAC_1 esta na media da subestacao VIZINHA
     # parecia estar fora dela e era trocado por engano.
+    rede_tr11 = set(barras) | set(barras_chave)      # achado 81
     n_tr, sec, tr_invertidos = transformadores.gerar(
         b, ctmts, os.path.join(d, 'Trafos.dss'),
         os.path.join(d, '_ATERRAMENTO.dss'), a.kv_mt, kv_por_ctmt,
         invertidos=C['tr_invertidos'], log=print,
-        caminho_posse=os.path.join(d, '_POSSE.dss'))
+        caminho_posse=os.path.join(d, '_POSSE.dss'), rede_mt=rede_tr11)
     # Conjunto de pontos de conexao que a rede realmente tem. Um shunt
     # (carga, banco, PVSystem) num PAC ausente daqui cria a barra sozinho,
     # a ilha fica sem fonte e a solucao devolve NaN — foi o que travava a
@@ -461,7 +462,7 @@ def _uma_se(C, se, k):
     # pela SSDMT, os dois lados caiam fora e o regulador era descartado
     # inteiro — cortando o tronco logo depois da cabeceira. Medido na
     # Cemig-D: 62% das barras de MT ficavam inalcancaveis.
-    barras_rede = set(barras) | set(sec) | set(barras_chave)
+    barras_rede = set(barras) | set(sec) | set(barras_chave) | rede_tr11
     barras_bt = set()          # so o --bt completo a preenche
 
     n_cp = complementos.capacitores(b, ctmts, os.path.join(d, 'Capacitores.dss'),

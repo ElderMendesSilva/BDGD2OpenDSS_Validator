@@ -495,8 +495,55 @@ def _curva_com_ponto_zerado(t):
     c['POT_96'] = _flt(*[0.0] * len(c['POT_96']))
 
 
+def _trafo_de_servico(t):
+    """ACHADO 81: a entrada do regulador atras de um "trafo" 13,8/13,8 kV de
+    5 kVA — o trafo de servico do controle, cadastrado no caminho da potencia.
+
+    Depois da B3 do F1: TS (UNTRMT, 5 kVA, secundario de MT) ate a R1, o
+    regulador RG1 ate a R2, a chave CS ate a B4 e o trecho S5 ate a B5, onde
+    fica a carga M1. A forma das seis subestacoes TENSAO_IMPLAUSIVEL da
+    CPFL_SANTA69 na V39: modelado como trafo, os 5 kVA estrangulam a carga.
+    """
+    u = t['UNSEMT']
+    u['COD_ID'] = _obj('CHM1', 'CS')
+    u['PAC_1'] = _obj('B2', 'R2')
+    u['PAC_2'] = _obj('B3', 'B4')
+    u['CTMT'] = _obj('F1', 'F1')
+    u['FAS_CON'] = _obj('ABC', 'ABC')
+    u['P_N_OPE'] = _obj('F', 'F')
+    u['COR_NOM'] = _flt(400.0, 400.0)
+    u['TIP_UNID'] = _obj('35', '35')
+    s = t['SSDMT']
+    s['COD_ID'] = _obj(*s['COD_ID'], 'S5')
+    s['PAC_1'] = _obj(*s['PAC_1'], 'B4')
+    s['PAC_2'] = _obj(*s['PAC_2'], 'B5')
+    s['CTMT'] = _obj(*s['CTMT'], 'F1')
+    s['TIP_CND'] = _obj(*s['TIP_CND'], 'C1')
+    s['COMP'] = _flt(*s['COMP'], 200.0)
+    s['FAS_CON'] = _obj(*s['FAS_CON'], 'ABC')
+    tr = t['UNTRMT']
+    for k in tr:
+        v = {'COD_ID': 'TS', 'PAC_1': 'B3', 'PAC_2': 'R1', 'CTMT': 'F1',
+             'POT_NOM': 5.0, 'TEN_LIN_SE': 13.8, 'FAS_CON_P': 'ABC',
+             'FAS_CON_S': 'ABC'}.get(k)
+        tr[k] = (_flt if tr[k].dtype != object else _obj)(*tr[k], v)
+    eq = t['EQTRMT']
+    for k in eq:
+        v = {'UNI_TR_MT': 'TS', 'R': 1.0, 'XHL': 3.0, 'POT_NOM': 5.0}.get(k)
+        eq[k] = (_flt if eq[k].dtype != object else _obj)(*eq[k], v)
+    t['UNREMT'] = {
+        'COD_ID': _obj('RG1',),
+        'PAC_1': _obj('R1',),
+        'PAC_2': _obj('R2',),
+        'CTMT': _obj('F1',),
+        'FAS_CON': _obj('ABC',),
+    }
+    t['UCMT_tab']['PAC'] = _obj('B5', 'B11')
+
+
 VARIANTES = {
     'bypass_de_regulador': _bypass_de_regulador,
+    'trafo_de_servico': _trafo_de_servico,
     'chave_com_codigo_de_trecho': _chave_com_codigo_de_trecho,
     'curva_com_ponto_zerado': _curva_com_ponto_zerado,
     'r1_preenchimento': _r1_preenchimento,

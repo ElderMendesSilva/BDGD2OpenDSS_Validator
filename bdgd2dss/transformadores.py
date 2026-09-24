@@ -500,9 +500,26 @@ def _inverte_pacs(col, invertidos):
 # que e da distribuidora apagaria perda de verdade.
 POSSE_CONSUMIDOR = frozenset({'O', 'CS'})
 
+# ---------------------------------------------------------------------------
+# ACHADO 81 — O "TRANSFORMADOR" DE MT PARA MT, 1:1, DE POUCOS kVA
+# ---------------------------------------------------------------------------
+# Na CPFL Santa Cruz, a entrada de cada banco regulador fica atras de uma
+# UNTRMT de 11,4 kV para 11,4 kV com 2,5 a 12,5 kVA — o trafo de servico do
+# controle do regulador, cadastrado NO CAMINHO DA POTENCIA. Modelado como
+# transformador, ele estrangula tudo o que vem depois: na ITS, 1.637 barras de
+# MT a 0,02 pu atras de um de 2,5 kVA; na AVN, 11.877 barras abaixo de 0,5 pu.
+# As seis subestacoes TENSAO_IMPLAUSIVEL da CPFL_SANTA69 na V39 sao esta forma.
+#
+# Relacao 1:1 entre dois niveis de MT com potencia de trafo de poste nao e
+# transformador de rede: vira ligacao direta (`Line.TR11_<cod>`, chave de
+# impedancia desprezivel), dita no arquivo. Trafo de isolamento de verdade
+# teria MVA, e fica acima do teto.
+KVA_MAX_UM_PRA_UM = 100.0
+
 
 def gerar(bdgd, ctmts, caminho_trafos, caminho_aterramento, kv_mt=13.8,
-          kv_por_ctmt=None, invertidos=None, log=None, caminho_posse=None):
+          kv_por_ctmt=None, invertidos=None, log=None, caminho_posse=None,
+          rede_mt=None):
     """`kv_por_ctmt` da a tensao primaria de cada alimentador; `kv_mt` e o
     padrao para quem nao estiver no mapa.
 
@@ -561,6 +578,21 @@ def gerar(bdgd, ctmts, caminho_trafos, caminho_aterramento, kv_mt=13.8,
            '! ==========================================================']
     sec = {}                       # barra BT -> info para as cargas
     aterrar = set()
+    um_pra_um = []                 # achado 81
+    # A REDE DE MT QUE CONTINUA DEPOIS DO SECUNDARIO. `rede_mt` (trechos e
+    # chaves) mais os PACs dos reguladores: e a entrada do regulador que o
+    # trafo de servico alimenta. Sem ela nada vira ligacao — um trafo de
+    # distribuicao com TEN_LIN_SE de MT por erro de cadastro, e carga de BT
+    # no secundario, continua trafo. As barras das ligacoes entram em
+    # `rede_mt`: o regulador so nao era pendurado porque a entrada dele era
+    # secundario de trafo.
+    continua_mt = set(rede_mt) if rede_mt is not None else set()
+    if rede_mt is not None:
+        try:
+            _rg = bdgd.ler_filtrado('UNREMT', 'CTMT', ctmts, ['PAC_1', 'PAC_2'])
+            continua_mt |= {no(x) for x in list(_rg['PAC_1']) + list(_rg['PAC_2'])}
+        except Exception:                                # noqa: BLE001
+            pass
     n_norm = 0
     for i in range(n):
         cod = txt(col['COD_ID'][i])
@@ -593,6 +625,21 @@ def gerar(bdgd, ctmts, caminho_trafos, caminho_aterramento, kv_mt=13.8,
         # deste achado os ramos monofasicos escreviam sempre kvp/raiz(3),
         # porque na pratica so caiam neles com FAS_CON_P de uma letra.
         kv_prim = kvp if len(fp) >= 2 else kvp / (3 ** 0.5)
+        # ACHADO 81: MT para MT, 1:1, poucos kVA — ligacao, e nao trafo
+        if (tl >= 1.0 and kvp and abs(tl - kvp) <= 0.1 * kvp
+                and kva <= KVA_MAX_UM_PRA_UM and b2 in continua_mt):
+            um_pra_um.append(cod)
+            rede_mt.add(b1)
+            rede_mt.add(b2)
+            # o `_POSSE.dss` editaria um Transformer que nao existe mais, e
+            # `Edit` de elemento ausente aborta a compilacao
+            if de_consumidor and de_consumidor[-1] == cod:
+                de_consumidor.pop()
+            out.append(f'New Line.TR11_{cod} phases={len(fp)} '
+                       f'Bus1={b1}{nd_p} Bus2={b2}{nd_p} Switch=y r1=0.0001 '
+                       f'r0=0.0001 x1=0 x0=0 c1=0 c0=0   ! ACHADO 81: UNTRMT '
+                       f'{cod}, {kvp:g}/{tl:g} kV, {kva:g} kVA')
+            continue
         # Achado 26. `EQTRMT.R` e a resistencia percentual TOTAL do
         # transformador — a perda em carga sobre a nominal. No OpenDSS, `%R` e
         # POR ENROLAMENTO, e a serie total e a soma dos dois; escrever `r` nos
@@ -658,6 +705,14 @@ def gerar(bdgd, ctmts, caminho_trafos, caminho_aterramento, kv_mt=13.8,
                       f'de kVA ({censo_placa.get("sem_substituto", 0):,} sem '
                       f'substituto na base, essas ficaram sem ferro). Ver '
                       f'achado 56 em transformadores.placas_da_base.')
+    if um_pra_um:
+        out.insert(5, f'! ACHADO 81: {len(um_pra_um):,} UNTRMT de MT para MT, '
+                      f'relacao 1:1 e ate {KVA_MAX_UM_PRA_UM:g} kVA, viraram '
+                      f'ligacao direta (Line.TR11_<cod>): trafo de servico no '
+                      f'caminho da potencia estrangulava a rede a jusante.')
+        if log:
+            log(f'  ACHADO 81: {len(um_pra_um):,} trafo(s) MT/MT 1:1 de poucos '
+                f'kVA viraram ligacao direta')
     if invertidos:
         # Achado 54. Vai no arquivo, e nao so no relatorio: quem abre o
         # Trafos.dss e ve um COD_ID diferente do que a UNTRMT diz precisa
