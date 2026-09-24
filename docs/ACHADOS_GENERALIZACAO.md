@@ -2624,6 +2624,18 @@ modelo, e a opção fica desligada. **O modelo por subestação — e a razão c
 a ANEEL, que sai só dos alimentadores de MT — não passa por aqui.** O
 conversor conta as pontas ligáveis em toda base, em `_AT/ligacao_at.json`.
 
+**Corrigidas as três causas no recorte da PA, o teste nacional reprovou**
+(job 37061, 24/09/2026 — estourou as 8 h com 5 das 43 bases, as maiores).
+Com a AT ligada, a CEA foi de 631 kW a **90 MW** de perda no `MASTER-AT`
+(tensão mediana 1,46 pu); a CEEE de 775 kW a 13 MW (mínima 0,99 → 0,30 pu);
+a CPFL a 4,7 GW sem convergir. Nas cinco, piorou. **E o teste mostrou que a
+AT de referência já não é sã em várias bases**: o `MASTER-AT` da V39 da CPFL
+não converge e tem 161 laços incoerentes, o da CPFL Piratininga 75, o da
+Santa Cruz 31, e o `MASTER-GERAL` da V39 dá `Duplicate new element` (#266)
+nas cinco. A camada de AT tem defeitos próprios, anteriores à ligação — é
+trabalho de semana, e a ligação só volta depois deles. Nada disso entra na
+razão contra a ANEEL, que sai dos alimentadores de MT.
+
 ## Achado 73 — o ramal que conduz o que nenhum cabo conduz
 
 A referência da ANEEL soma ramais de ligação e medidores, e o modelo com BT
