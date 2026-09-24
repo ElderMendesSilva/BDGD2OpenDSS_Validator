@@ -67,6 +67,13 @@ GWH_MINUSCULO = 0.5      # denominador pequeno faz qualquer perda virar %
 CONTAMINACAO_ALTA = 10.0   # % da perda vinda de alimentador implausivel
 PERDA_IMPOSSIVEL = 30.0    # % de perda agregada que rede nenhuma tem
 
+# ACHADO 75, a segunda metade: o que ficou mudo na V39 tem de gritar aqui.
+# Nove bases sairam sem ancora externa, 84 subestacoes da Elektro sem o dia,
+# 24,7 MW mortos numa subestacao da Copel — e o relato nao disse nada, porque
+# nada disso reprova. Achou-se varrendo a mao. Estes tres acham sozinhos.
+DIA_INCOMPLETO_ALTO = 10.0  # % das subestacoes sem os 96 passos
+CARGA_MORTA_ALTA = 10.0     # % do kW nominal sem tensao
+
 # As colunas do CSV, nesta ordem. Explicita e nao derivada do dicionario:
 # ordem estavel e o que permite comparar dois CSV de rodadas diferentes com
 # `diff`, e um dicionario reordenado por acaso destruiria isso.
@@ -183,6 +190,7 @@ def colher_base(pasta, base):
     ver = _por_chave(_le(os.path.join(pasta, 'verificacao.json')) or [], 'se')
     ger = _por_chave(_le(os.path.join(pasta, 'resumo_geral.json')) or [], 'SE')
     lig = _le(os.path.join(pasta, 'ligacao.json')) or {}
+    ene = _le(os.path.join(pasta, 'energia_dia.json')) or []
     per = _le(os.path.join(pasta, 'validacao_perdas.json')) or {}
     rede = _le(os.path.join(pasta, 'relatorio_rede.json')) or {}
     proc = _le(os.path.join(pasta, '_procedencia.json')) or {}
@@ -283,6 +291,12 @@ def colher_base(pasta, base):
     linhas.sort(key=lambda x: -(x.get('pct_tecnica_modelo') or 0))
 
     subs_lig = (lig.get('subestacoes') or []) if isinstance(lig, dict) else []
+    # achado 75: o dia que nao fechou, contado aqui como o `valida_perdas`
+    # o conta (`bdgd2dss/dia.py`), sem importar o pacote
+    ene = ene if isinstance(ene, list) else []
+    dia_incompleto = sum(1 for x in ene if isinstance(x, dict) and not (
+        (x.get('passos') or 0) > 0
+        and (x.get('passos_ok') or 0) >= (x.get('passos') or 0)))
     resumo = {
         'base': base,
         'pasta': os.path.basename(pasta),
@@ -312,6 +326,10 @@ def colher_base(pasta, base):
             'chaves_ilhadas': _soma('chaves_ilhadas'),
             'reguladores_pendurados': _soma('reguladores_pendurados'),
             'trafos_pac_invertido': _soma('trafos_pac_invertido'),
+            'dia_incompleto': dia_incompleto,
+            'ses_com_dia': len(ene),
+            'nao_compila': sum(1 for x in val.values()
+                               if isinstance(x, dict) and x.get('compila') is False),
             'kW_morto': round(sum(x.get('kW_morto') or 0 for x in subs_lig), 1),
             'kW_nominal': round(sum(x.get('kW_nominal') or 0
                                     for x in subs_lig), 1),
@@ -431,6 +449,19 @@ def _relata(indice):
     print(f'  contaminada acima de {CONTAMINACAO_ALTA:.0f}%        {len(con):4}'
           + (f'   {", ".join(x["base"] for x in con[:5])}' if con else ''))
     print(f'  com correcao automatica de PAC   {len(corr):4}')
+    # achado 75: o que a V39 deixou passar calado
+    sem = [x for x in indice if x.get('sem_ancora')]
+    dia_ = [x for x in indice if _f(x, 'dia_incompleto_pct') > DIA_INCOMPLETO_ALTO]
+    mor = [x for x in indice if _f(x, 'carga_morta_pct') > CARGA_MORTA_ALTA]
+    nco = [x for x in indice if _f(x, 'nao_compila') > 0]
+    print(f'  com rede e SEM ancora externa    {len(sem):4}'
+          + (f'   {", ".join(x["base"] for x in sem[:6])}' if sem else ''))
+    print(f'  dia incompleto em >{DIA_INCOMPLETO_ALTO:.0f}% das SEs   {len(dia_):4}'
+          + (f'   {", ".join(x["base"] for x in dia_[:6])}' if dia_ else ''))
+    print(f'  carga morta acima de {CARGA_MORTA_ALTA:.0f}% do kW   {len(mor):4}'
+          + (f'   {", ".join(x["base"] for x in mor[:6])}' if mor else ''))
+    print(f'  com subestacao que nao compila   {len(nco):4}'
+          + (f'   {", ".join(x["base"] for x in nco[:6])}' if nco else ''))
     # Zero commit distinto quer dizer rodada nao rastreavel; mais de um quer
     # dizer que ela nao e UMA rodada. Os dois sao defeito.
     print(f'  commits distintos                {len(commits):4}'
@@ -498,6 +529,15 @@ def main(argv=None):
                               .get('reprova'),
             'commit': (resumo['procedencia'] or {}).get('commit'),
             'trafos_pac_invertido': r.get('trafos_pac_invertido'),
+            # achado 75: os que ficavam mudos
+            'sem_ancora': bool(r['ses']) and not (
+                (resumo['perdas'].get('referencia_externa') or {})
+                .get('pct_modelo') is not None),
+            'dia_incompleto_pct': (100.0 * r.get('dia_incompleto', 0)
+                                   / r['ses_com_dia']) if r.get('ses_com_dia') else 0.0,
+            'carga_morta_pct': (100.0 * (r.get('kW_morto') or 0)
+                                / r['kW_nominal']) if r.get('kW_nominal') else 0.0,
+            'nao_compila': r.get('nao_compila', 0),
         })
         print(f'{tag:<8}{r["ses"]:6,}{r["sadias"]:8,}{r["nao_convergiu"]:10,}'
               f'{b["viola_de_verdade"]:8,}'

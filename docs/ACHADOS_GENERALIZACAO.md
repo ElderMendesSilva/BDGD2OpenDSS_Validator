@@ -2695,6 +2695,14 @@ false`), e a âncora sai do mesmo jeito: sobre os alimentadores com declaração
 e energia, como antes, ou — sem declaração nenhuma — sobre o modelo inteiro
 (`base_da_ancora: modelo_inteiro`).
 
+**E o relato do coletor passa a gritar pelo que ficou mudo.** Nada disso
+reprovava, e por isso nada aparecia: foi achado varrendo a mão. O
+`etapas/auditoria.py` conta agora, sozinho, as bases com rede e sem âncora
+externa, com dia incompleto em mais de 10% das subestações, com carga morta
+acima de 10% do kW e com subestação que não compila. Sobre os dois modelos da
+V39 que estão na máquina local, ele aponta a Energisa MT nas duas listas do
+meio — o que a varredura manual de 24/09 tinha achado.
+
 ## Achado 74 — a subtransmissão de 23 bases não toca subestação nenhuma
 
 A Equatorial PA saiu da V39 com **0 trechos de AT** e 96 fontes equivalentes, e
